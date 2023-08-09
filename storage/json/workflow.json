@@ -1,0 +1,21 @@
+{
+    "workflowId":                                                  
+        [
+            {
+                "id":4,
+                "workflow_name":"saf",
+                "is_suspended":"false",
+                "created_by":4
+            },
+            {
+                "id":5,
+                "workflow_name":"SAF-REASSESSMENT",
+                "is_suspended":"false",
+                "created_by":4
+            }
+        ],
+        "departmentId":
+        [
+            
+        ]
+}

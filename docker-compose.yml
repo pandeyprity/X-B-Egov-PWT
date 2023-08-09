@@ -1,0 +1,35 @@
+version: '2.0'
+services:
+ 
+  #PHP Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cloudsigma.com/php
+    container_name: app
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: 
+    networks:
+      - app-network
+ 
+  #MySQL Service
+  db:
+    image: pgsql
+    container_name: db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "5433:5433"
+    environment:
+      MYSQL_DATABASE: juidco
+      MYSQL_ROOT_PASSWORD: 
+      SERVICE_TAGS: dev
+      SERVICE_NAME: pgsql
+    networks:
+      - app-network
+ 
