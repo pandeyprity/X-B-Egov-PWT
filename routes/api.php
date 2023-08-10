@@ -100,154 +100,154 @@ Route::controller(IdGeneratorController::class)->group(function () {
 
 
 // Inside Middleware Routes with API Authenticate 
-// Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
+Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
 
-/**
- * | Api to Check if the User is authenticated or not
- */
-Route::post('/heartbeat', function () {                 // Heartbeat Api
-    return response()->json([
-        'status' => true,
-        'authenticated' => auth()->check()
-    ]);
-});
+    /**
+     * | Api to Check if the User is authenticated or not
+     */
+    Route::post('/heartbeat', function () {                 // Heartbeat Api
+        return response()->json([
+            'status' => true,
+            'authenticated' => auth()->check()
+        ]);
+    });
 
-/**
- * Routes for User 
- * Created By-Anshu Kumar
- * Updated By-Sam Kerketta
- * Created On-20-06-2022 
- * Modified On-27-06-2022 
- */
+    /**
+     * Routes for User 
+     * Created By-Anshu Kumar
+     * Updated By-Sam Kerketta
+     * Created On-20-06-2022 
+     * Modified On-27-06-2022 
+     */
 
-Route::controller(UlbController::class)->group(function () {
-    Route::post('city/state/auth/ulb-id', 'getCityStateByUlb');
-    Route::post('list-ulb-by-district', 'districtWiseUlb');
-    Route::post('list-district', 'districtList');
-});
+    Route::controller(UlbController::class)->group(function () {
+        Route::post('city/state/auth/ulb-id', 'getCityStateByUlb');
+        Route::post('list-ulb-by-district', 'districtWiseUlb');
+        Route::post('list-district', 'districtList');
+    });
 
-Route::controller(UserController::class)->group(function () {
-    Route::post('authorised-register', 'authorizeStore');               // authorised user adding user // 
-    Route::get('test', 'testing');
-    Route::post('logout', 'logOut');
-    Route::post('change-password', 'changePass');                       // Change password with login
-    Route::post('otp/change-password', 'changePasswordByOtp');           // Change Password With OTP   
+    Route::controller(UserController::class)->group(function () {
+        Route::post('authorised-register', 'authorizeStore');               // authorised user adding user // 
+        Route::get('test', 'testing');
+        Route::post('logout', 'logOut');
+        Route::post('change-password', 'changePass');                       // Change password with login
+        Route::post('otp/change-password', 'changePasswordByOtp');           // Change Password With OTP   
 
-    // User Profile APIs
-    Route::get('my-profile-details', 'myProfileDetails');   // For get My profile Details
-    Route::post('edit-my-profile', 'editMyProfile');        // For Edit My profile Details ---->>edited by mrinal method changed from put to post
+        // User Profile APIs
+        Route::get('my-profile-details', 'myProfileDetails');   // For get My profile Details
+        Route::post('edit-my-profile', 'editMyProfile');        // For Edit My profile Details ---->>edited by mrinal method changed from put to post
 
-    Route::post('edit-user', 'update');
-    Route::post('delete-user', 'deleteUser');
-    Route::get('get-user/{id}', 'getUser');
-    Route::get('get-all-users', 'getAllUsers');
-    Route::post('list-employees', 'employeeList');
-    Route::post('get-user-notifications', 'userNotification');
-    Route::post('add-user-notification', 'addNotification');
-    Route::post('delete-user-notification', 'deactivateNotification');
-    Route::post('hash-password', 'hashPassword');
+        Route::post('edit-user', 'update');
+        Route::post('delete-user', 'deleteUser');
+        Route::get('get-user/{id}', 'getUser');
+        Route::get('get-all-users', 'getAllUsers');
+        Route::post('list-employees', 'employeeList');
+        Route::post('get-user-notifications', 'userNotification');
+        Route::post('add-user-notification', 'addNotification');
+        Route::post('delete-user-notification', 'deactivateNotification');
+        Route::post('hash-password', 'hashPassword');
 
-    // Route are authorized for super admin only using Middleware 
-    Route::group(['middleware' => ['can:isSuperAdmin']], function () {
-        // Route::put('edit-user/{id}', 'update');
-        // Route::delete('delete-user', 'deleteUser');
-        // Route::get('get-user/{id}', 'getUser');
-        // Route::get('get-all-users', 'getAllUsers');
+        // Route are authorized for super admin only using Middleware 
+        Route::group(['middleware' => ['can:isSuperAdmin']], function () {
+            // Route::put('edit-user/{id}', 'update');
+            // Route::delete('delete-user', 'deleteUser');
+            // Route::get('get-user/{id}', 'getUser');
+            // Route::get('get-all-users', 'getAllUsers');
+        });
+    });
+
+
+    /**
+     * Routes for Ulbs
+     * Created By-Anshu Kumar
+     * Creation Date-02-07-2022 
+     * Modified On-
+     */
+    Route::controller(UlbController::class)->group(function () {
+        Route::post('save-ulb', 'store');
+        Route::put('edit-ulb/{id}', 'edit');
+        Route::get('get-ulb/{id}', 'view');
+        Route::delete('delete-ulb/{id}', 'deleteUlb');
+    });
+
+    /**
+     * Routes for Workflows
+     * Created By-Anshu Kumar
+     * Creation Date-06-07-2022 
+     * Modified On-
+     */
+    Route::controller(WorkflowController::class)->group(function () {
+        Route::post('add-workflow', 'storeWorkflow');
+        Route::get('view-workflow/{id}', 'viewWorkflow');
+        Route::put('edit-workflow/{id}', 'updateWorkflow');
+        Route::delete('delete-workflow/{id}', 'deleteWorkflow');
+        Route::get('all-workflows', 'getAllWorkflows');
+
+        Route::post('workflow-candidate', 'storeWorkflowCandidate');
+        Route::get('view-workflow-candidates/{id}', 'viewWorkflowCandidates');
+        Route::get('all-workflow-candidates', 'allWorkflowCandidates');
+        Route::put('edit-workflow-candidates/{id}', 'editWorkflowCandidates');
+        Route::delete('delete-workflow-candidates/{id}', 'deleteWorkflowCandidates');
+        Route::get('gen/workflow/workflow-candidates/{ulbworkflowid}', 'getWorkflowCandidatesByUlbWorkflowID');  // Get Workflow Candidates by ulb-workflow-id
+    });
+
+    // Workflow Roles Rest Apis
+    Route::resource('workflow/workflow-roles', UlbWorkflowRolesController::class);
+
+    /**
+     * APIs for Module Master
+     * Created By-Anshu Kumar
+     * Creation Date-14-07-2022
+     * Modified By-
+     */
+    Route::resource('crud/module-masters', ModuleController::class);
+
+    /**
+     * Api route for Ulb Module Master
+     * CreatedBy-Anshu Kumar
+     * Creation Date-14-07-2022 
+     * Modified By-
+     */
+    Route::resource('crud/ulb-workflow-masters', UlbWorkflowController::class);
+
+    // Get Ulb Workflow details by Ulb Ids
+    Route::get('admin/workflows/{ulb_id}', [UlbWorkflowController::class, 'getUlbWorkflowByUlbID']);
+
+    // Workflow Track
+    Route::controller(WorkflowTrackController::class)->group(function () {
+        Route::post('save-workflow-track', 'store');                                                                         // Save Workflow Track Messages
+        Route::post('get-workflow-track', 'getWorkflowTrackByID');                                                       // Get Workflow Track Message By TrackID
+        Route::post('gen/workflow-track', 'getWorkflowTrackByTableIDValue');                     // Get WorkflowTrack By TableRefID and RefTableValue
+
+        //changes by mrinal
+        Route::post('workflow-track/getNotificationByCitizenId', 'getNotificationByCitizenId');
+    });
+
+    // Citizen Register
+    Route::controller(CitizenController::class)->group(function () {
+        Route::get('get-citizen-by-id/{id}', 'getCitizenByID');                                                // Get Citizen By ID
+        Route::get('get-all-citizens', 'getAllCitizens');                                                      // Get All Citizens
+        Route::post('edit-citizen-profile', 'citizenEditProfile');                                             // Approve Or Reject Citizen by Id
+        Route::match(['get', 'post'], 'property/citizens/applied-applications', 'getAllAppliedApplications');           // Get Applied Applications
+        Route::post('citizens/independent-comment', 'commentIndependent');                                     // Independent Comment for the Citizen to be Tracked
+        Route::get('citizens/get-transactions', 'getTransactionHistory');                                      // Get User Transaction History
+        Route::post('change-citizen-pass', 'changeCitizenPass');                                               // Change the Password of The Citizen Using its Old Password 
+        Route::post('otp/change-citizen-pass', 'changeCitizenPassByOtp');                                      // Change Password using OTP for Citizen
+        Route::post('citizen-profile-details', 'profileDetails');
+    });
+
+    /**
+     * | Created On-19-08-2022 
+     * | Created by-Anshu Kumar
+     * | Ulb Wards operations
+     */
+    Route::controller(WardController::class)->group(function () {
+        Route::post('store-ulb-wards', 'storeUlbWard');          // Save Ulb Ward
+        Route::put('edit-ulb-ward/{id}', 'editUlbWard');         // Edit Ulb Ward
+        Route::get('get-ulb-ward/{id}', 'getUlbWardByID');       // Get Ulb Ward Details by ID
+        Route::get('get-all-ulb-wards', 'getAllUlbWards'); //not for use      // Get All Ulb Wards
     });
 });
-
-
-/**
- * Routes for Ulbs
- * Created By-Anshu Kumar
- * Creation Date-02-07-2022 
- * Modified On-
- */
-Route::controller(UlbController::class)->group(function () {
-    Route::post('save-ulb', 'store');
-    Route::put('edit-ulb/{id}', 'edit');
-    Route::get('get-ulb/{id}', 'view');
-    Route::delete('delete-ulb/{id}', 'deleteUlb');
-});
-
-/**
- * Routes for Workflows
- * Created By-Anshu Kumar
- * Creation Date-06-07-2022 
- * Modified On-
- */
-Route::controller(WorkflowController::class)->group(function () {
-    Route::post('add-workflow', 'storeWorkflow');
-    Route::get('view-workflow/{id}', 'viewWorkflow');
-    Route::put('edit-workflow/{id}', 'updateWorkflow');
-    Route::delete('delete-workflow/{id}', 'deleteWorkflow');
-    Route::get('all-workflows', 'getAllWorkflows');
-
-    Route::post('workflow-candidate', 'storeWorkflowCandidate');
-    Route::get('view-workflow-candidates/{id}', 'viewWorkflowCandidates');
-    Route::get('all-workflow-candidates', 'allWorkflowCandidates');
-    Route::put('edit-workflow-candidates/{id}', 'editWorkflowCandidates');
-    Route::delete('delete-workflow-candidates/{id}', 'deleteWorkflowCandidates');
-    Route::get('gen/workflow/workflow-candidates/{ulbworkflowid}', 'getWorkflowCandidatesByUlbWorkflowID');  // Get Workflow Candidates by ulb-workflow-id
-});
-
-// Workflow Roles Rest Apis
-Route::resource('workflow/workflow-roles', UlbWorkflowRolesController::class);
-
-/**
- * APIs for Module Master
- * Created By-Anshu Kumar
- * Creation Date-14-07-2022
- * Modified By-
- */
-Route::resource('crud/module-masters', ModuleController::class);
-
-/**
- * Api route for Ulb Module Master
- * CreatedBy-Anshu Kumar
- * Creation Date-14-07-2022 
- * Modified By-
- */
-Route::resource('crud/ulb-workflow-masters', UlbWorkflowController::class);
-
-// Get Ulb Workflow details by Ulb Ids
-Route::get('admin/workflows/{ulb_id}', [UlbWorkflowController::class, 'getUlbWorkflowByUlbID']);
-
-// Workflow Track
-Route::controller(WorkflowTrackController::class)->group(function () {
-    Route::post('save-workflow-track', 'store');                                                                         // Save Workflow Track Messages
-    Route::post('get-workflow-track', 'getWorkflowTrackByID');                                                       // Get Workflow Track Message By TrackID
-    Route::post('gen/workflow-track', 'getWorkflowTrackByTableIDValue');                     // Get WorkflowTrack By TableRefID and RefTableValue
-
-    //changes by mrinal
-    Route::post('workflow-track/getNotificationByCitizenId', 'getNotificationByCitizenId');
-});
-
-// Citizen Register
-Route::controller(CitizenController::class)->group(function () {
-    Route::get('get-citizen-by-id/{id}', 'getCitizenByID');                                                // Get Citizen By ID
-    Route::get('get-all-citizens', 'getAllCitizens');                                                      // Get All Citizens
-    Route::post('edit-citizen-profile', 'citizenEditProfile');                                             // Approve Or Reject Citizen by Id
-    Route::match(['get', 'post'], 'property/citizens/applied-applications', 'getAllAppliedApplications');           // Get Applied Applications
-    Route::post('citizens/independent-comment', 'commentIndependent');                                     // Independent Comment for the Citizen to be Tracked
-    Route::get('citizens/get-transactions', 'getTransactionHistory');                                      // Get User Transaction History
-    Route::post('change-citizen-pass', 'changeCitizenPass');                                               // Change the Password of The Citizen Using its Old Password 
-    Route::post('otp/change-citizen-pass', 'changeCitizenPassByOtp');                                      // Change Password using OTP for Citizen
-    Route::post('citizen-profile-details', 'profileDetails');
-});
-
-/**
- * | Created On-19-08-2022 
- * | Created by-Anshu Kumar
- * | Ulb Wards operations
- */
-Route::controller(WardController::class)->group(function () {
-    Route::post('store-ulb-wards', 'storeUlbWard');          // Save Ulb Ward
-    Route::put('edit-ulb-ward/{id}', 'editUlbWard');         // Edit Ulb Ward
-    Route::get('get-ulb-ward/{id}', 'getUlbWardByID');       // Get Ulb Ward Details by ID
-    Route::get('get-all-ulb-wards', 'getAllUlbWards'); //not for use      // Get All Ulb Wards
-});
-// });
 
 
 // Routes used where authentication not required
@@ -271,94 +271,94 @@ Route::group(['middleware' => ['json.response', 'request_logger', 'expireBearerT
 //  * Modified By :- Mrinal Kumar
 //  */
 
-// Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
+Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
 
 
-/**
- * workflow roles CRUD operation
- */
-Route::controller(WorkflowRoleController::class)->group(function () {
-    Route::post('crud/roles/save-role', 'create');                      #_Save Role
-    Route::put('crud/roles/edit-role', 'editRole');                     #_Edit Role
-    Route::post('crud/roles/get-role', 'getRole');                      #_Get Role By Id
-    Route::get('crud/roles/get-all-roles', 'getAllRoles');              #_Get All Roles
-    Route::delete('crud/roles/delete-role', 'deleteRole');              #_Delete Role
-});
+    /**
+     * workflow roles CRUD operation
+     */
+    Route::controller(WorkflowRoleController::class)->group(function () {
+        Route::post('crud/roles/save-role', 'create');                      #_Save Role
+        Route::put('crud/roles/edit-role', 'editRole');                     #_Edit Role
+        Route::post('crud/roles/get-role', 'getRole');                      #_Get Role By Id
+        Route::get('crud/roles/get-all-roles', 'getAllRoles');              #_Get All Roles
+        Route::delete('crud/roles/delete-role', 'deleteRole');              #_Delete Role
+    });
 
 
-/**
- * ============== To be replaced with upper api  =================
- */
-Route::controller(RoleController::class)->group(function () {
-    Route::post('workflow/roles/save', 'createRole');                   // Save Role
-    Route::post('workflow/roles/edit', 'editRole');                     // edit Role
-    Route::post('workflow/roles/get', 'getRole');                       // Get Role By Id
-    Route::post('workflow/roles/list', 'getAllRoles');                  //Get All Roles          
-    Route::post('workflow/roles/delete', 'deleteRole');                 // Delete Role
-});
-/**
- * ===================================================================
- */
+    /**
+     * ============== To be replaced with upper api  =================
+     */
+    Route::controller(RoleController::class)->group(function () {
+        Route::post('workflow/roles/save', 'createRole');                   // Save Role
+        Route::post('workflow/roles/edit', 'editRole');                     // edit Role
+        Route::post('workflow/roles/get', 'getRole');                       // Get Role By Id
+        Route::post('workflow/roles/list', 'getAllRoles');                  //Get All Roles          
+        Route::post('workflow/roles/delete', 'deleteRole');                 // Delete Role
+    });
+    /**
+     * ===================================================================
+     */
 
 
-/**
- * Role User Map CRUD operation
- */
+    /**
+     * Role User Map CRUD operation
+     */
 
-Route::apiResource("roleusermap", WorkflowRoleUserMapController::class);
+    Route::apiResource("roleusermap", WorkflowRoleUserMapController::class);
 
 
-/**
- * | Created On-14-12-2022 
- * | Created By-Mrinal Kumar
- * | Workflow Traits
- */
-Route::controller(WcController::class)->group(function () {
-    Route::post('workflow-current-user', 'workflowCurrentUser');
-    Route::post('workflow-initiator', 'workflowInitiatorData');
-    Route::post('role-by-user', 'roleIdByUserId');
-    Route::post('ward-by-user', 'wardByUserId');
-    Route::post('role-by-workflow', 'getRole');
-    Route::post('initiator', 'initiatorId');
-    Route::post('finisher', 'finisherId');
-});
+    /**
+     * | Created On-14-12-2022 
+     * | Created By-Mrinal Kumar
+     * | Workflow Traits
+     */
+    Route::controller(WcController::class)->group(function () {
+        Route::post('workflow-current-user', 'workflowCurrentUser');
+        Route::post('workflow-initiator', 'workflowInitiatorData');
+        Route::post('role-by-user', 'roleIdByUserId');
+        Route::post('ward-by-user', 'wardByUserId');
+        Route::post('role-by-workflow', 'getRole');
+        Route::post('initiator', 'initiatorId');
+        Route::post('finisher', 'finisherId');
+    });
 
-/**
- * | for custom details
+    /**
+     * | for custom details
        | Serial No : 09
- */
-Route::controller(CustomController::class)->group(function () {
-    Route::post('get-all-custom-tab-data', 'getCustomDetails');
-    Route::post('post-custom-data', 'postCustomDetails');
-    Route::post('get-dues-api', 'duesApi');
-    Route::post('post-geo-location', 'tcGeoLocation');
-    Route::post('list-location', 'locationList');
-    Route::post('tc-collection-route', 'tcCollectionRoute');
-    Route::post('list-quick-access', 'quickAccessList');
-    Route::post('quick-access-byuserid', 'getQuickAccessListByUser');
-    Route::post('add-update-quickaccess', 'addUpdateQuickAccess');
-});
-
-
-
-/**
- * | Caretaker Property , Water , Trade (10)
- */
-Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
-    Route::controller(CaretakerController::class)->group(function () {
-        Route::post('water/caretaker-otp', 'waterCaretakerOtp');
-        Route::post('water/caretaker-consumer-tagging', 'caretakerConsumerTag');
-
-        Route::post('citizen/caretake-modules', 'careTakeModules');        // CareTake Modules (01)
-        Route::post('citizen/caretake-otp', 'careTakeOtp');                  // Otp for caretaker
+     */
+    Route::controller(CustomController::class)->group(function () {
+        Route::post('get-all-custom-tab-data', 'getCustomDetails');
+        Route::post('post-custom-data', 'postCustomDetails');
+        Route::post('get-dues-api', 'duesApi');
+        Route::post('post-geo-location', 'tcGeoLocation');
+        Route::post('list-location', 'locationList');
+        Route::post('tc-collection-route', 'tcCollectionRoute');
+        Route::post('list-quick-access', 'quickAccessList');
+        Route::post('quick-access-byuserid', 'getQuickAccessListByUser');
+        Route::post('add-update-quickaccess', 'addUpdateQuickAccess');
     });
 
-    Route::controller(ThirdPartyController::class)->group(function () {
-        Route::post('user/send-otp', 'sendOtp');
-        Route::post('user/verify-otp', "verifyOtp");
+
+
+    /**
+     * | Caretaker Property , Water , Trade (10)
+     */
+    Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
+        Route::controller(CaretakerController::class)->group(function () {
+            Route::post('water/caretaker-otp', 'waterCaretakerOtp');
+            Route::post('water/caretaker-consumer-tagging', 'caretakerConsumerTag');
+
+            Route::post('citizen/caretake-modules', 'careTakeModules');        // CareTake Modules (01)
+            Route::post('citizen/caretake-otp', 'careTakeOtp');                  // Otp for caretaker
+        });
+
+        Route::controller(ThirdPartyController::class)->group(function () {
+            Route::post('user/send-otp', 'sendOtp');
+            Route::post('user/verify-otp', "verifyOtp");
+        });
     });
 });
-
 Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
 
     /**
