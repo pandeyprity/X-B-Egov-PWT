@@ -312,7 +312,7 @@ class SafDocController extends Controller
             $mActiveSafs = new PropActiveSaf();
             $mWfRoleusermap = new WfRoleusermap();
             $wfDocId = $req->id;
-            $userId = authUser($req)->id;
+            $userId = authUser()->id;
             $applicationId = $req->applicationId;
             $wfLevel = FacadesConfig::get('PropertyConstaint.SAF-LABEL');
             $trustDocCode = FacadesConfig::get('PropertyConstaint.TRUST_DOC_CODE');

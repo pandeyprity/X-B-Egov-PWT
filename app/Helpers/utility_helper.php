@@ -505,9 +505,9 @@ if (!function_exists('dateDiff')) {
 
 // Get Authenticated users list
 if (!function_exists('authUser')) {
-    function authUser($req)
+    function authUser()
     {
-        return (object)$req->auth;
+        return auth()->user();
     }
 }
 

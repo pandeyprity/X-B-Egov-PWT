@@ -395,7 +395,7 @@ class PropertyDetailsController extends Controller
         try {
             $mPropProperty = new PropProperty();
             $mWfRoleUser = new WfRoleusermap();
-            $user = authUser($request);
+            $user = authUser();
             $userId = $user->id;
             $userType = $user->user_type;
             $ulbId = $user->ulb_id ?? $request->ulbId;

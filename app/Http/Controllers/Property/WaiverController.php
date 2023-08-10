@@ -61,7 +61,7 @@ class WaiverController extends Controller
         }
 
         try {
-            $user = authUser($request);
+            $user = authUser();
             $mPropActiveWaiver = new PropActiveWaiver();
             $waiverParamId = Config::get('PropertyConstaint.WAIVER_PARAM_ID');
             $wfMasterId = Config::get('workflow-constants.PROPERTY_WAIVER_ID');
@@ -96,7 +96,7 @@ class WaiverController extends Controller
         $docUpload = new DocUpload;
         $mWfActiveDocument = new WfActiveDocument();
         $relativePath = Config::get('PropertyConstaint.WAIVER_RELATIVE_PATH');
-        $user = authUser($request);
+        $user = authUser();
         $refImageName = $request->docCode;
         $refImageName = $data->id . '-' . str_replace(' ', '_', $refImageName);
         $document = $request->waiverDocument;
@@ -126,7 +126,7 @@ class WaiverController extends Controller
     //         'action' => 'required|In:forward,backward',
     //     ]);
     //     try {
-    //         $userId = authUser($req)->id;
+    //         $userId = authUser()->id;
     //         $track = new WorkflowTrack();
     //         $mWfWorkflows = new WfWorkflow();
     //         $mWfRoleMaps = new WfWorkflowrolemap();
@@ -198,7 +198,7 @@ class WaiverController extends Controller
             $track = new WorkflowTrack();
 
             $activeWaiver = PropActiveWaiver::findorFail($req->applicationId);
-            $userId = authUser($req)->id;
+            $userId = authUser()->id;
             // $getFinisherQuery = $this->getFinisherId($req->workflowId);                                 // Get Finisher using Trait
             // $refGetFinisher = collect(DB::select($getFinisherQuery))->first();
 
@@ -503,7 +503,7 @@ class WaiverController extends Controller
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
             $mPropActiveWaiver   = new PropActiveWaiver();
 
-            $user = authUser($req);
+            $user = authUser();
             $userId = $user->id;
             $ulbId = $user->ulb_id;
             $perPage = $req->perPage ?? 10;
@@ -569,7 +569,7 @@ class WaiverController extends Controller
             $mPropActiveWaiver = new PropActiveWaiver();
             $mWfRoleusermap = new WfRoleusermap();
             $wfDocId = $req->id;
-            $userId = authUser($req)->id;
+            $userId = authUser()->id;
             $applicationId = $req->applicationId;
             // $wfLevel = Config::get('PropertyConstaint.SAF-LABEL');
             // Derivative Assigments

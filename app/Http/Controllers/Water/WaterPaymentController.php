@@ -462,7 +462,7 @@ class WaterPaymentController extends Controller
         $waterRoles = $this->_waterRoles;
 
         # check the login user is Eo or not
-        $userId = authUser($request)->id;
+        $userId = authUser()->id;
         $workflowId = $waterDetails->workflow_id;
         $getRoleReq = new Request([                                                 # make request to get role id of the user
             'userId'     => $userId,
@@ -634,7 +634,7 @@ class WaterPaymentController extends Controller
     public function offlineDemandPayment(reqDemandPayment $request)
     {
         try {
-            $user                       = authUser($request);
+            $user                       = authUser();
             $midGeneration              = new IdGeneration;
             $mWaterAdjustment           = new WaterAdjustment();
             $mwaterTran                 = new waterTran();
@@ -967,7 +967,7 @@ class WaterPaymentController extends Controller
     {
         try {
             # Variable Assignments
-            $user       = authUser($req);
+            $user       = authUser();
             $userId     = $user->id;
             $userType   = $user->user_type;
             $todayDate  = Carbon::now();
@@ -1645,7 +1645,7 @@ class WaterPaymentController extends Controller
     public function initiateOnlineDemandPayment(reqDemandPayment $request)
     {
         try {
-            $refUser        = authUser($request);
+            $refUser        = authUser();
             $waterModuleId  = Config::get('module-constants.WATER_MODULE_ID');
             $paymentFor     = Config::get('waterConstaint.PAYMENT_FOR');
             $startingDate   = Carbon::createFromFormat('Y-m-d',  $request->demandFrom)->startOfMonth();
@@ -1812,7 +1812,7 @@ class WaterPaymentController extends Controller
             return validationError($validated);
 
         try {
-            $citizen        = authUser($request);
+            $citizen        = authUser();
             $citizenId      = $citizen->id;
             $mWaterTran     = new WaterTran();
             $refUserType    = Config::get("waterConstaint.USER_TYPE");

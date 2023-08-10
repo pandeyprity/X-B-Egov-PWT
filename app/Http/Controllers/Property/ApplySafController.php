@@ -337,7 +337,7 @@ class ApplySafController extends Controller
     {
         try {
             // Variable Assignments
-            $user = authUser($req);
+            $user = authUser();
             $userId = $user->id;
             $userType = $user->user_type;
             $ulbId = $req->ulbId ?? $user->ulb_id;

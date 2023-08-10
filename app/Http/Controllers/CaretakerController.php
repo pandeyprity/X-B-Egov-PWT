@@ -31,7 +31,7 @@ class CaretakerController extends Controller
     public function waterCaretakerOtp(Request $req)
     {
         try {
-            $user                       = authUser($req);
+            $user                       = authUser();
             $userId                     = $user->id;
             $mWaterApprovalApplicant    = new WaterApprovalApplicant();
             $ThirdPartyController       = new ThirdPartyController();
@@ -89,7 +89,7 @@ class CaretakerController extends Controller
             return validationError($validated);
 
         try {
-            $userId                     = authUser($req)->id;
+            $userId                     = authUser()->id;
             $mWaterApprovalApplicant    = new WaterApprovalApplicant();
             $mActiveCitizenUndercare    = new ActiveCitizenUndercare();
             $mWaterConsumer             = new WaterConsumer();

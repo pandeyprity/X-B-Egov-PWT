@@ -317,7 +317,7 @@ class PropertyDeactivateController extends Controller
             "applicationId" => "required|digits_between:1,9223372036854775807",
         ]);
         try {
-            $userId = authUser($request)->id;
+            $userId = authUser()->id;
             $refDeactivationReq = PropActiveDeactivationRequest::find($request->applicationId);
             $refDeactivationReq->is_escalate = $request->escalateStatus <= 0 ? true : false;
             $refDeactivationReq->escalate_by = $userId;

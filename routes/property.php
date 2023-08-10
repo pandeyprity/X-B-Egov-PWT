@@ -53,8 +53,8 @@ Route::post('api-test', function () {
 })->middleware('api.key');
 
 // Inside Middleware Routes with API Authenticate 
-// Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
-Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
+Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
+  // Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
 
   /**
    * | SAF
@@ -414,6 +414,63 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
     Route::post('waiver/static-details', 'staticDetails');
     Route::post('waiver/final-waived', 'finalWaivedAmount');
   });
+
+
+  /**
+   * | Created On-31-01-2023 
+   * | Created by-Mrinal Kumar
+   * | Payment Cash Verification
+   */
+  Route::controller(CashVerificationController::class)->group(function () {
+    Route::post('list-cash-verification', 'cashVerificationList');              //01
+    Route::post('verified-cash-verification', 'verifiedCashVerificationList');  //02
+    Route::post('tc-collections', 'tcCollectionDtl');                           //03
+    Route::post('verified-tc-collections', 'verifiedTcCollectionDtl');          //04
+    Route::post('verify-cash', 'cashVerify');                                   //05
+    Route::post('cash-receipt', 'cashReceipt');                                 //06
+    Route::post('edit-chequedtl', 'editChequeNo');                              //07
+  });
+
+  Route::controller(BankReconcillationController::class)->group(function () {
+    Route::post('search-transaction', 'searchTransaction');
+    Route::post('cheque-dtl-by-id', 'chequeDtlById');
+    Route::post('cheque-clearance', 'chequeClearance');
+  });
+
+
+  #Added By Sandeep Bara
+  #Date 16/02/2023
+
+  Route::controller(ReportController::class)->group(function () {
+    Route::post('reports/property/collection', 'collectionReport'); //done
+    Route::post('reports/saf/collection', 'safCollection');         //done
+    Route::post('reports/property/prop-saf-individual-demand-collection', 'safPropIndividualDemandAndCollection');  //done
+    Route::post('reports/saf/levelwisependingform', 'levelwisependingform'); //done
+    Route::post('reports/saf/levelformdetail', 'levelformdetail'); //done
+    Route::post('reports/saf/leveluserpending', 'levelUserPending'); //done
+    Route::post('reports/saf/userwiselevelpending', 'userWiseLevelPending');
+    Route::post('reports/saf/userWiseWardWireLevelPending', 'userWiseWardWireLevelPending'); //done
+    Route::post('reports/saf/saf-sam-fam-geotagging', 'safSamFamGeotagging');                 //done
+
+    Route::post('reports/ward-wise-holding', 'wardWiseHoldingReport'); //done
+    Route::post('reports/list-fy', 'listFY');                          //done
+    Route::post('reports/print-bulk-receipt', 'bulkReceipt');         //done
+    Route::post('reports/property/gbsaf-collection', 'gbSafCollection');    //done
+    Route::post('reports/property/individual-demand-collection', 'propIndividualDemandCollection'); //done
+    Route::post('reports/property/gbsaf-individual-demand-collection', 'gbsafIndividualDemandCollection'); //done
+    Route::post('reports/not-paid-from-2016', 'notPaidFrom2016');       //done
+    Route::post('reports/previous-year-paid-not-current-year', 'previousYearPaidButnotCurrentYear'); //done
+    Route::post('reports/dcb-piechart', 'dcbPieChart');                                             //done
+    Route::post('reports/prop/saf/collection', 'propSafCollection');                          //done
+    Route::post('reports/rebate/penalty', 'rebateNpenalty');
+
+    Route::post('reports/property/payment-mode-wise-summery', 'PropPaymentModeWiseSummery'); //done
+    Route::post('reports/saf/payment-mode-wise-summery', 'SafPaymentModeWiseSummery');       //done
+    Route::post('reports/property/dcb', 'PropDCB');                                         //done
+    Route::post('reports/property/ward-wise-dcb', 'PropWardWiseDCB');                       //done
+    Route::post('reports/property/holding-wise-fine-rebate', 'PropFineRebate');             //done
+    Route::post('reports/property/deactivated-list', 'PropDeactedList');                    //done
+  });
 });
 
 
@@ -496,26 +553,6 @@ Route::controller(ReferenceController::class)->group(function () {
   Route::post('v1/prop-usage-type', 'listPropUsagetype');                                          //19
 });
 
-/**
- * | Created On-31-01-2023 
- * | Created by-Mrinal Kumar
- * | Payment Cash Verification
- */
-Route::controller(CashVerificationController::class)->group(function () {
-  Route::post('list-cash-verification', 'cashVerificationList');              //01
-  Route::post('verified-cash-verification', 'verifiedCashVerificationList');  //02
-  Route::post('tc-collections', 'tcCollectionDtl');                           //03
-  Route::post('verified-tc-collections', 'verifiedTcCollectionDtl');          //04
-  Route::post('verify-cash', 'cashVerify');                                   //05
-  Route::post('cash-receipt', 'cashReceipt');                                 //06
-  Route::post('edit-chequedtl', 'editChequeNo');                              //07
-});
-
-Route::controller(BankReconcillationController::class)->group(function () {
-  Route::post('search-transaction', 'searchTransaction');
-  Route::post('cheque-dtl-by-id', 'chequeDtlById');
-  Route::post('cheque-clearance', 'chequeClearance');
-});
 
 
 
@@ -525,46 +562,10 @@ Route::controller(BankReconcillationController::class)->group(function () {
 
 
 
-#Added By Sandeep Bara
-#Date 16/02/2023
+
 
 // Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
 
-/**
- * | Route Outside the Middleware
-   | Serial No : 
- */
-Route::controller(ReportController::class)->group(function () {
-  Route::post('reports/property/collection', 'collectionReport'); //done
-  Route::post('reports/saf/collection', 'safCollection');         //done
-  Route::post('reports/property/prop-saf-individual-demand-collection', 'safPropIndividualDemandAndCollection');  //done
-  Route::post('reports/saf/levelwisependingform', 'levelwisependingform'); //done
-  Route::post('reports/saf/levelformdetail', 'levelformdetail'); //done
-  Route::post('reports/saf/leveluserpending', 'levelUserPending'); //done
-  Route::post('reports/saf/userwiselevelpending', 'userWiseLevelPending');
-  Route::post('reports/saf/userWiseWardWireLevelPending', 'userWiseWardWireLevelPending'); //done
-  Route::post('reports/saf/saf-sam-fam-geotagging', 'safSamFamGeotagging');                 //done
-
-  Route::post('reports/ward-wise-holding', 'wardWiseHoldingReport'); //done
-  Route::post('reports/list-fy', 'listFY');                          //done
-  Route::post('reports/print-bulk-receipt', 'bulkReceipt');         //done
-  Route::post('reports/property/gbsaf-collection', 'gbSafCollection');    //done
-  Route::post('reports/property/individual-demand-collection', 'propIndividualDemandCollection'); //done
-  Route::post('reports/property/gbsaf-individual-demand-collection', 'gbsafIndividualDemandCollection'); //done
-  Route::post('reports/not-paid-from-2016', 'notPaidFrom2016');       //done
-  Route::post('reports/previous-year-paid-not-current-year', 'previousYearPaidButnotCurrentYear'); //done
-  Route::post('reports/dcb-piechart', 'dcbPieChart');                                             //done
-  Route::post('reports/prop/saf/collection', 'propSafCollection');                          //done
-  Route::post('reports/rebate/penalty', 'rebateNpenalty');
-
-  Route::post('reports/property/payment-mode-wise-summery', 'PropPaymentModeWiseSummery'); //done
-  Route::post('reports/saf/payment-mode-wise-summery', 'SafPaymentModeWiseSummery');       //done
-  Route::post('reports/property/dcb', 'PropDCB');                                         //done
-  Route::post('reports/property/ward-wise-dcb', 'PropWardWiseDCB');                       //done
-  Route::post('reports/property/holding-wise-fine-rebate', 'PropFineRebate');             //done
-  Route::post('reports/property/deactivated-list', 'PropDeactedList');                    //done
-
-});
 // });
 
 /**

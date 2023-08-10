@@ -362,7 +362,7 @@ class WaterConsumer extends Controller
      */
     public function checkDemandGeneration($request, $consumerDetails)
     {
-        $user                   = authUser($request);
+        $user                   = authUser();
         $today                  = Carbon::now();
         $refConsumerId          = $request->consumerId;
         $mWaterConsumerDemand   = new WaterConsumerDemand();
@@ -630,7 +630,7 @@ class WaterConsumer extends Controller
             return validationError($validated);
 
         try {
-            $user                           = authUser($request);
+            $user                           = authUser();
             $refRequest                     = array();
             $ulbWorkflowObj                 = new WfWorkflow();
             $mWaterWaterConsumer            = new WaterWaterConsumer();
@@ -1215,7 +1215,7 @@ class WaterConsumer extends Controller
             ->leftjoin('water_consumer_meters', 'water_consumer_meters.consumer_id', 'water_consumers.id')
             ->where('water_consumers.' . $key, 'LIKE', '%' . $refNo . '%')
             ->where('water_consumers.status', 1)
-            ->where('water_consumers.ulb_id', authUser($req)->ulb_id)
+            ->where('water_consumers.ulb_id', authUser()->ulb_id)
             ->where('water_consumer_meters.connection_type', $refConnectionType['Fixed'])
             ->groupBy(
                 'water_consumers.saf_no',
@@ -1284,7 +1284,7 @@ class WaterConsumer extends Controller
      */
     public function checkUser($req, $refConsumerDetails)
     {
-        $user                       = authUser($req);
+        $user                       = authUser();
         $todayDate                  = Carbon::now();
         $endDate                    = Carbon::now()->endOfMonth();
         $formatEndDate              = $endDate->format('d-m-Y');
@@ -1313,7 +1313,7 @@ class WaterConsumer extends Controller
      */
     public function checkUserType($req)
     {
-        $user = authUser($req);
+        $user = authUser();
         $confUserType = Config::get("waterConstaint.REF_USER_TYPE");
         $userType = $user->user_type;
 
@@ -1352,7 +1352,7 @@ class WaterConsumer extends Controller
         if ($validated->fails())
             return validationError($validated);
         try {
-            $user           = authUser($req);
+            $user           = authUser();
             $docAdvanceCode = Config::get('waterConstaint.WATER_ADVANCE_CODE');
             $refAdvanceFor  = Config::get('waterConstaint.ADVANCE_FOR');
             $refWorkflow    = Config::get('workflow-constants.WATER_MASTER_ID');

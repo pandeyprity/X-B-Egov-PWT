@@ -31,7 +31,7 @@ class PermissionController extends Controller
     //     ]);
     //     try {
     //         // Variable Assignments
-    //         $userId = authUser($req)->id;
+    //         $userId = authUser()->id;
     //         $mWfRoleUserMap = new WfRoleusermap();
     //         $mActionMaster = new ActionMaster();
 

@@ -207,7 +207,7 @@ class ClusterController extends Controller
             'holdingNo'     => 'required',
         ]);
         try {
-            $ulbId = authUser($request)->ulb_id;
+            $ulbId = authUser()->ulb_id;
             $perPage = $request->perPage ?? 10;
             $mPropProperty = new PropProperty();
             $holdingDtls = $mPropProperty->searchHolding($ulbId)
@@ -276,7 +276,7 @@ class ClusterController extends Controller
             'safNo' => 'required',
         ]);
         try {
-            $ulbId = authUser($request)->ulb_id;
+            $ulbId = authUser()->ulb_id;
             $mPropActiveSaf = new PropActiveSaf();
             $perPage = $request->perPage ?? 10;
             $application = $mPropActiveSaf->searchSafDtlsBySafNo($ulbId)

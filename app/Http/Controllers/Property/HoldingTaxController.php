@@ -136,7 +136,7 @@ class HoldingTaxController extends Controller
             $penaltyRebateCalc = new PenaltyRebateCalculation;
             $currentQuarter = calculateQtr(Carbon::now()->format('Y-m-d'));
             $currentFYear = getFY();
-            $user = authUser($req);
+            $user = authUser();
             $loggedInUserType = $user->user_type ?? "Citizen";
             $mPropOwners = new PropOwner();
             $pendingFYears = collect();
@@ -321,7 +321,7 @@ class HoldingTaxController extends Controller
             $postRazorPayPenaltyRebate = new PostRazorPayPenaltyRebate;
             $url            = Config::get('razorpay.PAYMENT_GATEWAY_URL');
             $endPoint       = Config::get('razorpay.PAYMENT_GATEWAY_END_POINT');
-            $authUser      = authUser($req);
+            $authUser      = authUser();
             $demand = $this->getHoldingDues($req);
             if ($demand->original['status'] == false)
                 throw new Exception($demand->original['message']);
@@ -567,7 +567,7 @@ class HoldingTaxController extends Controller
         try {
             $offlinePaymentModes = Config::get('payment-constants.PAYMENT_MODE_OFFLINE');
             $todayDate = Carbon::now();
-            $userId = authUser($req)->id;
+            $userId = authUser()->id;
             $propDemand = new PropDemand();
             $idGeneration = new IdGeneration;
             $mPropTrans = new PropTransaction();
@@ -595,7 +595,7 @@ class HoldingTaxController extends Controller
             if ($demands->isEmpty())
                 throw new Exception("No Dues For this Property");
             // Property Transactions
-            $tranBy = authUser($req)->user_type;
+            $tranBy = authUser()->user_type;
             $req->merge([
                 'userId' => $userId,
                 'todayDate' => $todayDate->format('Y-m-d'),
@@ -741,8 +741,8 @@ class HoldingTaxController extends Controller
                 'doc_code' => $refImageName,
                 'relative_path' => $relativePath,
                 'document' => $imageName,
-                'uploaded_by' => authUser($req)->id,
-                'uploaded_by_type' => authUser($req)->user_type,
+                'uploaded_by' => authUser()->id,
+                'uploaded_by_type' => authUser()->user_type,
                 'doc_category' => $refImageName,
             ];
             DB::beginTransaction();
@@ -1273,7 +1273,7 @@ class HoldingTaxController extends Controller
             $finalClusterDemand = array();
             $clusterDemandList = array();
             $currentQuarter = calculateQtr($todayDate->format('Y-m-d'));
-            $loggedInUserType = authUser($req)->user_type;
+            $loggedInUserType = authUser()->user_type;
             $currentFYear = getFY();
 
             $clusterDtls = $mClusters::findOrFail($clusterId);
@@ -1401,10 +1401,10 @@ class HoldingTaxController extends Controller
             $advanceAmt = $dues['duesList']['advanceAmt'];
             // Property Transactions
             if (in_array($req['paymentMode'], $offlinePaymentModes)) {
-                $userId = authUser($req)->id ?? null;
+                $userId = authUser()->id ?? null;
                 if (!$userId)
                     throw new Exception("User Should Be Logged In");
-                $tranBy = authUser($req)->user_type;
+                $tranBy = authUser()->user_type;
             }
             $req->merge([
                 'userId' => $userId,

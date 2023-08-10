@@ -89,7 +89,7 @@ class CustomController extends Controller
             ], 422);
         }
         try {
-            $userId = authUser($request)->id;
+            $userId = authUser()->id;
             $mTcTracking = new TcTracking();
             $mreqs = new Request([
                 "user_id" => $userId,
@@ -122,7 +122,7 @@ class CustomController extends Controller
             ], 422);
         }
         try {
-            $userId = $request->userId ?? authUser($request)->id;
+            $userId = $request->userId ?? authUser()->id;
             $mTcTracking = new TcTracking();
             $data = $mTcTracking->getLocationByUserId($userId, $request->date);
             return responseMsgs(true, "location list", $data, "010203", "1.0", responseTime(), 'POST', "");
@@ -148,7 +148,7 @@ class CustomController extends Controller
             ], 422);
         }
         try {
-            $userId = $request->userId ?? authUser($request)->id;
+            $userId = $request->userId ?? authUser()->id;
             $mTcTracking = new TcTracking();
             $mPropTransaction = new PropTransaction();
             $tranDtls = $mPropTransaction->getPropTransactions($request->date, "tran_date");
@@ -192,7 +192,7 @@ class CustomController extends Controller
     public function getQuickAccessListByUser(Request $request)
     {
         try {
-            $userId = $request->userId ?? authUser($request)->id;
+            $userId = $request->userId ?? authUser()->id;
             $mQuickaccessUserMap = new QuickaccessUserMap();
             $list = $mQuickaccessUserMap->getListbyUserId($userId);
 
@@ -222,7 +222,7 @@ class CustomController extends Controller
             ], 422);
         }
         try {
-            $user = authUser($request);
+            $user = authUser();
             $datas = $request->data;
             $mQuickaccessUserMap = new QuickaccessUserMap();
             foreach ($datas as $data) {

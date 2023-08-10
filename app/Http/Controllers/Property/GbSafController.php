@@ -65,8 +65,8 @@ class GbSafController extends Controller
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
             $mpropActiveSafs = new PropActiveSaf();
 
-            $userId = authUser($req)->id;
-            $ulbId = authUser($req)->ulb_id;
+            $userId = authUser()->id;
+            $ulbId = authUser()->ulb_id;
             $perPage = $req->perPage ?? 10;
 
             $occupiedWards = $mWfWardUser->getWardsByUserId($userId)->pluck('ward_id');                       // Model () to get Occupied Wards of Current User
@@ -110,8 +110,8 @@ class GbSafController extends Controller
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
             $mpropActiveSafs = new PropActiveSaf();
 
-            $userId = authUser($req)->id;
-            $ulbId = authUser($req)->ulb_id;
+            $userId = authUser()->id;
+            $ulbId = authUser()->ulb_id;
             $perPage = $req->perPage ?? 10;
 
             $roleIds = $mWfRoleUser->getRoleIdByUserId($userId)->pluck('wf_role_id');
@@ -152,8 +152,8 @@ class GbSafController extends Controller
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
             $mpropActiveSafs = new PropActiveSaf();
 
-            $mUserId = authUser($req)->id;
-            $mUlbId = authUser($req)->ulb_id;
+            $mUserId = authUser()->id;
+            $mUlbId = authUser()->ulb_id;
             $mDeviceId = $req->deviceId ?? "";
             $perPage = $req->perPage ?? 10;
 
@@ -189,7 +189,7 @@ class GbSafController extends Controller
 
         try {
             // Variable Assigments
-            $userId = authUser($request)->id;
+            $userId = authUser()->id;
             $wfLevels = Config::get('PropertyConstaint.GBSAF-LABEL');
             $saf = PropActiveSaf::findOrFail($request->applicationId);
             $mWfMstr = new WfWorkflow();
@@ -479,8 +479,8 @@ class GbSafController extends Controller
             $verification = new PropSafVerification();
             $mWfRoleUsermap = new WfRoleusermap();
             $verificationDtl = new PropSafVerificationDtl();
-            $userId = authUser($req)->id;
-            $ulbId = authUser($req)->ulb_id;
+            $userId = authUser()->id;
+            $ulbId = authUser()->ulb_id;
 
             $safDtls = $propActiveSaf->getSafNo($req->safId);
             $workflowId = $safDtls->workflow_id;
@@ -589,7 +589,7 @@ class GbSafController extends Controller
                     'longitude' => $longitude[$key],
                     'latitude' => $latitude[$key],
                     'relative_path' => $relativePath,
-                    'user_id' => authUser($req)->id
+                    'user_id' => authUser()->id
                 ];
                 if ($isDocExist)
                     $geoTagging->edit($isDocExist, $docReqs);
@@ -665,7 +665,7 @@ class GbSafController extends Controller
             $metaReqs['workflowId'] = $saf->workflow_id;
             $metaReqs['refTableDotId'] = 'prop_active_safs.id';
             $metaReqs['refTableIdValue'] = $req->applicationId;
-            $metaReqs['user_id'] = authUser($req)->id;
+            $metaReqs['user_id'] = authUser()->id;
             $metaReqs['verificationStatus'] = 2;
             $metaReqs['senderRoleId'] = $senderRoleId;
             $req->request->add($metaReqs);
@@ -690,8 +690,8 @@ class GbSafController extends Controller
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
             $mpropActiveSafs = new PropActiveSaf();
 
-            $mUserId = authUser($req)->id;
-            $mUlbId = authUser($req)->ulb_id;
+            $mUserId = authUser()->id;
+            $mUlbId = authUser()->ulb_id;
             $mDeviceId = $req->deviceId ?? "";
             $perPage = $req->perPage ?? 10;
 
@@ -739,7 +739,7 @@ class GbSafController extends Controller
             "applicationId" => "required|int",
         ]);
         try {
-            $userId = authUser($request)->id;
+            $userId = authUser()->id;
             $saf_id = $request->applicationId;
             $data = PropActiveSaf::find($saf_id);
             $data->is_escalate = $request->escalateStatus;
@@ -761,8 +761,8 @@ class GbSafController extends Controller
             $mWfRoleUserMaps = new WfRoleusermap();
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
             $mpropActiveSafs = new PropActiveSaf();
-            $userId = authUser($req)->id;
-            $ulbId = authUser($req)->ulb_id;
+            $userId = authUser()->id;
+            $ulbId = authUser()->ulb_id;
             $perPage = $req->perPage ?? 10;
 
             $wardIds = $mWfWardUser->getWardsByUserId($userId)->pluck('ward_id');                        // Get All Occupied Ward By user id using trait
@@ -857,7 +857,7 @@ class GbSafController extends Controller
             $famParamId = Config::get('PropertyConstaint.FAM_PARAM_ID');
             $propIdGenerator = new PropIdGenerator;
 
-            $userId = authUser($req)->id;
+            $userId = authUser()->id;
             $safId = $req->applicationId;
             // Derivative Assignments
             $workflowId = $safDetails->workflow_id;
@@ -1189,7 +1189,7 @@ class GbSafController extends Controller
             $mActiveSafs = new PropActiveSaf();
             $mWfRoleusermap = new WfRoleusermap();
             $wfDocId = $req->id;
-            $userId = authUser($req)->id;
+            $userId = authUser()->id;
             $applicationId = $req->applicationId;
             $wfLevel = Config::get('PropertyConstaint.SAF-LABEL');
             // Derivative Assigments
@@ -1282,8 +1282,8 @@ class GbSafController extends Controller
         ]);
 
         try {
-            $userId = authUser($request)->id;
-            $userType = authUser($request)->user_type;
+            $userId = authUser()->id;
+            $userType = authUser()->user_type;
             $workflowTrack = new WorkflowTrack();
             $mWfRoleUsermap = new WfRoleusermap();
             $saf = PropActiveSaf::findOrFail($request->applicationId);                // SAF Details

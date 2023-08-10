@@ -62,7 +62,7 @@ class ActiveSafControllerV2 extends Controller
         try {
             $id = $req->id;
             $mPropActiveSaf = PropActiveSaf::find($id);
-            $citizenId = authUser($req)->id;
+            $citizenId = authUser()->id;
             $mPropSafOwners = new PropActiveSafsOwner();
             $mPropSafFloors = new PropActiveSafsFloor();
             $mActiveSaf = new PropActiveSaf();
@@ -356,7 +356,7 @@ class ActiveSafControllerV2 extends Controller
                 'ulbId' => 'nullable',
             ]);
             $mPropApartmentDtl = new PropApartmentDtl();
-            $ulbId = $req->ulbId ?? authUser($req)->ulb_id;
+            $ulbId = $req->ulbId ?? authUser()->ulb_id;
             $req->request->add(['ulbId' => $ulbId,]);
 
             $data = $mPropApartmentDtl->apartmentList($req);
@@ -380,8 +380,8 @@ class ActiveSafControllerV2 extends Controller
             $agencyTcRole = Config::get('PropertyConstaint.SAF-LABEL.TC');
             $mWfWardUser = new WfWardUser();
             $mWorkflowRoleMap = new WfWorkflowrolemap();
-            $userId = authUser($req)->id;
-            $ulbId = authUser($req)->ulb_id;
+            $userId = authUser()->id;
+            $ulbId = authUser()->ulb_id;
             $perPage = $req->perPage ?? 10;
 
             $workflowIds = $mWorkflowRoleMap->getWfByRoleId([$agencyTcRole])->pluck('workflow_id');
@@ -439,7 +439,7 @@ class ActiveSafControllerV2 extends Controller
             $finalClusterDemand = array();
             $clusterDemandList = array();
             $currentQuarter = calculateQtr($todayDate->format('Y-m-d'));
-            $loggedInUserType = authUser($req)->user_type;
+            $loggedInUserType = authUser()->user_type;
             $currentFYear = getFY();
 
             $clusterSafs = $mPropActiveSaf->getSafsByClusterId($clusterId);
@@ -557,10 +557,10 @@ class ActiveSafControllerV2 extends Controller
             $payableAmount = $dues['demand']['payableAmount'];
             // Property Transactions
             if (in_array($req['paymentMode'], $offlinePaymentModes)) {
-                $userId = authUser($req)->id ?? null;
+                $userId = authUser()->id ?? null;
                 if (!$userId)
                     throw new Exception("User Should Be Logged In");
-                $tranBy = authUser($req)->user_type;
+                $tranBy = authUser()->user_type;
             }
             $req->merge([
                 'userId' => $userId,

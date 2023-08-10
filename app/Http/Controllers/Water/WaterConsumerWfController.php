@@ -53,9 +53,9 @@ class WaterConsumerWfController extends Controller
         );
         if ($validated->fails())
             return validationError($validated);
-            
+
         try {
-            $user                   = authUser($req);
+            $user                   = authUser();
             $pages                  = $req->perPage ?? 10;
             $userId                 = $user->id;
             $ulbId                  = $user->ulb_id;
@@ -100,7 +100,7 @@ class WaterConsumerWfController extends Controller
         if ($validated->fails())
             return validationError($validated);
         try {
-            $user                   = authUser($req);
+            $user                   = authUser();
             $pages                  = $req->perPage ?? 10;
             $userId                 = $user->id;
             $ulbId                  = $user->ulb_id;
