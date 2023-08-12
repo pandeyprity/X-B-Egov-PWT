@@ -59,10 +59,10 @@ class TaxCalculator
     public function readCalculatorParams()
     {
         $this->_refPropConstTypes = $this->_mRefPropConsTypes->propConstructionType();
-        $this->_propFyearFrom = Carbon::parse($this->_REQUEST->propertyDate)->format('Y');
+        $this->_propFyearFrom = Carbon::parse($this->_REQUEST->dateOfPurchase)->format('Y');
         $currentFYear = $this->_carbonToday->format('Y');
         $this->_pendingYrs = ($currentFYear - $this->_propFyearFrom) + 1;                      // Read Total FYears
-        $propMonth = Carbon::parse($this->_REQUEST->propertyDate)->format('m');
+        $propMonth = Carbon::parse($this->_REQUEST->dateOfPurchase)->format('m');
 
         if ($propMonth > 3)
             $this->_GRID['pendingYrs'] = $this->_pendingYrs;
@@ -75,8 +75,8 @@ class TaxCalculator
         $this->_calculatorParams = [
             'areaOfPlot' => $this->_REQUEST->areaOfPlot * 0.092903,
             'category' => $this->_REQUEST->category,
-            'propertyDate' => $this->_REQUEST->propertyDate,
-            'floors' => $this->_REQUEST->floors
+            'dateOfPurchase' => $this->_REQUEST->dateOfPurchase,
+            'floors' => $this->_REQUEST->floor
         ];
 
         $this->_agingPerc = 5;
@@ -89,12 +89,12 @@ class TaxCalculator
     public function generateFloorWiseTax()
     {
         if ($this->_REQUEST->propertyType != 4) {
-            foreach ($this->_REQUEST->floors as $key => $item) {
+            foreach ($this->_REQUEST->floor as $key => $item) {
                 $item = (object)$item;
 
                 $rate = $this->readRateByFloor($item);
 
-                $floorBuildupArea = roundFigure($item->builupArea * 0.092903);
+                $floorBuildupArea = roundFigure($item->buildupArea * 0.092903);
                 $alv = roundFigure($floorBuildupArea * $rate);
                 $maintance10Perc = roundFigure(($alv * $this->_maintancePerc) / 100);
                 $valueAfterMaintanance = roundFigure($alv - $maintance10Perc);

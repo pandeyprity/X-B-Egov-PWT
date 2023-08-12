@@ -29,16 +29,16 @@ class ApplySafReq extends FormRequest
             "propertyType" => "required|integer",
             "areaOfPlot" => "required|numeric",
             "category" => "required|integer",
-            "propertyDate" => "required|date|date_format:Y-m-d"
+            "dateOfPurchase" => "required|date|date_format:Y-m-d"
         ];
 
         if ($this->propertyType != 4) {
             $validation = array_merge($validation, [
-                "floors" => "required|array",
-                "floors.*.floorNo" => "required|integer",
-                "floors.*.constructionType" => "required|integer",
-                "floors.*.usageType" => "required|integer",
-                "floors.*.builupArea" => "required|numeric",
+                "floor" => "required|array",
+                "floor.*.floorNo" => "required|integer",
+                "floor.*.constructionType" => "required|integer",
+                "floor.*.usageType" => "required|integer",
+                "floor.*.buildupArea" => "required|numeric",
             ]);
         }
         return $validation;
