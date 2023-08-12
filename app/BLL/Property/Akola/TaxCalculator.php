@@ -2,6 +2,7 @@
 
 namespace App\BLL\Property\Akola;
 
+use App\Models\Property\RefPropConstructionType;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -22,6 +23,8 @@ class TaxCalculator
     private $_propFyearFrom;
     private $_agingPerc;
     private $_maintancePerc;
+    private $_refPropConstTypes;
+    private $_mRefPropConsTypes;
     /**
      * | Initialization
      */
@@ -29,6 +32,7 @@ class TaxCalculator
     {
         $this->_REQUEST = $req;
         $this->_carbonToday = Carbon::now();
+        $this->_mRefPropConsTypes = new RefPropConstructionType();
     }
 
     /**
@@ -54,6 +58,7 @@ class TaxCalculator
      */
     public function readCalculatorParams()
     {
+        $this->_refPropConstTypes = $this->_mRefPropConsTypes->propConstructionType();
         $this->_propFyearFrom = Carbon::parse($this->_REQUEST->propertyDate)->format('Y');
         $currentFYear = $this->_carbonToday->format('Y');
         $this->_pendingYrs = ($currentFYear - $this->_propFyearFrom) + 1;                      // Read Total FYears
@@ -86,8 +91,11 @@ class TaxCalculator
         if ($this->_REQUEST->propertyType != 4) {
             foreach ($this->_REQUEST->floors as $key => $item) {
                 $item = (object)$item;
+
+                $rate = $this->readRateByFloor($item);
+
                 $floorBuildupArea = roundFigure($item->builupArea * 0.092903);
-                $alv = roundFigure($floorBuildupArea * 220);
+                $alv = roundFigure($floorBuildupArea * $rate);
                 $maintance10Perc = roundFigure(($alv * $this->_maintancePerc) / 100);
                 $valueAfterMaintanance = roundFigure($alv - $maintance10Perc);
                 $aging = roundFigure(($valueAfterMaintanance * $this->_agingPerc) / 100);
@@ -108,6 +116,7 @@ class TaxCalculator
                 $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes
 
                 $this->_floorsTaxes[$key] = [
+                    'rate' => $rate,
                     'floorKey' => $key,
                     'floorNo' => $item->floorNo,
                     'buildupAreaInSqmt' => $floorBuildupArea,
@@ -138,13 +147,34 @@ class TaxCalculator
         }
     }
 
+    public function readRateByFloor($item)
+    {
+        $constType = $this->_refPropConstTypes->where('id', $item->constructionType);
+        $category = $this->_REQUEST->category;
+        if ($category == 1)
+            $rate = $constType->first()->category1_rate;
+        elseif ($category == 2)
+            $rate = $constType->first()->category2_rate;
+        else
+            $rate = $constType->first()->category3_rate;
+
+        return $rate;
+    }
+
     /**
      * | Calculate Vacant wise Tax
      */
     public function generateVacantWiseTax()
     {
         if ($this->_REQUEST->propertyType == 4) {
-            $alv = roundFigure($this->_calculatorParams['areaOfPlot'] * 11);
+            if ($this->_REQUEST->category == 1)
+                $rate = 11;
+            elseif ($this->_REQUEST->category == 1)
+                $rate = 10;
+            else
+                $rate = 8;
+
+            $alv = roundFigure($this->_calculatorParams['areaOfPlot'] * $rate);
             $maintance10Perc = roundFigure(($alv * $this->_maintancePerc) / 100);
             $valueAfterMaintanance = roundFigure($alv - $maintance10Perc);
             $aging = roundFigure(($valueAfterMaintanance * $this->_agingPerc) / 100);
@@ -165,6 +195,7 @@ class TaxCalculator
             $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes
 
             $this->_floorsTaxes[0] = [
+                'rate' => $rate,
                 'floorKey' => "Vacant Land",
                 'floorNo' => "Vacant Land",
                 'alv' => $alv,

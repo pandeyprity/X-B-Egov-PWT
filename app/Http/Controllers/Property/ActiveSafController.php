@@ -168,7 +168,7 @@ class ActiveSafController extends Controller
             $floorType = json_decode(Redis::get('property-floors'));
             $usageType = json_decode(Redis::get('property-usage-types'));
             $occupancyType = json_decode(Redis::get('property-occupancy-types'));
-            $constructionType = json_decode(Redis::get('property-construction-types'));
+            $constructionType = json_decode(Redis::get('akola-property-construction-types'));
             $transferModuleType = json_decode(Redis::get('property-transfer-modes'));
             $roadType = json_decode(Redis::get('property-road-type'));
             $gbbuildingusagetypes = json_decode(Redis::get('property-gb-building-usage-types'));
@@ -232,7 +232,7 @@ class ActiveSafController extends Controller
             // property construction types
             if (!$constructionType) {
                 $constructionType = $refPropConstructionType->propConstructionType();
-                $redisConn->set('property-construction-types', json_encode($constructionType));
+                $redisConn->set('akola-property-construction-types', json_encode($constructionType));
             }
 
             $data['construction_type'] = $constructionType;
