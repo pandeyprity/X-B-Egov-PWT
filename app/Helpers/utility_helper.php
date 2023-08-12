@@ -576,4 +576,15 @@ if (!function_exists("responseTime")) {
             return $same;
         }
     }
+
+    // checks if the number lies in between
+    if (!function_exists('is_between')) {
+        function is_between($number, $min, $max, $inclusive = true)
+        {
+            if ($inclusive)
+                return $number >= $min && $number <= $max;
+            else
+                return $number > $min && $number < $max;
+        }
+    }
 }
