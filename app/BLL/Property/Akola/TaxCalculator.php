@@ -49,8 +49,6 @@ class TaxCalculator
         $this->generateAnnuallyTaxes();
 
         $this->generateFyearWiseTaxes();
-
-        // dd($this->_GRID);
     }
 
     /**
@@ -64,12 +62,16 @@ class TaxCalculator
         $this->_pendingYrs = ($currentFYear - $this->_propFyearFrom) + 1;                      // Read Total FYears
         $propMonth = Carbon::parse($this->_REQUEST->dateOfPurchase)->format('m');
 
-        if ($propMonth > 3)
+        if ($propMonth > 3) {
             $this->_GRID['pendingYrs'] = $this->_pendingYrs;
+            $this->_GRID['demandPendingYrs'] = $this->_pendingYrs;
+        }
 
         if ($propMonth < 4) {
-            $this->_GRID['pendingYrs'] = $this->_pendingYrs + 1;
             $this->_propFyearFrom = $this->_propFyearFrom - 1;
+            $this->_pendingYrs = ($currentFYear - $this->_propFyearFrom) + 1;
+            $this->_GRID['pendingYrs'] =  $this->_pendingYrs;                               // Calculate Total Fyears
+            $this->_GRID['demandPendingYrs'] = $this->_pendingYrs;
         }
 
         $this->_calculatorParams = [
@@ -324,10 +326,35 @@ class TaxCalculator
     public function generateFyearWiseTaxes()
     {
         $fyearWiseTaxes = collect();
-        for ($i = 0; $i < $this->_pendingYrs; $i++) {
-            $fyear = ($this->_propFyearFrom + $i) . '-' . ($this->_propFyearFrom + $i + 1);
-            $fyearWiseTaxes->put($fyear, $this->_GRID['annualTaxes']);
+        $isFyearBack = false;
+        $pendingYrs = $this->_pendingYrs;
+        $pendingYrsFrom = $this->_propFyearFrom;
+        // Checking Act Of Limitation
+        if ($this->_pendingYrs > 5) {
+            $pendingYrsFrom = $this->_carbonToday->format('Y') - 4;
+            $pendingYrs = 5;
+            $this->_GRID['demandPendingYrs'] = $pendingYrs;                     // After Appling Act of limitation
         }
+
+        if ($this->_carbonToday->format('m') < 4) {                             // Check if financial year fulfilled
+            $isFyearBack = true;                                                // Checks if the Fyear Started or Not means fyear month < 4
+            $pendingYrsFrom = $pendingYrsFrom - 1;
+        }
+
+        for ($i = 0; $i < $pendingYrs; $i++) {
+            $fyear = ($pendingYrsFrom + $i) . '-' . ($pendingYrsFrom + $i + 1);
+            if ($i == 0)                                                  // Pending From year
+                $this->_GRID['pendingFromFyear'] = $fyear;
+
+            $isLastIndex = $i == $pendingYrs - 1;
+            if ($isLastIndex)                                   // Pending Upto Year
+                $this->_GRID['pendingUptoFyear'] = $fyear;
+
+            $fyearWiseTaxes->put($fyear, array_merge($this->_GRID['annualTaxes'], ['fyear' => $fyear]));
+            if ($isFyearBack && $isLastIndex)
+                break;
+        }
+
         $this->_GRID['fyearWiseTaxes'] = $fyearWiseTaxes->toArray();
         $this->_GRID['grandTaxes'] = $this->sumTaxes($fyearWiseTaxes);
     }
