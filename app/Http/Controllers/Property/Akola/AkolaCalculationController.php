@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Property\Akola;
 
 use App\BLL\Property\Akola\TaxCalculator;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Property\Akola\ApplySafReq;
 use Exception;
 use Illuminate\Http\Request;
 
@@ -20,7 +21,7 @@ class AkolaCalculationController extends Controller
     /**
      * | Calculate function
      */
-    public function calculate(Request $req)
+    public function calculate(ApplySafReq $req)
     {
         try {
             $taxCalculator = new TaxCalculator($req);

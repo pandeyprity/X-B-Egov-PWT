@@ -15,7 +15,10 @@ class RefPropConstructionType extends Model
     {
         return RefPropConstructionType::select(
             'id',
-            DB::raw('INITCAP(construction_type) as construction_type')
+            DB::raw('INITCAP(construction_type) as construction_type'),
+            'category1_rate',
+            'category2_rate',
+            'category3_rate',
         )
             ->where('status', 1)
             ->get();
