@@ -229,7 +229,6 @@ class TaxCalculator
     /**
      * | read State Taxes
      */
-
     public function readStateTaxes($alv, $isCommercial)
     {
         // State Taxes
