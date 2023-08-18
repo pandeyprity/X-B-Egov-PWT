@@ -6,6 +6,7 @@ use App\Models\Property\RefPropConstructionType;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
 
 /**
  * | Author - Anshu Kumar
@@ -26,6 +27,7 @@ class TaxCalculator
     private $_refPropConstTypes;
     private $_mRefPropConsTypes;
     private $_calculationDateFrom;
+    private $_agingPercs;
     /**
      * | Initialization
      */
@@ -34,6 +36,7 @@ class TaxCalculator
         $this->_REQUEST = $req;
         $this->_carbonToday = Carbon::now();
         $this->_mRefPropConsTypes = new RefPropConstructionType();
+        $this->_agingPercs = Config::get('PropertyConstaint.AGING_PERC');
     }
 
     /**
@@ -46,8 +49,6 @@ class TaxCalculator
         $this->generateFloorWiseTax();
 
         $this->generateVacantWiseTax();
-
-        // $this->generateAnnuallyTaxes();
 
         $this->generateFyearWiseTaxes();
     }
@@ -98,7 +99,7 @@ class TaxCalculator
             foreach ($this->_REQUEST->floor as $key => $item) {
                 $item = (object)$item;
                 $rate = $this->readRateByFloor($item);
-                $agingPerc = 5;
+                $agingPerc = $this->readAgingByFloor($item);
 
                 $floorBuildupArea = roundFigure($item->buildupArea * 0.092903);
                 $alv = roundFigure($floorBuildupArea * $rate);
@@ -117,7 +118,7 @@ class TaxCalculator
                 $sewerageTax = roundFigure($taxValue * 0.02);
                 $treeTax = roundFigure($taxValue * 0.01);
 
-                $isCommercial = ($item->usageType == 1) ? false : true;
+                $isCommercial = ($item->usageType == 11) ? false : true;                    // Residential usage type id
 
                 $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes
 
@@ -178,6 +179,17 @@ class TaxCalculator
      */
     public function readAgingByFloor($item)
     {
+        $agings = $this->_agingPercs;
+        $constYear = Carbon::parse($item->dateFrom)->diffInYears(Carbon::now());
+        $perc = 0;
+        if ($constYear > 10) {
+            $perc = collect($agings)->where('const_id', $item->constructionType)
+                ->where('range_from', '<=', $constYear)
+                ->sortByDesc('range_from')
+                ->first();
+            $perc = $perc['aging_perc'];
+        }
+        return $perc;
     }
 
     /**
@@ -292,17 +304,6 @@ class TaxCalculator
         ];
     }
 
-    /**
-     * | Generation of Total Taxes
-     */
-    public function generateAnnuallyTaxes()                     // Reverted because of floor taxes
-    {
-        $floorTaxes = collect($this->_floorsTaxes)->groupBy('appliedFrom');
-        $annualCollection = $floorTaxes->map(function ($item) {
-            return array_merge($this->sumTaxes($item), ['fyear' => $item->first()['appliedFrom']]);
-        });
-        $this->_GRID['annualTaxes'] = $annualCollection->values();
-    }
 
     /**
      * | Summation of Taxes

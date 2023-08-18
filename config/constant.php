@@ -1,4 +1,3 @@
-@ -0,0 +1,73 @@
 <?php
 
 /**
@@ -22,8 +21,8 @@ return [
     "INSURANCE_RELATIVE_NAME" => "INSURANCE",
     "BRAND_DISPLAY_RELATIVE_NAME" => "BRAND-DISPLAY",
     "SELF_ADVET_RELATIVE_PATH" => "Uploads/SelfAdvets",
-    "TOLL_PATH"=>"Uploads/tolls",
-    "SHOP_PATH"=>"Uploads/shops",
+    "TOLL_PATH" => "Uploads/tolls",
+    "SHOP_PATH" => "Uploads/shops",
 
     "SELF_ADVET" => [
         "RELATIVE_PATH" => "Uploads/SelfAdvets"

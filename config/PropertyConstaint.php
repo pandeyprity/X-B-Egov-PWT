@@ -547,5 +547,119 @@ return [
         "2" => "Main Road",
         "3" => "Other",
         "4" => "No Road"
+    ],
+
+    // Read Aging By Floors
+    "AGING_PERC" => [
+        // 11 to 30 years
+        [
+            "id" => 1,
+            "const_id" => 1,
+            "aging_perc" => 5,
+            "range_from" => 11,
+            "range_upto" => 30,
+        ],
+        [
+            "id" => 2,
+            "const_id" => 2,
+            "aging_perc" => 10,
+            "range_from" => 11,
+            "range_upto" => 30,
+        ],
+        [
+            "id" => 3,
+            "const_id" => 3,
+            "aging_perc" => 15,
+            "range_from" => 11,
+            "range_upto" => 30,
+        ],
+        [
+            "id" => 4,
+            "const_id" => 4,
+            "aging_perc" => 20,
+            "range_from" => 11,
+            "range_upto" => 30,
+        ],
+        [
+            "id" => 5,
+            "const_id" => 5,
+            "aging_perc" => 20,
+            "range_from" => 11,
+            "range_upto" => 30,
+        ],
+
+        // 31 to 50 years
+        [
+            "id" => 6,
+            "const_id" => 1,
+            "aging_perc" => 10,
+            "range_from" => 31,
+            "range_upto" => 50,
+        ],
+        [
+            "id" => 7,
+            "const_id" => 2,
+            "aging_perc" => 15,
+            "range_from" => 31,
+            "range_upto" => 50,
+        ],
+        [
+            "id" => 8,
+            "const_id" => 3,
+            "aging_perc" => 20,
+            "range_from" => 31,
+            "range_upto" => 50,
+        ],
+        [
+            "id" => 9,
+            "const_id" => 4,
+            "aging_perc" => 25,
+            "range_from" => 31,
+            "range_upto" => 50,
+        ],
+        [
+            "id" => 10,
+            "const_id" => 5,
+            "aging_perc" => 25,
+            "range_from" => 31,
+            "range_upto" => 50,
+        ],
+
+        // After 50 Years
+        [
+            "id" => 11,
+            "const_id" => 1,
+            "aging_perc" => 15,
+            "range_from" => 51,
+            "range_upto" => null,
+        ],
+        [
+            "id" => 12,
+            "const_id" => 2,
+            "aging_perc" => 20,
+            "range_from" => 51,
+            "range_upto" => null,
+        ],
+        [
+            "id" => 13,
+            "const_id" => 3,
+            "aging_perc" => 25,
+            "range_from" => 51,
+            "range_upto" => null,
+        ],
+        [
+            "id" => 14,
+            "const_id" => 4,
+            "aging_perc" => 30,
+            "range_from" => 51,
+            "range_upto" => null,
+        ],
+        [
+            "id" => 15,
+            "const_id" => 5,
+            "aging_perc" => 30,
+            "range_from" => 51,
+            "range_upto" => null,
+        ],
     ]
 ];
