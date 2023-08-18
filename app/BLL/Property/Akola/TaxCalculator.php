@@ -25,6 +25,7 @@ class TaxCalculator
     private $_maintancePerc;
     private $_refPropConstTypes;
     private $_mRefPropConsTypes;
+    private $_calculationDateFrom;
     /**
      * | Initialization
      */
@@ -46,7 +47,7 @@ class TaxCalculator
 
         $this->generateVacantWiseTax();
 
-        $this->generateAnnuallyTaxes();
+        // $this->generateAnnuallyTaxes();
 
         $this->generateFyearWiseTaxes();
     }
@@ -62,16 +63,14 @@ class TaxCalculator
         $this->_pendingYrs = ($currentFYear - $this->_propFyearFrom) + 1;                      // Read Total FYears
         $propMonth = Carbon::parse($this->_REQUEST->dateOfPurchase)->format('m');
 
-        if ($propMonth > 3) {
+        if ($propMonth > 3) {                                                           // Adjustment of Pending Years by Financial Years
             $this->_GRID['pendingYrs'] = $this->_pendingYrs;
-            $this->_GRID['demandPendingYrs'] = $this->_pendingYrs;
         }
 
         if ($propMonth < 4) {
             $this->_propFyearFrom = $this->_propFyearFrom - 1;
             $this->_pendingYrs = ($currentFYear - $this->_propFyearFrom) + 1;
             $this->_GRID['pendingYrs'] =  $this->_pendingYrs;                               // Calculate Total Fyears
-            $this->_GRID['demandPendingYrs'] = $this->_pendingYrs;
         }
 
         $this->_calculatorParams = [
@@ -83,6 +82,11 @@ class TaxCalculator
 
         $this->_agingPerc = 5;
         $this->_maintancePerc = 10;
+
+        if ($this->_REQUEST->propertyType != 4)                                            // i.e for building case
+            $this->_calculationDateFrom = collect($this->_REQUEST->floor)->sortBy('dateFrom')->first()['dateFrom'];
+        else
+            $this->_calculationDateFrom = $this->_REQUEST->dateOfPurchase;
     }
 
     /**
@@ -93,14 +97,14 @@ class TaxCalculator
         if ($this->_REQUEST->propertyType != 4) {
             foreach ($this->_REQUEST->floor as $key => $item) {
                 $item = (object)$item;
-
                 $rate = $this->readRateByFloor($item);
+                $agingPerc = 5;
 
                 $floorBuildupArea = roundFigure($item->buildupArea * 0.092903);
                 $alv = roundFigure($floorBuildupArea * $rate);
                 $maintance10Perc = roundFigure(($alv * $this->_maintancePerc) / 100);
                 $valueAfterMaintanance = roundFigure($alv - $maintance10Perc);
-                $aging = roundFigure(($valueAfterMaintanance * $this->_agingPerc) / 100);
+                $aging = roundFigure(($valueAfterMaintanance * $agingPerc) / 100);
                 $taxValue = roundFigure($valueAfterMaintanance - $aging);
 
                 // Municipal Taxes
@@ -118,6 +122,8 @@ class TaxCalculator
                 $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes
 
                 $this->_floorsTaxes[$key] = [
+                    'dateFrom' => $item->dateFrom,
+                    'appliedFrom' => getFY($item->dateFrom),
                     'rate' => $rate,
                     'floorKey' => $key,
                     'floorNo' => $item->floorNo,
@@ -126,7 +132,7 @@ class TaxCalculator
                     'maintancePerc' => $this->_maintancePerc,
                     'maintantance10Perc' => $maintance10Perc,
                     'valueAfterMaintance' => $valueAfterMaintanance,
-                    'agingPerc' => $this->_agingPerc,
+                    'agingPerc' => $agingPerc,
                     'agingAmt' => $aging,
                     'taxValue' => $taxValue,
                     'generalTax' => $generalTax,
@@ -149,6 +155,9 @@ class TaxCalculator
         }
     }
 
+    /**
+     * | Read Rate to Calculate ALV of the floor
+     */
     public function readRateByFloor($item)
     {
         $constType = $this->_refPropConstTypes->where('id', $item->constructionType);
@@ -161,6 +170,14 @@ class TaxCalculator
             $rate = $constType->first()->category3_rate;
 
         return $rate;
+    }
+
+    /**
+     * 
+     * | Read aging of the floor
+     */
+    public function readAgingByFloor($item)
+    {
     }
 
     /**
@@ -278,10 +295,13 @@ class TaxCalculator
     /**
      * | Generation of Total Taxes
      */
-    public function generateAnnuallyTaxes()
+    public function generateAnnuallyTaxes()                     // Reverted because of floor taxes
     {
-        $floorTaxes = collect($this->_floorsTaxes);
-        $this->_GRID['annualTaxes'] = $this->sumTaxes($floorTaxes);
+        $floorTaxes = collect($this->_floorsTaxes)->groupBy('appliedFrom');
+        $annualCollection = $floorTaxes->map(function ($item) {
+            return array_merge($this->sumTaxes($item), ['fyear' => $item->first()['appliedFrom']]);
+        });
+        $this->_GRID['annualTaxes'] = $annualCollection->values();
     }
 
     /**
@@ -324,37 +344,26 @@ class TaxCalculator
      */
     public function generateFyearWiseTaxes()
     {
+        $today = Carbon::now()->format('Y-m-d');
         $fyearWiseTaxes = collect();
-        $isFyearBack = false;
-        $pendingYrs = $this->_pendingYrs;
-        $pendingYrsFrom = $this->_propFyearFrom;
-        // Checking Act Of Limitation
-        if ($this->_pendingYrs > 5) {
-            $pendingYrsFrom = $this->_carbonToday->format('Y') - 4;
-            $pendingYrs = 5;
-            $this->_GRID['demandPendingYrs'] = $pendingYrs;                     // After Appling Act of limitation
+        // Act Of limitation
+        $yearDiffs = Carbon::parse($this->_calculationDateFrom)->diffInYears(Carbon::now());                // year differences
+        $this->_GRID['demandPendingYrs'] = $yearDiffs;
+
+        if ($yearDiffs >= 5) {
+            $this->_GRID['demandPendingYrs'] = 5;
+            $this->_calculationDateFrom = Carbon::now()->addYears(-4)->format('Y-m-d');
         }
+        // Act Of Limitations end
+        while ($this->_calculationDateFrom <= $today) {
+            $annualTaxes = collect($this->_floorsTaxes)->where('dateFrom', '<=', $this->_calculationDateFrom);
+            $fyear = getFY($this->_calculationDateFrom);
+            $yearTax = $this->sumTaxes($annualTaxes);
 
-        if ($this->_carbonToday->format('m') < 4) {                             // Check if financial year fulfilled
-            $isFyearBack = true;                                                // Checks if the Fyear Started or Not means fyear month < 4
-            $pendingYrsFrom = $pendingYrsFrom - 1;
+            $fyearWiseTaxes->put($fyear, array_merge($yearTax, ['fyear' => $fyear]));
+            $this->_calculationDateFrom = Carbon::parse($this->_calculationDateFrom)->addYear()->format('Y-m-d');
         }
-
-        for ($i = 0; $i < $pendingYrs; $i++) {
-            $fyear = ($pendingYrsFrom + $i) . '-' . ($pendingYrsFrom + $i + 1);
-            if ($i == 0)                                                  // Pending From year
-                $this->_GRID['pendingFromFyear'] = $fyear;
-
-            $isLastIndex = $i == $pendingYrs - 1;
-            if ($isLastIndex)                                   // Pending Upto Year
-                $this->_GRID['pendingUptoFyear'] = $fyear;
-
-            $fyearWiseTaxes->put($fyear, array_merge($this->_GRID['annualTaxes'], ['fyear' => $fyear]));
-            if ($isFyearBack && $isLastIndex)
-                break;
-        }
-
-        $this->_GRID['fyearWiseTaxes'] = $fyearWiseTaxes->toArray();
+        $this->_GRID['fyearWiseTaxes'] = $fyearWiseTaxes;
         $this->_GRID['grandTaxes'] = $this->sumTaxes($fyearWiseTaxes);
     }
 }
