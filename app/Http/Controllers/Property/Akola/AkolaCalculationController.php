@@ -6,7 +6,6 @@ use App\BLL\Property\Akola\TaxCalculator;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Property\Akola\ApplySafReq;
 use Exception;
-use Illuminate\Http\Request;
 
 /**
  * | Author-Anshu Kumar
@@ -14,10 +13,6 @@ use Illuminate\Http\Request;
  */
 class AkolaCalculationController extends Controller
 {
-    public function __construct()
-    {
-    }
-
     /**
      * | Calculate function
      */

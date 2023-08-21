@@ -28,8 +28,9 @@ class TaxCalculator
     private $_calculationDateFrom;
     private $_agingPercs;
     private $_currentFyear;
+
     /**
-     * | Initialization
+     * | Initialization of global variables
      */
     public function __construct(Request $req)
     {
