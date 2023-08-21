@@ -100,7 +100,7 @@ Route::controller(IdGeneratorController::class)->group(function () {
 
 
 // Inside Middleware Routes with API Authenticate 
-Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
+Route::group(['middleware' => ['request_logger', 'expireBearerToken']], function () {
 
     /**
      * | Api to Check if the User is authenticated or not
@@ -246,6 +246,7 @@ Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger'
         Route::put('edit-ulb-ward/{id}', 'editUlbWard');         // Edit Ulb Ward
         Route::get('get-ulb-ward/{id}', 'getUlbWardByID');       // Get Ulb Ward Details by ID
         Route::get('get-all-ulb-wards', 'getAllUlbWards'); //not for use      // Get All Ulb Wards
+        Route::post('property/v1/get-ward-by-zone', 'getWardByZone');
     });
 });
 

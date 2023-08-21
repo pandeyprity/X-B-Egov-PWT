@@ -60,4 +60,14 @@ class UlbWardMaster extends Model
         return UlbWardMaster::where('id', $id)
             ->first();
     }
+
+    /**
+     * | Get wards by zone
+     */
+    public function getWardsByZone($zoneId)
+    {
+        return UlbWardMaster::where('zone', $zoneId)
+            ->where('status', 1)
+            ->get();
+    }
 }

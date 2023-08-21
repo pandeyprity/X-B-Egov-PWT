@@ -139,7 +139,6 @@ class ActiveSafController extends Controller
     public function masterSaf(Request $req)
     {
         try {
-            $method = $req->getMethod();
             $redisConn = Redis::connection();
             $data = [];
 
@@ -150,6 +149,7 @@ class ActiveSafController extends Controller
             $refPropUsageType = new RefPropUsageType();
             $refPropOccupancyType = new RefPropOccupancyType();
             $refPropConstructionType = new RefPropConstructionType();
+            $mZoneMasters = new ZoneMaster();
 
             // Getting Masters from Redis Cache
             $wards = json_decode(Redis::get('wards-ulb'));
@@ -159,6 +159,7 @@ class ActiveSafController extends Controller
             $usageType = json_decode(Redis::get('property-usage-types'));
             $occupancyType = json_decode(Redis::get('property-occupancy-types'));
             $constructionType = json_decode(Redis::get('akola-property-construction-types'));
+            $zone = json_decode(Redis::get('zones'));
 
             // Ward Masters
             if (!$wards) {
@@ -222,7 +223,13 @@ class ActiveSafController extends Controller
 
             $data['construction_type'] = $constructionType;
 
-            $data['zone'] = collect($wards)->groupBy('zone')->keys();
+            if (!$zone) {
+                $zone = $mZoneMasters->getZone();
+                $redisConn->set('zones', json_encode($zone));
+            }
+
+            $data['zone'] = $zone;
+
             return responseMsgs(true, 'Property Masters', $data, "010101", "1.0", responseTime(), "GET", "");
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
