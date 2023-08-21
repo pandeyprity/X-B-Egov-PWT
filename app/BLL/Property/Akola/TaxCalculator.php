@@ -27,6 +27,7 @@ class TaxCalculator
     private $_mRefPropConsTypes;
     private $_calculationDateFrom;
     private $_agingPercs;
+    private $_currentFyear;
     /**
      * | Initialization
      */
@@ -50,6 +51,8 @@ class TaxCalculator
         $this->generateVacantWiseTax();
 
         $this->generateFyearWiseTaxes();
+
+        $this->generatePayableAmount();
     }
 
     /**
@@ -86,6 +89,8 @@ class TaxCalculator
             $this->_calculationDateFrom = collect($this->_REQUEST->floor)->sortBy('dateFrom')->first()['dateFrom'];
         else
             $this->_calculationDateFrom = $this->_REQUEST->dateOfPurchase;
+
+        $this->_currentFyear = calculateFYear(Carbon::now()->format('Y-m-d'));
     }
 
     /**
@@ -364,6 +369,27 @@ class TaxCalculator
             $this->_calculationDateFrom = Carbon::parse($this->_calculationDateFrom)->addYear()->format('Y-m-d');
         }
         $this->_GRID['fyearWiseTaxes'] = $fyearWiseTaxes;
-        $this->_GRID['grandTaxes'] = $this->sumTaxes($fyearWiseTaxes);
+    }
+
+    /**
+     * | Generate Payable Amount
+     */
+    public function generatePayableAmount()
+    {
+        $this->_GRID['grandTaxes'] = $this->sumTaxes($this->_GRID['fyearWiseTaxes']);
+
+        $this->_GRID['isRebateApplied'] = false;
+        $this->_GRID['rebateAmt'] = 0;
+        // Read Rebates
+        $firstOwner = collect($this->_REQUEST->owner)->first();
+        $isArmedForce = $firstOwner['isArmedForce'];
+        if ($isArmedForce) {
+            $currentYearGeneralTax = $this->_GRID['fyearWiseTaxes']->where('fyear', $this->_currentFyear)->first()['generalTax'];       // General Tax of current fyear will be our rebate
+            $this->_GRID['isRebateApplied'] = true;
+            $this->_GRID['rebateAmt'] = $currentYearGeneralTax;
+        }
+
+        // Calculation of Payable Amount
+        $this->_GRID['payableAmt'] = round($this->_GRID['grandTaxes']['totalTax'] - $this->_GRID['rebateAmt']);
     }
 }
