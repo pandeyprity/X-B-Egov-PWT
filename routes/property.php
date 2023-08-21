@@ -54,7 +54,7 @@ Route::post('api-test', function () {
 })->middleware('api.key');
 
 // Inside Middleware Routes with API Authenticate 
-Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
+Route::group(['middleware' => ['json.response', 'request_logger', 'expireBearerToken', 'auth_maker']], function () {
   // Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
 
   /**

@@ -20,6 +20,16 @@ class UlbWardMaster extends Model
     }
 
     /**
+     * | Get all wards
+     */
+    public function getAllWards()
+    {
+        return UlbWardMaster::select('id', 'zone', 'ward_name')
+            ->where('status', 1)
+            ->get();
+    }
+
+    /**
      * | Get Ward By Ulb ID
      * | @param ulbId
      */

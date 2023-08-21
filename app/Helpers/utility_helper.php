@@ -505,9 +505,15 @@ if (!function_exists('dateDiff')) {
 
 // Get Authenticated users list
 if (!function_exists('authUser')) {
-    function authUser()
+    function authUser($req)
     {
-        return auth()->user();
+        $auth = $req->auth;
+        if (!$auth)
+            throw new Exception("Auth Not Available");
+        if (is_array($auth))
+            return (object)$auth;
+        else
+            return json_decode($req->auth);
     }
 }
 
@@ -588,19 +594,19 @@ if (!function_exists("responseTime")) {
         }
     }
 
-    
+
 
     /**
      * | Search Filter for Shop Rental Data
      */
 
-     if (!function_exists("searchShopRentalFilter")) {
+    if (!function_exists("searchShopRentalFilter")) {
         function searchShopRentalFilter($orm, $req)
         {
             $key = trim($req->key);
             return $orm->where(function ($query) use ($key) {
                 $query->orwhere('shop_no', 'ILIKE', '%' . $key . '%')
-                ->orwhere("allottee", 'ILIKE', '%' . $key . '%');
+                    ->orwhere("allottee", 'ILIKE', '%' . $key . '%');
                 // ->orwhere("vendor_name", 'ILIKE', '%' . $key . '%')
                 // ->orwhere("toll_no", 'ILIKE', '%' . $key . '%');
             });
@@ -608,12 +614,12 @@ if (!function_exists("responseTime")) {
     }
 
 
-    
+
     /**
      * | Search Filter for Shop Rental Data
      */
 
-     if (!function_exists("searchTollRentalFilter")) {
+    if (!function_exists("searchTollRentalFilter")) {
         function searchTollRentalFilter($orm, $req)
         {
             $key = trim($req->key);
@@ -621,17 +627,17 @@ if (!function_exists("responseTime")) {
                 // $query->orwhere('shop_no', 'ILIKE', '%' . $key . '%')
                 // ->orwhere("allottee", 'ILIKE', '%' . $key . '%');
                 $query->orwhere("vendor_name", 'ILIKE', '%' . $key . '%')
-                ->orwhere("toll_no", 'ILIKE', '%' . $key . '%');
+                    ->orwhere("toll_no", 'ILIKE', '%' . $key . '%');
             });
         }
     }
 
-    
+
     /**
      * | Api Response time for the the apis
      */
 
-     if (!function_exists("paginator")) {
+    if (!function_exists("paginator")) {
         function paginator($orm, $req)
         {
             $perPage = $req->perPage ? $req->perPage :  10;

@@ -142,12 +142,7 @@ class ActiveSafController extends Controller
             $method = $req->getMethod();
             $redisConn = Redis::connection();
             $data = [];
-            if ($method == 'GET')
-                $ulbId = authUser()->ulb_id;
-            else
-                $ulbId = $req->ulbId;
-            if (!$ulbId)
-                throw new Exception('ulbId field is required');
+
             $ulbWardMaster = new UlbWardMaster();
             $refPropOwnershipType = new RefPropOwnershipType();
             $refPropType = new RefPropType();
@@ -155,36 +150,26 @@ class ActiveSafController extends Controller
             $refPropUsageType = new RefPropUsageType();
             $refPropOccupancyType = new RefPropOccupancyType();
             $refPropConstructionType = new RefPropConstructionType();
-            $refPropTransferMode = new RefPropTransferMode();
-            $refPropRoadType = new RefPropRoadType();
-            $refPropGbbuildingusagetype = new RefPropGbbuildingusagetype();
-            $refPropGbpropusagetype = new RefPropGbpropusagetype();
-            $mZoneMstrs = new ZoneMaster();
 
             // Getting Masters from Redis Cache
-            $wards = json_decode(Redis::get('wards-ulb-' . $ulbId));
+            $wards = json_decode(Redis::get('wards-ulb'));
             $ownershipTypes = json_decode(Redis::get('prop-ownership-types'));
             $propertyType = json_decode(Redis::get('property-types'));
             $floorType = json_decode(Redis::get('property-floors'));
             $usageType = json_decode(Redis::get('property-usage-types'));
             $occupancyType = json_decode(Redis::get('property-occupancy-types'));
             $constructionType = json_decode(Redis::get('akola-property-construction-types'));
-            $transferModuleType = json_decode(Redis::get('property-transfer-modes'));
-            $roadType = json_decode(Redis::get('property-road-type'));
-            $gbbuildingusagetypes = json_decode(Redis::get('property-gb-building-usage-types'));
-            $gbpropusagetypes = json_decode(Redis::get('property-gb-prop-usage-types'));
-            $zoneMstrs = json_decode(Redis::get('zone-ulb-' . $ulbId));
 
             // Ward Masters
             if (!$wards) {
                 $wards = collect();
-                $wardMaster = $ulbWardMaster->getWardByUlbId($ulbId);   // <----- Get Ward by Ulb ID By Model Function
+                $wardMaster = $ulbWardMaster->getAllWards();   // <----- Get Ward by Ulb ID By Model Function
                 $groupByWards = $wardMaster->groupBy('ward_name');
                 foreach ($groupByWards as $ward) {
                     $wards->push(collect($ward)->first());
                 }
                 $wards->sortBy('ward_name')->values();
-                $redisConn->set('wards-ulb-' . $ulbId, json_encode($wards));            // Caching
+                $redisConn->set('wards-ulb', json_encode($wards));            // Caching
             }
 
             $data['ward_master'] = $wards;
@@ -237,45 +222,7 @@ class ActiveSafController extends Controller
 
             $data['construction_type'] = $constructionType;
 
-            // property transfer modes
-            if (!$transferModuleType) {
-                $transferModuleType = $refPropTransferMode->getTransferModes();
-                $redisConn->set('property-transfer-modes', json_encode($transferModuleType));
-            }
-
-            $data['transfer_mode'] = $transferModuleType;
-
-            // road type master
-            if (!$roadType) {
-                $roadType = $refPropRoadType->propRoadType();
-                $redisConn->set('property-road-type', json_encode($roadType));
-            }
-
-            $data['road_type'] = $roadType;
-
-            // GB Building Usage Types
-            if (!$gbbuildingusagetypes) {
-                $gbbuildingusagetypes = $refPropGbbuildingusagetype->getGbbuildingusagetypes();   // <--- Get GB Building Usage Types
-                $redisConn->set('property-gb-building-usage-types', json_encode($gbbuildingusagetypes));
-            }
-
-            $data['gbbuildingusage_type'] = $gbbuildingusagetypes;
-
-            // GB Prop Usage Types
-            if (!$gbpropusagetypes) {
-                $gbpropusagetypes = $refPropGbpropusagetype->getGbpropusagetypes();   // <--- Get GB Prop Usage Types
-                $redisConn->set('property-gb-prop-usage-types', json_encode($gbpropusagetypes));
-            }
-
-            $data['gbpropusage_type'] = $gbpropusagetypes;
-
-            // Zone Masters by Ulb
-            if (!$zoneMstrs) {
-                $zoneMstrs = $mZoneMstrs->getZone($ulbId);
-                $redisConn->set('zone-ulb-' . $ulbId, json_encode($zoneMstrs));
-            }
-            $data['zone_mstrs'] = $zoneMstrs;
-
+            $data['zone'] = collect($wards)->groupBy('zone')->keys();
             return responseMsgs(true, 'Property Masters', $data, "010101", "1.0", responseTime(), "GET", "");
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
@@ -350,8 +297,8 @@ class ActiveSafController extends Controller
             $mWfWardUser = new WfWardUser();
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
 
-            $userId = authUser()->id;
-            $ulbId = authUser()->ulb_id;
+            $userId = authUser($req)->id;
+            $ulbId = authUser($req)->ulb_id;
             $perPage = $req->perPage ?? 10;
 
             $occupiedWards = $mWfWardUser->getWardsByUserId($userId)->pluck('ward_id');                       // Model () to get Occupied Wards of Current User
@@ -401,8 +348,8 @@ class ActiveSafController extends Controller
             $mWfWardUser = new WfWardUser();
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
 
-            $mUserId = authUser()->id;
-            $mUlbId = authUser()->ulb_id;
+            $mUserId = authUser($req)->id;
+            $mUlbId = authUser($req)->ulb_id;
             $mDeviceId = $req->deviceId ?? "";
             $perPage = $req->perPage ?? 10;
 
@@ -451,8 +398,8 @@ class ActiveSafController extends Controller
             $mWfWardUser = new WfWardUser();
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
 
-            $mUserId = authUser()->id;
-            $mUlbId = authUser()->ulb_id;
+            $mUserId = authUser($req)->id;
+            $mUlbId = authUser($req)->ulb_id;
             $mDeviceId = $req->deviceId ?? "";
             $perPage = $req->perPage ?? 10;
 
@@ -494,8 +441,8 @@ class ActiveSafController extends Controller
             $mWfWardUser = new WfWardUser();
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
 
-            $userId = authUser()->id;
-            $ulbId = authUser()->ulb_id;
+            $userId = authUser($req)->id;
+            $ulbId = authUser($req)->ulb_id;
             $perPage = $req->perPage ?? 10;
 
             $roleIds = $mWfRoleUser->getRoleIdByUserId($userId)->pluck('wf_role_id');
@@ -545,8 +492,8 @@ class ActiveSafController extends Controller
             $mWfWardUser = new WfWardUser();
             $mWfRoleUserMaps = new WfRoleusermap();
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
-            $userId = authUser()->id;
-            $ulbId = authUser()->ulb_id;
+            $userId = authUser($req)->id;
+            $ulbId = authUser($req)->ulb_id;
             $perPage = $req->perPage ?? 10;
 
             $wardIds = $mWfWardUser->getWardsByUserId($userId)->pluck('ward_id');                        // Get All Occupied Ward By user id using trait
@@ -1333,7 +1280,7 @@ class ActiveSafController extends Controller
             $previousHoldingDeactivation = new PreviousHoldingDeactivation;
             $propIdGenerator = new PropIdGenerator;
 
-            $userId = authUser()->id;
+            $userId = authUser($req)->id;
             $safId = $req->applicationId;
             // Derivative Assignments
             $safDetails = PropActiveSaf::findOrFail($req->applicationId);
@@ -1593,7 +1540,7 @@ class ActiveSafController extends Controller
             $metaReqs['workflowId'] = $saf->workflow_id;
             $metaReqs['refTableDotId'] = $safRefTableName;
             $metaReqs['refTableIdValue'] = $req->applicationId;
-            $metaReqs['user_id'] = authUser()->id;
+            $metaReqs['user_id'] = authUser($req)->id;
             $metaReqs['verificationStatus'] = 2;
             $metaReqs['senderRoleId'] = $senderRoleId;
             $req->request->add($metaReqs);
@@ -1682,7 +1629,7 @@ class ActiveSafController extends Controller
             $postRazorPayPenaltyRebate = new PostRazorPayPenaltyRebate;
             $url            = Config::get('razorpay.PAYMENT_GATEWAY_URL');
             $endPoint       = Config::get('razorpay.PAYMENT_GATEWAY_END_POINT');
-            $authUser      = authUser();
+            $authUser      = authUser($req);
             $req->merge(['departmentId' => 1]);
             $safDetails = PropActiveSaf::findOrFail($req->id);
             if ($safDetails->payment_status == 1)
@@ -1952,8 +1899,8 @@ class ActiveSafController extends Controller
             if ($activeSaf->payment_status == 1)
                 throw new Exception("Payment Already Done");
 
-            $userId = authUser()->id;                                      // Authenticated user or Ghost User
-            $tranBy = authUser()->user_type;
+            $userId = authUser($req)->id;                                      // Authenticated user or Ghost User
+            $tranBy = authUser($req)->user_type;
 
             $tranNo = $req['transactionNo'];
             // Derivative Assignments
@@ -2223,7 +2170,7 @@ class ActiveSafController extends Controller
     public function getPropTransactions(Request $req)
     {
         try {
-            $auth = authUser();
+            $auth = authUser($req);
             $userId = $auth->id;
             if ($auth->user_type == 'Citizen')
                 $propTrans = $this->Repository->getPropTransByCitizenUserId($userId, 'citizen_id');
@@ -2312,8 +2259,8 @@ class ActiveSafController extends Controller
             $verification = new PropSafVerification();
             $mWfRoleUsermap = new WfRoleusermap();
             $verificationDtl = new PropSafVerificationDtl();
-            $userId = authUser()->id;
-            $ulbId = authUser()->ulb_id;
+            $userId = authUser($req)->id;
+            $ulbId = authUser($req)->ulb_id;
             $vacantLand = $propertyType['VACANT LAND'];
 
             $safDtls = $propActiveSaf->getSafNo($req->safId);
@@ -2430,7 +2377,7 @@ class ActiveSafController extends Controller
                     'longitude' => $longitude[$key],
                     'latitude' => $latitude[$key],
                     'relative_path' => $relativePath,
-                    'user_id' => authUser()->id
+                    'user_id' => authUser($req)->id
                 ];
                 if ($isDocExist)
                     $geoTagging->edit($isDocExist, $docReqs);
@@ -2498,7 +2445,7 @@ class ActiveSafController extends Controller
             $mPropTransactions = new PropTransaction();
             $jskRole = Config::get('PropertyConstaint.JSK_ROLE');
             $tcRole = 5;
-            $user = authUser();
+            $user = authUser($req);
             $userId = $user->id;
             $safDetails = $this->details($req);
             if ($safDetails['payment_status'] == 1) {       // Get Transaction no if the payment is done
