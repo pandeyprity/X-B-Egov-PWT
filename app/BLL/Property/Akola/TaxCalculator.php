@@ -22,7 +22,6 @@ class TaxCalculator
     private $_pendingYrs;
     private $_carbonToday;
     private $_propFyearFrom;
-    private $_agingPerc;
     private $_maintancePerc;
     private $_refPropConstTypes;
     private $_mRefPropConsTypes;
@@ -81,7 +80,6 @@ class TaxCalculator
             'floors' => $this->_REQUEST->floor
         ];
 
-        $this->_agingPerc = 5;
         $this->_maintancePerc = 10;
 
         if ($this->_REQUEST->propertyType != 4)                                            // i.e for building case
@@ -198,6 +196,7 @@ class TaxCalculator
     public function generateVacantWiseTax()
     {
         if ($this->_REQUEST->propertyType == 4) {
+            $agingPerc = 0;                         // No Aging Percent for Vacant Land
             if ($this->_REQUEST->category == 1)
                 $rate = 11;
             elseif ($this->_REQUEST->category == 1)
@@ -208,7 +207,7 @@ class TaxCalculator
             $alv = roundFigure($this->_calculatorParams['areaOfPlot'] * $rate);
             $maintance10Perc = roundFigure(($alv * $this->_maintancePerc) / 100);
             $valueAfterMaintanance = roundFigure($alv - $maintance10Perc);
-            $aging = roundFigure(($valueAfterMaintanance * $this->_agingPerc) / 100);
+            $aging = roundFigure(($valueAfterMaintanance * $agingPerc) / 100);
             $taxValue = roundFigure($valueAfterMaintanance - $aging);
 
             // Municipal Taxes
@@ -233,7 +232,7 @@ class TaxCalculator
                 'maintancePerc' => $this->_maintancePerc,
                 'maintantance10Perc' => $maintance10Perc,
                 'valueAfterMaintance' => $valueAfterMaintanance,
-                'agingPerc' => $this->_agingPerc,
+                'agingPerc' => $agingPerc,
                 'agingAmt' => $aging,
                 'taxValue' => $taxValue,
                 'generalTax' => $generalTax,
