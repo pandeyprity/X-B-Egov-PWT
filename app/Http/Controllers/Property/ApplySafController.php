@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Property;
 
+use App\BLL\Property\Akola\TaxCalculator;
 use App\BLL\Property\CalculateSafById;
 use App\BLL\Property\GenerateSafApplyDemandResponse;
 use App\BLL\Property\PostSafPropTaxes;
@@ -105,6 +106,7 @@ class ApplySafController extends Controller
             $metaReqs = array();
             $saf = new PropActiveSaf();
             $mOwner = new PropActiveSafsOwner();
+            $taxCalculator = new TaxCalculator($request);
             // Derivative Assignments
             $ulbWorkflowId = $this->readAssessUlbWfId($request, $ulb_id);           // (2.1)
             $roadWidthType = $this->readRoadWidthType($request->roadType);          // Read Road Width Type
@@ -124,7 +126,7 @@ class ApplySafController extends Controller
             $this->_REQUEST = $request;
             $this->mergeAssessedExtraFields();                                          // Merge Extra Fields for Property Reassessment,Mutation,Bifurcation & Amalgamation(2.2)
             // Generate Calculation
-
+            $taxCalculator->calculateTax();
 
             DB::beginTransaction();
             $createSaf = $saf->store($request);                                         // Store SAF Using Model function 
@@ -156,7 +158,8 @@ class ApplySafController extends Controller
             return responseMsgs(true, "Successfully Submitted Your Application Your SAF No. $safNo", [
                 "safNo" => $safNo,
                 "applyDate" => ymdToDmyDate($mApplyDate),
-                "safId" => $safId
+                "safId" => $safId,
+                "calculatedTaxes" => $taxCalculator->_GRID
             ], "010102", "1.0", "1s", "POST", $request->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
