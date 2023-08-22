@@ -16,7 +16,9 @@ class RefPropUsageType extends Model
         return RefPropUsageType::select(
             'id',
             DB::raw('INITCAP(usage_type) as usage_type'),
-            'usage_code'
+            'usage_code',
+            'usage_type_hn',
+            'usage_type_mr'
         )
             ->where('status', 1)
             ->get();

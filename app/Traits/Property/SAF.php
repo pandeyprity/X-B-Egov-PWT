@@ -505,11 +505,11 @@ trait SAF
         $useType =  collect($req)->pluck('useType');
         // Check Pure Residential
         $pureResidential = collect($useType)->every(function ($value) {
-            return $value == 1;
+            return $value == 11;
         });
         // check Pure Commercial
         $pureCommercial = collect($useType)->every(function ($value) {
-            return $value > 1;
+            return $value != 11;
         });
 
         if ($pureResidential == true)
