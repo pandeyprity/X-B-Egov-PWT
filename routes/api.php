@@ -8,8 +8,6 @@ use App\Http\Controllers\CustomController;
 use App\Http\Controllers\DemoController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\SelfAdvertisementController;
 use App\Http\Controllers\Service\IdGeneratorController;
 use App\Http\Controllers\ThirdPartyController;
 use App\Http\Controllers\UlbController;
@@ -24,7 +22,6 @@ use App\Http\Controllers\WorkflowMaster\WorkflowRoleController;
 use App\Http\Controllers\WorkflowMaster\WorkflowRoleUserMapController;
 use App\Http\Controllers\CaretakerController;
 use App\Http\Controllers\ReferenceController;
-use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------

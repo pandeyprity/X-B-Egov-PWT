@@ -99,7 +99,8 @@ class  PropActiveSaf extends Model
             'landmark' => $req->landmark,
             'is_gb_saf' => isset($req->isGBSaf) ? $req->isGBSaf : false,
             'is_trust' => $req->isTrust ?? false,
-            'trust_type' => $req->trustType ?? null
+            'trust_type' => $req->trustType ?? null,
+            'category_id' => $req->category,
         ];
         $propActiveSafs = PropActiveSaf::create($reqs);                 // SAF No is Created Using Observer
         return response()->json([

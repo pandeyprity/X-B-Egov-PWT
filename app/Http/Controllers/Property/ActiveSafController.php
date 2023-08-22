@@ -83,6 +83,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use App\MicroServices\IdGenerator\HoldingNoGenerator;
+use App\Models\Property\RefPropCategory;
 use Illuminate\Support\Facades\Http;
 
 class ActiveSafController extends Controller
@@ -150,6 +151,7 @@ class ActiveSafController extends Controller
             $refPropOccupancyType = new RefPropOccupancyType();
             $refPropConstructionType = new RefPropConstructionType();
             $mZoneMasters = new ZoneMaster();
+            $mRefPropCategory = new RefPropCategory();
 
             // Getting Masters from Redis Cache
             $wards = json_decode(Redis::get('wards-ulb'));
@@ -160,6 +162,7 @@ class ActiveSafController extends Controller
             $occupancyType = json_decode(Redis::get('property-occupancy-types'));
             $constructionType = json_decode(Redis::get('akola-property-construction-types'));
             $zone = json_decode(Redis::get('zones'));
+            $categories = json_decode(Redis::get('ref_prop_categories'));
 
             // Ward Masters
             if (!$wards) {
@@ -229,6 +232,13 @@ class ActiveSafController extends Controller
             }
 
             $data['zone'] = $zone;
+
+            if (!$categories) {
+                $categories = $mRefPropCategory::all();
+                $redisConn->set('categories', json_encode($categories));
+            }
+
+            $data['categories'] = $categories;
 
             return responseMsgs(true, 'Property Masters', $data, "010101", "1.0", responseTime(), "GET", "");
         } catch (Exception $e) {

@@ -100,66 +100,31 @@ class ApplySafController extends Controller
             $mApplyDate = Carbon::now()->format("Y-m-d");
             $user = authUser($request);
             $user_id = $user->id;
-            $ulb_id = $request->ulbId ?? $user->ulb_id;
+            $ulb_id = 1;
             $userType = $user->user_type;
             $metaReqs = array();
             $saf = new PropActiveSaf();
             $mOwner = new PropActiveSafsOwner();
-            $safCalculation = new SafCalculation();
-            $calculateSafById = new CalculateSafById;
-            $generateSafApplyDemandResponse = new GenerateSafApplyDemandResponse;
             // Derivative Assignments
             $ulbWorkflowId = $this->readAssessUlbWfId($request, $ulb_id);           // (2.1)
             $roadWidthType = $this->readRoadWidthType($request->roadType);          // Read Road Width Type
 
             $request->request->add(['road_type_mstr_id' => $roadWidthType]);
 
-            $refInitiatorRoleId = $this->getInitiatorId($ulbWorkflowId->id);                                // Get Current Initiator ID
-            $initiatorRoleId = collect(DB::select($refInitiatorRoleId))->first();
-            if (is_null($initiatorRoleId))
-                throw new Exception("Initiator Role Not Available");
-            $refFinisherRoleId = $this->getFinisherId($ulbWorkflowId->id);
-            $finisherRoleId = collect(DB::select($refFinisherRoleId))->first();
-            if (is_null($finisherRoleId))
-                throw new Exception("Finisher Role Not Available");
-
             $metaReqs['roadWidthType'] = $roadWidthType;
-            $metaReqs['workflowId'] = $ulbWorkflowId->id;
             $metaReqs['ulbId'] = $ulb_id;
             $metaReqs['userId'] = $user_id;
-            $metaReqs['initiatorRoleId'] = collect($initiatorRoleId)['role_id'];
             if ($userType == $this->_citizenUserType) {
-                $metaReqs['initiatorRoleId'] = collect($initiatorRoleId)['forward_role_id'];         // Send to DA in Case of Citizen
                 $metaReqs['userId'] = null;
                 $metaReqs['citizenId'] = $user_id;
             }
-            $metaReqs['finisherRoleId'] = collect($finisherRoleId)['role_id'];
-            $safTaxes = $safCalculation->calculateTax($request);
 
-            $metaReqs['isTrust'] = $this->isPropTrust($request['floor']);
             $metaReqs['holdingType'] = $this->holdingType($request['floor']);
             $request->merge($metaReqs);
             $this->_REQUEST = $request;
             $this->mergeAssessedExtraFields();                                          // Merge Extra Fields for Property Reassessment,Mutation,Bifurcation & Amalgamation(2.2)
             // Generate Calculation
-            $calculateSafById->_calculatedDemand = $safTaxes->original['data'];
-            $calculateSafById->_safDetails['assessment_type'] = $request->assessmentType;
-            $calculateSafById->_safDetails['previous_holding_id'] = $request->previousHoldingId;
 
-            if (isset($request->holdingNo))
-                $calculateSafById->_holdingNo = $request->holdingNo;
-            $calculateSafById->_currentQuarter = calculateQtr($mApplyDate);
-            $firstOwner = collect($request['owner'])->first();
-            $calculateSafById->_firstOwner = [
-                'gender' => $firstOwner['gender'],
-                'dob' => $firstOwner['dob'],
-                'is_armed_force' => $firstOwner['isArmedForce'],
-                'is_specially_abled' => $firstOwner['isSpeciallyAbled'],
-            ];
-            $calculateSafById->generateSafDemand();
-            $generatedDemand = $calculateSafById->_generatedDemand;
-            $isResidential = $safTaxes->original['data']['demand']['isResidential'];
-            $demandResponse = $generateSafApplyDemandResponse->generateResponse($generatedDemand, $isResidential);
 
             DB::beginTransaction();
             $createSaf = $saf->store($request);                                         // Store SAF Using Model function 
@@ -186,23 +151,12 @@ class ApplySafController extends Controller
                     }
                 }
             }
-            // Citizen Notification
-            // if ($userType == 'Citizen') {
-            //     $mreq['userType']  = 'Citizen';
-            //     $mreq['citizenId'] = $user_id;
-            //     $mreq['category']  = 'Recent Application';
-            //     $mreq['ulbId']     = $ulb_id;
-            //     $mreq['ephameral'] = 0;
-            //     $mreq['notification'] = "Successfully Submitted Your Application Your SAF No. $safNo";
-            //     $rEloquentAuthRepository = new EloquentAuthRepository();
-            //     $rEloquentAuthRepository->addNotification($mreq);
-            // }
+
             DB::commit();
             return responseMsgs(true, "Successfully Submitted Your Application Your SAF No. $safNo", [
                 "safNo" => $safNo,
                 "applyDate" => ymdToDmyDate($mApplyDate),
-                "safId" => $safId,
-                "demand" => $demandResponse
+                "safId" => $safId
             ], "010102", "1.0", "1s", "POST", $request->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
