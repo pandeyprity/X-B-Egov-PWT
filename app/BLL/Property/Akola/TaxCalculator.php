@@ -29,6 +29,7 @@ class TaxCalculator
     private $_calculationDateFrom;
     private $_agingPercs;
     private $_currentFyear;
+    private $_residentialUsageType;
 
     /**
      * | Initialization of global variables
@@ -39,6 +40,7 @@ class TaxCalculator
         $this->_carbonToday = Carbon::now();
         $this->_mRefPropConsTypes = new RefPropConstructionType();
         $this->_agingPercs = Config::get('PropertyConstaint.AGING_PERC');
+        $this->_residentialUsageType = Config::get('akola-property-constant.RESIDENTIAL_USAGE_TYPE');
     }
 
     /**
@@ -46,19 +48,19 @@ class TaxCalculator
      */
     public function calculateTax()
     {
-        $this->readCalculatorParams();
+        $this->readCalculatorParams();      // 1
 
-        $this->generateFloorWiseTax();
+        $this->generateFloorWiseTax();      // 2
 
-        $this->generateVacantWiseTax();
+        $this->generateVacantWiseTax();     // 3
 
-        $this->generateFyearWiseTaxes();
+        $this->generateFyearWiseTaxes();    // 4
 
-        $this->generatePayableAmount();
+        $this->generatePayableAmount();     // 5
     }
 
     /**
-     * | Read Params
+     * | Read Params(1)
      */
     public function readCalculatorParams()
     {
@@ -96,15 +98,15 @@ class TaxCalculator
     }
 
     /**
-     * | Calculate Floor Wise Calculation
+     * | Calculate Floor Wise Calculation (2)
      */
     public function generateFloorWiseTax()
     {
         if ($this->_REQUEST->propertyType != 4) {
             foreach ($this->_REQUEST->floor as $key => $item) {
                 $item = (object)$item;
-                $rate = $this->readRateByFloor($item);
-                $agingPerc = $this->readAgingByFloor($item);
+                $rate = $this->readRateByFloor($item);                 // (2.1)
+                $agingPerc = $this->readAgingByFloor($item);           // (2.2)
 
                 $floorBuildupArea = roundFigure($item->buildupArea * 0.092903);
                 $alv = roundFigure($floorBuildupArea * $rate);
@@ -123,9 +125,9 @@ class TaxCalculator
                 $sewerageTax = roundFigure($taxValue * 0.02);
                 $treeTax = roundFigure($taxValue * 0.01);
 
-                $isCommercial = ($item->usageType == 11) ? false : true;                    // Residential usage type id
+                $isCommercial = ($item->usageType == $this->_residentialUsageType) ? false : true;                    // Residential usage type id
 
-                $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes
+                $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes(2.3)
 
                 $this->_floorsTaxes[$key] = [
                     'dateFrom' => $item->dateFrom,
@@ -162,7 +164,7 @@ class TaxCalculator
     }
 
     /**
-     * | Read Rate to Calculate ALV of the floor
+     * | Read Rate to Calculate ALV of the floor (2.1)
      */
     public function readRateByFloor($item)
     {
@@ -180,7 +182,7 @@ class TaxCalculator
 
     /**
      * 
-     * | Read aging of the floor
+     * | Read aging of the floor(2.2)
      */
     public function readAgingByFloor($item)
     {
@@ -198,7 +200,7 @@ class TaxCalculator
     }
 
     /**
-     * | Calculate Vacant wise Tax
+     * | Calculate Vacant wise Tax (3)
      */
     public function generateVacantWiseTax()
     {
@@ -229,7 +231,7 @@ class TaxCalculator
 
             $isCommercial = false;
 
-            $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes
+            $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes(3.1)
 
             $this->_floorsTaxes[0] = [
                 'rate' => $rate,
@@ -262,7 +264,7 @@ class TaxCalculator
     }
 
     /**
-     * | read State Taxes
+     * | read State Taxes (2.3) && (3.1)
      */
     public function readStateTaxes($alv, $isCommercial)
     {
@@ -312,7 +314,7 @@ class TaxCalculator
 
 
     /**
-     * | Summation of Taxes
+     * | Summation of Taxes(4.1) && (5.1)
      */
     public function sumTaxes($floorTaxes)
     {
@@ -347,7 +349,7 @@ class TaxCalculator
 
 
     /**
-     * | Grand Taxes
+     * | Grand Taxes (4)
      */
     public function generateFyearWiseTaxes()
     {
@@ -364,7 +366,7 @@ class TaxCalculator
         while ($this->_calculationDateFrom <= $currentFyearEndDate) {
             $annualTaxes = collect($this->_floorsTaxes)->where('dateFrom', '<=', $this->_calculationDateFrom);
             $fyear = getFY($this->_calculationDateFrom);
-            $yearTax = $this->sumTaxes($annualTaxes);
+            $yearTax = $this->sumTaxes($annualTaxes);                       // 4.1
 
             $fyearWiseTaxes->put($fyear, array_merge($yearTax, ['fyear' => $fyear]));
             $this->_calculationDateFrom = Carbon::parse($this->_calculationDateFrom)->addYear()->format('Y-m-d');
@@ -375,11 +377,11 @@ class TaxCalculator
     }
 
     /**
-     * | Generate Payable Amount
+     * | Generate Payable Amount (5)
      */
     public function generatePayableAmount()
     {
-        $this->_GRID['grandTaxes'] = $this->sumTaxes($this->_GRID['fyearWiseTaxes']);
+        $this->_GRID['grandTaxes'] = $this->sumTaxes($this->_GRID['fyearWiseTaxes']);               // 5.1
 
         $this->_GRID['isRebateApplied'] = false;
         $this->_GRID['rebateAmt'] = 0;
