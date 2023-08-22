@@ -335,9 +335,9 @@ class TaxCalculator
                 "cleanlinessTax" => roundFigure($taxes->sum('cleanlinessTax')),
                 "sewerageTax" => roundFigure($taxes->sum('sewerageTax')),
                 "treeTax" => roundFigure($taxes->sum('treeTax')),
-                "stateEducationTaxPerc" => roundFigure($taxes->sum('stateEducationTaxPerc')),
+                "stateEducationTaxPerc" => roundFigure($taxes->first()['stateEducationTaxPerc']),
                 "stateEducationTax" => roundFigure($taxes->sum('stateEducationTax')),
-                "professionalTaxPerc" => roundFigure($taxes->sum('professionalTaxPerc')),
+                "professionalTaxPerc" => roundFigure($taxes->first()['professionalTaxPerc']),
                 "professionalTax" => roundFigure($taxes->sum('professionalTax')),
             ];
         });
@@ -390,8 +390,10 @@ class TaxCalculator
         $isArmedForce = $firstOwner['isArmedForce'];
         if ($isArmedForce) {
             $currentYearTax = $this->_GRID['fyearWiseTaxes']->where('fyear', $this->_currentFyear)->first();       // General Tax of current fyear will be our rebate
+
             if (collect($currentYearTax)->isEmpty())
                 throw new Exception("Current Year Taxes Not Available");
+
             $cyGeneratlTax = $currentYearTax['generalTax'];
             $this->_GRID['isRebateApplied'] = true;
             $this->_GRID['rebateAmt'] = $cyGeneratlTax;
