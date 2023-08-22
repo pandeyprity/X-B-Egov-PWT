@@ -4,6 +4,7 @@ namespace App\BLL\Property\Akola;
 
 use App\Models\Property\RefPropConstructionType;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
@@ -350,18 +351,17 @@ class TaxCalculator
      */
     public function generateFyearWiseTaxes()
     {
-        $today = Carbon::now()->format('Y-m-d');
+        $currentFyearEndDate = Carbon::now()->endOfYear()->addMonths(3)->format('Y-m-d');
         $fyearWiseTaxes = collect();
         // Act Of limitation
         $yearDiffs = Carbon::parse($this->_calculationDateFrom)->diffInYears(Carbon::now());                // year differences
-        $this->_GRID['demandPendingYrs'] = $yearDiffs;
 
         if ($yearDiffs >= 5) {
             $this->_GRID['demandPendingYrs'] = 5;
             $this->_calculationDateFrom = Carbon::now()->addYears(-4)->format('Y-m-d');
         }
         // Act Of Limitations end
-        while ($this->_calculationDateFrom <= $today) {
+        while ($this->_calculationDateFrom <= $currentFyearEndDate) {
             $annualTaxes = collect($this->_floorsTaxes)->where('dateFrom', '<=', $this->_calculationDateFrom);
             $fyear = getFY($this->_calculationDateFrom);
             $yearTax = $this->sumTaxes($annualTaxes);
@@ -369,7 +369,9 @@ class TaxCalculator
             $fyearWiseTaxes->put($fyear, array_merge($yearTax, ['fyear' => $fyear]));
             $this->_calculationDateFrom = Carbon::parse($this->_calculationDateFrom)->addYear()->format('Y-m-d');
         }
+
         $this->_GRID['fyearWiseTaxes'] = $fyearWiseTaxes;
+        $this->_GRID['demandPendingYrs'] = $fyearWiseTaxes->count();                // Update demand payment years
     }
 
     /**
@@ -385,9 +387,12 @@ class TaxCalculator
         $firstOwner = collect($this->_REQUEST->owner)->first();
         $isArmedForce = $firstOwner['isArmedForce'];
         if ($isArmedForce) {
-            $currentYearGeneralTax = $this->_GRID['fyearWiseTaxes']->where('fyear', $this->_currentFyear)->first()['generalTax'];       // General Tax of current fyear will be our rebate
+            $currentYearTax = $this->_GRID['fyearWiseTaxes']->where('fyear', $this->_currentFyear)->first();       // General Tax of current fyear will be our rebate
+            if (collect($currentYearTax)->isEmpty())
+                throw new Exception("Current Year Taxes Not Available");
+            $cyGeneratlTax = $currentYearTax['generalTax'];
             $this->_GRID['isRebateApplied'] = true;
-            $this->_GRID['rebateAmt'] = $currentYearGeneralTax;
+            $this->_GRID['rebateAmt'] = $cyGeneratlTax;
         }
 
         // Calculation of Payable Amount
