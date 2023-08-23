@@ -113,7 +113,7 @@ class TaxCalculator
                 $maintance10Perc = roundFigure(($alv * $this->_maintancePerc) / 100);
                 $valueAfterMaintanance = roundFigure($alv - $maintance10Perc);
                 $aging = roundFigure(($valueAfterMaintanance * $agingPerc) / 100);
-                $taxValue = roundFigure($valueAfterMaintanance - $aging);
+                $taxValue = roundFigure($valueAfterMaintanance - $aging);               // Tax value is the amount in which all the tax will be calculated
 
                 // Municipal Taxes
                 $generalTax = roundFigure($taxValue * 0.30);
@@ -319,12 +319,13 @@ class TaxCalculator
     public function sumTaxes($floorTaxes)
     {
         $annualTaxes = $floorTaxes->pipe(function (Collection $taxes) {
+            $totalKeys = $taxes->count();
             return [
                 "alv" => (float)roundFigure($taxes->sum('alv')),
-                "maintancePerc" => $taxes->sum('maintancePerc'),
+                "maintancePerc" => $taxes->first()['maintancePerc'],
                 "maintantance10Perc" => roundFigure($taxes->sum('maintantance10Perc')),
                 "valueAfterMaintance" => roundFigure($taxes->sum('valueAfterMaintance')),
-                "agingPerc" => roundFigure($taxes->sum('agingPerc')),
+                "agingPerc" => roundFigure($taxes->sum('agingPerc') / $totalKeys),
                 "agingAmt" => roundFigure($taxes->sum('agingAmt')),
                 "taxValue" => roundFigure($taxes->sum('taxValue')),
                 "generalTax" => roundFigure($taxes->sum('generalTax')),
@@ -335,9 +336,9 @@ class TaxCalculator
                 "cleanlinessTax" => roundFigure($taxes->sum('cleanlinessTax')),
                 "sewerageTax" => roundFigure($taxes->sum('sewerageTax')),
                 "treeTax" => roundFigure($taxes->sum('treeTax')),
-                "stateEducationTaxPerc" => roundFigure($taxes->first()['stateEducationTaxPerc']),
+                "stateEducationTaxPerc" => roundFigure($taxes->sum('stateEducationTaxPerc') / $totalKeys),
                 "stateEducationTax" => roundFigure($taxes->sum('stateEducationTax')),
-                "professionalTaxPerc" => roundFigure($taxes->first()['professionalTaxPerc']),
+                "professionalTaxPerc" => roundFigure($taxes->sum('professionalTaxPerc') / $totalKeys),
                 "professionalTax" => roundFigure($taxes->sum('professionalTax')),
             ];
         });
