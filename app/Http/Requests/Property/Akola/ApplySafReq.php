@@ -52,6 +52,7 @@ class ApplySafReq extends FormRequest
                 "floor.*.constructionType" => "required|integer",
                 "floor.*.usageType" => "required|integer",
                 "floor.*.buildupArea" => "required|numeric",
+                "floor.*.dateFrom" => "required|date|date_format:Y-m-d|before_or_equal:$this->todayDate|after_or_equal:$this->dateOfPurchase"
             ]);
         }
         return $validation;

@@ -94,7 +94,7 @@ class reqApplySaf extends FormRequest
                 $rules["floor.*.occupancyType"]     =   "required|int";
 
                 $rules["floor.*.buildupArea"]       =   "required|numeric|not_in:0";
-                $rules["floor.*.dateFrom"]          =   "required|date|date_format:Y-m-d|before_or_equal:$mNowDate";
+                $rules["floor.*.dateFrom"]          =   "required|date|date_format:Y-m-d|before_or_equal:$mNowDate|after_or_equal:$this->dateOfPurchase";
                 $rules["floor.*.dateUpto"]          =   "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate|before:$this->dateFrom";
             }
         }
@@ -126,6 +126,8 @@ class reqApplySaf extends FormRequest
                 $rules["owner.*.aadhar"]              =   "digits:12|regex:/[0-9]{12}/|nullable";
                 $rules["owner.*.isArmedForce"]        =   "required|bool";
                 $rules["owner.*.isSpeciallyAbled"]    =   "required|bool";
+                $rules["owner.*.ownerNameMarathi"]    =   "required|string";
+                $rules["owner.*.guardianNameMarathi"]    =   "required|string";
             }
         }
         return $rules;
