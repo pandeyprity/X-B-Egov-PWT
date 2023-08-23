@@ -386,16 +386,13 @@ class PropertyDetailsController extends Controller
     {
         $request->validate([
             'filteredBy' => "required",
-            'parameter' => "nullable",
-            // 'plotNo' => 'sometimes|required_if:filteredBy=khataNo',
-            // 'plotNo' => 'sometimes|required_if:filteredBy=khataNo'
-            // 'plotNo' => 'sometimes|required_if:filteredBy=khataNo'
+            'parameter' => "nullable"
         ]);
 
         try {
             $mPropProperty = new PropProperty();
             $mWfRoleUser = new WfRoleusermap();
-            $user = authUser();
+            $user = authUser($request);
             $userId = $user->id;
             $userType = $user->user_type;
             $ulbId = $user->ulb_id ?? $request->ulbId;
