@@ -186,7 +186,7 @@ class  PropActiveSaf extends Model
                 'a.apartment_name',
                 'building_type',
                 'prop_usage_type',
-                'zone'
+                'zone_masters.zone_name as zone'
             )
             ->leftJoin('ulb_ward_masters as w', 'w.id', '=', 'prop_active_safs.ward_mstr_id')
             ->leftJoin('wf_roles as wr', 'wr.id', '=', 'prop_active_safs.current_role')
