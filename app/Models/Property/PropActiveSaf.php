@@ -106,6 +106,9 @@ class  PropActiveSaf extends Model
         return response()->json([
             'safId' => $propActiveSafs->id,
             'safNo' => $propActiveSafs->saf_no,
+            'workflow_id' => $propActiveSafs->workflow_id,
+            'current_role' => $propActiveSafs->current_role,
+            'ulb_id' => $propActiveSafs->ulb_id
         ]);
     }
 
