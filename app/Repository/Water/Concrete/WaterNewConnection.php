@@ -336,7 +336,7 @@ class WaterNewConnection implements IWaterNewConnection
                 // $temp = Http::withHeaders([])
                 //     ->post($url . $endPoint, $myRequest);                                                   // Static
                 // $temp = $temp['data'];
-
+                
                 $RazorPayRequest = new WaterRazorPayRequest;
                 $RazorPayRequest->related_id        = $application->id;
                 $RazorPayRequest->payment_from      = $cahges['charge_for'];
@@ -370,12 +370,16 @@ class WaterNewConnection implements IWaterNewConnection
             $temp['userId']     = $refUser->id;
             $temp['ulbId']      = $refUser->ulb_id ?? $temp['ulbId'];
             $temp["applycationType"] = $request->applycationType;
-            return responseMsg(true, "", $temp);
+            return responseMsgs(true, "", $temp, "", "01", responseTime(), $request->getMethod(), $request->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
-            return responseMsg(false, $e->getMessage(), $request->all());
+            return responseMsgs(false, $e->getMessage(), $request->all(), "", "01", responseTime(), $request->getMethod(), $request->deviceId);
         }
     }
+
+    /**
+     * | Differenciate the water module payment 
+     */
     public function razorPayResponse($args)
     {
         try {
@@ -389,18 +393,26 @@ class WaterNewConnection implements IWaterNewConnection
                 throw new Exception("Data Not Found");
             }
             switch ($RazorPayRequest->payment_from) {
-                case "New Connection":
+                case ("New Connection"):
                     $response = $this->waterConnectionPayment($args);
                     break;
-                case "Regulaization":                                                                   // Static
+                case ("Regulaization"):                                                                   // Static
                     $response = $this->waterConnectionPayment($args);
                     break;
-                case "Site Inspection":
+                case ("Site Inspection"):
                     $response = $this->waterConnectionPayment($args);
                     break;
-                case "Demand Collection":
+                case ("Demand Collection"):
                     $mWaterPaymentController = new WaterPaymentController();
                     $response = $mWaterPaymentController->endOnlineDemandPayment($args, $RazorPayRequest);
+                    break;
+                case ("Ferrule Cleaning Checking"):
+                    $mWaterPaymentController = new WaterPaymentController();
+                    $response = $mWaterPaymentController->endOnlineConReqPayment($args, $RazorPayRequest);
+                    break;
+                case ("Pipe Shifting Alteration"):
+                    $mWaterPaymentController = new WaterPaymentController();
+                    $response = $mWaterPaymentController->endOnlineConReqPayment($args, $RazorPayRequest);
                     break;
                 default:
                     throw new Exception("Invalide Transaction");

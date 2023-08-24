@@ -24,10 +24,12 @@ return [
     ],
 
     "PARAM_IDS" => [
-        "WAPP" => 15,
-        "WCON" => 16,
-        "TRN" => 37,
-        "WCD" => 39
+        "WAPP"  => 15,
+        "WCON"  => 16,
+        "TRN"   => 37,
+        "WCD"   => 39,
+        "WFC"   => 42,
+        "WPS"   => 43
     ],
     "ACCOUNT_DESCRIPTION" => "Water",
     "DEPARTMENT_SECTION" => "Revenue Section",
@@ -144,6 +146,9 @@ return [
     ],
     "PAYMENT_FOR" => [
         "1" => "Demand Collection",
+        "4" => "Ferrule Cleaning Checking",
+        "5" => "Pipe Shifting Alteration",
+        "2" => "Water Disconnection"
     ],
     "APP_APPLY_FROM" => [
         "1" => "Online",
@@ -160,6 +165,11 @@ return [
         "WATER_DISCONNECTION"       => 2,
         "NAME_TRANSFER"             => 3,
         "FERRULE_CLEANING_CHECKING" => 4,
-        "PIPE_SHIFTING_ALTERATION " => 5
+        "PIPE_SHIFTING_ALTERATION"  => 5
+    ],
+
+    "PARAM_PIPELINE" => [
+        "Old Pipeline" => 1,
+        "New Pipeline" => 2
     ],
 ];

@@ -119,7 +119,7 @@ class NewConnectionController extends Controller
     public function waterInbox(Request $request)
     {
         try {
-            $user   = authUser();
+            $user   = authUser($request);
             $userId = $user->id;
             $ulbId  = $user->ulb_id;
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
@@ -155,7 +155,7 @@ class NewConnectionController extends Controller
             $mWfWardUser            = new WfWardUser();
             $mWfWorkflowRoleMaps    = new WfWorkflowrolemap();
 
-            $user   = authUser();
+            $user   = authUser($req);
             $userId = $user->id;
             $ulbId  = $user->ulb_id;
 
@@ -205,8 +205,8 @@ class NewConnectionController extends Controller
         try {
             $mWfWardUser = new WfWardUser();
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
-            $userId = authUser()->id;
-            $ulbId = authUser()->ulb_id;
+            $userId = authUser($req)->id;
+            $ulbId = authUser($req)->ulb_id;
             $mDeviceId = $req->deviceId ?? "";
 
             $workflowRoles = $this->getRoleIdByUserId($userId);
@@ -245,8 +245,8 @@ class NewConnectionController extends Controller
         try {
             $mWfWardUser            = new WfWardUser();
             $mWfWorkflowRoleMaps    = new WfWorkflowrolemap();
-            $userId = authUser()->id;
-            $ulbId  = authUser()->ulb_id;
+            $userId = authUser($request)->id;
+            $ulbId  = authUser($request)->ulb_id;
 
             $occupiedWard = $mWfWardUser->getWardsByUserId($userId);                        // Get All Occupied Ward By user id using trait
             $wardId = $occupiedWard->map(function ($item, $key) {                           // Filter All ward_id in an array using laravel collections
@@ -337,7 +337,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $userId = authUser()->id;
+            $userId = authUser($request)->id;
             $applicationId = $request->applicationId;
             $applicationsData = WaterApplication::find($applicationId);
             $applicationsData->is_escalate = $request->escalateStatus;
@@ -373,7 +373,7 @@ class NewConnectionController extends Controller
             $waterDetails = WaterApplication::findOrFail($request->applicationId);
 
             # check the login user is EO or not
-            $userId = authUser()->id;
+            $userId = authUser($request)->id;
             $workflowId = $waterDetails->workflow_id;
             $getRoleReq = new Request([                                                 // make request to get role id of the user
                 'userId' => $userId,
@@ -415,7 +415,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
         try {
             $metaReqs       = array();
-            $user           = authUser();
+            $user           = authUser($request);
             $userType       = $user->user_type;
             $userId         = $user->id;
             $workflowTrack  = new WorkflowTrack();
@@ -573,8 +573,8 @@ class NewConnectionController extends Controller
         try {
             $mWfWardUser            = new WfWardUser();
             $mWfWorkflowRoleMaps    = new WfWorkflowrolemap();
-            $userId                 = authUser()->id;
-            $ulbId                  = authUser()->ulb_id;
+            $userId                 = authUser($request)->id;
+            $ulbId                  = authUser($request)->ulb_id;
 
             $refWard = $mWfWardUser->getWardsByUserId($userId);
             $wardId = $refWard->map(function ($value) {
@@ -615,7 +615,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user               = authUser();
+            $user               = authUser($req);
             $WorkflowTrack      = new WorkflowTrack();
             $refWorkflowId      = Config::get("workflow-constants.WATER_MASTER_ID");
             $refApplyFrom       = config::get("waterConstaint.APP_APPLY_FROM");
@@ -696,7 +696,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user                       = authUser();
+            $user                       = authUser($req);
             $mWaterApplication          = new WaterApplication();
             $mWaterApplicant            = new WaterApplicant();
             $mWaterConnectionCharge     = new WaterConnectionCharge();
@@ -829,7 +829,7 @@ class NewConnectionController extends Controller
                 if ($refApplication->current_role) {
                     throw new Exception("Application is already in Workflow!");
                 }
-                if ($refApplication->user_id != authUser()->id) {
+                if ($refApplication->user_id != authUser($request)->id) {
                     throw new Exception("You are not the Autherised Person!");
                 }
                 if ($refApplication->payment_status == 1) {
@@ -849,7 +849,7 @@ class NewConnectionController extends Controller
     public function boApplicationEdit($req, $refApplication, $mWaterApplication)
     {
         switch ($refApplication) {
-            case ($refApplication->current_role != authUser()->id):
+            case ($refApplication->current_role != authUser($req)->id):
                 throw new Exception("You Are Not the Valid Person!");
                 break;
         }
@@ -898,7 +898,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user = authUser();
+            $user = authUser($request);
             $mWaterSiteInspectionsScheduling = new WaterSiteInspectionsScheduling();
             $mWaterConnectionCharge  = new WaterConnectionCharge();
             $mWaterApplication = new WaterApplication();
@@ -980,7 +980,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user               = authUser();
+            $user               = authUser($req);
             $metaReqs           = array();
             $applicationId      = $req->applicationId;
             $document           = $req->document;
@@ -1940,7 +1940,7 @@ class NewConnectionController extends Controller
             $mWfRoleusermap     = new WfRoleusermap();
             $wfDocId            = $req->id;
             $applicationId      = $req->applicationId;
-            $userId             = authUser()->id;
+            $userId             = authUser($req)->id;
             $wfLevel            = Config::get('waterConstaint.ROLE-LABEL');
 
             # validating application
@@ -2169,7 +2169,7 @@ class NewConnectionController extends Controller
             ];
             #application Details according to date
             $refApplications = $mWaterApplication->getapplicationByDate($refTimeDate)
-                ->where('water_applications.user_id', authUser()->id)
+                ->where('water_applications.user_id', authUser($request)->id)
                 ->get();
             # Final Data to return
             $returnValue = collect($refApplications)->map(function ($value, $key)
@@ -2363,6 +2363,7 @@ class NewConnectionController extends Controller
             $mWaterSiteInspectionsScheduling->cancelInspectionDateTime($refApplicationId);
             $mWaterConnectionCharge->deactivateSiteCharges($refApplicationId, $refSiteInspection);
             $mWaterPenaltyInstallment->deactivateSitePenalty($refApplicationId, $refSiteInspection);
+            # Check if the payment status is done or not 
             $mWaterApplication->updateOnlyPaymentstatus($refApplicationId);                                 // make the payment status of the application true
             if (!is_null($refSiteInspection)) {
                 $mWaterSiteInspection->deactivateSiteDetails($refSiteInspection->site_inspection_id);
@@ -2449,7 +2450,7 @@ class NewConnectionController extends Controller
         $refApplication     = WaterApplication::findOrFail($request->applicationId);
         $WaterRoles         = Config::get('waterConstaint.ROLE-LABEL');
         $metaReqs = new Request([
-            'userId'        => authUser()->id,
+            'userId'        => authUser($request)->id,
             'workflowId'    => $refApplication->workflow_id
         ]);
         $readRoles = $mWfRoleUser->getRoleByUserWfId($metaReqs);                      // Model to () get Role By User Id
@@ -2484,6 +2485,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
+            $refReturnData['canInspect'] = false;
             $mWaterSiteInspectionsScheduling = new WaterSiteInspectionsScheduling();
             $siteInspection = $mWaterSiteInspectionsScheduling->getInspectionById($request->applicationId)->first();
             if (isset($siteInspection)) {
@@ -2495,7 +2497,7 @@ class NewConnectionController extends Controller
                 ];
                 return responseMsgs(true, "Site InspectionDetails!", $returnData, "", "01", ".ms", "POST", "");
             }
-            throw new Exception("Invalid data!");
+            return responseMsgs(false, "Data not found!", $refReturnData, "01", responseTime(), "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", "01", ".ms", "POST", "");
         }
@@ -2550,7 +2552,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user                   = authUser();
+            $user                   = authUser($request);
             $current                = Carbon::now();
             $currentDate            = $current->format('Y-m-d');
             $currentTime            = $current->format('H:i:s');
@@ -2598,7 +2600,7 @@ class NewConnectionController extends Controller
         $workflowId     = $refApplication->workflow_id;
 
         $metaReqs =  new Request([
-            'userId'        => authUser()->id,
+            'userId'        => authUser($request)->id,
             'workflowId'    => $workflowId
         ]);
         $readRoles = $mWfRoleUser->getRoleByUserWfId($metaReqs);                      // Model to () get Role By User Id
@@ -2645,6 +2647,13 @@ class NewConnectionController extends Controller
             $mWaterSiteInspection               = new WaterSiteInspection();
             $mWaterSiteInspectionsScheduling    = new WaterSiteInspectionsScheduling();
             $refJe                              = Config::get("waterConstaint.ROLE-LABEL.JE");
+            $propertyTypeMapping                = Config::get('waterConstaint.PROPERTY_TYPE');
+            $connectionTypeMapping              = Config::get('waterConstaint.REF_CONNECTION_TYPE');
+            $pipelineTypeMapping                = Config::get('waterConstaint.PARAM_PIPELINE');
+
+            $flipPropertyTypeMapping    = collect($propertyTypeMapping)->flip();
+            $flipConnectionTypeMapping  = collect($connectionTypeMapping)->flip();
+            $flipPipelineTypeMapping    = collect($pipelineTypeMapping)->flip();
 
             # level logic
             $sheduleDate = $mWaterSiteInspectionsScheduling->getInspectionData($request->applicationId)->first();
@@ -2652,7 +2661,10 @@ class NewConnectionController extends Controller
                 $returnData = $mWaterSiteInspection->getSiteDetails($request->applicationId)
                     ->where('order_officer', $refJe)
                     ->first();
-                $returnData['final_verify'] = true;
+                $returnData['final_verify']         = true;
+                $returnData['property_type_name']   = $flipPropertyTypeMapping[$returnData->property_type_id];
+                $returnData['connection_type_name'] = $flipConnectionTypeMapping[$returnData->connection_type_id];
+                $returnData['pipeline_type_name']   = $flipPipelineTypeMapping[$returnData->pipeline_type_id];
                 return responseMsgs(true, "JE Inspection details!", remove_null($returnData), "", "01", ".ms", "POST", $request->deviceId);
             }
             return responseMsgs(true, "Data not Found!", remove_null($returnData), "", "01", ".ms", "POST", $request->deviceId);

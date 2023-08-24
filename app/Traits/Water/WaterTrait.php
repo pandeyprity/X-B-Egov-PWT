@@ -9,6 +9,7 @@ use App\Models\Water\WaterTranFineRebate;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Created By-Sam kerketta
@@ -137,5 +138,38 @@ trait WaterTrait
             ->where('water_consumer_active_requests.payment_status', 1)
             ->where('water_consumer_active_requests.ulb_id', $ulbId)
             ->whereIn('water_consumer_active_requests.workflow_id', $workflowIds);
+    }
+
+
+    /**
+     * | Get the Consumer Request active appliation details for view 
+        | Serial No :
+        | Under Con
+     */
+    public function getConActiveAppDetails($applicationId)
+    {
+        return WaterConsumerActiveRequest::select(
+            'water_consumer_active_requests.*',
+            'wc.holding_no',
+            'wc.saf_no',
+            'uwm.ward_name',
+            'um.ulb_name',
+            'wcc.amount AS total_amount',
+            'wcc.penalty',
+            'wcc.charge_amount',
+            'wcc.paid_status AS charges_paid_status',
+            DB::raw("
+            CONCAT(
+                UPPER(SUBSTRING(wcc.charge_category, 1, 1)),
+                LOWER(REPLACE(SUBSTRING(wcc.charge_category, 2), '_', ' '))
+            ) AS formatted_column
+            ")
+        )
+            ->join('water_consumers AS wc', 'wc.id', 'water_consumer_active_requests.consumer_id')
+            ->join('ulb_ward_masters AS uwm', 'uwm.id', 'water_consumer_active_requests.ward_mstr_id')
+            ->join('ulb_masters AS um', 'um.id', 'water_consumer_active_requests.ulb_id')
+            ->join('water_consumer_charges AS wcc', 'wcc.related_id', 'water_consumer_active_requests.id')
+            ->where('water_consumer_active_requests.id', $applicationId)
+            ->where('water_consumer_active_requests.status', 1);
     }
 }

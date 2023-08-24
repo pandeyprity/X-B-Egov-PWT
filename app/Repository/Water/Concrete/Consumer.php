@@ -45,7 +45,7 @@ class Consumer implements IConsumer
             if ($request->demandUpto) {
                 $demandUpto = $request->demandUpto;
             }
-            $tax = $this->generate_demand($request,$request->consumerId, $demandUpto, $request->finalRading);
+            $tax = $this->generate_demand($request, $request->consumerId, $demandUpto, $request->finalRading);
             return $tax;
         } catch (Exception $e) {
             $response["status"] = false;
@@ -53,7 +53,7 @@ class Consumer implements IConsumer
             return collect($response);
         }
     }
-    public function generate_demand($req,$consumer_id, $upto_date = null, $final_reading = 0)
+    public function generate_demand($req, $consumer_id, $upto_date = null, $final_reading = 0)
     {
         try {
             $refLastDemandDetails = $this->getConsumerLastDemad($consumer_id);
@@ -87,9 +87,9 @@ class Consumer implements IConsumer
             if ($refMeterStatus->connection_type == "3" || $refMeterStatus->connection_type == "") {
                 return $this->fixedDemand($refConsumerDetails, $refLastDemandDetails, $refMeterStatus, $demand_from, $upto_date);
             } elseif (in_array($refMeterStatus->connection_type, [1, 2]) && $refMeterStatus->meter_status == "0" && ($mPropertyTypeId == 3 || (!empty($refLastDemandDetails) && $mPropertyTypeId != 3))) {
-                return $this->averageBulling($req,$refConsumerDetails, $refLastDemandDetails, $refMeterStatus, $demand_from, $upto_date, $final_reading);
+                return $this->averageBulling($req, $refConsumerDetails, $refLastDemandDetails, $refMeterStatus, $demand_from, $upto_date, $final_reading);
             } elseif (in_array($refMeterStatus->connection_type, [1, 2]) && $refMeterStatus->meter_status == "1") {
-                return $this->meterDemand($req,$refConsumerDetails, $refLastDemandDetails, $refMeterStatus, $demand_from, $upto_date, $final_reading);
+                return $this->meterDemand($req, $refConsumerDetails, $refLastDemandDetails, $refMeterStatus, $demand_from, $upto_date, $final_reading);
             } else {
                 throw new Exception("No Anny Rules Applied");
             }
@@ -263,7 +263,7 @@ class Consumer implements IConsumer
             return collect($response);
         }
     }
-    public function meterDemand($req,$refConsumerDetails, $refLastDemandDetails, $refMeterStatus, $demand_from, $upto_date = null, $final_reading = 0)
+    public function meterDemand($req, $refConsumerDetails, $refLastDemandDetails, $refMeterStatus, $demand_from, $upto_date = null, $final_reading = 0)
     {
         $response["consumer_tax"]    = (array)null;
         try {
@@ -386,7 +386,7 @@ class Consumer implements IConsumer
             return collect($response);
         }
     }
-    public function averageBulling($req,$refConsumerDetails, $refLastDemandDetails, $refMeterStatus, $demand_from, $upto_date = null, $final_reading = 0)
+    public function averageBulling($req, $refConsumerDetails, $refLastDemandDetails, $refMeterStatus, $demand_from, $upto_date = null, $final_reading = 0)
     {
         $response["consumer_tax"]    = (array)null;
         // $response["consumer_tax"]["consumer_demand"] = (array)null;
