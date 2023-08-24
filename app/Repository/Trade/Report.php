@@ -34,6 +34,11 @@ class Report implements IReport
     use Workflow;
     use TradeTrait;
 
+    protected $_DB;
+    protected $_DB_NAME;
+    protected $_NOTICE_DB;
+    protected $_NOTICE_DB_NAME;
+
     protected $_MODEL_WARD;
     protected $_COMMON_FUNCTION;
     protected $_WF_MASTER_Id;
@@ -43,6 +48,14 @@ class Report implements IReport
     protected $_TRADE_CONSTAINT;
     public function __construct()
     {
+        $this->_DB_NAME = "pgsql_trade";
+        $this->_NOTICE_DB = "pgsql_notice";
+        $this->_DB = DB::connection( $this->_DB_NAME );
+        $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
+        DB::enableQueryLog();
+        $this->_DB->enableQueryLog();
+        $this->_NOTICE_DB->enableQueryLog();
+
         $this->_COMMON_FUNCTION = new CommonFunction();
         $this->_MODEL_WARD = new ModelWard();
 
@@ -435,7 +448,7 @@ class Report implements IReport
             ];
             $select1 = $select;
             $select1[]=DB::raw("'approve' as type ");
-            $data = DB::TABLE("trade_licences AS licences")
+            $data = $this->_DB->TABLE("trade_licences AS licences")
                     ->select($select1)
                     ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
                     ->join("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
@@ -473,7 +486,7 @@ class Report implements IReport
             {
                 $select2 = $select;
                 $select2[]=DB::raw("'old' as type ");
-                $old = DB::TABLE("trade_renewals AS licences")
+                $old = $this->_DB->TABLE("trade_renewals AS licences")
                     ->select($select2)
                     ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
                     ->join("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id") 
@@ -549,7 +562,7 @@ class Report implements IReport
                 $ulbId = $request->ulbId;
             }
             $where.=" AND trade_transactions.ulb_id = $ulbId ";
-            $total_transacton = DB::select("
+            $total_transacton = $this->_DB->select("
                             SELECT
                                 sum(COALESCE(trade_transactions.paid_amount,0)) as amount, 
                                 count(trade_transactions.id) as total_transaction,
@@ -563,7 +576,7 @@ class Report implements IReport
                                 $where
                             GROUP BY  payment_modes.mode
                             ");
-            $deactivate_transacton = DB::select("
+            $deactivate_transacton = $this->_DB->select("
                             SELECT
                                 sum(COALESCE(trade_transactions.paid_amount,0)) as amount, 
                                 count(trade_transactions.id) as total_transaction,
@@ -577,7 +590,7 @@ class Report implements IReport
                                 $where AND trade_transactions.status IN(0,3)
                             GROUP BY  payment_modes.mode
                             ");
-            $actual_transacton = DB::select("
+            $actual_transacton = $this->_DB->select("
                             SELECT
                                 sum(COALESCE(trade_transactions.paid_amount,0)) as amount, 
                                 count(trade_transactions.id) as total_transaction,
@@ -591,7 +604,7 @@ class Report implements IReport
                                 $where AND trade_transactions.status IN(1,2)
                             GROUP BY  payment_modes.mode
                             ");
-            $application_type_transacton = DB::select("
+            $application_type_transacton = $this->_DB->select("
                             SELECT
                                 sum(COALESCE(trade_transactions.paid_amount,0)) as amount, 
                                 count(trade_transactions.id) as total_transaction,
@@ -688,7 +701,7 @@ class Report implements IReport
             {
                 $ulbId = $request->ulbId;
             }
-            $data = DB::select("
+            $data = $this->_DB->select("
                                 select count(license.id) , application_type 
                                 from trade_param_application_types
                                 left join (
@@ -764,7 +777,7 @@ class Report implements IReport
             }
             $where.=" AND trade_transactions.ulb_id = $ulbId ";
 
-            $application_type_transacton = DB::select("
+            $application_type_transacton = $this->_DB->select("
                                                         SELECT
                                                             sum(COALESCE(trade_transactions.paid_amount,0)) as amount, 
                                                             count(trade_transactions.id) as total_transaction,
@@ -842,7 +855,7 @@ class Report implements IReport
             $ApprovedSelect = $select;
 
             $ActiveSelect[] = DB::raw("'active' as license_type");
-            $ActiveLicence = DB::table("active_trade_licences AS licences")
+            $ActiveLicence = $this->_DB->table("active_trade_licences AS licences")
                 ->select($ActiveSelect)
                 ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
                 ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
@@ -863,7 +876,7 @@ class Report implements IReport
                 // ->get();
 
             $RejectedSelect[] = DB::raw("'rejected' as license_type");
-            $RejectedLicence = DB::table("rejected_trade_licences AS licences")
+            $RejectedLicence = $this->_DB->table("rejected_trade_licences AS licences")
                 ->select($RejectedSelect)
                 ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
                 ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
@@ -884,7 +897,7 @@ class Report implements IReport
                 // ->get();
 
             $ApprovedSelect[] = DB::raw("'approved' as license_type");
-            $ApprovedLicence = DB::table("trade_licences AS licences")
+            $ApprovedLicence = $this->_DB->table("trade_licences AS licences")
                 ->select($ApprovedSelect)
                 ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
                 ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
@@ -978,14 +991,11 @@ class Report implements IReport
             $yUptoDate = $toYear."-03-31";
 
             $now = Carbon::now();
-
-            $mFromDate = $now->startOfMonth()->format('Y-m-d');
-            $mUptoDate = $now->endOfMonth()->format('Y-m-d');
-
+            $toDay = $now->format('Y-m-d');
             $wFromDate = $now->startOfWeek()->format('Y-m-d');
             $wUptoDate = $now->endOfWeek()->format('Y-m-d');
-
-            $toDay = $now->format('Y-m-d');
+            $mFromDate = $now->startOfMonth()->format('Y-m-d');
+            $mUptoDate = $now->endOfMonth()->format('Y-m-d');
 
             $yearlly = TradeTransaction::select(DB::RAW("
                                 CASE WHEN SUM(COALESCE(trade_transactions.paid_amount,0)) IS NOT NULL THEN SUM(COALESCE(trade_transactions.paid_amount,0)) ELSE 0 END  as amount,
@@ -1049,7 +1059,7 @@ class Report implements IReport
             $weeklly = $weeklly->get();
             $daylly = $daylly->get();
 
-            // dd(DB::getQueryLog());
+            
 
             $data["yearlly"]    = $yearlly;
             $data["monthlly"]   = $monthlly;
@@ -1106,7 +1116,7 @@ class Report implements IReport
                     TO_CHAR(CAST(licences.application_date AS DATE) , 'DD-MM-YYYY') as application_date
                 ")
             ];
-            $active = DB::TABLE("active_trade_licences AS licences")
+            $active = $this->_DB->TABLE("active_trade_licences AS licences")
                     ->select($select)
                     ->join("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
                     ->leftjoin(DB::raw("(
@@ -1128,7 +1138,7 @@ class Report implements IReport
                         ->whereBetween("licences.application_date",[$fromDate,$uptoDate])
                         ->where("licences.ulb_id",$ulbId);
             
-            $rejected = DB::TABLE("rejected_trade_licences AS licences")
+            $rejected = $this->_DB->TABLE("rejected_trade_licences AS licences")
                     ->select($select)
                     ->join("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
                     ->leftjoin(DB::raw("(
@@ -1150,7 +1160,7 @@ class Report implements IReport
                         ->whereBetween("licences.application_date",[$fromDate,$uptoDate])
                         ->where("licences.ulb_id",$ulbId);
             
-            $approved = DB::TABLE("trade_licences AS licences")
+            $approved = $this->_DB->TABLE("trade_licences AS licences")
                     ->select($select)
                     ->join("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
                     ->leftjoin(DB::raw("(
@@ -1173,7 +1183,7 @@ class Report implements IReport
                         ->where("licences.ulb_id",$ulbId);
            
 
-            $old = DB::TABLE("trade_renewals AS licences")
+            $old = $this->_DB->TABLE("trade_renewals AS licences")
                     ->select($select)
                     ->join("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
                     ->leftjoin(DB::raw("(
@@ -1301,7 +1311,7 @@ class Report implements IReport
                     ulb_ward_masters.ward_name as ward_no
                 ")
             ];
-            $active = DB::TABLE("active_trade_licences AS licences")
+            $active = $this->_DB->TABLE("active_trade_licences AS licences")
                     ->select($select)
                     ->JOIN("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
                     ->JOIN("trade_notice_consumer_dtls","trade_notice_consumer_dtls.id","licences.denial_id")
@@ -1323,7 +1333,7 @@ class Report implements IReport
                     ->WHERE("licences.ulb_id",$ulbId)
                     ->WHEREBETWEEN("licences.application_date",[$fromDate,$uptoDate]);
             
-            $rejected = DB::TABLE("rejected_trade_licences AS licences")
+            $rejected = $this->_DB->TABLE("rejected_trade_licences AS licences")
                     ->select($select)
                     ->JOIN("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
                     ->JOIN("trade_notice_consumer_dtls","trade_notice_consumer_dtls.id","licences.denial_id")
@@ -1345,7 +1355,7 @@ class Report implements IReport
                     ->WHERE("licences.ulb_id",$ulbId)
                     ->WHEREBETWEEN("licences.application_date",[$fromDate,$uptoDate]);
             
-            $approved = DB::TABLE("trade_licences AS licences")
+            $approved = $this->_DB->TABLE("trade_licences AS licences")
                     ->select($select)
                     ->JOIN("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
                     ->JOIN("trade_notice_consumer_dtls","trade_notice_consumer_dtls.id","licences.denial_id")
@@ -1367,7 +1377,7 @@ class Report implements IReport
                     ->WHERE("licences.ulb_id",$ulbId)
                     ->WHEREBETWEEN("licences.application_date",[$fromDate,$uptoDate]);
 
-            $old = DB::TABLE("trade_renewals AS licences")
+            $old = $this->_DB->TABLE("trade_renewals AS licences")
                     ->select($select)            
                     ->JOIN("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
                     ->JOIN("trade_notice_consumer_dtls","trade_notice_consumer_dtls.id","licences.denial_id")
@@ -1470,7 +1480,8 @@ class Report implements IReport
             {
                 $ulbId = $request->ulbId;
             }
-            $refWfWorkflow     = WfWorkflow::where('wf_master_id', $this->_WF_MASTER_Id)
+            $refWfWorkflow     = $this->_DB->table("wf_workflows")
+                ->where('wf_master_id', $this->_WF_MASTER_Id)
                 ->where('ulb_id', $ulbId)
                 ->first();
             if (!$refWfWorkflow) 
@@ -1478,7 +1489,7 @@ class Report implements IReport
                 throw new Exception("Workflow Not Available");
             }
             $workflow_id = $refWfWorkflow->id;
-            $data = WfRole::SELECT(
+            $data = $this->_DB->table("wf_roles")->SELECT(
                     "wf_roles.id",
                     "wf_roles.role_name",
                     DB::RAW("COUNT(active_trade_licences.id) AS total")
@@ -1533,7 +1544,7 @@ class Report implements IReport
             $ulbId          = $refUser->ulb_id;
             $roleId = $roleId2 = $userId = null;
             $header = $userName = $roleName = null;
-            $allRolse = $this->_COMMON_FUNCTION->getAllRoles($refUserId,$ulbId,$this->_WF_MASTER_Id,0,TRUE);
+            $allRolse = $this->_COMMON_FUNCTION->getAllRoles($refUserId,$ulbId,$this->_WF_MASTER_Id,0,TRUE);            
             $joins = "join";
             if ($request->ulbId) 
             {
@@ -1542,7 +1553,7 @@ class Report implements IReport
             if ($request->userId) 
             {
                 $userId = $request->userId;                
-                $userName = DB::TABLE('users')->find($userId )->name??"";
+                $userName = $this->_DB->TABLE('users')->find($userId )->name??"";
                 $roleId2 = ($this->_COMMON_FUNCTION->getUserRoll($userId, $ulbId, $this->_WF_MASTER_Id))->role_id ?? 0;
             }
             if ($request->roleId) 
@@ -1588,7 +1599,7 @@ class Report implements IReport
                                 string_agg(wf_ward_users.ward_id::text,',') as ward_ids
                             from wf_roleusermaps 
                             join wf_roles on wf_roles.id = wf_roleusermaps.wf_role_id
-                                AND wf_roles.status =1
+                                AND wf_roles.is_suspended =false
                             join users on users.id = wf_roleusermaps.user_id
                             left join wf_ward_users on wf_ward_users.user_id = wf_roleusermaps.user_id and wf_ward_users.is_suspended = false
                             where wf_roleusermaps.wf_role_id =$roleId
@@ -1672,7 +1683,7 @@ class Report implements IReport
             if ($request->userId) 
             {
                 $userId = $request->userId;
-                $userName = DB::TABLE('users')->find($userId )->name??"";
+                $userName = $this->_DB->TABLE('users')->find($userId )->name??"";
                 $roleId2 = ($this->_COMMON_FUNCTION->getUserRoll($userId, $ulbId, $this->_WF_MASTER_Id))->role_id ?? 0;
             }
             if (($request->roleId && $request->userId) && ($roleId != $roleId2)) 
@@ -1696,7 +1707,7 @@ class Report implements IReport
             
             $mWardIds = $mWardPermission->implode("ward_id", ",");
             $mWardIds = explode(',', ($mWardIds ? $mWardIds : "0"));
-            $data = UlbWardMaster::SELECT(
+            $data = $this->_DB->TABLE("ulb_ward_masters")->SELECT(
                 DB::RAW(" DISTINCT(ward_name) as ward_no,ulb_ward_masters.id AS ward_id, COUNT(active_trade_licences.id) AS total")
             )
                 ->LEFTJOIN("active_trade_licences", "ulb_ward_masters.id", "active_trade_licences.ward_id");
@@ -1912,7 +1923,7 @@ class Report implements IReport
                         TO_CHAR(cast(licences.valid_upto as date), 'DD-MM-YYYY') AS valid_upto
                         ")
             ];
-            $active = DB::table("active_trade_licences AS licences")
+            $active = $this->_DB->table("active_trade_licences AS licences")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
                 ->join("ulb_ward_masters", function ($join) {
@@ -1949,7 +1960,7 @@ class Report implements IReport
                 ->WHEREBETWEEN('trade_transactions.tran_date',[$fromDate,$uptoDate])
                 ->WHEREIN('trade_transactions.status',[1,2]);
            
-            $approved = DB::table("trade_licences AS licences")
+            $approved = $this->_DB->table("trade_licences AS licences")
                 ->select($select)            
                 ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
                 ->join("ulb_ward_masters", function ($join) {
@@ -1986,7 +1997,7 @@ class Report implements IReport
                 ->WHEREBETWEEN('trade_transactions.tran_date',[$fromDate,$uptoDate])
                 ->WHEREIN('trade_transactions.status',[1,2]);
         
-            $rejected = DB::table("rejected_trade_licences AS licences")
+            $rejected = $this->_DB->table("rejected_trade_licences AS licences")
                 ->select($select) 
                 ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
                 ->join("ulb_ward_masters", function ($join) {
@@ -2023,7 +2034,7 @@ class Report implements IReport
                 ->WHEREBETWEEN('trade_transactions.tran_date',[$fromDate,$uptoDate])
                 ->WHEREIN('trade_transactions.status',[1,2]);
             
-            $renewal = DB::table("trade_renewals AS licences")
+            $renewal = $this->_DB->table("trade_renewals AS licences")
                 ->select($select)              
                     ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
                     ->join("ulb_ward_masters", function ($join) {
@@ -2159,7 +2170,7 @@ class Report implements IReport
                         TO_CHAR(CAST(licences.valid_upto AS DATE), 'DD-MM-YYYY') as valid_upto
                         ")
             ];
-            $active = DB::TABLE("active_trade_licences AS licences")
+            $active = $this->_DB->TABLE("active_trade_licences AS licences")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
                 ->join("ulb_ward_masters", function ($join) {
@@ -2182,7 +2193,7 @@ class Report implements IReport
                 ->WHERE('licences.is_active',TRUE);
        
         
-            $approved = DB::TABLE("trade_licences AS licences")
+            $approved = $this->_DB->TABLE("trade_licences AS licences")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
                 ->join("ulb_ward_masters", function ($join) {
@@ -2204,7 +2215,7 @@ class Report implements IReport
                 ->WHEREBETWEEN('licences.application_date',[$fromDate,$uptoDate])
                 ->WHERE('licences.is_active',TRUE);
         
-            $rejected = DB::TABLE("rejected_trade_licences AS licences")
+            $rejected = $this->_DB->TABLE("rejected_trade_licences AS licences")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
                 ->join("ulb_ward_masters", function ($join) {
@@ -2226,7 +2237,7 @@ class Report implements IReport
                 ->WHEREBETWEEN('licences.application_date',[$fromDate,$uptoDate])
                 ->WHERE('licences.is_active',TRUE);
             /*
-            $renewal = DB::TABLE("trade_renewals AS licences")
+            $renewal = $this->_DB->TABLE("trade_renewals AS licences")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
                 ->join("ulb_ward_masters", function ($join) {

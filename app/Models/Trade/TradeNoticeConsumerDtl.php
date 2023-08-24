@@ -9,4 +9,9 @@ class TradeNoticeConsumerDtl extends Model
 {
     use HasFactory;
     public $timestamp = false;
+    protected $connection;
+    public function __construct($DB=null)
+    {
+       $this->connection = $DB ? $DB:"pgsql_trade";
+    }
 }

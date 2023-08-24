@@ -9,7 +9,11 @@ class TradeParamApplicationType extends Model
 {
     use HasFactory;
     public $timestamps=false;
-
+    protected $connection;
+    public function __construct($DB=null)
+    {
+       $this->connection = $DB ? $DB:"pgsql_trade";
+    }
     public function activeApplication()
     {
         return $this->hasMany(ActiveTradeLicence::class,'application_type_id',"id")->where("is_active",true);

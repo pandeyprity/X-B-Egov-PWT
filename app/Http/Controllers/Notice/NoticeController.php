@@ -37,6 +37,8 @@ class NoticeController extends Controller
 
      use Auth;    
     
+    private $_DB;
+    private $_DB_NAME;
     private $_REPOSITORY;
     private $_PROPERTY_REPOSITORY;
     private $_WATER__REPOSITORY;
@@ -52,7 +54,11 @@ class NoticeController extends Controller
     protected $_NOTICE_TYPE;
     public function __construct(INotice $Repository,iPropertyDetailsRepo $propertyRepository,iNewConnection $waterRepository,ITrade $tradeRepository)
     {
+        $this->_DB_NAME = "pgsql_notice";
+        $this->_DB = DB::connection( $this->_DB_NAME );
         DB::enableQueryLog();
+        $this->_DB->enableQueryLog();
+
         $this->_REPOSITORY = $Repository;
         $this->_PROPERTY_REPOSITORY = new PropertyDetailsController($propertyRepository);
         $this->_WATER__REPOSITORY = new NewConnectionController($waterRepository);
@@ -67,6 +73,33 @@ class NoticeController extends Controller
         $this->_NOTICE_CONSTAINT = Config::get("NoticeConstaint");
         $this->_REF_TABLE = $this->_NOTICE_CONSTAINT["NOTICE_REF_TABLE"];
         $this->_NOTICE_TYPE = $this->_NOTICE_CONSTAINT["NOTICE-TYPE"]??null;
+    }
+
+    public function begin()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::beginTransaction();
+        if($db1!=$db2 )
+        $this->_DB->beginTransaction();
+    }
+    public function rollback()
+    {
+        
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::rollBack();
+        if($db1!=$db2 )
+        $this->_DB->rollBack();
+    }
+     
+    public function commit()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::commit();
+        if($db1!=$db2 )
+        $this->_DB->commit();
     }
 
     public function noticeType(Request $request)
@@ -419,7 +452,7 @@ class NoticeController extends Controller
                 $sms ="Application Forward To ".$receiverRole["role_name"]??"";
             }
            
-            DB::beginTransaction();
+            $this->begin();
             $appllication->max_level_attained = ($appllication->max_level_attained < ($receiverRole["serial_no"]??0)) ? ($receiverRole["serial_no"]??0) : $appllication->max_level_attained;
             $appllication->current_role = $request->receiverRoleId;
             $appllication->update();
@@ -435,10 +468,10 @@ class NoticeController extends Controller
 
             $track = new WorkflowTrack();
             $track->saveTrack($request);
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, $sms, "", "010109", "1.0", "286ms", "POST", $request->deviceId);
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollBack();
             return responseMsg(false, $e->getMessage(), $request->all());
         }
     }
