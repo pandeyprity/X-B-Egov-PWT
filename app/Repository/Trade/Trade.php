@@ -812,7 +812,7 @@ class Trade implements ITrade
             $totalCharge = $chargeData['total_charge'];
             $mDenialAmount = $chargeData['notice_amount'];
             #-------------End Calculation-----------------------------
-            #-------- Transection -------------------
+            #-------- Transection section-------------------
             $this->begin();
             $Tradetransaction = new TradeTransaction;
             $Tradetransaction->temp_id          = $licenceId;
