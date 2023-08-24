@@ -14,6 +14,7 @@ class WorkflowTrack extends Model
     use HasFactory;
     use SoftDeletes;
     protected $guarded = [];
+    protected $connection = "pgsql_master";
 
     /**
      * | Store Track
