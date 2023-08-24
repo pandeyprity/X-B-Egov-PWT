@@ -320,6 +320,7 @@ class ActiveSafController extends Controller
 
             $occupiedWards = $mWfWardUser->getWardsByUserId($userId)->pluck('ward_id');                       // Model () to get Occupied Wards of Current User
             $roleIds = $mWfRoleUser->getRoleIdByUserId($userId)->pluck('wf_role_id');                      // Model to () get Role By User Id
+
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleIds)->pluck('workflow_id');
 
             $safDtl = $this->Repository->getSaf($workflowIds)                                          // Repository function to get SAF Details

@@ -64,27 +64,6 @@ return [
             ]) : [],
         ],
 
-        'mysql2' => [
-            'driver' => env('DB_CONNECTION_SECOND'),
-            'url' => env('DATABASE_URL'),
-            'host' => env('DB_HOST_SECOND', '127.0.0.1'),
-            'port' => env('DB_PORT_SECOND', '3306'),
-            'database' => env('DB_DATABASE_SECOND', 'forge'),
-            'username' => env('DB_USERNAME_SECOND', 'forge'),
-            'password' => env('DB_PASSWORD_SECOND', ''),
-            'unix_socket' => env('DB_SOCKET', ''),
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::ATTR_PERSISTENT => true,
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
-        ],
-
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),
@@ -92,25 +71,6 @@ return [
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'forge'),
             'username' => env('DB_USERNAME', 'forge'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => 'utf8',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'schema' => 'public',
-            'sslmode' => 'prefer',
-            'options'   => [
-                PDO::ATTR_PERSISTENT => true,
-            ],
-        ],
-
-        #_For Authorization Service
-        'pgsql_auth' => [
-            'driver' => 'pgsql',
-            'url' => env('DATABASE_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'auth_service'),
-            'username' => env('DB_USERNAME', 'postgres'),
             'password' => env('DB_PASSWORD', ''),
             'charset' => 'utf8',
             'prefix' => '',
@@ -140,6 +100,7 @@ return [
                 PDO::ATTR_PERSISTENT => true,
             ],
         ],
+
         #_For Trade Service
         'pgsql_trade' => [
             'driver' => 'pgsql',
@@ -167,6 +128,25 @@ return [
             'database' => env('DB_NOTIC_DATABASE', 'juidco_notice'),
             'username' => env('DB_NOTIC_USERNAME', 'postgres'),
             'password' => env('DB_NOTIC_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'public',
+            'sslmode' => 'prefer',
+            'options'   => [
+                PDO::ATTR_PERSISTENT => true,
+            ],
+        ],
+
+        #_For Water Service
+        'pgsql_water' => [
+            'driver' => 'pgsql',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_WATER_HOST', '127.0.0.1'),
+            'port' => env('DB_WATER_PORT', '5432'),
+            'database' => env('DB_WATER_DATABASE', 'forge'),
+            'username' => env('DB_WATER_USERNAME', 'forge'),
+            'password' => env('DB_WATER_PASSWORD', ''),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
