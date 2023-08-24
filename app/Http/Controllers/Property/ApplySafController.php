@@ -169,7 +169,7 @@ class ApplySafController extends Controller
                     }
                 }
             }
-
+            $this->sendToWorkflow($createSaf, $user_id);
             DB::commit();
             return responseMsgs(true, "Successfully Submitted Your Application Your SAF No. $safNo", [
                 "safNo" => $safNo,
