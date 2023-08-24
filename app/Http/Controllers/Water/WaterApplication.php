@@ -71,7 +71,7 @@ class WaterApplication extends Controller
     public function getJskAppliedApplication(Request $request)
     {
         try {
-            $user = authUser();
+            $user = authUser($request);
             if (!in_array($user->user_type, ['JSK', 'TC'])) {
                 $canView = false;
             }
@@ -163,7 +163,7 @@ class WaterApplication extends Controller
     public function workflowDashordDetails(Request $request)
     {
         try {
-            $user = authUser();
+            $user = authUser($request);
             if (in_array($user->user_type, ['JSK', 'TC'])) {
                 $canView = false;
             }
