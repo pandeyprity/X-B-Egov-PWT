@@ -4,6 +4,9 @@ namespace App\Http\Requests\Property;
 
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
 
 class ReqSiteVerification extends FormRequest
 {
@@ -28,7 +31,6 @@ class ReqSiteVerification extends FormRequest
         $validation = [
             'safId' => 'required|integer',
             'propertyType' => 'required|integer',
-            'roadWidth' => 'required|numeric',
             'areaOfPlot' => 'required|numeric',
             'wardId' => 'required|integer',
             'isMobileTower' => 'required|bool',
@@ -42,9 +44,6 @@ class ReqSiteVerification extends FormRequest
             'petrolPump.dateFrom' => 'required_if:isPetrolPump,1',
             'isWaterHarvesting' => 'required|bool',
         ];
-
-        if ($this->isWaterHarvesting == true)
-            $validation = array_merge($validation, ['rwhDateFrom' => 'required|date|date_format:Y-m-d|before_or_equal:' . $mNowDate]);
 
         if ($this->propertyType != 4) {
             $validation = array_merge($validation, [
@@ -60,5 +59,20 @@ class ReqSiteVerification extends FormRequest
             ]);
         }
         return $validation;
+    }
+
+    // Validation Error Message
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(
+            response()->json(
+                [
+                    'status' => false,
+                    'message' => $validator->errors(),
+                    'errors' => $validator->errors()
+                ],
+                422
+            )
+        );
     }
 }

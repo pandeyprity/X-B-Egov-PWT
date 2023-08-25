@@ -973,16 +973,6 @@ class ActiveSafController extends Controller
      */
     public function checkPostCondition($senderRoleId, $wfLevels, $saf, $wfMstrId, $userId)
     {
-        // Variable Assigments
-        $mPropSafDemand = new PropSafsDemand();
-        $mPropMemoDtl = new PropSafMemoDtl();
-        $mPropSafTax = new PropSafTax();
-        $mPropTax = new PropTax();
-        $mPropProperty = new PropProperty();
-        $propIdGenerator = new PropIdGenerator;
-        $ptParamId = Config::get('PropertyConstaint.PT_PARAM_ID');
-        $holdingNoGenerator = new HoldingNoGenerator;
-
         // Derivative Assignments
         switch ($senderRoleId) {
             case $wfLevels['BO']:                        // Back Office Condition
@@ -1293,6 +1283,7 @@ class ActiveSafController extends Controller
                 throw new Exception("Site Verification not Exist");
 
             DB::beginTransaction();
+            DB::connection('pgsql_master')->beginTransaction();
             // Approval
             if ($req->status == 1) {
                 $safDetails->saf_pending_status = 0;
@@ -1367,9 +1358,11 @@ class ActiveSafController extends Controller
             $propSafVerification->deactivateVerifications($req->applicationId);                 // Deactivate Verification From Table
             $propSafVerificationDtl->deactivateVerifications($req->applicationId);              // Deactivate Verification from Saf floor Dtls
             DB::commit();
+            DB::connection('pgsql_master')->commit();
             return responseMsgs(true, $msg, ['holdingNo' => $safDetails->holding_no, 'ptNo' => $safDetails->pt_no], "010110", "1.0", "410ms", "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
+            DB::connection('pgsql_master')->rollBack();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
@@ -2267,7 +2260,7 @@ class ActiveSafController extends Controller
                 default:
                     return responseMsg(false, "Forbidden Access", "");
             }
-            $req->merge(['roadType' => $roadWidthType, 'userId' => $userId, 'ulbId' => $ulbId]);
+            $req->merge(['userId' => $userId, 'ulbId' => $ulbId]);
             // Verification Store
             $verificationId = $verification->store($req);                            // Model function to store verification and get the id
             // Verification Dtl Table Update                                         // For Tax Collector
