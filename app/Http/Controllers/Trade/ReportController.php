@@ -375,7 +375,7 @@ class ReportController extends Controller
         } 
         catch(Exception $e)
         {
-            return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
+            return responseMsgs(false, $e->getMessage(), "", $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
 }

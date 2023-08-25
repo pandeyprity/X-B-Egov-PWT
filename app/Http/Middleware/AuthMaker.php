@@ -17,20 +17,22 @@ class AuthMaker
      */
     public function handle(Request $request, Closure $next)
     {
-        if (!Auth()->user() && $request->auth) {
-            if (!is_array($request->auth)) {
-                $request->merge(["auth" => json_decode($request->auth, true)]);
+        if(!Auth()->user() && $request->auth)
+        {
+            if(!is_array($request->auth))
+            {
+                $request->merge(["auth"=>json_decode($request->auth,true)]);
             }
-            if (!is_array($request->currentAccessToken)) {
-                $request->merge(["currentAccessToken" => json_decode($request->currentAccessToken, true)]);
+            if(!is_array($request->currentAccessToken))
+            {
+                $request->merge(["currentAccessToken"=>json_decode($request->currentAccessToken,true)]);
             }
-            switch ($request->currentAccessToken["tokenable_type"]) {
-                case "App\\Models\\Auth\\User":
-                    Auth::login(new \App\Models\User($request->auth));
-                    break;
-                default:
-                    Auth::login(new \App\Models\ActiveCitizen($request->auth));
-                    break;
+            switch($request->currentAccessToken["tokenable_type"])
+            {
+                case "App\\Models\\Auth\\User": Auth::login(new \App\Models\User($request->auth));
+                                                break;
+                default                       : Auth::login(new \App\Models\ActiveCitizen($request->auth));
+                                                break;
             }
             collect($request->auth)->map(function ($val, $key) {
                 Auth()->user()->$key = $val;

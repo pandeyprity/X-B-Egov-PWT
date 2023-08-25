@@ -9,4 +9,9 @@ class TradeDocument extends Model
 {
     use HasFactory;
     public $timestamps=false;
+    protected $connection;
+    public function __construct($DB=null)
+    {
+       $this->connection = $DB ? $DB:"pgsql_trade";
+    }
 }
