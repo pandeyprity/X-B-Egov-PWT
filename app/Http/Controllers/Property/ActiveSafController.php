@@ -991,53 +991,8 @@ class ActiveSafController extends Controller
                 break;
 
             case $wfLevels['DA']:                       // DA Condition
-                $demand = $mPropSafDemand->getDemandsBySafId($saf->id)->groupBy('fyear')->first();
-                if (collect($demand)->isEmpty())
-                    throw new Exception("Demand Not Available");
-                $demand = $demand->last();
-                if (collect($demand)->isEmpty())
-                    throw new Exception("Demand Not Available for the to Generate SAM");
                 if ($saf->doc_verify_status == 0)
                     throw new Exception("Document Not Fully Verified");
-
-                $propertyExist = $mPropProperty->where('saf_id', $saf->id)
-                    ->first();
-
-                if (!$propertyExist) {
-                    $idGeneration = new PrefixIdGenerator($ptParamId, $saf->ulb_id);
-
-                    if (in_array($saf->assessment_type, ['New Assessment', 'Bifurcation', 'Amalgamation', 'Mutation'])) { // Make New Property For New Assessment,Bifurcation and Amalgamation & Mutation
-                        // Holding No Generation
-                        $holdingNo = $holdingNoGenerator->generateHoldingNo($saf);
-                        $ptNo = $idGeneration->generate();
-                        $saf->pt_no = $ptNo;                        // Generate New Property Tax No for All Conditions
-                        $saf->holding_no = $holdingNo;
-                        $saf->save();
-                    }
-                    $ptNo = $saf->pt_no;
-                    // Sam No Generator
-                    $samNo = $propIdGenerator->generateMemoNo("SAM", $saf->ward_mstr_id, $demand->fyear);
-                    $this->replicateSaf($saf->id);
-                    $propId = $this->_replicatedPropId;
-
-                    $mergedDemand = array_merge($demand->toArray(), [       // SAM Memo Generation
-                        'holding_no' => $saf->holding_no,
-                        'memo_type' => 'SAM',
-                        'memo_no' => $samNo,
-                        'pt_no' => $ptNo,
-                        'ward_id' => $saf->ward_mstr_id,
-                        'prop_id' => $propId,
-                        'userId'  => $userId
-                    ]);
-                    $memoReqs = new Request($mergedDemand);
-                    $mPropMemoDtl->postSafMemoDtls($memoReqs);
-
-                    $ifPropTaxExists = $mPropTax->getPropTaxesByPropId($propId);
-                    if ($ifPropTaxExists)
-                        $mPropTax->deactivatePropTax($propId);
-                    $safTaxes = $mPropSafTax->getSafTaxesBySafId($saf->id)->toArray();
-                    $mPropTax->replicateSafTaxes($propId, $safTaxes);
-                }
                 break;
 
             case $wfLevels['TC']:

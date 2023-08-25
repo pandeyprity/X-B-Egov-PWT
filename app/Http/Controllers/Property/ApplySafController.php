@@ -286,6 +286,7 @@ class ApplySafController extends Controller
             'user_id' => $userId,
             'receiver_role_id' => $activeSaf->original['current_role'],
             'ulb_id' => $activeSaf->original['ulb_id'],
+            'status' => true
         ];
         $mWorkflowTrack->store($reqWorkflow);
     }

@@ -45,6 +45,7 @@ class WorkflowTrack extends Model
         $track->verification_status = $request->verificationStatus ?? 0;
         $track->user_id             = $userId;
         $track->ulb_id              = $ulbId;
+        $track->status              = true;
         return  $track->save();
     }
 

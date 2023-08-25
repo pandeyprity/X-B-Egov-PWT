@@ -80,10 +80,10 @@ class reqApplySaf extends FormRequest
         }
 
         if ($this->propertyType == 2)                                           // Land Occupation Date for Independent Building
-            $rules['landOccupationDate'] = "required|date|date_format:Y-m-d|before_or_equal:$mNowDate";
+            $rules['landOccupationDate'] = "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate";
 
         if (isset($this->propertyType) && $this->propertyType == 4) {
-            $rules['landOccupationDate'] = "required|date|date_format:Y-m-d|before_or_equal:$mNowDate";
+            $rules['landOccupationDate'] = "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate";
         } else {
             $rules['floor']        = "required|array";
             if (isset($this->floor) && $this->floor) {
