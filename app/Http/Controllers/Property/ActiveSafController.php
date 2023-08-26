@@ -1562,14 +1562,10 @@ class ActiveSafController extends Controller
                 throw new Exception("Saf Not Available");
 
             $demand = $calculateSafTaxById->_GRID;
-            // if (in_array($safDtls->assessment_type, ['New Assessment', 'Reassessment', 'Re Assessment', 'Mutation']))
-            //     $req = $req->merge(['holdingNo' => $safDtls->holding_no]);
-            // $calculateSafById = new CalculateSafById;
-            // $demand = $calculateSafById->calculateTax($req);
 
-            return responseMsgs(true, "Demand Details", remove_null($demand));
+            return responseMsgs(true, "Demand Details", remove_null($demand), "", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
-            return responseMsgs(false, $e->getMessage(), "");
+            return responseMsgs(false, $e->getMessage(), "", "", "1.0", responseTime(), "POST", $req->deviceId);
         }
     }
 

@@ -24,9 +24,9 @@ class CalculateSafTaxById extends TaxCalculator
         $this->_mPropActiveSafFloors = new PropActiveSafsFloor();
         $this->_mPropActiveSafOwners = new PropActiveSafsOwner();
         $this->_safDtls = $safDtls;
-        $this->generateRequests();
-        parent::__construct($this->_REQUEST);
-        $this->calculateTax();
+        $this->generateRequests();                                      // making request
+        parent::__construct($this->_REQUEST);                           // making parent constructor for tax calculator BLL
+        $this->calculateTax();                                          // Calculate Tax with Tax Calculator
     }
 
     /**
