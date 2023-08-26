@@ -388,7 +388,11 @@ class TaxCalculator
         $this->_GRID['rebateAmt'] = 0;
         // Read Rebates
         $firstOwner = collect($this->_REQUEST->owner)->first();
-        $isArmedForce = $firstOwner['isArmedForce'];
+        if (isset($firstOwner))                     // If first Owner is found 
+            $isArmedForce = $firstOwner['isArmedForce'];
+        else
+            $isArmedForce = false;
+
         if ($isArmedForce) {
             $currentYearTax = $this->_GRID['fyearWiseTaxes']->where('fyear', $this->_currentFyear)->first();       // General Tax of current fyear will be our rebate
 
