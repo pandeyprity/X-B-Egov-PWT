@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Property;
 
+use App\BLL\Property\Akola\CalculateSafTaxById;
 use App\BLL\Property\CalculateSafById;
 use App\BLL\Property\PaymentReceiptHelper;
 use App\BLL\Property\PostRazorPayPenaltyRebate;
@@ -835,6 +836,7 @@ class ActiveSafController extends Controller
                 $metaReqs = array_merge($metaReqs, ['user_id' => $userId]);
             }
             DB::beginTransaction();
+            DB::connection('pgsql_master');
             // For Citizen Independent Comment
             if ($userType == 'Citizen') {
                 $metaReqs = array_merge($metaReqs, ['citizenId' => $userId]);
@@ -846,9 +848,11 @@ class ActiveSafController extends Controller
             $workflowTrack->saveTrack($request);
 
             DB::commit();
+            DB::connection('pgsql_master')->commit();
             return responseMsgs(true, "You Have Commented Successfully!!", ['Comment' => $request->comment], "010108", "1.0", "", "POST", "");
         } catch (Exception $e) {
             DB::rollBack();
+            DB::connection('pgsql_master')->rollBack();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
@@ -1502,6 +1506,8 @@ class ActiveSafController extends Controller
                 $saf->parked = true;                        // If the Application has been applied from Citizen
 
             DB::beginTransaction();
+            DB::connection('pgsql_master');
+
             $saf->save();
 
             $metaReqs['moduleId'] = Config::get('module-constants.PROPERTY_MODULE_ID');
@@ -1515,9 +1521,11 @@ class ActiveSafController extends Controller
             $track->saveTrack($req);
 
             DB::commit();
+            DB::connection('pgsql_master')->commit();
             return responseMsgs(true, "Successfully Done", "", "010111", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
+            DB::connection('pgsql_master')->rollBack();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
@@ -1546,16 +1554,19 @@ class ActiveSafController extends Controller
             return validationError($validated);
         try {
             $safDtls = PropActiveSaf::find($req->id);
+            $calculateSafTaxById = new CalculateSafTaxById($safDtls);
             if (!$safDtls)
                 $safDtls = PropSaf::find($req->id);
 
             if (collect($safDtls)->isEmpty())
                 throw new Exception("Saf Not Available");
 
-            if (in_array($safDtls->assessment_type, ['New Assessment', 'Reassessment', 'Re Assessment', 'Mutation']))
-                $req = $req->merge(['holdingNo' => $safDtls->holding_no]);
-            $calculateSafById = new CalculateSafById;
-            $demand = $calculateSafById->calculateTax($req);
+            $demand = $calculateSafTaxById->_GRID;
+            // if (in_array($safDtls->assessment_type, ['New Assessment', 'Reassessment', 'Re Assessment', 'Mutation']))
+            //     $req = $req->merge(['holdingNo' => $safDtls->holding_no]);
+            // $calculateSafById = new CalculateSafById;
+            // $demand = $calculateSafById->calculateTax($req);
+
             return responseMsgs(true, "Demand Details", remove_null($demand));
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "");

@@ -90,7 +90,7 @@ class reqApplySaf extends FormRequest
                 $rules["floor.*.propFloorDetailId"] =   "nullable|numeric";
                 $rules["floor.*.floorNo"]           =   "required|int";
                 $rules["floor.*.usageType"]           =   "required|int";
-                $rules["floor.*.constructionType"]  =   "required|int|in:1,2,3";
+                $rules["floor.*.constructionType"]  =   "required";
                 $rules["floor.*.occupancyType"]     =   "required|int";
 
                 $rules["floor.*.buildupArea"]       =   "required|numeric|not_in:0";
