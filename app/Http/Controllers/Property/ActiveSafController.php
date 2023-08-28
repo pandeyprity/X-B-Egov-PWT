@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Property;
 
 use App\BLL\Property\Akola\CalculateSafTaxById;
+use App\BLL\Property\Akola\SafApprovalBll;
 use App\BLL\Property\CalculateSafById;
 use App\BLL\Property\PaymentReceiptHelper;
 use App\BLL\Property\PostRazorPayPenaltyRebate;
@@ -1227,10 +1228,14 @@ class ActiveSafController extends Controller
      */
     public function approvalRejectionSaf(Request $req)
     {
-        $req->validate([
+        $validator = Validator::make($req->all(), [
             'applicationId' => 'required|integer',
             'status' => 'required|integer'
         ]);
+
+        if ($validator->fails())
+            return responseMsgs(false, $validator->errors(), "", "011610", "1.0", "", "POST", $req->deviceId ?? "");
+
 
         try {
             // Check if the Current User is Finisher or Not (Variable Assignments)
@@ -1248,6 +1253,10 @@ class ActiveSafController extends Controller
             $famParamId = Config::get('PropertyConstaint.FAM_PARAM_ID');
             $previousHoldingDeactivation = new PreviousHoldingDeactivation;
             $propIdGenerator = new PropIdGenerator;
+            $mPropActiveSaf = new PropActiveSaf();
+            $mPropActiveSafOwner = new PropActiveSafsOwner();
+            $mPropActiveSafFloor = new PropActiveSafsFloor();
+            $safApprovalBll = new SafApprovalBll;
 
             $userId = authUser($req)->id;
             $safId = $req->applicationId;
@@ -1267,18 +1276,12 @@ class ActiveSafController extends Controller
 
             if ($safDetails->finisher_role_id != $roleId)
                 throw new Exception("Forbidden Access");
-            $activeSaf = PropActiveSaf::query()
-                ->where('id', $req->applicationId)
-                ->first();
-            $ownerDetails = PropActiveSafsOwner::query()
-                ->where('saf_id', $req->applicationId)
-                ->get();
-            $floorDetails = PropActiveSafsFloor::query()
-                ->where('saf_id', $req->applicationId)
-                ->get();
 
-            $propDtls = $mPropProperties->getPropIdBySafId($req->applicationId);
-            $propId = $propDtls->id;
+            $activeSaf = $mPropActiveSaf->getQuerySafById($req->applicationId);
+            $ownerDetails = $mPropActiveSafOwner->getQueSafOwnersBySafId($req->applicationId);
+            $floorDetails = $mPropActiveSafFloor->getQSafFloorsBySafId($req->applicationId);
+
+
             if ($safDetails->prop_type_mstr_id != 4)
                 $fieldVerifiedSaf = $propSafVerification->getVerificationsBySafId($safId);          // Get fields Verified Saf with all Floor Details
             else
@@ -1293,40 +1296,7 @@ class ActiveSafController extends Controller
                 $safDetails->saf_pending_status = 0;
                 $safDetails->save();
 
-                $demand = $mPropDemand->getFirstDemandByFyearPropId($propId, $currentFinYear);
-                if (collect($demand)->isEmpty())
-                    $demand = $mPropSafDemand->getFirstDemandByFyearSafId($safId, $currentFinYear);
-                if (collect($demand)->isEmpty())
-                    throw new Exception("Demand Not Available for the Current Year to Generate FAM");
-
-                // SAF Application replication
-                $famNo = $propIdGenerator->generateMemoNo("FAM", $safDetails->ward_mstr_id, $demand->fyear);
-                $mergedDemand = array_merge($demand->toArray(), [
-                    'memo_type' => 'FAM',
-                    'memo_no' => $famNo,
-                    'holding_no' => $activeSaf->new_holding_no ?? $activeSaf->holding_no,
-                    'pt_no' => $activeSaf->pt_no,
-                    'ward_id' => $activeSaf->ward_mstr_id,
-                    'prop_id' => $propId,
-                    'saf_id' => $safId,
-                    'userId'  => $userId
-                ]);
-                $memoReqs = new Request($mergedDemand);
-                $mPropSafMemoDtl->postSafMemoDtls($memoReqs);
-                $this->finalApprovalSafReplica($mPropProperties, $propId, $fieldVerifiedSaf, $activeSaf, $ownerDetails, $floorDetails, $safId);
-                $tcVerifyParams = [
-                    'safId' => $safId,
-                    'fieldVerificationDtls' => $fieldVerifiedSaf,
-                    'assessmentType' => $safDetails->assessment_type,
-                    'ulbId' => $activeSaf->ulb_id,
-                    'activeSafDtls' => $activeSaf,
-                    'propId' => $propId
-                ];
-                $handleTcVerification->generateTcVerifiedDemand($tcVerifyParams);                // current object function (10.3)
-                $msg = "Application Approved Successfully";
-                $metaReqs['verificationStatus'] = 1;
-
-                $previousHoldingDeactivation->deactivatePreviousHoldings($safDetails);  // Previous holding deactivation in case of Mutation, Amalgamation, Bifurcation
+                $safApprovalBll->approvalProcess($safId);
             }
 
             // Rejection
@@ -1359,8 +1329,6 @@ class ActiveSafController extends Controller
                 'forward_time' => $this->_todayDate->format('H:i:s')
             ]);
 
-            $propSafVerification->deactivateVerifications($req->applicationId);                 // Deactivate Verification From Table
-            $propSafVerificationDtl->deactivateVerifications($req->applicationId);              // Deactivate Verification from Saf floor Dtls
             DB::commit();
             DB::connection('pgsql_master')->commit();
             return responseMsgs(true, $msg, ['holdingNo' => $safDetails->holding_no, 'ptNo' => $safDetails->pt_no], "010110", "1.0", "410ms", "POST", $req->deviceId);

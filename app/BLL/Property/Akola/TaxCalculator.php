@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 
+use function PHPUnit\Framework\isEmpty;
+
 /**
  * | Author - Anshu Kumar
  * | Created On-12-08-2023 
@@ -169,6 +171,8 @@ class TaxCalculator
     public function readRateByFloor($item)
     {
         $constType = $this->_refPropConstTypes->where('id', $item->constructionType);
+        if ($constType->isEmpty())
+            throw new Exception("Construction type not Available");
         $category = $this->_REQUEST->category;
         if ($category == 1)
             $rate = $constType->first()->category1_rate;
