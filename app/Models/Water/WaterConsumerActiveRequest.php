@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 class WaterConsumerActiveRequest extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Save request details 

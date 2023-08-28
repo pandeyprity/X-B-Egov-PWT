@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterLevelpending extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     public function getReceiverLevel($concessionId, $senderRoleId)
     {

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterConsumerCollection extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Save consumer demand details for the transactions

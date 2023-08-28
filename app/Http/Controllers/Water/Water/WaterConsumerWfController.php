@@ -59,7 +59,7 @@ class WaterConsumerWfController extends Controller
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
-        DB::beginTransaction();
+        $this->begin();
         if ($db1 != $db2)
             $this->_DB->beginTransaction();
     }
@@ -70,7 +70,7 @@ class WaterConsumerWfController extends Controller
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
-        DB::rollBack();
+        $this->rollback();
         if ($db1 != $db2)
             $this->_DB->rollBack();
     }
@@ -81,7 +81,7 @@ class WaterConsumerWfController extends Controller
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
-        DB::commit();
+        $this->commit();
         if ($db1 != $db2)
             $this->_DB->commit();
     }
@@ -226,14 +226,14 @@ class WaterConsumerWfController extends Controller
             return responseMsgs(false, $e->getMessage(), "", $e->getCode(), "1.0", "", 'POST', "");
         }
     }
-    /**
+     /**
      * postnext level water Disconnection
      * 
      */
     public function consumerPostNextLevel(Request $request)
     {
         $wfLevels = Config::get('waterConstaint.ROLE-LABEL');
-        $request->validate([
+         $request->validate([
             'applicationId'     => 'required',
             'senderRoleId'      => 'required',
             'receiverRoleId'    => 'required',
@@ -253,12 +253,11 @@ class WaterConsumerWfController extends Controller
      * post next level for water consumer other request 
      */
 
-    public function postNextLevelRequest($req)
-    {
-
+     public function postNextLevelRequest($req){
+        
         $mWfWorkflows        = new WfWorkflow();
         $mWfRoleMaps         = new WfWorkflowrolemap();
-
+        
         $current             = Carbon::now();
         $wfLevels            = Config::get('waterConstaint.ROLE-LABEL');
         $waterConsumerActive = WaterConsumerActiveRequest::find($req->applicationId);
@@ -266,7 +265,7 @@ class WaterConsumerWfController extends Controller
         # Derivative Assignments
         $senderRoleId   = $waterConsumerActive->current_role;
         $ulbWorkflowId  = $waterConsumerActive->workflow_id;
-        $ulbWorkflowMaps = $mWfWorkflows->getWfDetails($ulbWorkflowId);
+       $ulbWorkflowMaps = $mWfWorkflows->getWfDetails($ulbWorkflowId);
         $roleMapsReqs   = new Request([
             'workflowId' => $ulbWorkflowMaps->id,
             'roleId' => $senderRoleId
@@ -314,12 +313,12 @@ class WaterConsumerWfController extends Controller
         ]);
         DB::commit();
         return responseMsgs(true, "Successfully Forwarded The Application!!", "", "", "", '01', '.ms', 'Post', '');
-    }
-
+     }
+     
     public function checkPostCondition($senderRoleId, $wfLevels, $application)
     {
         $mWaterSiteInspection = new WaterSiteInspection();
-
+        
         $refRole = Config::get("waterConstaint.ROLE-LABEL");
         switch ($senderRoleId) {
             case $wfLevels['DA']:                                                                       // DA Condition
@@ -348,9 +347,9 @@ class WaterConsumerWfController extends Controller
                 }
                 break;
             case $wfLevels['AE']:                                                                       // AE conditional checking
-                if ($application->payment_status != 1)
+                if ( $application->payment_status != 1)
                     throw new Exception(" Payment in not Done!");
-
+                
                 break;
         }
     }
@@ -381,21 +380,20 @@ class WaterConsumerWfController extends Controller
                 throw new Exception("You are not the Finisher!");
             }
             DB::beginTransaction();
-            $this->approvalRejectionWater($request, $roleId);
+             $this->approvalRejectionWater($request, $roleId);
             DB::commit();
-            return responseMsg(true, "Request approved/rejected successfully", "");;
-        } catch (Exception $e) {
+            return responseMsg(true, "Request approved/rejected successfully", ""); ;
+        }   catch (Exception $e) {
             // DB::rollBack();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
-    public function approvalRejectionWater($request, $roleId)
-    {
-
-        $mWaterConsumerActive  =  new WaterConsumerActiveRequest();
-        $this->preApprovalConditionCheck($request, $roleId);
-
-        # Approval of water application 
+    public function approvalRejectionWater($request, $roleId) {
+             
+            $mWaterConsumerActive  =  new WaterConsumerActiveRequest();
+            $this->preApprovalConditionCheck($request, $roleId);
+            
+            # Approval of water application 
         if ($request->status == 1) {
 
             $mWaterConsumerActive->finalApproval($request);
@@ -403,16 +401,18 @@ class WaterConsumerWfController extends Controller
         }
         # Rejection of water application
         if ($request->status == 0) {
-            $mWaterConsumerActive->finalRejectionOfAppication($request);
+          $mWaterConsumerActive->finalRejectionOfAppication($request);
             $msg = "Application Successfully Rejected !!";
         }
         return responseMsgs(true, $msg, $request ?? "Empty", '', 01, '.ms', 'Post', $request->deviceId);
-    }
-    /**
-     * function for check pre condition for 
-     * approval and reject 
-     */
-
+    
+     
+}
+/**
+ * function for check pre condition for 
+ * approval and reject 
+ */
+         
     public function preApprovalConditionCheck($request, $roleId)
     {
         $waterDetails = WaterConsumerActiveRequest::find($request->applicationId);
@@ -422,7 +422,7 @@ class WaterConsumerWfController extends Controller
         if ($waterDetails->current_role != $roleId) {
             throw new Exception("Application has not Reached to the finisher ie. AE!");
         }
-
+     
         // if ($waterDetails->payment_status != 1) {
         //     throw new Exception("Payment Not Done or not verefied!");
         // }
@@ -432,154 +432,154 @@ class WaterConsumerWfController extends Controller
         // $this->checkDataApprovalCondition($request, $roleId, $waterDetails);   // Reminder
         return $waterDetails;
     }
-    /**
+     /**
      * get all applications details by id from workflow
      |working ,not completed
      */
-    public function getWorkflow(Request $request)
-    {
+    public function getWorkflow(Request $request){
 
         $request->validate([
-            'applicationId' => "required"
-
+          'applicationId'=>"required"
+  
         ]);
-
-        try {
-            return $this->getApplicationsDetails($request);
-        } catch (Exception $e) {
-            return responseMsg(false, $e->getMessage(), "");
-        }
-    }
-    public function getApplicationsDetails($request)
-    {
-
-        $forwardBackward        = new WorkflowMap();
-        $mWorkflowTracks        = new WorkflowTrack();
-        $mCustomDetails         = new CustomDetail();
-        $mUlbNewWardmap         = new UlbWardMaster();
-        $mwaterConsumerActive   = new WaterConsumerActiveRequest();
-        $mwaterOwner            = new WaterConsumerOwner();
-        # applicatin details
-        $applicationDetails = $mwaterConsumerActive->fullWaterDisconnection($request)->get();
-        if (collect($applicationDetails)->first() == null) {
-            return responseMsg(false, "Application Data Not found!", $request->applicationId);
-        }
-        # Ward Name
-        $refApplication = collect($applicationDetails)->first();
+  
+      try {
+          return $this->getApplicationsDetails($request);
+      } catch (Exception $e) {
+          return responseMsg(false, $e->getMessage(), "");
+      }
+  }    
+  public function getApplicationsDetails($request){
+  
+      $forwardBackward        = new WorkflowMap();
+      $mWorkflowTracks        = new WorkflowTrack();
+      $mCustomDetails         = new CustomDetail();
+      $mUlbNewWardmap         = new UlbWardMaster();
+      $mwaterConsumerActive   = new WaterConsumerActiveRequest();
+      $mwaterOwner            = NEW WaterConsumerOwner();   
+  # applicatin details
+      $applicationDetails = $mwaterConsumerActive->fullWaterDisconnection($request)->get();
+      if (collect($applicationDetails)->first() == null) {
+          return responseMsg(false, "Application Data Not found!", $request->applicationId);
+      }
+       # Ward Name
+       $refApplication = collect($applicationDetails)->first();
         $wardDetails = $mUlbNewWardmap->getWard($refApplication->ward_mstr_id);
         # owner Details
         $ownerDetails = $mwaterOwner->getOwner($request)->get();
         $ownerDetail = collect($ownerDetails)->map(function ($value, $key) {
-            return $value;
-        });
-        $aplictionList = [
-            'application_no' => collect($applicationDetails)->first()->application_no,
-            'apply_date' => collect($applicationDetails)->first()->apply_date
-        ];
-
-
-        # DataArray
-        $basicDetails = $this->getBasicDetails($applicationDetails);
-
-        $firstView = [
-            'headerTitle' => 'Basic Details',
-            'data' => $basicDetails
-        ];
-        $fullDetailsData['fullDetailsData']['dataArray'] = new Collection([$firstView]);
-        # CardArray
-        $cardDetails = $this->getCardDetails($applicationDetails, $ownerDetail);
-        $cardData = [
-            'headerTitle' => 'Water Disconnection',
-            'data' => $cardDetails
-        ];
-        $fullDetailsData['fullDetailsData']['cardArray'] = new Collection($cardData);
+          return $value;
+      });
+      $aplictionList = [
+          'application_no' => collect($applicationDetails)->first()->application_no,
+          'apply_date' => collect($applicationDetails)->first()->apply_date
+      ];
+  
+  
+      # DataArray
+      $basicDetails = $this->getBasicDetails($applicationDetails);
+  
+      $firstView = [
+          'headerTitle' => 'Basic Details',
+          'data' => $basicDetails
+      ];
+      $fullDetailsData['fullDetailsData']['dataArray'] = new Collection([$firstView]);
+       # CardArray
+       $cardDetails = $this->getCardDetails($applicationDetails,$ownerDetail);
+       $cardData = [
+           'headerTitle' => 'Water Disconnection',
+           'data' => $cardDetails
+       ];
+       $fullDetailsData['fullDetailsData']['cardArray'] = new Collection($cardData);
         # TableArray
-        $ownerList = $this->getOwnerDetails($ownerDetail);
-        $ownerView = [
-            'headerTitle' => 'Owner Details',
-            'tableHead' => ["#", "Owner Name", "Guardian Name", "Mobile No", "Email", "City", "District"],
-            'tableData' => $ownerList
-        ];
-        $fullDetailsData['fullDetailsData']['tableArray'] = new Collection([$ownerView]);
-
-        # Level comment
-        $mtableId = $applicationDetails->first()->id;
-        $mRefTable = "water_consumer_active_requests.id";
-        $levelComment['levelComment'] = $mWorkflowTracks->getTracksByRefId($mRefTable, $mtableId);
-
-        #citizen comment
-        $refCitizenId = $applicationDetails->first()->citizen_id;
-        $citizenComment['citizenComment'] = $mWorkflowTracks->getCitizenTracks($mRefTable, $mtableId, $refCitizenId);
-
-        # Role Details
-        $data = json_decode(json_encode($applicationDetails->first()), true);
-        $metaReqs = [
-            'customFor' => 'Water Disconnection',
-            'wfRoleId' => $data['current_role'],
-            'workflowId' => $data['workflow_id'],
-            'lastRoleId' => $data['last_role_id']
-        ];
-        $request->request->add($metaReqs);
-        $forwardBackward = $forwardBackward->getRoleDetails($request);
-        $roleDetails['roleDetails'] = collect($forwardBackward)['original']['data'];
-
-        # Timeline Data
-        $timelineData['timelineData'] = collect($request);
-
-        # Departmental Post
-        $custom = $mCustomDetails->getCustomDetails($request);
-        $departmentPost['departmentalPost'] = collect($custom)['original']['data'];
+      $ownerList = $this->getOwnerDetails($ownerDetail);
+      $ownerView = [
+          'headerTitle' => 'Owner Details',
+          'tableHead' => ["#", "Owner Name", "Guardian Name", "Mobile No", "Email", "City", "District"],
+          'tableData' => $ownerList
+      ];
+      $fullDetailsData['fullDetailsData']['tableArray'] = new Collection([$ownerView]);
+  
+      # Level comment
+      $mtableId = $applicationDetails->first()->id;
+      $mRefTable = "water_consumer_active_requests.id";
+      $levelComment['levelComment'] = $mWorkflowTracks->getTracksByRefId($mRefTable, $mtableId);
+  
+      #citizen comment
+      $refCitizenId = $applicationDetails->first()->citizen_id;
+      $citizenComment['citizenComment'] = $mWorkflowTracks->getCitizenTracks($mRefTable, $mtableId, $refCitizenId);
+  
+       # Role Details
+      $data = json_decode(json_encode($applicationDetails->first()), true);
+      $metaReqs = [
+          'customFor' => 'Water Disconnection',
+          'wfRoleId' => $data['current_role'],
+          'workflowId' => $data['workflow_id'],
+          'lastRoleId' => $data['last_role_id']
+      ];
+      $request->request->add($metaReqs);
+      $forwardBackward = $forwardBackward->getRoleDetails($request);
+      $roleDetails['roleDetails'] = collect($forwardBackward)['original']['data'];
+  
+      # Timeline Data
+      $timelineData['timelineData'] = collect($request);
+  
+      # Departmental Post
+      $custom = $mCustomDetails->getCustomDetails($request);
+      $departmentPost['departmentalPost'] = collect($custom)['original']['data'];
         # Payments Details
         $returnValues = array_merge($aplictionList, $fullDetailsData, $levelComment, $citizenComment, $roleDetails, $timelineData, $departmentPost);
-        return responseMsgs(true, "listed Data!", remove_null($returnValues), "", "02", ".ms", "POST", "");
-    }
-    /**
-     * function for return data of basic details
-     */
-    public function getBasicDetails($applicationDetails)
-    {
-        $collectionApplications = collect($applicationDetails)->first();
-        return new Collection([
-            ['displayString' => 'Ward No',            'key' => 'WardNo',              'value' => $collectionApplications->ward_name],
-            ['displayString' => 'Charge Category',    'key' => 'chargeCategory',      'value' => $collectionApplications->charge_category],
-            ['displayString' => 'Ubl Id',             'key' => 'ulbId',               'value' => $collectionApplications->ulb_id],
-            ['displayString' => 'ApplyDate',           'key' => 'applyDate',          'value' => $collectionApplications->apply_date],
-        ]);
-    }
-    /**
-     * return data fro card details 
-     */
-    public function getCardDetails($applicationDetails, $ownerDetail)
-    {
-        $ownerName = collect($ownerDetail)->map(function ($value) {
-            return $value['owner_name'];
-        });
-        $ownerDetail = $ownerName->implode(',');
-        $collectionApplications = collect($applicationDetails)->first();
-        return new Collection([
-            ['displayString' => 'Ward No.',             'key' => 'WardNo.',           'value' => $collectionApplications->ward_name],
-            ['displayString' => 'Application No.',      'key' => 'ApplicationNo.',    'value' => $collectionApplications->application_no],
-            ['displayString' => 'Owner Name',           'key' => 'OwnerName',         'value' => $ownerDetail],
-            ['displayString' => 'Charge Category',      'key' => 'ChageCategory',     'value' => $collectionApplications->charge_category],
-
-
-        ]);
-    }
-    /**
-     * return data of consumer owner data on behalf of disconnection 
-     */
-    public function getOwnerDetails($ownerDetails)
-    {
-        return collect($ownerDetails)->map(function ($value, $key) {
-            return [
-                $key + 1,
-                $value['owner_name'],
-                $value['guardian_name'],
-                $value['mobile_no'],
-                $value['email'],
-                $value['city'],
-                $value['district']
-            ];
-        });
-    }
+      return responseMsgs(true, "listed Data!", remove_null($returnValues), "", "02", ".ms", "POST", "");
+  
+  }
+   /**
+       * function for return data of basic details
+       */
+      public function getBasicDetails($applicationDetails)
+      {
+          $collectionApplications = collect($applicationDetails)->first();
+          return new Collection([
+              ['displayString' => 'Ward No',            'key' => 'WardNo',              'value' => $collectionApplications->ward_name],
+              ['displayString' => 'Charge Category',    'key' => 'chargeCategory',      'value' => $collectionApplications->charge_category],
+              ['displayString' => 'Ubl Id',             'key' => 'ulbId',               'value' => $collectionApplications->ulb_id],
+              ['displayString' => 'ApplyDate',           'key' => 'applyDate',          'value' => $collectionApplications->apply_date],
+              ]);
+      }
+      /**
+       * return data fro card details 
+       */
+      public function getCardDetails($applicationDetails,$ownerDetail)
+      {
+          $ownerName = collect($ownerDetail)->map(function ($value) {
+              return $value['owner_name'];
+          });
+          $ownerDetail = $ownerName->implode(',');
+          $collectionApplications = collect($applicationDetails)->first();
+          return new Collection([
+              ['displayString' => 'Ward No.',             'key' => 'WardNo.',           'value' => $collectionApplications->ward_name],
+              ['displayString' => 'Application No.',      'key' => 'ApplicationNo.',    'value' => $collectionApplications->application_no],
+              ['displayString' => 'Owner Name',           'key' => 'OwnerName',         'value' => $ownerDetail],
+              ['displayString' => 'Charge Category',      'key' => 'ChageCategory',     'value' => $collectionApplications->charge_category],
+             
+             
+          ]);
+      }
+      /**
+       * return data of consumer owner data on behalf of disconnection 
+       */
+      public function getOwnerDetails($ownerDetails)
+      {
+          return collect($ownerDetails)->map(function ($value, $key) {
+              return [
+                  $key + 1,
+                  $value['owner_name'],
+                  $value['guardian_name'],
+                  $value['mobile_no'],
+                  $value['email'],
+                  $value['city'],
+                  $value['district']
+              ];
+          });
+      }
+  
 }

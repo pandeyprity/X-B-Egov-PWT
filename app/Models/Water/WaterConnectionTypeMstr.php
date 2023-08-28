@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterConnectionTypeMstr extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Get Connection type

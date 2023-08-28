@@ -8,7 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class WaterChequeDtl extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
+    /**
+     * | Get check details by id
+     */
     public function chequeDtlById($request)
     {
         return WaterChequeDtl::select('*')

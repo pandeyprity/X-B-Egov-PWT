@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterConsumerChargeCategory extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Get all active consumer cherges

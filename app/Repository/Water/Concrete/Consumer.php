@@ -649,7 +649,7 @@ class Consumer implements IConsumer
     public function getFixedRateCharge($property_type_id, $area_sqmt, $demand_from)
     {
         try {
-            DB::enableQueryLog();
+            // DB::enableQueryLog();
             $rate = WaterFixedMeterRate::select("*")
                 ->where("property_type_id", $property_type_id)
                 ->where("range_from", "<=", ceil($area_sqmt))
@@ -667,7 +667,7 @@ class Consumer implements IConsumer
     public function getFixedRateEffectBetweenDemandGeneration($property_type_id, $area_sqmt, $demand_from)
     {
         try {
-            DB::enableQueryLog();
+            // DB::enableQueryLog();
             $rate = WaterFixedMeterRate::select("*")
                 ->where("property_type_id", $property_type_id)
                 ->where("range_from", "<=", ceil($area_sqmt))
@@ -761,7 +761,7 @@ class Consumer implements IConsumer
     }
     public function getMeterRate($property_type_id, $where)
     {
-        DB::enableQueryLog();
+        // DB::enableQueryLog();
         $rate = WaterMeterRate::select("*")
             ->where("property_type_id", $property_type_id)
             ->whereRaw($where)

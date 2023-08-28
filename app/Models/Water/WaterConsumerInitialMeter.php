@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterConsumerInitialMeter extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Get the Meter Reading and the meter details by consumer no

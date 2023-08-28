@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\DB;
 class WaterConsumerDemand extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
+
+
     /**
      * | Get Payed Consumer Demand
      * | @param ConsumerId

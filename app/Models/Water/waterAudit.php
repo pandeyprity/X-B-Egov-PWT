@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class waterAudit extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Save the related details of the edited details of water

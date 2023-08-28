@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterSiteInspection extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * |-------------------- save site inspecton -----------------------\

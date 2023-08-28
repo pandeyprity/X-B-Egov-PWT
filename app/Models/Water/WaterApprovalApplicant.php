@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterApprovalApplicant extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     public function getOwnerDtlById($applicationId)
     {

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterConsumerTax extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Save the Consumer Tax Details 

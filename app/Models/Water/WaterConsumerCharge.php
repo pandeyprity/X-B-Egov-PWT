@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterConsumerCharge extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Get consumer charges using consumer Id
