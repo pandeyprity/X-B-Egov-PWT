@@ -69,7 +69,7 @@ class WaterConsumer extends Controller
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
-        DB::beginTransaction();
+        $this->begin();
         if ($db1 != $db2)
             $this->_DB->beginTransaction();
     }
@@ -80,7 +80,7 @@ class WaterConsumer extends Controller
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
-        DB::rollBack();
+        $this->rollback();
         if ($db1 != $db2)
             $this->_DB->rollBack();
     }
@@ -91,7 +91,7 @@ class WaterConsumer extends Controller
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
-        DB::commit();
+        $this->commit();
         if ($db1 != $db2)
             $this->_DB->commit();
     }
@@ -1919,17 +1919,15 @@ class WaterConsumer extends Controller
             $file = $request->document;
             $filePath = $file->getPathname();
             $hashedFile = hash_file('sha256', $filePath);
-            $filename = ($request->document)->getClientOriginalName();
-            $api = "http://192.168.0.122:8001/document/upload";
+            $filename = ($request->document)->getClientOriginalExtension();
+            $api = "http://192.168.0.106:8001/myDoc/upload";
             $transfer = [
                 "file" => $request->document,
                 "tags" => "good",
-                // "reference" => 425
+                "token" => 425
             ];
             $returnData = Http::withHeaders([
-                "x-digest"      => "$hashedFile",
-                "token"         => "8Ufn6Jio6Obv9V7VXeP7gbzHSyRJcKluQOGorAD58qA1IQKYE0",
-                "folderPathId"  => 1
+                "x-digest" => "$hashedFile"
             ])->attach([
                 [
                     'file',

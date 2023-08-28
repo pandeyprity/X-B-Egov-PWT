@@ -9,6 +9,7 @@ class WaterRazorPayResponse extends Model
 {
     use HasFactory;
     public $timestamps = false;
+    protected $connection = 'pgsql_water';
 
 
     /**

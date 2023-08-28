@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 class WaterApplicant extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
+
 
     /**
      * |--------------------------- save new water applicants details ------------------------------|

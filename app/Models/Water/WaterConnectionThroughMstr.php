@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterConnectionThroughMstr extends Model
 {
     use HasFactory;
-
+    protected $connection = 'pgsql_water';
 
     /**
      * | GEt the  Connection through

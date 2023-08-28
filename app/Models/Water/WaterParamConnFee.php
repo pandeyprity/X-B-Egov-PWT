@@ -9,6 +9,7 @@ class WaterParamConnFee extends Model
 {
     use HasFactory;
     public $timestamps = false;
+    protected $connection = 'pgsql_water';
 
     /**
      * | get Calcullation charges 

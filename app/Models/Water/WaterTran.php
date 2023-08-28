@@ -13,6 +13,7 @@ class WaterTran extends Model
 {
     use HasFactory;
     public $timestamps = false;
+    protected $connection = 'pgsql_water';
 
     /**
      * |--------------- Get Transaction Data -----------|

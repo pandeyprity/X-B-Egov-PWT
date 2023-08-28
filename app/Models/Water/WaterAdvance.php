@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class WaterAdvance extends Model
 {
     use HasFactory;
-
+    protected $connection = 'pgsql_water';
+    
     /**
      * | Get Advance respective for consumer id
      * | list all the advance toward consumer

@@ -9,4 +9,5 @@ class WaterMeterRate extends Model
 {
     use HasFactory;
     public $timestamps=false;
+    protected $connection = 'pgsql_water';
 }

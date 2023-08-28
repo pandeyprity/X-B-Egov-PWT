@@ -102,7 +102,7 @@ class WaterPaymentController extends Controller
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
-        DB::beginTransaction();
+        $this->begin();
         if ($db1 != $db2)
             $this->_DB->beginTransaction();
     }
@@ -113,7 +113,7 @@ class WaterPaymentController extends Controller
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
-        DB::rollBack();
+        $this->rollback();
         if ($db1 != $db2)
             $this->_DB->rollBack();
     }
@@ -124,7 +124,7 @@ class WaterPaymentController extends Controller
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
-        DB::commit();
+        $this->commit();
         if ($db1 != $db2)
             $this->_DB->commit();
     }

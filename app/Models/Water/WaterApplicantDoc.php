@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class WaterApplicantDoc extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
+
 
      /**
      * |---------------------------------- Calling function for the doc details from database -------------------------------|

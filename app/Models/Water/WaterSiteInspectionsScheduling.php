@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterSiteInspectionsScheduling extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Save the Sheduled Date and Time of the Site Inspection

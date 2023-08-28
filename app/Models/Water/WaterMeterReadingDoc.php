@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterMeterReadingDoc extends Model
 {
     use HasFactory;
-
+    protected $connection = 'pgsql_water';
 
     /**
      * | Save the doc for the demand generation process
