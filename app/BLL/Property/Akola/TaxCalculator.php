@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 
+use function PHPUnit\Framework\isEmpty;
+
 /**
  * | Author - Anshu Kumar
  * | Created On-12-08-2023 
@@ -169,6 +171,8 @@ class TaxCalculator
     public function readRateByFloor($item)
     {
         $constType = $this->_refPropConstTypes->where('id', $item->constructionType);
+        if ($constType->isEmpty())
+            throw new Exception("Construction type not Available");
         $category = $this->_REQUEST->category;
         if ($category == 1)
             $rate = $constType->first()->category1_rate;
@@ -388,7 +392,11 @@ class TaxCalculator
         $this->_GRID['rebateAmt'] = 0;
         // Read Rebates
         $firstOwner = collect($this->_REQUEST->owner)->first();
-        $isArmedForce = $firstOwner['isArmedForce'];
+        if (isset($firstOwner))                     // If first Owner is found 
+            $isArmedForce = $firstOwner['isArmedForce'];
+        else
+            $isArmedForce = false;
+
         if ($isArmedForce) {
             $currentYearTax = $this->_GRID['fyearWiseTaxes']->where('fyear', $this->_currentFyear)->first();       // General Tax of current fyear will be our rebate
 

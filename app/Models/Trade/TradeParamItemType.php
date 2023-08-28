@@ -9,8 +9,12 @@ class TradeParamItemType extends Model
 {
     use HasFactory;
     public $timestamps=false;
-
-    public Static function List($all=false)
+    protected $connection;
+    public function __construct($DB=null)
+    {
+       $this->connection = $DB ? $DB:"pgsql_trade";
+    }
+    public static function List($all=false)
     {
         if($all)
         {
@@ -27,7 +31,7 @@ class TradeParamItemType extends Model
 
         }
     }
-    public Static function itemsById($id)
+    public static function itemsById($id)
     {        
         if(!$id)
         {

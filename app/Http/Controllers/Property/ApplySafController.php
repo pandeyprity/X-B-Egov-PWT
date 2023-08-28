@@ -101,7 +101,7 @@ class ApplySafController extends Controller
             $mApplyDate = Carbon::now()->format("Y-m-d");
             $user = authUser($request);
             $user_id = $user->id;
-            $ulb_id = 1;
+            $ulb_id = 2;                                // ulb id for akola municipal
             $userType = $user->user_type;
             $metaReqs = array();
             $saf = new PropActiveSaf();
@@ -113,14 +113,30 @@ class ApplySafController extends Controller
 
             $request->request->add(['road_type_mstr_id' => $roadWidthType]);
 
+            $refInitiatorRoleId = $this->getInitiatorId($ulbWorkflowId->id);                                // Get Current Initiator ID
+            $initiatorRoleId = collect(DB::select($refInitiatorRoleId))->first();
+            if (is_null($initiatorRoleId))
+                throw new Exception("Initiator Role Not Available");
+
+            $refFinisherRoleId = $this->getFinisherId($ulbWorkflowId->id);
+
+            $finisherRoleId = collect(DB::select($refFinisherRoleId))->first();
+            if (is_null($finisherRoleId))
+                throw new Exception("Finisher Role Not Available");
+
+
             $metaReqs['roadWidthType'] = $roadWidthType;
+            $metaReqs['workflowId'] = $ulbWorkflowId->id;       // inserting workflow id
             $metaReqs['ulbId'] = $ulb_id;
             $metaReqs['userId'] = $user_id;
+            $metaReqs['initiatorRoleId'] = collect($initiatorRoleId)['role_id'];
+
             if ($userType == $this->_citizenUserType) {
+                $metaReqs['initiatorRoleId'] = collect($initiatorRoleId)['forward_role_id'];         // Send to DA in Case of Citizen
                 $metaReqs['userId'] = null;
                 $metaReqs['citizenId'] = $user_id;
             }
-
+            $metaReqs['finisherRoleId'] = collect($finisherRoleId)['role_id'];
             $metaReqs['holdingType'] = $this->holdingType($request['floor']);
             $request->merge($metaReqs);
             $this->_REQUEST = $request;
@@ -153,7 +169,7 @@ class ApplySafController extends Controller
                     }
                 }
             }
-
+            $this->sendToWorkflow($createSaf, $user_id);
             DB::commit();
             return responseMsgs(true, "Successfully Submitted Your Application Your SAF No. $safNo", [
                 "safNo" => $safNo,
@@ -252,199 +268,6 @@ class ApplySafController extends Controller
         }
     }
 
-    /**
-     * | Demand Adjustment In Case of Reassessment
-     */
-    public function adjustDemand()
-    {
-        $propDemandList = array();
-        $mSafDemand = $this->_safDemand;
-        $generatedDemand = $this->_generatedDemand;
-        $propProperty = $this->_propProperty;
-        $holdingNo = $this->_holdingNo;
-        $mPropDemands = new PropDemand();
-        $propDtls = $propProperty->getSafIdByHoldingNo($holdingNo);
-        $propertyId = $propDtls->id;
-        $safDemandList = $mSafDemand->getFullDemandsBySafId($propDtls->saf_id);
-        if ($safDemandList->isEmpty())
-            throw new Exception("Previous Saf Demand is Not Available");
-
-        $propDemandList = $mPropDemands->getPaidDemandByPropId($propertyId);
-        $fullDemandList = $safDemandList->merge($propDemandList);
-        $generatedDemand = $generatedDemand->sortBy('due_date');
-
-        // Demand Adjustment
-        foreach ($generatedDemand as $item) {
-            $demand = $fullDemandList->where('due_date', $item['dueDate'])->first();
-            if (collect($demand)->isEmpty())
-                $item['adjustAmount'] = 0;
-            else
-                $item['adjustAmount'] = $demand->amount - $demand->balance;
-            $item['balance'] = roundFigure($item['totalTax'] - $item['adjustAmount']);
-            if ($item['balance'] == 0)
-                $item['onePercPenaltyTax'] = 0;
-        }
-        return $generatedDemand;
-    }
-
-    /**
-     * | Apply GB Saf
-     */
-    public function applyGbSaf(ReqGBSaf $req)
-    {
-        try {
-            // Variable Assignments
-            $user = authUser($req);
-            $userId = $user->id;
-            $userType = $user->user_type;
-            $ulbId = $req->ulbId ?? $user->ulb_id;
-            $propActiveSafs = new PropActiveSaf();
-            $safCalculation = new SafCalculation;
-            $mPropFloors = new PropActiveSafsFloor();
-            $mPropGbOfficer = new PropActiveGbOfficer();
-            $safReq = array();
-            $reqFloors = $req->floors;
-            $applicationDate = $this->_todayDate->format('Y-m-d');
-            $assessmentId = $req->assessmentType;
-            $calculateSafById = new CalculateSafById;
-            $generateSafApplyDemandResponse = new GenerateSafApplyDemandResponse;
-            $insertTax = new InsertTax;
-            $postSafPropTax = new PostSafPropTaxes;
-
-            // Derivative Assignments
-            $ulbWfId = $this->readGbAssessUlbWfId($req, $ulbId);
-            $roadWidthType = $this->readRoadWidthType($req->roadWidth);                               // Read Road Width Type
-            $refInitiatorRoleId = $this->getInitiatorId($ulbWfId->id);                                // Get Current Initiator ID
-            $initiatorRoleId = collect(DB::select($refInitiatorRoleId))->first();
-
-            $refFinisherRoleId = $this->getFinisherId($ulbWfId->id);
-            $finisherRoleId = collect(DB::select($refFinisherRoleId))->first();
-            $req = $req->merge(
-                [
-                    'road_type_mstr_id' => $roadWidthType,
-                    'ward' => $req->wardId,
-                    'propertyType' => 1,
-                    'roadType' => $req->roadWidth,
-                    'floor' => $req->floors,
-                    'isGBSaf' => true
-                ]
-            );
-
-            $safTaxes = $safCalculation->calculateTax($req);
-            // Generate Calculation
-            $calculateSafById->_calculatedDemand = $safTaxes->original['data'];
-            $calculateSafById->_safDetails['assessment_type'] = $assessmentId;
-
-            if (isset($req->holdingNo))
-                $calculateSafById->_holdingNo = $req->holdingNo;
-            $calculateSafById->_currentQuarter = calculateQtr($applicationDate);
-            $calculateSafById->generateSafDemand();
-            $generatedDemand = $calculateSafById->_generatedDemand;
-            $isResidential = $safTaxes->original['data']['demand']['isResidential'];
-            $demandResponse = $generateSafApplyDemandResponse->generateResponse($generatedDemand, $isResidential);
-            $demandToBeSaved = $demandResponse['details']->values()->collapse();
-            $lateAssessmentPenalty = $demandResponse['amounts']['lateAssessmentPenalty'];
-            $lateAssessmentPenalty = ($lateAssessmentPenalty > 0) ? $lateAssessmentPenalty : null;
-            // Send to Workflow
-            $currentRole = ($userType == $this->_citizenUserType) ? $initiatorRoleId->role_id : $initiatorRoleId->role_id;
-            $isTrust = $this->isPropTrust($req['floor']);
-
-            $safReq = [
-                'assessment_type' => $req->assessmentType,
-                'ulb_id' => $ulbId,
-                'prop_type_mstr_id' => 2,               // Independent Building
-                'building_name' => $req->buildingName,
-                'gb_office_name' => $req->nameOfOffice,
-                'ward_mstr_id' => $req->wardId,
-                'prop_address' => $req->buildingAddress,
-                'gb_usage_types' => $req->gbUsageTypes,
-                'gb_prop_usage_types' => $req->gbPropUsageTypes,
-                'zone_mstr_id' => $req->zone,
-                'road_width' => $req->roadWidth,
-                'road_type_mstr_id' => $roadWidthType,
-                'is_mobile_tower' => $req->isMobileTower,
-                'tower_area' => $req->mobileTower['area'] ?? null,
-                'tower_installation_date' => $req->mobileTower['dateFrom'] ?? null,
-
-                'is_hoarding_board' => $req->isHoardingBoard,
-                'hoarding_area' => $req->hoardingBoard['area'] ?? null,
-                'hoarding_installation_date' => $req->hoardingBoard['dateFrom'] ?? null,
-
-
-                'is_petrol_pump' => $req->isPetrolPump,
-                'under_ground_area' => $req->petrolPump['area'] ?? null,
-                'petrol_pump_completion_date' => $req->petrolPump['dateFrom'] ?? null,
-
-                'is_water_harvesting' => $req->isWaterHarvesting,
-                'area_of_plot' => $req->areaOfPlot,
-                'is_gb_saf' => true,
-                'application_date' => $applicationDate,
-                'initiator_role_id' => $currentRole,
-                'current_role' => $currentRole,
-                'finisher_role_id' => $finisherRoleId->role_id,
-                'workflow_id' => $ulbWfId->wf_master_id,
-                'is_trust' => $isTrust,
-                'trust_type' => $req->trustType ?? null
-            ];
-            DB::beginTransaction();
-            $createSaf = $propActiveSafs->storeGBSaf($safReq);           // Store Saf
-            $safId = $createSaf->original['safId'];
-            $safNo = $createSaf->original['safNo'];
-
-            // Store Floors
-            foreach ($reqFloors as $floor) {
-                $mPropFloors->addfloor($floor, $safId, $userId);
-            }
-
-
-            // Insert Officer Details
-            $gbOfficerReq = [
-                'saf_id' => $safId,
-                'officer_name' => strtoupper($req->officerName),
-                'designation' => strtoupper($req->designation),
-                'mobile_no' => $req->officerMobile,
-                'email' => $req->officerEmail,
-                'address' => $req->address,
-                'ulb_id' => $ulbId
-            ];
-            $mPropGbOfficer->store($gbOfficerReq);
-            $this->sendToWorkflow($createSaf, $userId);
-            // Demand Saved
-            $insertTax->insertTax($safId, $ulbId, $demandToBeSaved, $userId);
-            $postSafPropTax->postSafTaxes($safId, $generatedDemand['details']->toArray(), $ulbId);                        // Saf Tax Generation
-
-            DB::commit();
-            return responseMsgs(true, "Successfully Submitted Your Application Your SAF No. $safNo", [
-                "safNo" => $safNo,
-                "applyDate" => Carbon::parse($applicationDate)->format('d-m-Y'),
-                "safId" => $safId,
-                "demand" => $demandResponse
-            ], "010102", "1.0", "1s", "POST", $req->deviceId);
-        } catch (Exception $e) {
-            DB::rollBack();
-            return responseMsgs(false, $e->getMessage(), "", "010103", "1.0", "", "POST", $req->deviceId ?? "");
-        }
-    }
-
-    /**
-     * | Read GB Assessment Type and Ulb Workflow Id
-     */
-    public function readGbAssessUlbWfId($request, $ulb_id)
-    {
-        if ($request->assessmentType == 1) {                                                    // New Assessment 
-            $workflow_id = Config::get('workflow-constants.GBSAF_NEW_ASSESSMENT');
-            $request->assessmentType = Config::get('PropertyConstaint.ASSESSMENT-TYPE.1');
-        }
-
-        if ($request->assessmentType == 2) {                                                    // Reassessment
-            $workflow_id = Config::get('workflow-constants.GBSAF_REASSESSMENT');
-            $request->assessmentType = Config::get('PropertyConstaint.ASSESSMENT-TYPE.2');
-        }
-
-        return WfWorkflow::where('wf_master_id', $workflow_id)
-            ->where('ulb_id', $ulb_id)
-            ->first();
-    }
 
     /**
      * | Send to Workflow Level
@@ -463,6 +286,7 @@ class ApplySafController extends Controller
             'user_id' => $userId,
             'receiver_role_id' => $activeSaf->original['current_role'],
             'ulb_id' => $activeSaf->original['ulb_id'],
+            'status' => true
         ];
         $mWorkflowTrack->store($reqWorkflow);
     }

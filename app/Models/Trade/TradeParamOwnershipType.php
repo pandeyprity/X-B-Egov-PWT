@@ -9,6 +9,11 @@ class TradeParamOwnershipType extends Model
 {
     use HasFactory;
     public $timestamps=false;
+    protected $connection;
+    public function __construct($DB=null)
+    {
+       $this->connection = $DB ? $DB:"pgsql_trade";
+    }
 
     public function activeApplication()
     {
@@ -26,7 +31,7 @@ class TradeParamOwnershipType extends Model
     {
         return $this->hasMany(TradeRenewal::class,'ownership_type_id',"id");
     }
-    public Static function List()
+    public static function List()
     {
          return self::select("id","ownership_type")
                 ->where("status",1)

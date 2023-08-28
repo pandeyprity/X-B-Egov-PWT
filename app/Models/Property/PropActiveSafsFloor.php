@@ -141,4 +141,15 @@ class PropActiveSafsFloor extends Model
             ->where('prop_active_safs_floors.status', 1)
             ->orderByDesc('id');
     }
+
+    /**
+     * | Get Saf floors by Saf Id
+     */
+    public function getQSafFloorsBySafId($applicationId)
+    {
+        return PropActiveSafsFloor::query()
+            ->where('saf_id', $applicationId)
+            ->where('status', 1)
+            ->get();
+    }
 }

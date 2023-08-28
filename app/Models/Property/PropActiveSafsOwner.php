@@ -159,4 +159,15 @@ class PropActiveSafsOwner extends Model
             ->orderBy('id')
             ->get();
     }
+
+    /**
+     * | Get Query Saf Owners by Saf id
+     */
+    public function getQueSafOwnersBySafId($applicationId)
+    {
+        return PropActiveSafsOwner::query()
+            ->where('saf_id', $applicationId)
+            ->where('status', 1)
+            ->get();
+    }
 }
