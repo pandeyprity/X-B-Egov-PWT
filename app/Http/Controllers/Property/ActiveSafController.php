@@ -1297,6 +1297,7 @@ class ActiveSafController extends Controller
                 $safDetails->save();
 
                 $safApprovalBll->approvalProcess($safId);
+                return "Test Approval Saf";
             }
 
             // Rejection

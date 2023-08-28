@@ -189,7 +189,8 @@ class  PropActiveSaf extends Model
                 'a.apartment_name',
                 'building_type',
                 'prop_usage_type',
-                'zone_masters.zone_name as zone'
+                'zone_masters.zone_name as zone',
+                'cat.category'
             )
             ->leftJoin('ulb_ward_masters as w', 'w.id', '=', 'prop_active_safs.ward_mstr_id')
             ->leftJoin('wf_roles as wr', 'wr.id', '=', 'prop_active_safs.current_role')
@@ -201,7 +202,8 @@ class  PropActiveSaf extends Model
             ->leftJoin('prop_apartment_dtls as a', 'a.id', '=', 'prop_active_safs.apartment_details_id')
             ->leftJoin('zone_masters', 'zone_masters.id', 'prop_active_safs.zone_mstr_id')
             ->leftJoin('ref_prop_gbbuildingusagetypes as gbu', 'gbu.id', 'prop_active_safs.gb_usage_types')
-            ->leftJoin('ref_prop_gbpropusagetypes as gbp', 'gbp.id', 'prop_active_safs.gb_prop_usage_types');
+            ->leftJoin('ref_prop_gbpropusagetypes as gbp', 'gbp.id', 'prop_active_safs.gb_prop_usage_types')
+            ->join('ref_prop_categories as cat', 'cat.id', '=', 'prop_active_safs.category_id');
     }
 
     /**
