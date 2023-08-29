@@ -31,6 +31,7 @@ class ReqSiteVerification extends FormRequest
         $validation = [
             'safId' => 'required|integer',
             'propertyType' => 'required|integer',
+            'category' => 'required|integer',
             'areaOfPlot' => 'required|numeric',
             'wardId' => 'required|integer',
             'isMobileTower' => 'required|bool',
@@ -43,6 +44,7 @@ class ReqSiteVerification extends FormRequest
             'petrolPump.area' => 'required_if:isPetrolPump,1',
             'petrolPump.dateFrom' => 'required_if:isPetrolPump,1',
             'isWaterHarvesting' => 'required|bool',
+            'zone' => 'required|integer'
         ];
 
         if ($this->propertyType != 4) {
