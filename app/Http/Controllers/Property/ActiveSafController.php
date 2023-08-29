@@ -1295,9 +1295,9 @@ class ActiveSafController extends Controller
             if ($req->status == 1) {
                 $safDetails->saf_pending_status = 0;
                 $safDetails->save();
-
                 $safApprovalBll->approvalProcess($safId);
-                return "Test Approval Saf";
+                $msg = "Application Approved Successfully";
+                $metaReqs['verificationStatus'] = 1;
             }
 
             // Rejection
