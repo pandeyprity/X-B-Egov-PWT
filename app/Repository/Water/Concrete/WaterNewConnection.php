@@ -1251,7 +1251,7 @@ class WaterNewConnection implements IWaterNewConnection
         }
     }
 
-    public function getDocumentTypeList(WaterApplication $application)
+    public function getDocumentTypeList($application)
     {
         $return = (array)null;
         $type   = ["ADDRESS_PROOF", "HOLDING_PROOF"];
