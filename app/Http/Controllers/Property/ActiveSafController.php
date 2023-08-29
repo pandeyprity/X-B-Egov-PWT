@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Property;
 
+use App\BLL\Property\Akola\CalculatePropTaxByPropId;
 use App\BLL\Property\Akola\CalculateSafTaxById;
 use App\BLL\Property\Akola\SafApprovalBll;
 use App\BLL\Property\CalculateSafById;
@@ -1241,22 +1242,15 @@ class ActiveSafController extends Controller
             // Check if the Current User is Finisher or Not (Variable Assignments)
             $mWfRoleUsermap = new WfRoleusermap();
             $propSafVerification = new PropSafVerification();
-            $propSafVerificationDtl = new PropSafVerificationDtl();
-            $mPropSafMemoDtl = new PropSafMemoDtl();
-            $mPropSafDemand = new PropSafsDemand();
-            $mPropProperties = new PropProperty();
-            $mPropDemand = new PropDemand();
             $track = new WorkflowTrack();
-            $handleTcVerification = new TcVerificationDemandAdjust;
-            $todayDate = Carbon::now()->format('Y-m-d');
-            $currentFinYear = calculateFYear($todayDate);
-            $famParamId = Config::get('PropertyConstaint.FAM_PARAM_ID');
-            $previousHoldingDeactivation = new PreviousHoldingDeactivation;
-            $propIdGenerator = new PropIdGenerator;
             $mPropActiveSaf = new PropActiveSaf();
             $mPropActiveSafOwner = new PropActiveSafsOwner();
             $mPropActiveSafFloor = new PropActiveSafsFloor();
             $safApprovalBll = new SafApprovalBll;
+            $holdingNo = null;
+            $ptNo = null;
+            $famNo = null;
+            $famId = null;
 
             $userId = authUser($req)->id;
             $safId = $req->applicationId;
@@ -1298,6 +1292,10 @@ class ActiveSafController extends Controller
                 $safApprovalBll->approvalProcess($safId);
                 $msg = "Application Approved Successfully";
                 $metaReqs['verificationStatus'] = 1;
+                $holdingNo = $safApprovalBll->_holdingNo;
+                $ptNo = $safApprovalBll->_ptNo;
+                $famNo = $safApprovalBll->_famNo;
+                $famId = $safApprovalBll->_famId;
             }
 
             // Rejection
@@ -1330,12 +1328,16 @@ class ActiveSafController extends Controller
                 'forward_time' => $this->_todayDate->format('H:i:s')
             ]);
 
-            DB::rollback();
-            dd("Test");
+            $responseFields = [
+                'holdingNo' => $holdingNo,
+                'ptNo' => $ptNo,
+                'famNo' => $famNo,
+                'famId' => $famId
+            ];
 
             DB::commit();
             DB::connection('pgsql_master')->commit();
-            return responseMsgs(true, $msg, ['holdingNo' => $safDetails->holding_no, 'ptNo' => $safDetails->pt_no], "010110", "1.0", "410ms", "POST", $req->deviceId);
+            return responseMsgs(true, $msg, $responseFields, "010110", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
             DB::connection('pgsql_master')->rollBack();
@@ -1526,14 +1528,42 @@ class ActiveSafController extends Controller
             return validationError($validated);
         try {
             $safDtls = PropActiveSaf::find($req->id);
-            $calculateSafTaxById = new CalculateSafTaxById($safDtls);
             if (!$safDtls)
                 $safDtls = PropSaf::find($req->id);
 
             if (collect($safDtls)->isEmpty())
                 throw new Exception("Saf Not Available");
 
+            $fullSafDtls = $this->details($req);                    // for full details purpose
+
+            $calculateSafTaxById = new CalculateSafTaxById($safDtls);
             $demand = $calculateSafTaxById->_GRID;
+            $demand['ulbWiseTax'] = [];
+
+            if ($safDtls->saf_pending_status == 0) {                    // If Saf is Verified
+                $propId = $safDtls->property_id;
+                $calculateByPropId = new CalculatePropTaxByPropId($propId);
+                $demand['ulbWiseTax'] = $calculateByPropId->_GRID;
+            }
+
+            $demand['basicDetails'] = [
+                "ulb_id" => $fullSafDtls['ulb_id'],
+                "saf_no" => $fullSafDtls['saf_no'],
+                "prop_address" => $fullSafDtls['prop_address'],
+                "is_mobile_tower" => $fullSafDtls['is_mobile_tower'],
+                "is_hoarding_board" => $fullSafDtls['is_hoarding_board'],
+                "is_petrol_pump" => $fullSafDtls['is_petrol_pump'],
+                "is_water_harvesting" => $fullSafDtls['is_water_harvesting'],
+                "zone_mstr_id" => $fullSafDtls['zone_mstr_id'],
+                "zone" => $fullSafDtls['zone'],
+                "holding_no" => $fullSafDtls['new_holding_no'] ?? $fullSafDtls['holding_no'],
+                "ward_no" => $fullSafDtls['old_ward_no'],
+                "property_type" => $fullSafDtls['property_type'],
+                "holding_type" => $fullSafDtls['holding_type'],
+                "doc_upload_status" => $fullSafDtls['doc_upload_status'],
+                "ownership_type" => $fullSafDtls['ownership_type'],
+                "payment_status" => $fullSafDtls['payment_status'],
+            ];
 
             return responseMsgs(true, "Demand Details", remove_null($demand), "", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
@@ -1833,18 +1863,14 @@ class ActiveSafController extends Controller
             $todayDate = Carbon::now();
             $idGeneration = new IdGeneration;
             $propTrans = new PropTransaction();
-            $mPropSafsDemands = new PropSafsDemand();
             $verifyPaymentModes = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
-            $mPropTranDtl = new PropTranDtl();
-            $previousHoldingDeactivation = new PreviousHoldingDeactivation;
-            $postSafPropTaxes = new PostSafPropTaxes;
-            $updateSafDemand = new UpdateSafDemand;
-            $safId = $req['id'];
 
-            $activeSaf = PropActiveSaf::findOrFail($req['id']);
+            $propSaf = PropSaf::findOrFail($req['id']);
 
-            if ($activeSaf->payment_status == 1)
+            if ($propSaf->payment_status == 1)
                 throw new Exception("Payment Already Done");
+
+            $calculatePropTaxByPropId = new CalculatePropTaxByPropId($propSaf->property_id);
 
             $userId = authUser($req)->id;                                      // Authenticated user or Ghost User
             $tranBy = authUser($req)->user_type;
@@ -1852,84 +1878,52 @@ class ActiveSafController extends Controller
             $tranNo = $req['transactionNo'];
             // Derivative Assignments
             if (!$tranNo)
-                $tranNo = $idGeneration->generateTransactionNo($activeSaf->ulb_id);
+                $tranNo = $idGeneration->generateTransactionNo($propSaf->ulb_id);
 
-            $safCalculation = $this->calculateSafBySafId($req);
-            if ($safCalculation->original['status'] == false)
-                throw new Exception($safCalculation->original['message']);
-            $demands = $safCalculation->original['data']['details'];
-            $amount = $safCalculation->original['data']['demand']['payableAmount'];
+            $calulatedTaxes = $calculatePropTaxByPropId->_GRID;
+            $demands = $calulatedTaxes['fyearWiseTaxes'];
+            $amount = $calulatedTaxes['payableAmt'];
 
             if (!$demands || collect($demands)->isEmpty())
                 throw new Exception("Demand Not Available for Payment");
 
+            $demandAmt = $calulatedTaxes['grandTaxes']['totalTax'];
             // Property Transactions
             $req->merge([
                 'userId' => $userId,
                 'is_citizen' => false,
                 'todayDate' => $todayDate->format('Y-m-d'),
                 'tranNo' => $tranNo,
-                'workflowId' => $activeSaf->workflow_id,
+                'workflowId' => $propSaf->workflow_id,
                 'amount' => $amount,
                 'tranBy' => $tranBy,
-                'ulbId' => $activeSaf->ulb_id
+                'ulbId' => $propSaf->ulb_id,
+                'demandAmt' => $demandAmt
             ]);
-            $activeSaf->payment_status = 1; // Paid for Online or Cash
+            $propSaf->payment_status = 1; // Paid for Online or Cash
             if (in_array($req['paymentMode'], $verifyPaymentModes)) {
                 $req->merge([
                     'verifyStatus' => 2
                 ]);
-                $activeSaf->payment_status = 2;         // Under Verification for Cheque, Cash, DD
+                $propSaf->payment_status = 2;         // Under Verification for Cheque, Cash, DD
             }
             DB::beginTransaction();
             $propTrans = $propTrans->postSafTransaction($req, $demands);
+            // 🔴🔴🔴🔴🔴 💀💀 Transactions Rebate Amount is the part of discussion 🔴🔴🔴🔴🔴
 
             if (in_array($req['paymentMode'], $offlinePaymentModes)) {
                 $req->merge([
                     'chequeDate' => $req['chequeDate'],
                     'tranId' => $propTrans['id'],
-                    "applicationNo" => $activeSaf->saf_no,
+                    "applicationNo" => $propSaf->saf_no,
 
                 ]);
                 $this->postOtherPaymentModes($req);
             }
-            // Reflect on Prop Tran Details For Normal Saf
-            if ($activeSaf->is_gb_saf == false) {
-                foreach ($demands as $demand) {
-                    $demand = $demand->toArray();
-                    unset($demand['ruleSet'], $demand['rwhPenalty'], $demand['onePercPenalty'], $demand['onePercPenaltyTax']);
-                    if (isset($demand['status']))
-                        unset($demand['status']);
-                    $demand['paid_status'] = 1;
-                    $demand['saf_id'] = $safId;
-                    $demand['balance'] = 0;
-                    $storedSafDemand = $mPropSafsDemands->postDemands($demand);
 
-                    $tranReq = [
-                        'tran_id' => $propTrans['id'],
-                        'saf_demand_id' => $storedSafDemand['demandId'],
-                        'total_demand' => $demand['amount'],
-                        'ulb_id' => $req['ulbId'],
-                    ];
-                    $mPropTranDtl->store($tranReq);
-                }
-            }
-
-            // GB Saf Demand Adjustments
-            if ($activeSaf->is_gb_saf == true)
-                $updateSafDemand->updateDemand($demands->toArray(), $propTrans['id']);
-
-            // Replication Prop Rebates Penalties
-            $this->postPenaltyRebates($safCalculation, $safId, $propTrans['id']);
-
-            // Deactivate Property Holdings
-            $previousHoldingDeactivation->deactivateHoldingDemands($activeSaf);
 
             // Update SAF Payment Status
-            $activeSaf->save();
-            $this->sendToWorkflow($activeSaf);        // Send to Workflow(15.2)
-            $demands = collect($demands)->toArray();
-            $postSafPropTaxes->postSafTaxes($safId, $demands, $activeSaf->ulb_id);                  // Save Taxes
+            $propSaf->save();
             DB::commit();
             return responseMsgs(true, "Payment Successfully Done",  ['TransactionNo' => $tranNo], "010115", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
@@ -2157,7 +2151,7 @@ class ActiveSafController extends Controller
     public function getPropByHoldingNo(Request $req)
     {
         $req->validate(
-            isset($req->holdingNo) ? ['holdingNo' => 'required'] : ['propertyId' => 'required|numeric']
+            isset($req->holdingNo) ? ['holdingNo' => 'required'] : ['propertyId' => 'required|integer']
         );
         try {
             $mProperties = new PropProperty();
@@ -2245,11 +2239,6 @@ class ActiveSafController extends Controller
             // Verification Dtl Table Update                                         // For Tax Collector
             if ($req->propertyType != $vacantLand) {
                 foreach ($req->floor as $floorDetail) {
-                    if ($floorDetail['useType'] == 1)
-                        $carpetArea =  $floorDetail['buildupArea'] * 0.70;
-                    else
-                        $carpetArea =  $floorDetail['buildupArea'] * 0.80;
-
                     $floorReq = [
                         'verification_id' => $verificationId,
                         'saf_id' => $req->safId,
@@ -2261,16 +2250,17 @@ class ActiveSafController extends Controller
                         'builtup_area' => $floorDetail['buildupArea'],
                         'date_from' => $floorDetail['dateFrom'],
                         'date_to' => $floorDetail['dateUpto'],
-                        'carpet_area' => $carpetArea,
+                        'carpet_area' => null,
                         'user_id' => $userId,
                         'ulb_id' => $ulbId
                     ];
-                    $status = $verificationDtl->store($floorReq);
+
+                    $verificationDtl->store($floorReq);
                 }
             }
 
             DB::commit();
-            return responseMsgs(true, $msg, "", "010118", "1.0", "310ms", "POST", $req->deviceId);
+            return responseMsgs(true, $msg, "", "010118", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
             return responseMsg(false, $e->getMessage(), "");

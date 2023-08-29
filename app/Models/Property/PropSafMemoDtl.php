@@ -42,10 +42,9 @@ class PropSafMemoDtl extends Model
             ->select(
                 'm.id',
                 'm.saf_id',
-                'm.from_qtr',
                 'm.from_fyear',
-                'm.arv',
-                'm.quarterly_tax',
+                'm.alv',
+                'm.annual_tax',
                 'm.user_id',
                 'm.memo_no',
                 'm.memo_type',
