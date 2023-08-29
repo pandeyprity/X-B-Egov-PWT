@@ -192,7 +192,7 @@ class WfActiveDocument extends Model
     public function getTradeDocByAppNo($applicationId, $workflowId, $moduleId)
     {
 
-        return DB::table('wf_active_documents as d')
+        return DB::connection("pgsql_trade")->table('wf_active_documents as d')
             ->select(
                 'd.id',
                 'd.document',
@@ -270,7 +270,7 @@ class WfActiveDocument extends Model
         if (!$workflowId) {
             $workflowId = Config::get('workflow-constants.TRADE_WORKFLOW_ID');
         }
-        $data = DB::table('wf_active_documents as d')
+        $data = DB::connection("pgsql_trade")->table('wf_active_documents as d')
             ->select(
                 'd.id',
                 'd.verify_status',
