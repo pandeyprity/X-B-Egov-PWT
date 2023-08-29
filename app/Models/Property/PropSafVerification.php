@@ -18,9 +18,7 @@ class PropSafVerification extends Model
                 'v.id',
                 'v.saf_id',
                 'v.agency_verification',
-                'v.emp_id',
                 'v.prop_type_id as prop_type_mstr_id',
-                'v.road_type_id as road_type_mstr_id',
                 'v.area_of_plot',
                 'v.verified_by',
                 'v.ward_id as ward_mstr_id',
@@ -38,25 +36,15 @@ class PropSafVerification extends Model
                 'v.updated_at',
                 'v.status',
                 'v.user_id',
-                'v.percentage_of_property_transfer',
-                'v.new_ward_id as new_ward_mstr_id',
                 'v.ulb_id',
-                'v.old_verification_id',
-                'v.road_width',
-                'v.rwh_date_from',
                 'p.property_type',
-                'r.road_type as road_type_master',
-                'u.ward_name as old_ward_no',
-                'u1.ward_name as new_ward_no',
-                'building_type',
-                'prop_usage_type'
+                'u.ward_name as ward_no',
+                'c.category',
+                'c.id as category_id'
             )
-            ->join('ref_prop_road_types as r', 'r.id', '=', 'v.road_type_id')
             ->join('ulb_ward_masters as u', 'u.id', '=', 'v.ward_id')
             ->leftjoin('ref_prop_types as p', 'p.id', '=', 'v.prop_type_id')
-            ->leftJoin('ulb_ward_masters as u1', 'u1.id', '=', 'v.new_ward_id')
-            ->leftJoin('ref_prop_gbbuildingusagetypes as gbu', 'gbu.id', 'v.gb_usage_types')
-            ->leftJoin('ref_prop_gbpropusagetypes as gbp', 'gbp.id', 'v.gb_prop_usage_types')
+            ->join('ref_prop_categories as c', 'c.id', '=', 'v.category_id')
             ->where('v.saf_id', $safId)
             ->where('v.agency_verification', true)
             ->orderByDesc('id')

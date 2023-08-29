@@ -568,7 +568,7 @@ class  PropActiveSaf extends Model
             'petrol_pump_completion_date' => $req->petrolPump['dateFrom'],
 
             'is_water_harvesting' => $req->isWaterHarvesting,
-            'land_occupation_date' => $req->landOccupationDate,
+            'land_occupation_date' => $req->dateOfPurchase,
             'doc_verify_cancel_remarks' => $req->docVerifyCancelRemark,
             'application_date' =>  Carbon::now()->format('Y-m-d'),
             'saf_distributed_dtl_id' => $req->safDistributedDtl,

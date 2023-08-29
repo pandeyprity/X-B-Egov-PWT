@@ -67,6 +67,7 @@ class UlbWardMaster extends Model
     public function getWardsByZone($zoneId)
     {
         return UlbWardMaster::where('zone', $zoneId)
+            ->orderBy('id')
             ->where('status', 1)
             ->get();
     }

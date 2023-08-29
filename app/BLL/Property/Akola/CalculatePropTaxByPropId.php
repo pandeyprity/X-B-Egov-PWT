@@ -2,34 +2,33 @@
 
 namespace App\BLL\Property\Akola;
 
-use App\Models\Property\PropActiveSafsFloor;
-use App\Models\Property\PropActiveSafsOwner;
-use App\Models\Property\PropSafsFloor;
-use App\Models\Property\PropSafsOwner;
+use App\Models\Property\PropFloor;
+use App\Models\Property\PropOwner;
+use App\Models\Property\PropProperty;
 use Exception;
 use Illuminate\Http\Request;
 
 /**
- * | Created by-Anshu Kumar
- * | Created For - Calculate Saf Taxes By Saf ID
+ * | ✅✅Created by-Anshu Kumar
+ * | Created for-Calculation of the tax By Created Property
  * | Status-Closed
  */
-class CalculateSafTaxById extends TaxCalculator
+class CalculatePropTaxByPropId extends TaxCalculator
 {
-    private $_safDtls;
+    private $_propDtls;
     private $_REQUEST;
-    private $_mPropActiveSafFloors;
-    private $_mPropSafFloors;
-    private $_mPropActiveSafOwners;
-    private $_mPropSafOwner;
+    private $_propFloors;
+    private $_mPropOwners;
 
-    public function __construct($safDtls)
+    public function __construct($propId)
     {
-        $this->_mPropActiveSafFloors = new PropActiveSafsFloor();
-        $this->_mPropSafFloors = new PropSafsFloor();
-        $this->_mPropActiveSafOwners = new PropActiveSafsOwner();
-        $this->_mPropSafOwner = new PropSafsOwner();
-        $this->_safDtls = $safDtls;
+        $this->_propFloors = new PropFloor();
+        $this->_mPropOwners = new PropOwner();
+        $this->_propDtls = PropProperty::find($propId);
+
+        if (collect($this->_propDtls)->isEmpty())
+            throw new Exception("Property Details not available");
+
         $this->generateRequests();                                      // making request
         parent::__construct($this->_REQUEST);                           // making parent constructor for tax calculator BLL
         $this->calculateTax();                                          // Calculate Tax with Tax Calculator
@@ -41,20 +40,17 @@ class CalculateSafTaxById extends TaxCalculator
     public function generateRequests(): void
     {
         $calculationReq = [
-            "propertyType" => $this->_safDtls->prop_type_mstr_id,
-            "areaOfPlot" => $this->_safDtls->area_of_plot,
-            "category" => $this->_safDtls->category_id,
-            "dateOfPurchase" => $this->_safDtls->land_occupation_date,
+            "propertyType" => $this->_propDtls->prop_type_mstr_id,
+            "areaOfPlot" => $this->_propDtls->area_of_plot,
+            "category" => $this->_propDtls->category_id,
+            "dateOfPurchase" => $this->_propDtls->land_occupation_date,
             "floor" => [],
             "owner" => []
         ];
 
         // Get Floors
-        if ($this->_safDtls->prop_type_mstr_id != 4) {
-            $propFloors = $this->_mPropActiveSafFloors->getSafFloorsBySafId($this->_safDtls->id);
-
-            if (collect($propFloors)->isEmpty())
-                $propFloors = $this->_mPropSafFloors->getSafFloorsBySafId($this->_safDtls->id);
+        if ($this->_propDtls->prop_type_mstr_id != 4) {
+            $propFloors = $this->_propFloors->getFloorsByPropId($this->_propDtls->id);
 
             if (collect($propFloors)->isEmpty())
                 throw new Exception("Floors not available for this property");
@@ -72,9 +68,9 @@ class CalculateSafTaxById extends TaxCalculator
         }
 
         // Get Owners
-        $propFirstOwners = $this->_mPropActiveSafOwners->getOwnerDtlsBySafId1($this->_safDtls->id);
+        $propFirstOwners = $this->_mPropOwners->firstOwner($this->_propDtls->id);
         if (collect($propFirstOwners)->isEmpty())
-            $propFirstOwners = $this->_mPropSafOwner->getOwnerDtlsBySafId1($this->_safDtls->id);
+            throw new Exception("Owner Details not Available");
 
         $ownerReq = [
             "isArmedForce" => $propFirstOwners->is_armed_force
