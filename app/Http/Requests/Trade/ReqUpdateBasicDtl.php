@@ -46,7 +46,7 @@ class ReqUpdateBasicDtl extends TradeRequest
         $rules["firmDetails.businessDescription"] = "required|regex:$mFramNameRegex";
         $rules["firmDetails.firmName"] = "required|regex:$mFramNameRegex";
         $rules["firmDetails.premisesOwner"] = "required|regex:$mFramNameRegex";
-        $rules["firmDetails.newWardNo"] = "required|digits_between:1,9223372036854775807";
+        $rules["firmDetails.newWardNo"] = "nullable|digits_between:1,9223372036854775807";
         $rules["firmDetails.wardNo"] = "required|digits_between:1,9223372036854775807";
         $rules["firmDetails.pincode"] = "required|digits:6|regex:/[0-9]{6}/|nullable";
 

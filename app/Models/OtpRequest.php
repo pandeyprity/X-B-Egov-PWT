@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 class OtpRequest extends Model
 {
     use HasFactory;
+    protected $connection = "pgsql_master";
 
     /**
      * | Save the Otp for Checking Validatin

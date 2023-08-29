@@ -1330,6 +1330,9 @@ class ActiveSafController extends Controller
                 'forward_time' => $this->_todayDate->format('H:i:s')
             ]);
 
+            DB::rollback();
+            dd("Test");
+
             DB::commit();
             DB::connection('pgsql_master')->commit();
             return responseMsgs(true, $msg, ['holdingNo' => $safDetails->holding_no, 'ptNo' => $safDetails->pt_no], "010110", "1.0", "410ms", "POST", $req->deviceId);

@@ -42,6 +42,7 @@ class SafApprovalBll
     private $_verifiedPropDetails;
     private $_verifiedFloors;
     private $_mPropFloors;
+    private $_calculateTaxByUlb;
 
     // Initializations
     public function __construct()
@@ -68,9 +69,10 @@ class SafApprovalBll
 
         $this->replicateProp();                 // ()
 
+        $this->famGeneration();                 // ()
+
         $this->replicateSaf();                  // ()
 
-        $this->famGeneration();                 // ()
     }
 
 
@@ -165,6 +167,17 @@ class SafApprovalBll
     }
 
     /**
+     * | Generation of FAM(04)
+     */
+    public function famGeneration()
+    {
+        $this->_calculateTaxByUlb = new CalculateTaxByUlb($this->_verifiedPropDetails[0]->id);
+        $calculatedTaxes = $this->_calculateTaxByUlb->_GRID;
+        print($calculatedTaxes);
+        die;
+    }
+
+    /**
      * | Replication of Saf ()
      */
     public function replicateSaf()
@@ -194,12 +207,5 @@ class SafApprovalBll
                 $floorDetail->delete();
             }
         }
-    }
-
-    /**
-     * | Generation of FAM(04)
-     */
-    public function famGeneration()
-    {
     }
 }
