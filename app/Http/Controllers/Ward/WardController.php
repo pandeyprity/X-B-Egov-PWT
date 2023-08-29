@@ -4,9 +4,14 @@ namespace App\Http\Controllers\Ward;
 
 use App\Http\Requests\Ward\UlbWardRequest;
 use App\Http\Controllers\Controller;
+use App\Models\Property\ZoneMaster;
 use App\Models\Ulb\UlbNewWardmap;
+use App\Models\UlbWardMaster;
 use App\Repository\Ward\EloquentWardRepository;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * | Created On-19-08-2022 
@@ -64,5 +69,27 @@ class WardController extends Controller
             ->get();;
 
         return responseMsg(true, "Data Retrived", remove_null($newWard));
+    }
+
+    // Get Ward by Zone
+    public function getWardByZone(Request $req)
+    {
+        $validate = Validator::make($req->all(), [
+            'zoneId' => 'required|integer'
+        ]);
+
+        if ($validate->fails())
+            return validationError($validate);
+
+        try {
+            $mUlbWardMstr = new UlbWardMaster();
+            $wardsByZone = json_decode(Redis::get('ward-by-zone-' . $req->zoneId));
+            if (collect($wardsByZone)->isEmpty()) {
+                $wardsByZone = $mUlbWardMstr->getWardsByZone($req->zoneId);
+            }
+            return responseMsgs(true, "Ward List", remove_null($wardsByZone), "", "1.0", responseTime(), "POST", $req->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "1.0", responseTime(), "POST", $req->deviceId);
+        }
     }
 }

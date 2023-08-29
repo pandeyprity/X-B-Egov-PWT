@@ -8,9 +8,11 @@ use Illuminate\Support\Facades\DB;
 class ModelWard
 {
     private $obj;
-    public function __construct()
+    
+    public function __construct($db = null)
     {
         $this->obj = new UlbWardMaster();
+        $this->obj->setConnection($db?$db:"pgsql_master");
     }
     public function getAllWard(int $ulb_id)
     {

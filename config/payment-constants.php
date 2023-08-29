@@ -49,5 +49,12 @@ return [
         "4" => "Neft",
         "5" => "Online"
     ],
+    "REF_PAY_MODE" => [
+        "CASH"      => "Cash",
+        "CHEQUE"    => "Cheque",
+        "DD"        => "DD",
+        "NEFT"      => "Neft",
+        "ONLINE"    => "Online"
+    ],
     "TRAN_PARAM_ID" => 37
 ];

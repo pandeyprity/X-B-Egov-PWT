@@ -237,60 +237,66 @@ class CitizenController extends Controller
      */
     public function profileDetails()
     {
-        $userId = auth()->user()->id;
-        $redis = Redis::get('active_citizen:' . $userId);
-        if ($redis) {
-            $data = json_decode($redis);
-            $collection = [
-                'id' => $data->id,
-                'name' => $data->user_name,
-                'mobile' => $data->mobile,
-                'email' => $data->email,
-                'gender' => $data->gender,
-                'dob' => $data->dob,
-                'aadhar' => $data->aadhar,
-                'aadhar_doc' => $data->relative_path . $data->aadhar_doc,
-                'is_specially_abled' => $data->is_specially_abled,
-                'specially_abled_doc' => $data->relative_path . $data->specially_abled_doc,
-                'is_armed_force' => $data->is_armed_force,
-                'armed_force_doc' => $data->relative_path . $data->armed_force_doc,
-                'relative_path' => $data->relative_path,
-                'user_type' => $data->user_type,
-                'profile_photo' => $data->relative_path . $data->profile_photo,
-            ];
-            $filtered = collect($collection);
-            $message = ["status" => true, "message" => "Data Fetched", "data" => remove_null($filtered)];
-            return $message;                                    // Filteration using Collection
-        }
-        if (!$redis) {
-            // $details = DB::select($this->query($user_id));
-            $details = ActiveCitizen::select(
-                'id',
-                'user_name as name',
-                'mobile',
-                'email',
-                'gender',
-                'dob',
-                'aadhar',
-                'aadhar_doc',
-                'is_specially_abled',
-                'specially_abled_doc',
-                'is_armed_force',
-                'armed_force_doc',
-                'relative_path',
-                'user_type',
-                'profile_photo',
-            )
-                ->where('id', $userId)
-                ->first();
+        try {
+            $userId = auth()->user()->id;
+            $redis = Redis::get('active_citizen:' . $userId);
+            if ($redis) {
+                $data = json_decode($redis);
+                $collection = [
+                    'id' => $data->id,
+                    'name' => $data->user_name,
+                    'mobile' => $data->mobile,
+                    'email' => $data->email,
+                    'gender' => $data->gender,
+                    'dob' => $data->dob,
+                    'aadhar' => $data->aadhar,
+                    'aadhar_doc' => $data->relative_path . $data->aadhar_doc,
+                    'is_specially_abled' => $data->is_specially_abled,
+                    'specially_abled_doc' => $data->relative_path . $data->specially_abled_doc,
+                    'is_armed_force' => $data->is_armed_force,
+                    'armed_force_doc' => $data->relative_path . $data->armed_force_doc,
+                    'relative_path' => $data->relative_path,
+                    'user_type' => $data->user_type,
+                    'profile_photo' => $data->relative_path . $data->profile_photo,
+                ];
+                $filtered = collect($collection);
+                $message = ["status" => true, "message" => "Data Fetched", "data" => remove_null($filtered)];
+                return $message;                                    // Filteration using Collection
+            }
+            if (!$redis) {
+                // $details = DB::select($this->query($user_id));
+                $details = ActiveCitizen::select(
+                    'id',
+                    'user_name as name',
+                    'mobile',
+                    'email',
+                    'gender',
+                    'dob',
+                    'aadhar',
+                    'aadhar_doc',
+                    'is_specially_abled',
+                    'specially_abled_doc',
+                    'is_armed_force',
+                    'armed_force_doc',
+                    'relative_path',
+                    'user_type',
+                    'profile_photo',
+                )
+                    ->where('id', $userId)
+                    ->first();
+                if (collect($details)->isEmpty())
+                    throw new Exception("Citizen Not Found");
 
-            $details->aadhar_doc = ($details->relative_path . $details->aadhar_doc);
-            $details->specially_abled_doc = ($details->relative_path . $details->specially_abled_doc);
-            $details->armed_force_doc = ($details->relative_path . $details->armed_force_doc);
-            $details->profile_photo = ($details->relative_path . $details->profile_photo);
+                $details->aadhar_doc = ($details->relative_path . $details->aadhar_doc);
+                $details->specially_abled_doc = ($details->relative_path . $details->specially_abled_doc);
+                $details->armed_force_doc = ($details->relative_path . $details->armed_force_doc);
+                $details->profile_photo = ($details->relative_path . $details->profile_photo);
 
-            $message = ["status" => true, "message" => "Data Fetched", "data" => remove_null($details)];
-            return $message;
+                $message = ["status" => true, "message" => "Data Fetched", "data" => remove_null($details)];
+                return $message;
+            }
+        } catch (Exception $e) {
+            return ["status" => false, "message" => $e->getMessage(), "data" => []];
         }
     }
 

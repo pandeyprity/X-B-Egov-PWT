@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 class WaterConsumerMeter extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Get Meter reading using the ConsumerId

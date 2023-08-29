@@ -65,13 +65,54 @@ class WaterNewConnection implements IWaterNewConnection
     protected $_parent;
     protected $_shortUlbName;
     private $_dealingAssistent;
+    protected $_DB_NAME;
+    protected $_DB;
 
     public function __construct()
     {
         $this->_modelWard = new ModelWard();
         $this->_parent = new CommonFunction();
         $this->_dealingAssistent = Config::get('workflow-constants.DEALING_ASSISTENT_WF_ID');
+        $this->_DB_NAME             = "pgsql_water";
+        $this->_DB                  = DB::connection($this->_DB_NAME);
     }
+
+
+    /**
+     * | Database transaction
+     */
+    public function begin()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::beginTransaction();
+        if ($db1 != $db2)
+            $this->_DB->beginTransaction();
+    }
+    /**
+     * | Database transaction
+     */
+    public function rollback()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::rollBack();
+        if ($db1 != $db2)
+            $this->_DB->rollBack();
+    }
+    /**
+     * | Database transaction
+     */
+    public function commit()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::commit();
+        if ($db1 != $db2)
+            $this->_DB->commit();
+    }
+
+
     /**
      * | Search the Citizen Related Water Application
        query cost (2.30)
@@ -258,7 +299,7 @@ class WaterNewConnection implements IWaterNewConnection
                 return responseMsg(false, $validator->errors(), $request->all());
             }
             #------------ new connection --------------------
-            DB::beginTransaction();
+            $this->begin();
             if ($request->applycationType == "connection") {
                 $application = WaterApplication::find($request->id);
                 if (!$application) {
@@ -363,19 +404,23 @@ class WaterNewConnection implements IWaterNewConnection
                     ]
                 ]
             ));
-            DB::commit();
+            $this->commit();
             $temp['name']       = $refUser->user_name;
             $temp['mobile']     = $refUser->mobile;
             $temp['email']      = $refUser->email;
             $temp['userId']     = $refUser->id;
             $temp['ulbId']      = $refUser->ulb_id ?? $temp['ulbId'];
             $temp["applycationType"] = $request->applycationType;
-            return responseMsg(true, "", $temp);
+            return responseMsgs(true, "", $temp, "", "01", responseTime(), $request->getMethod(), $request->deviceId);
         } catch (Exception $e) {
-            DB::rollBack();
-            return responseMsg(false, $e->getMessage(), $request->all());
+            $this->rollback();
+            return responseMsgs(false, $e->getMessage(), $request->all(), "", "01", responseTime(), $request->getMethod(), $request->deviceId);
         }
     }
+
+    /**
+     * | Differenciate the water module payment 
+     */
     public function razorPayResponse($args)
     {
         try {
@@ -389,25 +434,32 @@ class WaterNewConnection implements IWaterNewConnection
                 throw new Exception("Data Not Found");
             }
             switch ($RazorPayRequest->payment_from) {
-                case "New Connection":
+                case ("New Connection"):
                     $response = $this->waterConnectionPayment($args);
                     break;
-                case "Regulaization":                                                                   // Static
+                case ("Regulaization"):                                                                   // Static
                     $response = $this->waterConnectionPayment($args);
                     break;
-                case "Site Inspection":
+                case ("Site Inspection"):
                     $response = $this->waterConnectionPayment($args);
                     break;
-                case "Demand Collection":
+                case ("Demand Collection"):
                     $mWaterPaymentController = new WaterPaymentController();
                     $response = $mWaterPaymentController->endOnlineDemandPayment($args, $RazorPayRequest);
+                    break;
+                case ("Ferrule Cleaning Checking"):
+                    $mWaterPaymentController = new WaterPaymentController();
+                    $response = $mWaterPaymentController->endOnlineConReqPayment($args, $RazorPayRequest);
+                    break;
+                case ("Pipe Shifting Alteration"):
+                    $mWaterPaymentController = new WaterPaymentController();
+                    $response = $mWaterPaymentController->endOnlineConReqPayment($args, $RazorPayRequest);
                     break;
                 default:
                     throw new Exception("Invalide Transaction");
             }
             return $response;
         } catch (Exception $e) {
-            DB::rollBack();
             return responseMsg(false, $e->getMessage(), $args);
         }
     }
@@ -500,7 +552,7 @@ class WaterNewConnection implements IWaterNewConnection
                 ->first();
             #-------------End Calculation-----------------------------
             #-------- Transection -------------------
-            DB::beginTransaction();
+            $this->begin();
 
             $RazorPayResponse = new WaterRazorPayResponse;
             $RazorPayResponse->related_id   = $RazorPayRequest->related_id;
@@ -577,14 +629,14 @@ class WaterNewConnection implements IWaterNewConnection
             $application->payment_status = 1;
             $application->update();
 
-            DB::commit();
+            $this->commit();
             #----------End transaction------------------------
             #----------Response------------------------------
             $res['transactionId'] = $transaction_id;
             $res['paymentRecipt'] = config('app.url') . "/api/water/paymentRecipt/" . $applicationId . "/" . $transaction_id;
             return responseMsg(true, "", $res);
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsg(false, $e->getMessage(), $args);
         }
     }

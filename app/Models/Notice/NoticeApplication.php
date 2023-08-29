@@ -8,5 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class NoticeApplication extends Model
 {
     use HasFactory;
-    // protected $connection = "pgsql_notice";
+    protected $connection;
+    public function __construct($DB=null)
+    {
+       $this->connection = $DB ? $DB:"pgsql_notice";
+    }
 }

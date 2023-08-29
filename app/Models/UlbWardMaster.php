@@ -20,6 +20,16 @@ class UlbWardMaster extends Model
     }
 
     /**
+     * | Get all wards
+     */
+    public function getAllWards()
+    {
+        return UlbWardMaster::select('id', 'zone', 'ward_name')
+            ->where('status', 1)
+            ->get();
+    }
+
+    /**
      * | Get Ward By Ulb ID
      * | @param ulbId
      */
@@ -49,5 +59,15 @@ class UlbWardMaster extends Model
     {
         return UlbWardMaster::where('id', $id)
             ->first();
+    }
+
+    /**
+     * | Get wards by zone
+     */
+    public function getWardsByZone($zoneId)
+    {
+        return UlbWardMaster::where('zone', $zoneId)
+            ->where('status', 1)
+            ->get();
     }
 }

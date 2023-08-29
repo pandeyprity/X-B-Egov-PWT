@@ -50,4 +50,9 @@ return [
         "Tax_Collector" => 5,
         "Team_Leader" => 4
     ],
+
+    "WATER_CONSUMER_WF" => [
+        "FERRULE_CLEANING_CHECKING" => "37",
+        "PIPE_SHIFTING_ALTERATION"  => "38",
+    ],
 ];

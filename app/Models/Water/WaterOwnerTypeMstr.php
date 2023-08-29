@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterOwnerTypeMstr extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Get Owner Type List

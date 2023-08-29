@@ -137,6 +137,8 @@ class PropActiveSafsOwner extends Model
         $owner->is_specially_abled = $req['isSpeciallyAbled'] ?? null;
         $owner->user_id = $citizenId;
         $owner->prop_owner_id = $req['propOwnerDetailId'] ?? null;
+        $owner->owner_name_marathi = $req['ownerNameMarathi'] ?? null;
+        $owner->guardian_name_marathi = $req['guardianNameMarathi'] ?? null;
         $owner->save();
     }
 
@@ -155,6 +157,17 @@ class PropActiveSafsOwner extends Model
                 'is_specially_abled'
             )
             ->orderBy('id')
+            ->get();
+    }
+
+    /**
+     * | Get Query Saf Owners by Saf id
+     */
+    public function getQueSafOwnersBySafId($applicationId)
+    {
+        return PropActiveSafsOwner::query()
+            ->where('saf_id', $applicationId)
+            ->where('status', 1)
             ->get();
     }
 }

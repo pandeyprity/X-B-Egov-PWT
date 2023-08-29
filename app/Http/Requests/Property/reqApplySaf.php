@@ -27,19 +27,15 @@ class reqApplySaf extends FormRequest
      */
     public function rules()
     {
-        $userType = $this->auth['user_type'] ?? 'Citizen';
         $mNowDate     = Carbon::now()->format("Y-m-d");
         $mNowDateYm   = Carbon::now()->format("Y-m");
-        $religiousTrustUsageType = "43";
-
-        if ($userType == 'Citizen')
-            $rules['ulbId'] = "required|int";
 
         if (isset($this->edit) && $this->edit == true)
             $rules['assessmentType'] = "nullable";
         else
             $rules['assessmentType'] = "required|int|in:1,2,3,4,5";
 
+        $rules['category'] = "required|int";
         if (isset($this->assessmentType) && $this->assessmentType == 3) {
             $rules['transferModeId'] = "required";
             $rules['dateOfPurchase'] = "required|date|date_format:Y-m-d|before_or_equal:$mNowDate";
@@ -58,7 +54,6 @@ class reqApplySaf extends FormRequest
         $rules['ward']          = "required|digits_between:1,9223372036854775807";
         $rules['propertyType']  = "required|int";
         $rules['ownershipType'] = "required|int";
-        $rules['roadType']      = "required|numeric";
         $rules['areaOfPlot']    = "required|numeric|not_in:0";
         $rules['isMobileTower'] = "required|bool";
         $rules['owner'] = "required|array";
@@ -85,29 +80,23 @@ class reqApplySaf extends FormRequest
         }
 
         if ($this->propertyType == 2)                                           // Land Occupation Date for Independent Building
-            $rules['landOccupationDate'] = "required|date|date_format:Y-m-d|before_or_equal:$mNowDate";
+            $rules['landOccupationDate'] = "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate";
 
         if (isset($this->propertyType) && $this->propertyType == 4) {
-            $rules['landOccupationDate'] = "required|date|date_format:Y-m-d|before_or_equal:$mNowDate";
+            $rules['landOccupationDate'] = "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate";
         } else {
             $rules['floor']        = "required|array";
             if (isset($this->floor) && $this->floor) {
                 $rules["floor.*.propFloorDetailId"] =   "nullable|numeric";
                 $rules["floor.*.floorNo"]           =   "required|int";
-                $rules["floor.*.useType"]           =   "required|int";
-                $rules["floor.*.constructionType"]  =   "required|int|in:1,2,3";
+                $rules["floor.*.usageType"]           =   "required|int";
+                $rules["floor.*.constructionType"]  =   "required";
                 $rules["floor.*.occupancyType"]     =   "required|int";
 
                 $rules["floor.*.buildupArea"]       =   "required|numeric|not_in:0";
-                $rules["floor.*.dateFrom"]          =   "required|date|date_format:Y-m-d|before_or_equal:$mNowDate";
+                $rules["floor.*.dateFrom"]          =   "required|date|date_format:Y-m-d|before_or_equal:$mNowDate|after_or_equal:$this->dateOfPurchase";
                 $rules["floor.*.dateUpto"]          =   "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate|before:$this->dateFrom";
             }
-        }
-        // Condition for the Organizational Institutes running by trust
-        if (isset($this->floor)) {
-            $usageTypes = collect($this->floor)->pluck('useType');
-            if ($usageTypes->contains($religiousTrustUsageType))            // Condition for the usage type for Religious Trust
-                $rules["trustType"] = "required|In:1,2";
         }
 
         $rules['isWaterHarvesting'] = "required|bool";
@@ -137,6 +126,8 @@ class reqApplySaf extends FormRequest
                 $rules["owner.*.aadhar"]              =   "digits:12|regex:/[0-9]{12}/|nullable";
                 $rules["owner.*.isArmedForce"]        =   "required|bool";
                 $rules["owner.*.isSpeciallyAbled"]    =   "required|bool";
+                $rules["owner.*.ownerNameMarathi"]    =   "required|string";
+                $rules["owner.*.guardianNameMarathi"]    =   "required|string";
             }
         }
         return $rules;

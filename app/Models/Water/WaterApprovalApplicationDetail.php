@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 class WaterApprovalApplicationDetail extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * |------------------------- Get the Approved Applecaton Details ---------------------------|

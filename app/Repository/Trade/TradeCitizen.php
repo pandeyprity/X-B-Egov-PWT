@@ -35,6 +35,7 @@ use App\Models\Trade\TradeLicence;
 use App\Models\Trade\TradeRenewal;
 use App\Models\Workflows\WfActiveDocument;
 use App\Models\WorkflowTrack;
+use App\Repository\Notice\Notice;
 
 class TradeCitizen implements ITradeCitizen
 {
@@ -42,6 +43,11 @@ class TradeCitizen implements ITradeCitizen
     use WardPermission;
     use Razorpay;
 
+    protected $_DB;
+    protected $_DB_NAME;
+    protected $_NOTICE_DB;
+    protected $_NOTICE_DB_NAME;
+    protected $_NOTICE;
     protected $_MODEL_WARD;
     protected $_COMMON_FUNCTION;
     protected $_REPOSITORY_TRADE;
@@ -50,7 +56,7 @@ class TradeCitizen implements ITradeCitizen
     protected $_MODULE_ID;
     protected $_REF_TABLE;
     protected $_TRADE_CONSTAINT;
-
+    protected $_MODEL_WfActiveDocument;
     protected $_META_DATA;
     protected $_QUERY_RUN_TIME;
     protected $_API_ID;
@@ -58,10 +64,19 @@ class TradeCitizen implements ITradeCitizen
 
     public function __construct()
     {
+        $this->_DB_NAME = "pgsql_trade";
+        $this->_NOTICE_DB = "pgsql_notice";
+        $this->_DB = DB::connection( $this->_DB_NAME );
+        $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
+        DB::enableQueryLog();
+        $this->_DB->enableQueryLog();
+        $this->_NOTICE_DB->enableQueryLog();
+
+        $this->_NOTICE = new Notice();
         $this->_MODEL_WARD = new ModelWard();
         $this->_COMMON_FUNCTION = new CommonFunction();
         $this->_REPOSITORY_TRADE = new Trade();
-
+        $this->_MODEL_WfActiveDocument = new WfActiveDocument();
         $this->_WF_MASTER_Id = Config::get('workflow-constants.TRADE_MASTER_ID');
         $this->_WF_NOTICE_MASTER_Id = Config::get('workflow-constants.TRADE_NOTICE_ID');
         $this->_MODULE_ID = Config::get('module-constants.TRADE_MODULE_ID');
@@ -75,6 +90,43 @@ class TradeCitizen implements ITradeCitizen
         ];
         
     }
+
+    public function begin()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        $db3 = $this->_NOTICE_DB->getDatabaseName();
+        DB::beginTransaction();
+        if($db1!=$db2 )
+        $this->_DB->beginTransaction();
+        if($db1!=$db3 && $db2!=$db3)
+        $this->_NOTICE_DB->beginTransaction();
+    }
+    public function rollback()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        $db3 = $this->_NOTICE_DB->getDatabaseName();
+        DB::rollBack();
+        if($db1!=$db2 )
+        $this->_DB->rollBack();
+        if($db1!=$db3 && $db2!=$db3)
+        $this->_NOTICE_DB->rollBack();
+    }
+     
+    public function commit()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        $db3 = $this->_NOTICE_DB->getDatabaseName();
+
+        DB::commit();
+        if($db1!=$db2 )        
+        $this->_DB->commit();
+        if($db1!=$db3 && $db2!=$db3)
+        $this->_NOTICE_DB->commit();
+    }
+
     public function addRecord(Request $request)
     {
         $this->_META_DATA["apiId"] = "c2";
@@ -116,12 +168,12 @@ class TradeCitizen implements ITradeCitizen
                     throw new Exception("Application ulb Deffrence " . $refOldLicece->application_no);
                 }
             }
-            DB::beginTransaction();
+            $this->begin();
             $response = $this->_REPOSITORY_TRADE->addRecord($request);
             if (!$response->original["status"]) {
                 throw new Exception($response->original["message"]);
             }
-            DB::commit();
+            $this->commit();
             return responseMsgs(
                 true,
                 $response->original["message"],
@@ -187,9 +239,9 @@ class TradeCitizen implements ITradeCitizen
             } elseif (in_array($refLecenceData->payment_status, [1, 2])) {
                 throw new Exception("Payment Already Done Of This Application");
             }
-            if ($refNoticeDetails = $this->_REPOSITORY_TRADE->readNotisDtl($refLecenceData->id)) {
-                $refDenialId = $refNoticeDetails->dnialid;
-                $mNoticeDate = date("Y-m-d", strtotime($refNoticeDetails['created_on'])); //notice date 
+            if ($refNoticeDetails = $this->_NOTICE->getNoticDtlById($refLecenceData->denial_id)) {
+                $refDenialId = $refNoticeDetails->id;
+                $mNoticeDate = date("Y-m-d", strtotime($refNoticeDetails['notice_date'])); //notice date 
             }
 
             $ward_no = UlbWardMaster::select("ward_name")
@@ -221,7 +273,7 @@ class TradeCitizen implements ITradeCitizen
             $mDenialAmount = $chargeData['notice_amount'];
             #-------------End Calculation-----------------------------
             #-------- Transection -------------------
-            DB::beginTransaction();
+            $this->begin();
 
             $RazorPayResponse = new TradeRazorPayResponse();
             $RazorPayResponse->temp_id   = $RazorPayRequest->temp_id;
@@ -294,18 +346,19 @@ class TradeCitizen implements ITradeCitizen
             $refLecenceData->provisional_license_no = $provNo;
             $refLecenceData->payment_status         = $mPaymentStatus;
             if ($refNoticeDetails) {
-                $this->_REPOSITORY_TRADE->updateStatusFine($refDenialId, $chargeData['notice_amount'], $licenceId, 1); //update status and fineAmount                     
+                $this->_NOTICE->noticeClose($refLecenceData->denial_id);
+                // $this->_REPOSITORY_TRADE->updateStatusFine($refDenialId, $chargeData['notice_amount'], $licenceId, 1); //update status and fineAmount                     
             }
             ($refLecenceData->id);
             $refLecenceData->update();
-            DB::commit();
+            $this->commit();
             #----------End transaction------------------------
             #----------Response------------------------------
             $res['transactionId'] = $transaction_id; #config('app.url') .
             $res['paymentReceipt'] =  "/api/trade/payment-receipt/" . $licenceId . "/" . $transaction_id;
             return responseMsg(true, "", $res);
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollBack();
             return responseMsg(false, $e->getMessage(), $args);
         }
     }
@@ -349,7 +402,7 @@ class TradeCitizen implements ITradeCitizen
 
             $ActiveSelect = $select;
             $ActiveSelect[] = DB::raw("'active' as license_type");
-            $ActiveLicence = DB::TABLE("active_trade_licences AS licences")
+            $ActiveLicence = $this->_DB->TABLE("active_trade_licences AS licences")
                 ->select($ActiveSelect)
                 ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
                 ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
@@ -371,7 +424,7 @@ class TradeCitizen implements ITradeCitizen
 
             $RejectedSelect = $select;        
             $RejectedSelect[] = DB::raw("'rejected' as license_type");
-            $RejectedLicence = DB::TABLE("rejected_trade_licences AS licences")
+            $RejectedLicence = $this->_DB->TABLE("rejected_trade_licences AS licences")
                 ->select($RejectedSelect)
                 ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
                 ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
@@ -393,7 +446,7 @@ class TradeCitizen implements ITradeCitizen
 
             $ApprovedSelect = $select;        
             $ApprovedSelect[] = DB::raw("'approved' as license_type");
-            $ApprovedLicence = DB::TABLE("trade_licences AS licences")
+            $ApprovedLicence = $this->_DB->TABLE("trade_licences AS licences")
                 ->select($ApprovedSelect)
                 ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
                 ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
@@ -416,7 +469,7 @@ class TradeCitizen implements ITradeCitizen
             
             $OldSelect = $select;        
             $OldSelect[] = DB::raw("'old' as license_type");
-            $OldLicence = DB::TABLE("trade_renewals AS licences")
+            $OldLicence = $this->_DB->TABLE("trade_renewals AS licences")
                 ->select($OldSelect)
                 ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
                 ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
@@ -521,9 +574,8 @@ class TradeCitizen implements ITradeCitizen
             $refApplication->items_code = $mCods;
             $refOwnerDtl                = $this->_REPOSITORY_TRADE->getAllOwnereDtlByLId($id);
             $refTransactionDtl          = TradeTransaction::listByLicId($id);
-            // $refTimeLine                = $this->_REPOSITORY_TRADE->getTimelin($id);
-            $mWfActiveDocument = new WfActiveDocument();
-            $refUploadDocuments         = $mWfActiveDocument->getTradeDocByAppNo($refApplication->id,$refApplication->workflow_id,$modul_id);
+            // $refTimeLine                = $this->_REPOSITORY_TRADE->getTimelin($id);            
+            $refUploadDocuments         = $this->_MODEL_WfActiveDocument->getTradeDocByAppNo($refApplication->id,$refApplication->workflow_id,$modul_id);
             
             $pendingAt  = $init_finish['initiator']['id'];
             $mlevelData = $this->_REPOSITORY_TRADE->getWorkflowTrack($id);
@@ -547,7 +599,7 @@ class TradeCitizen implements ITradeCitizen
             $data = remove_null($data);
 
             return responseMsg(true, "", $data);
-        } catch (Exception $e) {
+        } catch (Exception $e) { 
             return responseMsg(false, $e->getMessage(), '');
         }
     }

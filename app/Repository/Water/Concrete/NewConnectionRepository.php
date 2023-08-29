@@ -60,6 +60,8 @@ class NewConnectionRepository implements iNewConnection
     private $_waterModulId;
     private $_juniorEngRoleId;
     private $_waterRoles;
+    protected $_DB_NAME;
+    protected $_DB;
 
     public function __construct()
     {
@@ -69,6 +71,43 @@ class NewConnectionRepository implements iNewConnection
         $this->_waterModulId = Config::get('module-constants.WATER_MODULE_ID');
         $this->_juniorEngRoleId  = Config::get('workflow-constants.WATER_JE_ROLE_ID');
         $this->_waterRoles = Config::get('waterConstaint.ROLE-LABEL');
+        $this->_DB_NAME             = "pgsql_water";
+        $this->_DB                  = DB::connection($this->_DB_NAME);
+    }
+
+
+    /**
+     * | Database transaction
+     */
+    public function begin()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::beginTransaction();
+        if ($db1 != $db2)
+            $this->_DB->beginTransaction();
+    }
+    /**
+     * | Database transaction
+     */
+    public function rollback()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::rollBack();
+        if ($db1 != $db2)
+            $this->_DB->rollBack();
+    }
+    /**
+     * | Database transaction
+     */
+    public function commit()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::commit();
+        if ($db1 != $db2)
+            $this->_DB->commit();
     }
 
     /**
@@ -156,7 +195,7 @@ class NewConnectionRepository implements iNewConnection
         $waterFeeId             = $newConnectionCharges['water_fee_mstr_id'];
         $totalConnectionCharges = $newConnectionCharges['conn_fee_charge']['amount'];
 
-        DB::beginTransaction();
+        $this->begin();
         # Generating Application No
         $idGeneration   = new PrefixIdGenerator($refParamId["WAPP"], $ulbId);
         $applicationNo  = $idGeneration->generate();
@@ -225,7 +264,7 @@ class NewConnectionRepository implements iNewConnection
         //         ]
         //     ]
         // ));
-        DB::commit();
+        $this->commit();
         $returnResponse = [
             'applicationNo' => $applicationNo,
             'applicationId' => $applicationId
@@ -370,9 +409,9 @@ class NewConnectionRepository implements iNewConnection
         ]);
         $forwardBackwardIds = $mWfRoleMaps->getWfBackForwardIds($roleMapsReqs);
 
-        DB::beginTransaction();
+        $this->begin();
         if ($req->action == 'forward') {
-            $this->checkPostCondition($req->senderRoleId, $wfLevels, $waterApplication);            // Check Post Next level condition
+            $this->checkPostCondition($senderRoleId, $wfLevels, $waterApplication);            // Check Post Next level condition
             if ($waterApplication->current_role == $wfLevels['JE']) {
                 $waterApplication->is_field_verified = true;
             }
@@ -412,7 +451,7 @@ class NewConnectionRepository implements iNewConnection
             'forward_date' => $current->format('Y-m-d'),
             'forward_time' => $current->format('H:i:s')
         ]);
-        DB::commit();
+        $this->commit();
         return responseMsgs(true, "Successfully Forwarded The Application!!", "", "", "", '01', '.ms', 'Post', '');
     }
 
@@ -871,14 +910,14 @@ class NewConnectionRepository implements iNewConnection
         $key = collect($request)->map(function ($value, $key) {
             return $key;
         })->first();
-        $string = preg_replace("/([A-Z])/", "_$1", $key);
-        $refstring = strtolower($string);
-        $approvedWater = $mWaterConsumer->getConsumerByConsumerNo($refstring, $request->id);
+        $string         = preg_replace("/([A-Z])/", "_$1", $key);
+        $refstring      = strtolower($string);
+        $approvedWater  = $mWaterConsumer->getConsumerByConsumerNo($refstring, $request->id);
         $connectionCharge['connectionCharg'] = $mWaterConnectionCharge->getWaterchargesById($approvedWater['apply_connection_id'])
             ->where('charge_category', '!=', 'Site Inspection')                                     # Static
             ->first();
-        $waterOwner['ownerDetails'] = $mWaterConsumerOwner->getConsumerOwner($approvedWater['id']);
-        $water['calcullation'] = $mWaterParamConnFee->getCallParameter($approvedWater['property_type_id'], $approvedWater['area_sqft'])->first();
+        $waterOwner['ownerDetails'] = $mWaterConsumerOwner->getConsumerOwner($approvedWater['consumer_id'])->get();
+        $water['calcullation']      = $mWaterParamConnFee->getCallParameter($approvedWater['property_type_id'], $approvedWater['area_sqft'])->first();
 
         $consumerDetails = collect($approvedWater)->merge($connectionCharge)->merge($waterOwner)->merge($water);
         return remove_null($consumerDetails);

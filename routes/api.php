@@ -8,8 +8,6 @@ use App\Http\Controllers\CustomController;
 use App\Http\Controllers\DemoController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\SelfAdvertisementController;
 use App\Http\Controllers\Service\IdGeneratorController;
 use App\Http\Controllers\ThirdPartyController;
 use App\Http\Controllers\UlbController;
@@ -24,7 +22,6 @@ use App\Http\Controllers\WorkflowMaster\WorkflowRoleController;
 use App\Http\Controllers\WorkflowMaster\WorkflowRoleUserMapController;
 use App\Http\Controllers\CaretakerController;
 use App\Http\Controllers\ReferenceController;
-use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -100,7 +97,7 @@ Route::controller(IdGeneratorController::class)->group(function () {
 
 
 // Inside Middleware Routes with API Authenticate 
-Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
+Route::group(['middleware' => ['request_logger', 'expireBearerToken']], function () {
 
     /**
      * | Api to Check if the User is authenticated or not
@@ -246,6 +243,7 @@ Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger'
         Route::put('edit-ulb-ward/{id}', 'editUlbWard');         // Edit Ulb Ward
         Route::get('get-ulb-ward/{id}', 'getUlbWardByID');       // Get Ulb Ward Details by ID
         Route::get('get-all-ulb-wards', 'getAllUlbWards'); //not for use      // Get All Ulb Wards
+        Route::post('property/v1/get-ward-by-zone', 'getWardByZone');
     });
 });
 

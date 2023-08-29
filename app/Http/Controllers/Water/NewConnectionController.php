@@ -77,14 +77,52 @@ class NewConnectionController extends Controller
     private $_waterRoles;
     protected $_commonFunction;
     private $_waterModulId;
+    protected $_DB_NAME;
+    protected $_DB;
 
     public function __construct(iNewConnection $newConnection)
     {
+        $this->_DB_NAME = "pgsql_water";
+        $this->_DB = DB::connection($this->_DB_NAME);
         $this->_commonFunction = new CommonFunction();
         $this->newConnection = $newConnection;
         $this->_dealingAssistent = Config::get('workflow-constants.DEALING_ASSISTENT_WF_ID');
         $this->_waterRoles = Config::get('waterConstaint.ROLE-LABEL');
         $this->_waterModulId = Config::get('module-constants.WATER_MODULE_ID');
+    }
+
+    /**
+     * | Database transaction
+     */
+    public function begin()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::beginTransaction();
+        if ($db1 != $db2)
+            $this->_DB->beginTransaction();
+    }
+    /**
+     * | Database transaction
+     */
+    public function rollback()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::rollBack();
+        if ($db1 != $db2)
+            $this->_DB->rollBack();
+    }
+    /**
+     * | Database transaction
+     */
+    public function commit()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::commit();
+        if ($db1 != $db2)
+            $this->_DB->commit();
     }
 
 
@@ -100,7 +138,7 @@ class NewConnectionController extends Controller
         try {
             return $this->newConnection->store($request);
         } catch (Exception $error) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsg(false, $error->getMessage(), "");
         }
     }
@@ -119,7 +157,7 @@ class NewConnectionController extends Controller
     public function waterInbox(Request $request)
     {
         try {
-            $user   = authUser();
+            $user   = authUser($request);
             $userId = $user->id;
             $ulbId  = $user->ulb_id;
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
@@ -155,7 +193,7 @@ class NewConnectionController extends Controller
             $mWfWardUser            = new WfWardUser();
             $mWfWorkflowRoleMaps    = new WfWorkflowrolemap();
 
-            $user   = authUser();
+            $user   = authUser($req);
             $userId = $user->id;
             $ulbId  = $user->ulb_id;
 
@@ -205,8 +243,8 @@ class NewConnectionController extends Controller
         try {
             $mWfWardUser = new WfWardUser();
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
-            $userId = authUser()->id;
-            $ulbId = authUser()->ulb_id;
+            $userId = authUser($req)->id;
+            $ulbId = authUser($req)->ulb_id;
             $mDeviceId = $req->deviceId ?? "";
 
             $workflowRoles = $this->getRoleIdByUserId($userId);
@@ -245,8 +283,8 @@ class NewConnectionController extends Controller
         try {
             $mWfWardUser            = new WfWardUser();
             $mWfWorkflowRoleMaps    = new WfWorkflowrolemap();
-            $userId = authUser()->id;
-            $ulbId  = authUser()->ulb_id;
+            $userId = authUser($request)->id;
+            $ulbId  = authUser($request)->ulb_id;
 
             $occupiedWard = $mWfWardUser->getWardsByUserId($userId);                        // Get All Occupied Ward By user id using trait
             $wardId = $occupiedWard->map(function ($item, $key) {                           // Filter All ward_id in an array using laravel collections
@@ -292,7 +330,7 @@ class NewConnectionController extends Controller
         try {
             return $this->newConnection->postNextLevel($request);
         } catch (Exception $error) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsg(false, $error->getMessage(), "");
         }
     }
@@ -337,9 +375,12 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $userId = authUser()->id;
+            $userId = authUser($request)->id;
             $applicationId = $request->applicationId;
             $applicationsData = WaterApplication::find($applicationId);
+            if (!$applicationsData) {
+                throw new Exception("Application details not found!");
+            }
             $applicationsData->is_escalate = $request->escalateStatus;
             $applicationsData->escalate_by = $userId;
             $applicationsData->save();
@@ -373,7 +414,7 @@ class NewConnectionController extends Controller
             $waterDetails = WaterApplication::findOrFail($request->applicationId);
 
             # check the login user is EO or not
-            $userId = authUser()->id;
+            $userId = authUser($request)->id;
             $workflowId = $waterDetails->workflow_id;
             $getRoleReq = new Request([                                                 // make request to get role id of the user
                 'userId' => $userId,
@@ -384,12 +425,12 @@ class NewConnectionController extends Controller
             if ($roleId != $waterDetails->finisher) {
                 throw new Exception("You are not the Finisher!");
             }
-            DB::beginTransaction();
+            $this->begin();
             $returnData = $this->newConnection->approvalRejectionWater($request, $roleId);
-            DB::commit();
+            $this->commit();
             return $returnData;
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
@@ -415,7 +456,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
         try {
             $metaReqs       = array();
-            $user           = authUser();
+            $user           = authUser($request);
             $userType       = $user->user_type;
             $userId         = $user->id;
             $workflowTrack  = new WorkflowTrack();
@@ -435,7 +476,7 @@ class NewConnectionController extends Controller
                 'refTableIdValue'   => $applicationId->id,
                 'message'           => $request->comment
             ];
-            DB::beginTransaction();
+            $this->begin();
             if ($userType != 'Citizen') {                                                           // Static
                 $roleReqs = new Request([
                     'workflowId' => $applicationId->workflow_id,
@@ -453,10 +494,10 @@ class NewConnectionController extends Controller
             }
             $request->request->add($metaReqs);
             $workflowTrack->saveTrack($request);
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, "You Have Commented Successfully!!", ['Comment' => $request->comment], "010108", "1.0", "427ms", "POST", "");
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
@@ -573,8 +614,8 @@ class NewConnectionController extends Controller
         try {
             $mWfWardUser            = new WfWardUser();
             $mWfWorkflowRoleMaps    = new WfWorkflowrolemap();
-            $userId                 = authUser()->id;
-            $ulbId                  = authUser()->ulb_id;
+            $userId                 = authUser($request)->id;
+            $ulbId                  = authUser($request)->ulb_id;
 
             $refWard = $mWfWardUser->getWardsByUserId($userId);
             $wardId = $refWard->map(function ($value) {
@@ -615,7 +656,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user               = authUser();
+            $user               = authUser($req);
             $WorkflowTrack      = new WorkflowTrack();
             $refWorkflowId      = Config::get("workflow-constants.WATER_MASTER_ID");
             $refApplyFrom       = config::get("waterConstaint.APP_APPLY_FROM");
@@ -624,7 +665,7 @@ class NewConnectionController extends Controller
             $role = $this->_commonFunction->getUserRoll($user->id, $mWaterApplication->ulb_id, $refWorkflowId);
             $this->btcParamcheck($role, $mWaterApplication);
 
-            DB::beginTransaction();
+            $this->begin();
             # if application is not applied by citizen 
             if ($mWaterApplication->apply_from != $refApplyFrom['1']) {
                 $mWaterApplication->current_role = $mWaterApplication->initiator_role_id;
@@ -645,10 +686,10 @@ class NewConnectionController extends Controller
             $req->request->add($metaReqs);
             $WorkflowTrack->saveTrack($req);
 
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, "Successfully Done", "", "", "1.0", "350ms", "POST", $req->deviceId);
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
@@ -696,7 +737,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user                       = authUser();
+            $user                       = authUser($req);
             $mWaterApplication          = new WaterApplication();
             $mWaterApplicant            = new WaterApplicant();
             $mWaterConnectionCharge     = new WaterConnectionCharge();
@@ -705,15 +746,15 @@ class NewConnectionController extends Controller
             $applicantDetals = $mWaterApplication->getWaterApplicationsDetails($req->applicationId);
             $this->checkParamsForApplicationDelete($applicantDetals, $user);
 
-            DB::beginTransaction();
+            $this->begin();
             $mWaterApplication->deleteWaterApplication($req->applicationId);
             $mWaterApplicant->deleteWaterApplicant($req->applicationId);
             $mWaterConnectionCharge->deleteWaterConnectionCharges($req->applicationId);
             $mWaterPenaltyInstallment->deleteWaterPenelty($req->applicationId);
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, "Application Successfully Deleted", "", "", "1.0", "", "POST", $req->deviceId);
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
@@ -775,7 +816,7 @@ class NewConnectionController extends Controller
             $refWaterApplications = $mWaterApplication->getApplicationById($refApplicationId)->firstorFail();
             $this->checkEditParameters($req, $refWaterApplications);
 
-            DB::beginTransaction();
+            $this->begin();
             if ($refWaterApplications->current_role == $levelRoles['BO']) {
                 $this->boApplicationEdit($req, $refWaterApplications, $mWaterApplication);
                 return responseMsgs(true, "application Modified!", "", "", "01", "ms", "POST", "");
@@ -807,10 +848,10 @@ class NewConnectionController extends Controller
             //     'owners'                => $that,
             // ])
             $repNewConnectionRepository->store($req); // here<-----------------------
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, "Successfully Updated the Data", "", 010124, 1.0, "308ms", "POST", $req->deviceId);
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsgs(false, $e->getMessage(), "", 010124, 1.0, "308ms", "POST", $req->deviceId);
         }
     }
@@ -829,7 +870,7 @@ class NewConnectionController extends Controller
                 if ($refApplication->current_role) {
                     throw new Exception("Application is already in Workflow!");
                 }
-                if ($refApplication->user_id != authUser()->id) {
+                if ($refApplication->user_id != authUser($request)->id) {
                     throw new Exception("You are not the Autherised Person!");
                 }
                 if ($refApplication->payment_status == 1) {
@@ -849,7 +890,7 @@ class NewConnectionController extends Controller
     public function boApplicationEdit($req, $refApplication, $mWaterApplication)
     {
         switch ($refApplication) {
-            case ($refApplication->current_role != authUser()->id):
+            case ($refApplication->current_role != authUser($req)->id):
                 throw new Exception("You Are Not the Valid Person!");
                 break;
         }
@@ -898,7 +939,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user = authUser();
+            $user = authUser($request);
             $mWaterSiteInspectionsScheduling = new WaterSiteInspectionsScheduling();
             $mWaterConnectionCharge  = new WaterConnectionCharge();
             $mWaterApplication = new WaterApplication();
@@ -980,7 +1021,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user               = authUser();
+            $user               = authUser($req);
             $metaReqs           = array();
             $applicationId      = $req->applicationId;
             $document           = $req->document;
@@ -1016,7 +1057,7 @@ class NewConnectionController extends Controller
                 $this->checkParamForDocUpload($isCitizen, $getWaterDetails, $user);
             }
 
-            DB::beginTransaction();
+            $this->begin();
             $ifDocExist = $mWfActiveDocument->isDocCategoryExists($getWaterDetails->id, $getWaterDetails->workflow_id, $refmoduleId, $req->docCategory, $req->ownerId)->first();   // Checking if the document is already existing or not
             $metaReqs = new Request($metaReqs);
             if (collect($ifDocExist)->isEmpty()) {
@@ -1049,10 +1090,10 @@ class NewConnectionController extends Controller
                     $mWaterApplication->updateParkedstatus($status, $applicationId);
                 }
             }
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, "Document Uploadation Successful", "", "", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsgs(false, $e->getMessage(), "", "", "1.0", "", "POST", $req->deviceId ?? "");
         }
     }
@@ -1940,7 +1981,7 @@ class NewConnectionController extends Controller
             $mWfRoleusermap     = new WfRoleusermap();
             $wfDocId            = $req->id;
             $applicationId      = $req->applicationId;
-            $userId             = authUser()->id;
+            $userId             = authUser($req)->id;
             $wfLevel            = Config::get('waterConstaint.ROLE-LABEL');
 
             # validating application
@@ -1968,7 +2009,7 @@ class NewConnectionController extends Controller
             if ($ifFullDocVerified == 1)
                 throw new Exception("Document Fully Verified");
 
-            DB::beginTransaction();
+            $this->begin();
             if ($req->docStatus == "Verified") {
                 $status = 1;
             }
@@ -1993,10 +2034,10 @@ class NewConnectionController extends Controller
             if ($ifFullDocVerifiedV1 == 1) {                                        // If The Document Fully Verified Update Verify Status
                 $mWaterApplication->updateAppliVerifyStatus($applicationId);
             }
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, $req->docStatus . " Successfully", "", "010204", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsgs(false, $e->getMessage(), "", "010204", "1.0", "", "POST", $req->deviceId ?? "");
         }
     }
@@ -2169,7 +2210,7 @@ class NewConnectionController extends Controller
             ];
             #application Details according to date
             $refApplications = $mWaterApplication->getapplicationByDate($refTimeDate)
-                ->where('water_applications.user_id', authUser()->id)
+                ->where('water_applications.user_id', authUser($request)->id)
                 ->get();
             # Final Data to return
             $returnValue = collect($refApplications)->map(function ($value, $key)
@@ -2359,18 +2400,19 @@ class NewConnectionController extends Controller
                 ->where('order_officer', $refJeRole)
                 ->first();
 
-            DB::beginTransaction();
+            $this->begin();
             $mWaterSiteInspectionsScheduling->cancelInspectionDateTime($refApplicationId);
             $mWaterConnectionCharge->deactivateSiteCharges($refApplicationId, $refSiteInspection);
             $mWaterPenaltyInstallment->deactivateSitePenalty($refApplicationId, $refSiteInspection);
+            # Check if the payment status is done or not 
             $mWaterApplication->updateOnlyPaymentstatus($refApplicationId);                                 // make the payment status of the application true
             if (!is_null($refSiteInspection)) {
                 $mWaterSiteInspection->deactivateSiteDetails($refSiteInspection->site_inspection_id);
             }
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, "Scheduled Date is Cancelled!", "", "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", "");
         }
     }
@@ -2421,17 +2463,17 @@ class NewConnectionController extends Controller
             $mWaterSiteInspectionsScheduling = new WaterSiteInspectionsScheduling();
             $refDate = Carbon::now()->format('Y-m-d');
 
-            DB::beginTransaction();
+            $this->begin();
             $mWaterSiteInspectionsScheduling->saveSiteDateTime($request);
             if ($request->inspectionDate == $refDate) {
                 $canView['canView'] = true;
             } else {
                 $canView['canView'] = false;
             }
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, "Date for the Site Inspection is Saved!", $canView, "", "01", ".ms", "POST", "");
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", "");
         }
     }
@@ -2449,7 +2491,7 @@ class NewConnectionController extends Controller
         $refApplication     = WaterApplication::findOrFail($request->applicationId);
         $WaterRoles         = Config::get('waterConstaint.ROLE-LABEL');
         $metaReqs = new Request([
-            'userId'        => authUser()->id,
+            'userId'        => authUser($request)->id,
             'workflowId'    => $refApplication->workflow_id
         ]);
         $readRoles = $mWfRoleUser->getRoleByUserWfId($metaReqs);                      // Model to () get Role By User Id
@@ -2484,6 +2526,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
+            $refReturnData['canInspect'] = false;
             $mWaterSiteInspectionsScheduling = new WaterSiteInspectionsScheduling();
             $siteInspection = $mWaterSiteInspectionsScheduling->getInspectionById($request->applicationId)->first();
             if (isset($siteInspection)) {
@@ -2495,7 +2538,7 @@ class NewConnectionController extends Controller
                 ];
                 return responseMsgs(true, "Site InspectionDetails!", $returnData, "", "01", ".ms", "POST", "");
             }
-            throw new Exception("Invalid data!");
+            return responseMsgs(false, "Data not found!", $refReturnData, "01", responseTime(), "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", "01", ".ms", "POST", "");
         }
@@ -2550,7 +2593,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $user                   = authUser();
+            $user                   = authUser($request);
             $current                = Carbon::now();
             $currentDate            = $current->format('Y-m-d');
             $currentTime            = $current->format('H:i:s');
@@ -2569,15 +2612,15 @@ class NewConnectionController extends Controller
                 'inspectionDate'    => $currentDate,
                 'inspectionTime'    => $currentTime
             ]);
-            DB::beginTransaction();
+            $this->begin();
             $mWaterSiteInspection->saveOnlineSiteDetails($request);
             if ($refTechnicalDetails) {
                 $mWaterSiteInspection->deactivateSiteDetails($refTechnicalDetails->site_inspection_id);
             }
-            DB::commit();
+            $this->commit();
             return responseMsgs(true, "Technical Inspection Completed!", "", "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollback();
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", "");
         }
     }
@@ -2598,7 +2641,7 @@ class NewConnectionController extends Controller
         $workflowId     = $refApplication->workflow_id;
 
         $metaReqs =  new Request([
-            'userId'        => authUser()->id,
+            'userId'        => authUser($request)->id,
             'workflowId'    => $workflowId
         ]);
         $readRoles = $mWfRoleUser->getRoleByUserWfId($metaReqs);                      // Model to () get Role By User Id
@@ -2645,6 +2688,13 @@ class NewConnectionController extends Controller
             $mWaterSiteInspection               = new WaterSiteInspection();
             $mWaterSiteInspectionsScheduling    = new WaterSiteInspectionsScheduling();
             $refJe                              = Config::get("waterConstaint.ROLE-LABEL.JE");
+            $propertyTypeMapping                = Config::get('waterConstaint.PROPERTY_TYPE');
+            $connectionTypeMapping              = Config::get('waterConstaint.REF_CONNECTION_TYPE');
+            $pipelineTypeMapping                = Config::get('waterConstaint.PARAM_PIPELINE');
+
+            $flipPropertyTypeMapping    = collect($propertyTypeMapping)->flip();
+            $flipConnectionTypeMapping  = collect($connectionTypeMapping)->flip();
+            $flipPipelineTypeMapping    = collect($pipelineTypeMapping)->flip();
 
             # level logic
             $sheduleDate = $mWaterSiteInspectionsScheduling->getInspectionData($request->applicationId)->first();
@@ -2652,7 +2702,10 @@ class NewConnectionController extends Controller
                 $returnData = $mWaterSiteInspection->getSiteDetails($request->applicationId)
                     ->where('order_officer', $refJe)
                     ->first();
-                $returnData['final_verify'] = true;
+                $returnData['final_verify']         = true;
+                $returnData['property_type_name']   = $flipPropertyTypeMapping[$returnData->property_type_id];
+                $returnData['connection_type_name'] = $flipConnectionTypeMapping[$returnData->connection_type_id];
+                $returnData['pipeline_type_name']   = $flipPipelineTypeMapping[$returnData->pipeline_type_id];
                 return responseMsgs(true, "JE Inspection details!", remove_null($returnData), "", "01", ".ms", "POST", $request->deviceId);
             }
             return responseMsgs(true, "Data not Found!", remove_null($returnData), "", "01", ".ms", "POST", $request->deviceId);
@@ -2745,7 +2798,7 @@ class NewConnectionController extends Controller
     //         $mWaterApplication = new WaterApplication();
 
     //         $mWaterApplication->getWaterApplicationsDetails($applicationId);
-    //         DB::beginTransaction();
+    //         $this->begin();
     //         #check full doc upload
     //         $refCheckDocument = $this->checkFullDocUpload($req);
     //         # Update the Doc Upload Satus in Application Table
@@ -2756,7 +2809,7 @@ class NewConnectionController extends Controller
     //             $status = true;
     //             $mWaterApplication->updateParkedstatus($status, $applicationId);
     //         }
-    //         DB::commit();
+    //         $this->commit();
     //         if ($response == false)
     //             throw new Exception("Full document not uploaded!");
     //         return responseMsgs(true, "Document Uploadation Successful", "", "", "1.0", "", "POST", $req->deviceId ?? "");

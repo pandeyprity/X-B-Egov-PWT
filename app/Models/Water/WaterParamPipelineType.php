@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterParamPipelineType extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Get Lsit Of peline type 

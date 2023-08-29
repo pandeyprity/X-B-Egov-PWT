@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Config;
 class WaterConnectionCharge extends Model
 {
     use HasFactory;
-
+    protected $connection = 'pgsql_water';
 
     /**
      * |---------------------------------- Save water connection charges ---------------------------------------------|

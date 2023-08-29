@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterTranFineRebate extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Save fine and rebate in table

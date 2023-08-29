@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterPropertyTypeMstr extends Model
 {
     use HasFactory;
-
+    protected $connection = 'pgsql_water';
 
     /**
      * | Get Property type Details

@@ -8,4 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class WaterDisconnectionRequest extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 }

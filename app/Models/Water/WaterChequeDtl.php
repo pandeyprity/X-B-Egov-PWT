@@ -8,7 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class WaterChequeDtl extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
+    /**
+     * | Get check details by id
+     */
     public function chequeDtlById($request)
     {
         return WaterChequeDtl::select('*')
@@ -35,6 +39,7 @@ class WaterChequeDtl extends Model
         $mPropChequeDtl = new WaterChequeDtl();
         $mPropChequeDtl->consumer_id        =  $req['consumer_id'] ?? null;
         $mPropChequeDtl->application_id     =  $req['application_id'] ?? null;
+        $mPropChequeDtl->consumer_req_id    =  $req['consumer_req_id'] ?? null;
         $mPropChequeDtl->transaction_id     =  $req['transaction_id'];
         $mPropChequeDtl->cheque_date        =  $req['cheque_date'];
         $mPropChequeDtl->bank_name          =  $req['bank_name'];

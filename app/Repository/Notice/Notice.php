@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\PDF;
+use Illuminate\Support\Str;
 
 /**
  * Created By Sandeep Bara
@@ -37,6 +38,8 @@ use Barryvdh\DomPDF\Facade\PDF;
     use Workflow;
     use NoticeTrait;
 
+    private $_DB;
+    private $_DB_NAME;
     private $_COMMON_FUNCTION;
     private $_MODEL_Workflow_Tracks;
     private $_MODEL_CUSTOM_DETAIL;
@@ -56,8 +59,14 @@ use Barryvdh\DomPDF\Facade\PDF;
     protected $_ID_GENERATOR;
     protected $_APPLICATION_NO_CONST;
     protected $_NOTICE_NO_CONST;
+
     public function __construct()
     {
+        $this->_DB_NAME = "pgsql_notice";
+        $this->_DB = DB::connection( $this->_DB_NAME );
+        DB::enableQueryLog();
+        $this->_DB->enableQueryLog();
+
         $this->_COMMON_FUNCTION             =   new CommonFunction();
         $this->_ID_GENERATOR                =   new IdGeneratorController();
         $this->_MODEL_Workflow_Tracks       = new WorkflowTrack();
@@ -80,6 +89,32 @@ use Barryvdh\DomPDF\Facade\PDF;
         $this->_WF_MASTER_ID                =   null;
         
         
+    }
+
+    public function begin()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::beginTransaction();
+        if($db1!=$db2 )
+        $this->_DB->beginTransaction();
+    }
+    public function rollback()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::rollBack();
+        if($db1!=$db2 )
+        $this->_DB->rollBack();
+    }
+     
+    public function commit()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        DB::commit();
+        if($db1!=$db2 )
+        $this->_DB->commit();
     }
 
     public function add(Request $request)
@@ -119,7 +154,7 @@ use Barryvdh\DomPDF\Facade\PDF;
             $notice_type = $this->_NOTICE_CONSTAINT["NOTICE-TYPE-BY-ID"][$notice_type_id]??null;
             $refWorkflows  = $this->_COMMON_FUNCTION->iniatorFinisher($userId, $ulbId, $this->_WF_MASTER_ID);
             // dd(DB::getQueryLog());
-            DB::beginTransaction();
+            $this->begin();
             $noticeApplication = new NoticeApplication();
             $noticeApplication->notice_type_id  = $notice_type_id;
             $noticeApplication->notice_for_module_id  = $notice_for_module_id;
@@ -146,7 +181,7 @@ use Barryvdh\DomPDF\Facade\PDF;
             $noticeApplication->user_id         = $userId;
             $noticeApplication->ulb_id          = $ulbId;
             $id_request = new Request(["ulbId"=>$ulbId,"paramId"=>$this->_APPLICATION_NO_CONST]);
-            $id_respons = $this->_ID_GENERATOR->idGenerator($id_request);dd($id_request->all());
+            $id_respons = $this->_ID_GENERATOR->idGenerator($id_request);
             $noticeApplication->application_no  = $id_respons->original["data"];
             $noticeApplication->save();
             $applicationNo =  $noticeApplication->application_no ;
@@ -186,7 +221,7 @@ use Barryvdh\DomPDF\Facade\PDF;
                 $data = $response->original["data"];
             }
             
-            DB::commit();
+            $this->commit();
             return  responseMsg(true, $message, $data);
 
         }
@@ -424,7 +459,7 @@ use Barryvdh\DomPDF\Facade\PDF;
     }
     public function WorkFlowMetaList()
     {
-        return DB::table("notice_applications")
+        return $this->_DB->table("notice_applications")
         ->join("notice_type_masters","notice_type_masters.id","notice_applications.notice_type_id")
         ->join("module_masters","module_masters.id","notice_applications.notice_for_module_id")
         ->select(
@@ -456,8 +491,7 @@ use Barryvdh\DomPDF\Facade\PDF;
             $role2 = $this->_COMMON_FUNCTION->getUserRoll($refUserId, $refUlbId, $this->_PAYMENT_NOTICE_WF_MASTER_Id)->role_id??0;
             $role3 = $this->_COMMON_FUNCTION->getUserRoll($refUserId, $refUlbId, $this->_ILLEGAL_OCCUPATION_WF_MASTER_Id)->role_id??0;
             
-            $inputs = $request->all();
-            // DB::enableQueryLog();          
+            $inputs = $request->all();       
             $application = $this->WorkFlowMetaList()
                 ->where("notice_applications.ulb_id",$refUlbId)
                 ->whereNOTIN("notice_applications.status",[0,5])    
@@ -614,7 +648,7 @@ use Barryvdh\DomPDF\Facade\PDF;
             {
                 return responseMsg(false, "Forbidden Access", "");
             }
-            DB::beginTransaction();
+            $this->begin();
 
             // Approval
             if ($request->status == 1) 
@@ -641,11 +675,11 @@ use Barryvdh\DomPDF\Facade\PDF;
                 $msg = "Application Successfully Rejected !!";
                 
             }
-            DB::commit();
+            $this->commit();
             $data["NoticeNo"] = $application->notice_no;
             return responseMsg(true, $msg, remove_null($data));
         } catch (Exception $e) {
-            DB::rollBack();
+            $this->rollBack();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
@@ -866,6 +900,46 @@ use Barryvdh\DomPDF\Facade\PDF;
         } catch (Exception $e) {
             return collect([]);
         }
+    }
+
+    public function getDtlByNoticeNo($noticNO,$ulbId="")
+    {
+        try {
+            $noticeData = NoticeApplication::select(
+                "notice_applications.*",
+                "ulb_masters.ulb_name",
+                DB::raw("notice_applications.notice_date AS noticeDate")
+                )
+            ->JOIN("ulb_masters","ulb_masters.id","notice_applications.ulb_id")
+            ->WHERE("notice_applications.notice_no",Str::upper($noticNO))            
+            ->WHERE("notice_applications.is_closed",FALSE)
+            ->WHERE("notice_applications.status",5);
+            
+        if($ulbId)
+        {
+            $noticeData = $noticeData->WHERE("notice_applications.ulb_id",$ulbId);
+        }
+        $noticeData = $noticeData->first();
+        return $noticeData;
+        }
+        catch (Exception $e) {
+            return null;
+        } 
+    }
+
+    public function noticeClose($id)
+    {
+        $notic = NoticeApplication::find($id);
+        if($notic)
+        {
+            $notic->is_closed = true;
+            $notic->update();
+        }
+    }
+
+    public function getNoticDtlById($id)
+    {
+        return NoticeApplication::find($id);
     }
     
  }

@@ -505,9 +505,15 @@ if (!function_exists('dateDiff')) {
 
 // Get Authenticated users list
 if (!function_exists('authUser')) {
-    function authUser()
+    function authUser($req)
     {
-        return auth()->user();
+        $auth = $req->auth;
+        if (!$auth)
+            throw new Exception("Auth Not Available");
+        if (is_array($auth))
+            return (object)$auth;
+        else
+            return json_decode($req->auth);
     }
 }
 
@@ -574,6 +580,92 @@ if (!function_exists("responseTime")) {
                 }
             }
             return $same;
+        }
+    }
+
+    // checks if the number lies in between
+    if (!function_exists('is_between')) {
+        function is_between($number, $min, $max, $inclusive = true)
+        {
+            if ($inclusive)
+                return $number >= $min && $number <= $max;
+            else
+                return $number > $min && $number < $max;
+        }
+    }
+
+
+
+    /**
+     * | Search Filter for Shop Rental Data
+     */
+
+    if (!function_exists("searchShopRentalFilter")) {
+        function searchShopRentalFilter($orm, $req)
+        {
+            $key = trim($req->key);
+            return $orm->where(function ($query) use ($key) {
+                $query->orwhere('shop_no', 'ILIKE', '%' . $key . '%')
+                    ->orwhere("allottee", 'ILIKE', '%' . $key . '%');
+                // ->orwhere("vendor_name", 'ILIKE', '%' . $key . '%')
+                // ->orwhere("toll_no", 'ILIKE', '%' . $key . '%');
+            });
+        }
+    }
+
+
+
+    /**
+     * | Search Filter for Shop Rental Data
+     */
+
+    if (!function_exists("searchTollRentalFilter")) {
+        function searchTollRentalFilter($orm, $req)
+        {
+            $key = trim($req->key);
+            return $orm->where(function ($query) use ($key) {
+                // $query->orwhere('shop_no', 'ILIKE', '%' . $key . '%')
+                // ->orwhere("allottee", 'ILIKE', '%' . $key . '%');
+                $query->orwhere("vendor_name", 'ILIKE', '%' . $key . '%')
+                    ->orwhere("toll_no", 'ILIKE', '%' . $key . '%');
+            });
+        }
+    }
+
+
+    /**
+     * | Api Response time for the the apis
+     */
+
+    if (!function_exists("paginator")) {
+        function paginator($orm, $req)
+        {
+            $perPage = $req->perPage ? $req->perPage :  10;
+            $paginator = $orm->paginate($perPage);
+            return [
+                "current_page" => $paginator->currentPage(),
+                "last_page" => $paginator->lastPage(),
+                "data" => $paginator->items(),
+                "total" => $paginator->total(),
+            ];
+        }
+    }
+
+
+    /**
+     * | All Data Filter According to Key
+     */
+
+    if (!function_exists("searchFilter")) {
+        function searchFilter($orm, $req)
+        {
+            $key = trim($req->key);
+            return $orm->where(function ($query) use ($key) {
+                $query->orwhere('application_no', 'ILIKE', '%' . $key . '%')
+                    ->orwhere("applicant", 'ILIKE', '%' . $key . '%')
+                    // ->orwhere(DB::raw("TO_CHAR(application_date, 'DD/MM/YYYY')"), 'ILIKE', '%' . $key . '%')
+                    ->orwhere("entity_name", 'ILIKE', '%' . $key . '%');
+            });
         }
     }
 }

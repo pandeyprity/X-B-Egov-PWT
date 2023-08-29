@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class RejectedTradeLicence extends Model
 {
     use HasFactory;
+    protected $connection;
+    public function __construct($DB=null)
+    {
+       $this->connection = $DB ? $DB:"pgsql_trade";
+    }
 
 
     # one to one

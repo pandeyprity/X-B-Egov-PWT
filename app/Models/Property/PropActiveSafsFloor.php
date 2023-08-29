@@ -111,7 +111,7 @@ class PropActiveSafsFloor extends Model
 
     public function addfloor($req, $safId, $userId)
     {
-        if ($req['useType'] == 1)
+        if ($req['usageType'] == 1)
             $carpetArea =  $req['buildupArea'] * 0.70;
         else
             $carpetArea =  $req['buildupArea'] * 0.80;
@@ -119,7 +119,7 @@ class PropActiveSafsFloor extends Model
         $floor = new  PropActiveSafsFloor();
         $floor->saf_id = $safId;
         $floor->floor_mstr_id = $req['floorNo'] ?? null;
-        $floor->usage_type_mstr_id = $req['useType'] ?? null;
+        $floor->usage_type_mstr_id = $req['usageType'] ?? null;
         $floor->const_type_mstr_id = $req['constructionType'] ?? null;
         $floor->occupancy_type_mstr_id = $req['occupancyType'] ??  null;
         $floor->builtup_area = $req['buildupArea'] ?? null;
@@ -140,5 +140,16 @@ class PropActiveSafsFloor extends Model
             ->whereIn('prop_active_safs_floors.saf_id', $safIds)
             ->where('prop_active_safs_floors.status', 1)
             ->orderByDesc('id');
+    }
+
+    /**
+     * | Get Saf floors by Saf Id
+     */
+    public function getQSafFloorsBySafId($applicationId)
+    {
+        return PropActiveSafsFloor::query()
+            ->where('saf_id', $applicationId)
+            ->where('status', 1)
+            ->get();
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaterAdjustment extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
 
     /**
      * | Get the Adjusted amount for reslative id

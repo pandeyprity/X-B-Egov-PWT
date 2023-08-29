@@ -9,10 +9,10 @@ class ZoneMaster extends Model
 {
     use HasFactory;
 
-    public function getZone($ulbId)
+    public function getZone()
     {
-        return ZoneMaster::select('id', 'zone')
-            ->where('ulb_id', $ulbId)
+        return ZoneMaster::select('id', 'zone_name')
+            ->where('status', 1)
             ->get();
     }
 }

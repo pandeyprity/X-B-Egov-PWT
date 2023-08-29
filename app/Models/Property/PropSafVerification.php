@@ -71,11 +71,8 @@ class PropSafVerification extends Model
             'agency_verification' => $req->agencyVerification ?? null,
             'ulb_verification' => $req->ulbVerification ?? null,
             'prop_type_id' => $req->propertyType,
-            'road_type_id' => $req->roadType,
-            'road_width' => $req->roadWidth,
             'area_of_plot' => $req->areaOfPlot,
             'ward_id' => $req->wardId,
-            'new_ward_id' => $req->newWardId,
             'has_mobile_tower' => $req->isMobileTower,
             'tower_area' => $req->mobileTower['area'],
             'tower_installation_date' => $req->mobileTower['dateFrom'],
@@ -87,10 +84,7 @@ class PropSafVerification extends Model
             'petrol_pump_completion_date' => $req->petrolPump['dateFrom'],
             'has_water_harvesting' => $req->isWaterHarvesting,
             'user_id' => $req->userId,
-            'ulb_id' => $req->ulbId,
-            'gb_usage_types' => $req->gbUsageTypes,
-            'gb_prop_usage_types' => $req->gbPropUsageTypes,
-            'rwh_date_from' => $req->rwhDateFrom
+            'ulb_id' => $req->ulbId
         ];
 
         return PropSafVerification::create($metaReqs)->id;

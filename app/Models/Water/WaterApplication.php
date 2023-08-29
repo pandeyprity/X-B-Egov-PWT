@@ -17,6 +17,8 @@ use Razorpay\Api\Request;
 class WaterApplication extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_water';
+
 
     /**
      * |------------------------------------------ Save new water applications -----------------------------------------|

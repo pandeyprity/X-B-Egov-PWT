@@ -6,6 +6,7 @@ use App\Http\Controllers\Payment\CashVerificationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Property\ActiveSafController;
 use App\Http\Controllers\Property\ActiveSafControllerV2;
+use App\Http\Controllers\Property\Akola\AkolaCalculationController;
 use App\Http\Controllers\Property\ApplySafController;
 use App\Http\Controllers\Property\ConcessionController;
 use App\Http\Controllers\Property\SafCalculatorController;
@@ -53,7 +54,7 @@ Route::post('api-test', function () {
 })->middleware('api.key');
 
 // Inside Middleware Routes with API Authenticate 
-Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
+Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_maker']], function () {
   // Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
 
   /**
@@ -555,19 +556,6 @@ Route::controller(ReferenceController::class)->group(function () {
 
 
 
-
-
-
-
-
-
-
-
-
-// Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
-
-// });
-
 /**
     | Test Purpose
     | map locating 
@@ -575,4 +563,11 @@ Route::controller(ReferenceController::class)->group(function () {
 Route::controller(PropertyController::class)->group(function () {
   Route::post('getpropLatLong', 'getpropLatLong');                             // 01
   Route::post('upload-document', 'uploadDocument');                             // 01
+});
+
+/**
+ * | Akola Extra Apis
+ */
+Route::controller(AkolaCalculationController::class)->group(function () {
+  Route::post('v1/review-tax', 'calculate');                  // 01
 });
