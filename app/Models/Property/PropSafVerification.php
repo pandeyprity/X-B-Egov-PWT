@@ -84,7 +84,8 @@ class PropSafVerification extends Model
             'petrol_pump_completion_date' => $req->petrolPump['dateFrom'],
             'has_water_harvesting' => $req->isWaterHarvesting,
             'user_id' => $req->userId,
-            'ulb_id' => $req->ulbId
+            'ulb_id' => $req->ulbId,
+            'category_id' => $req->category
         ];
 
         return PropSafVerification::create($metaReqs)->id;
