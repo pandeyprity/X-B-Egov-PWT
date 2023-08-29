@@ -29,6 +29,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use App\Models\Trade\ActiveTradeLicence;
+use App\Models\Trade\AkolaTradeParamItemType;
 use App\Models\Trade\RejectedTradeLicence;
 use App\Models\Trade\TradeFineRebete;
 use App\Models\Trade\TradeLicence;
@@ -563,7 +564,7 @@ class TradeCitizen implements ITradeCitizen
 
             if ($refApplication->nature_of_bussiness) 
             {
-                $items = TradeParamItemType::itemsById($refApplication->nature_of_bussiness);
+                $items = AkolaTradeParamItemType::itemsById($refApplication->nature_of_bussiness);
                 foreach ($items as $val) {
                     $mItemName  .= $val->trade_item . ",";
                     $mCods      .= $val->trade_code . ",";

@@ -984,7 +984,7 @@ class Trade implements ITrade
                 throw new Exception("No Licence Found");
             }
             $refOldOwneres = ActiveTradeOwner::owneresByLId($mLicenceId);
-            $mnaturOfBusiness = !empty(trim($refOldLicece->nature_of_bussiness)) ? $this->_MODEL_TradeParamItemType->itemsById($refOldLicece->nature_of_bussiness) : [];
+            $mnaturOfBusiness = !empty(trim($refOldLicece->nature_of_bussiness)) ? $this->_MODEL_AkolaTradeParamItemType->itemsById($refOldLicece->nature_of_bussiness) : [];
             $natur = array();
             foreach ($mnaturOfBusiness as $val) {
                 $natur[] = [
@@ -1000,7 +1000,7 @@ class Trade implements ITrade
             $data["firmTypeList"]       = TradeParamFirmType::List();
             $data["ownershipTypeList"]  = TradeParamOwnershipType::List();
             $data["categoryTypeList"]   = TradeParamCategoryType::List();
-            $data["natureOfBusiness"]   = TradeParamItemType::List(true);
+            $data["natureOfBusiness"]   = AkolaTradeParamItemType::List(true);
             return responseMsg(true, "", remove_null($data));
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
@@ -1182,7 +1182,7 @@ class Trade implements ITrade
             $item_name = "";
             $cods = "";
             if ($licence->nature_of_bussiness) {
-                $items = TradeParamItemType::itemsById($licence->nature_of_bussiness);
+                $items = AkolaTradeParamItemType::itemsById($licence->nature_of_bussiness);
                 foreach ($items as $val) {
                     $item_name .= $val->trade_item . ",";
                     $cods .= $val->trade_code . ",";
@@ -1308,7 +1308,7 @@ class Trade implements ITrade
             $mItemName      = "";
             $mCods          = "";
             if (trim($refApplication->nature_of_bussiness)) {
-                $items = TradeParamItemType::itemsById($refApplication->nature_of_bussiness);
+                $items = AkolaTradeParamItemType::itemsById($refApplication->nature_of_bussiness);
                 foreach ($items as $val) {
                     $mItemName  .= $val->trade_item . ",";
                     $mCods      .= $val->trade_code . ",";
@@ -2917,7 +2917,7 @@ class Trade implements ITrade
             $cods = "";
             if ($application->nature_of_bussiness) 
             {
-                $items = TradeParamItemType::itemsById($application->nature_of_bussiness);
+                $items = AkolaTradeParamItemType::itemsById($application->nature_of_bussiness);
                 foreach ($items as $val) {
                     $item_name .= $val->trade_item . ",";
                     $cods .= $val->trade_code . ",";
