@@ -39,7 +39,7 @@ class ModelWard
             ->where("ulb_id",$ulb_id)
             ->where("ulb_ward_masters.status",1)
             ->groupBy("ward_name")
-            ->orderBy("ward_name")
+            ->orderBy("id",'ASC')
             ->get();
         }
         catch (Exception $e)

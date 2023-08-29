@@ -11,6 +11,7 @@ class TempTransaction extends Model
 {
     use HasFactory;
     protected $guarded = [];
+    protected $connection = 'pgsql_master';
 
     public function tempTransaction($req)
     {

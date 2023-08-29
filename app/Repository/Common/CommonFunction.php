@@ -65,16 +65,17 @@ class CommonFunction implements ICommonFunction
             $workflow_rolse = WfMaster::select(
                 DB::raw(
                     "wf_roles.id ,wf_roles.role_name,
-                                        forward_role_id as forward_role_id,
-                                        backward_role_id as backward_role_id,
-                                        is_initiator,is_finisher,
-                                        wf_masters.workflow_name,
-                                        wf_masters.id as workflow_id,
-                                        wf_workflows.ulb_id,
-                                        wf_workflowrolemaps.can_escalate,
-                                        wf_workflowrolemaps.serial_no,wf_workflowrolemaps.is_btc,
-                                        wf_workflowrolemaps.can_upload_document,
-                                        wf_workflowrolemaps.can_verify_document"
+                    forward_role_id as forward_role_id,
+                    backward_role_id as backward_role_id,
+                    is_initiator,is_finisher,
+                    wf_masters.workflow_name,
+                    wf_masters.id as workflow_id,
+                    wf_workflows.ulb_id,
+                    wf_workflowrolemaps.can_escalate,
+                    wf_workflowrolemaps.serial_no,wf_workflowrolemaps.is_btc,
+                    wf_workflowrolemaps.can_edit,
+                    wf_workflowrolemaps.can_upload_document,
+                    wf_workflowrolemaps.can_verify_document"
                     // "*"
                 )
             )
@@ -90,14 +91,16 @@ class CommonFunction implements ICommonFunction
                                                 wf_workflowrolemaps.serial_no,wf_workflowrolemaps.is_btc,
                                                 wf_workflowrolemaps.allow_full_list,
                                                 wf_workflowrolemaps.can_verify_document,
-                                                wf_workflowrolemaps.can_upload_document
+                                                wf_workflowrolemaps.can_upload_document,
+                                                wf_workflowrolemaps.can_edit
                                             FROM wf_workflowrolemaps 
                                             WHERE  wf_workflowrolemaps.is_suspended = false 
                                             GROUP BY workflow_id,wf_role_id , forward_role_id , backward_role_id, is_initiator, is_finisher,
                                                 wf_workflowrolemaps.allow_full_list,wf_workflowrolemaps.can_escalate,
                                                 wf_workflowrolemaps.serial_no,wf_workflowrolemaps.is_btc,
                                                 wf_workflowrolemaps.can_verify_document,
-                                                wf_workflowrolemaps.can_upload_document
+                                                wf_workflowrolemaps.can_upload_document,
+                                                wf_workflowrolemaps.can_edit
                                             ) wf_workflowrolemaps"),
                     function ($join) use ($ulb_id) {
                         $join->on("wf_workflowrolemaps.workflow_id", "wf_workflows.id");
@@ -193,17 +196,18 @@ class CommonFunction implements ICommonFunction
             $data = WfRole::select(
                 DB::raw(
                     "wf_roles.id as role_id,wf_roles.role_name,
-                                            wf_workflowrolemaps.is_initiator, wf_workflowrolemaps.is_finisher,
-                                            wf_workflowrolemaps.forward_role_id,forword.role_name as forword_name,
-                                            wf_workflowrolemaps.backward_role_id,backword.role_name as backword_name,
-                                            wf_workflowrolemaps.allow_full_list,wf_workflowrolemaps.can_escalate,
-                                            wf_workflowrolemaps.serial_no,wf_workflowrolemaps.is_btc,
-                                            wf_workflowrolemaps.can_upload_document,
-                                            wf_workflowrolemaps.can_verify_document,
-                                            wf_workflowrolemaps.can_backward,
-                                            wf_workflows.id as workflow_id,wf_masters.workflow_name,
-                                            ulb_masters.id as ulb_id, ulb_masters.ulb_name,
-                                            ulb_masters.ulb_type"
+                    wf_workflowrolemaps.is_initiator, wf_workflowrolemaps.is_finisher,
+                    wf_workflowrolemaps.forward_role_id,forword.role_name as forword_name,
+                    wf_workflowrolemaps.backward_role_id,backword.role_name as backword_name,
+                    wf_workflowrolemaps.allow_full_list,wf_workflowrolemaps.can_escalate,
+                    wf_workflowrolemaps.serial_no,wf_workflowrolemaps.is_btc,
+                    wf_workflowrolemaps.can_upload_document,
+                    wf_workflowrolemaps.can_verify_document,
+                    wf_workflowrolemaps.can_backward,
+                    wf_workflowrolemaps.can_edit,
+                    wf_workflows.id as workflow_id,wf_masters.workflow_name,
+                    ulb_masters.id as ulb_id, ulb_masters.ulb_name,
+                    ulb_masters.ulb_type"
                 )
             )
                 ->join("wf_roleusermaps", function ($join) {

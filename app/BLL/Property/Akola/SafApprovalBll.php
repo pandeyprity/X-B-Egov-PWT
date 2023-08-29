@@ -4,10 +4,12 @@ namespace App\BLL\Property\Akola;
 
 use App\MicroServices\IdGenerator\HoldingNoGenerator;
 use App\MicroServices\IdGenerator\PrefixIdGenerator;
+use App\MicroServices\IdGenerator\PropIdGenerator;
 use App\Models\Property\PropActiveSaf;
 use App\Models\Property\PropActiveSafsFloor;
 use App\Models\Property\PropActiveSafsOwner;
 use App\Models\Property\PropFloor;
+use App\Models\Property\PropSafMemoDtl;
 use App\Models\Property\PropSafVerification;
 use App\Models\Property\PropSafVerificationDtl;
 use Exception;
@@ -25,6 +27,10 @@ use Illuminate\Support\Facades\Config;
  * 1) Property Generation and Replication
  * 2) Approved Safs and floors Replication
  * 3) Fam Generation
+ * --------------------------------------
+ * @return holdingNo
+ * @return ptNo
+ * @return famNo
  */
 class SafApprovalBll
 {
@@ -43,6 +49,10 @@ class SafApprovalBll
     private $_verifiedFloors;
     private $_mPropFloors;
     private $_calculateTaxByUlb;
+    public $_holdingNo;
+    public $_ptNo;
+    public $_famNo;
+    public $_famId;
 
     // Initializations
     public function __construct()
@@ -103,7 +113,9 @@ class SafApprovalBll
         $idGeneration = new PrefixIdGenerator($ptParamId, $this->_activeSaf->ulb_id);
         // Holding No Generation
         $holdingNo = $holdingNoGenerator->generateHoldingNo($this->_activeSaf);
+        $this->_holdingNo = $holdingNo;
         $ptNo = $idGeneration->generate();
+        $this->_ptNo = $ptNo;
         $this->_activeSaf->pt_no = $ptNo;                        // Generate New Property Tax No for All Conditions
         $this->_activeSaf->holding_no = $holdingNo;
         $this->_activeSaf->save();
@@ -118,6 +130,7 @@ class SafApprovalBll
         $propProperties = $this->_toBeProperties->replicate();
         $propProperties->setTable('prop_properties');
         $propProperties->saf_id = $this->_activeSaf->id;
+        $propProperties->holding_no = $this->_activeSaf->holding_no;
         $propProperties->new_holding_no = $this->_activeSaf->holding_no;
         $propProperties->save();
 
@@ -171,10 +184,31 @@ class SafApprovalBll
      */
     public function famGeneration()
     {
+        // Tax Calculation
         $this->_calculateTaxByUlb = new CalculateTaxByUlb($this->_verifiedPropDetails[0]->id);
+        $propIdGenerator = new PropIdGenerator;
         $calculatedTaxes = $this->_calculateTaxByUlb->_GRID;
-        print($calculatedTaxes);
-        die;
+        $firstDemand = $calculatedTaxes['fyearWiseTaxes']->first();
+        // Fam No Generation
+        $famFyear = $firstDemand['fyear'];
+        $famNo = $propIdGenerator->generateMemoNo("FAM", $this->_activeSaf->ward_mstr_id, $famFyear);
+        $this->_famNo = $famNo;
+        $memoReq = [
+            "saf_id" => $this->_activeSaf->id,
+            "from_fyear" => $famFyear,
+            "alv" => $firstDemand['alv'],
+            "annual_tax" => $firstDemand['totalTax'],
+            "user_id" => auth()->user()->id,
+            "memo_no" => $famNo,
+            "memo_type" => "FAM",
+            "holding_no" => $this->_activeSaf->holding_no,
+            "prop_id" => $this->_replicatedPropId,
+            "ward_mstr_id" => $this->_activeSaf->ward_mstr_id,
+            "pt_no" => $this->_activeSaf->pt_no,
+        ];
+
+        $createdFam = PropSafMemoDtl::create($memoReq);
+        $this->_famId = $createdFam->id;
     }
 
     /**
@@ -197,6 +231,7 @@ class SafApprovalBll
             $approvedOwner->save();
             $ownerDetail->delete();
         }
+
         if ($this->_activeSaf->prop_type_mstr_id != 4) {               // Applicable Not for Vacant Land
             // Saf Floors Replication
             foreach ($this->_floorDetails as $floorDetail) {

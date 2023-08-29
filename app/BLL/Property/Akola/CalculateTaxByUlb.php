@@ -65,7 +65,7 @@ class CalculateTaxByUlb extends TaxCalculator
             "propertyType" => $this->_propVerifications->prop_type_id,
             "areaOfPlot" => $this->_propVerifications->area_of_plot,
             "category" => $this->_propVerifications->category_id,
-            "dateOfPurchase" => $this->_safs->date_of_purchase,
+            "dateOfPurchase" => $this->_safs->land_occupation_date,
             "floor" => [],
             "owner" => []
         ];

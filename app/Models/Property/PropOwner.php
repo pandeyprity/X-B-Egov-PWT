@@ -184,6 +184,7 @@ class PropOwner extends Model
         return PropOwner::select(
             'owner_name',
             'mobile_no',
+            'is_armed_force'
         )
             ->where('property_id', $propertyId)
             ->orderBy('id')
