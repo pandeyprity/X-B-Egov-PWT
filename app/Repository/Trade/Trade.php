@@ -18,6 +18,8 @@ use App\Models\Trade\ActiveTradeDocument;
 use App\Models\Trade\ActiveTradeLicence;
 use App\Models\Trade\ActiveTradeNoticeConsumerDtl;
 use App\Models\Trade\ActiveTradeOwner;
+use App\Models\Trade\AkolaTradeParamItemType;
+use App\Models\Trade\AkolaTradeParamLicenceRate;
 use App\Models\Trade\RejectedTradeLicence;
 use App\Models\Trade\RejectedTradeOwner;
 use App\Models\Trade\RejectedTradeDocument;
@@ -102,6 +104,9 @@ class Trade implements ITrade
     protected $_MODEL_TradeParamItemType;
     protected $_MODEL_ActiveTradeLicence;
     protected $_MODEL_ActiveTradeOwner;
+    protected $_MODEL_AkolaTradeParamItemType;
+    protected $_MODEL_AkolaTradeParamLicenceRate;
+
 
     public function __construct()
     {
@@ -129,9 +134,12 @@ class Trade implements ITrade
         $this->_MODEL_TradeParamFirmType = new TradeParamFirmType($this->_DB_NAME );
         $this->_MODEL_TradeParamOwnershipType = new TradeParamOwnershipType($this->_DB_NAME );
         $this->_MODEL_TradeParamCategoryType = new TradeParamCategoryType($this->_DB_NAME );
-        $this->_MODEL_TradeParamItemType = new TradeParamItemType($this->_DB_NAME );
+        // $this->_MODEL_TradeParamItemType = new TradeParamItemType($this->_DB_NAME );
         $this->_MODEL_ActiveTradeLicence = new ActiveTradeLicence( $this->_DB_NAME );
         $this->_MODEL_ActiveTradeOwner  = new ActiveTradeOwner($this->_DB_NAME);
+
+        $this->_MODEL_AkolaTradeParamItemType = new AkolaTradeParamItemType($this->_DB_NAME );
+        $this->_MODEL_AkolaTradeParamLicenceRate = new AkolaTradeParamLicenceRate($this->_DB_NAME );
     }
 
     public function begin()
@@ -754,10 +762,14 @@ class Trade implements ITrade
             $mDenialAmount  = 0;
             $mPaymentStatus = 1;
             $mNoticeDate    = null;
-            $mShortUlbName  = "";
+            $mShortUlbName  =  $refUlbDtl->short_name??null;
             $mWardNo        = "";
-            foreach ($refUlbName as $val) {
-                $mShortUlbName .= $val[0];
+            if(!$mShortUlbName)
+            {
+                foreach ($refUlbName as $val) {
+                    $mShortUlbName .= $val[0];
+                }
+
             }
 
             #-----------valication-------------------                            
@@ -799,8 +811,14 @@ class Trade implements ITrade
             $args['tobacco_status']      = $refLecenceData->is_tobacco;
             $args['licenseFor']          = $request->licenseFor;
             $args['nature_of_business']  = $refLecenceData->nature_of_bussiness;
-            $args['noticeDate']          = $mNoticeDate;
-            $chargeData = $this->cltCharge($args);
+            $args['noticeDate']          = $mNoticeDate;            
+            if($refUlbId==2)
+            {
+                $chargeData = $this->AkolaCltCharge($args);
+            }
+            else{
+                $chargeData = $this->cltCharge($args);
+            }
             // dd($args,$chargeData);
             if ($chargeData['response'] == false || $chargeData['total_charge'] != $request->totalCharge) 
             {
@@ -832,7 +850,7 @@ class Trade implements ITrade
             $Tradetransaction->ulb_id           = $refUlbId;
             $Tradetransaction->save();
             $transaction_id                     = $Tradetransaction->id;
-            $Tradetransaction->tran_no   = $this->createTransactionNo($transaction_id,$shortUlbName); //"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
+            $Tradetransaction->tran_no   = $this->createTransactionNo($transaction_id,$mShortUlbName); //"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
             $Tradetransaction->update();
 
             $TradeFineRebet = new TradeFineRebete;
@@ -1468,15 +1486,15 @@ class Trade implements ITrade
             $data["licenseFor"]     = $request->licenseFor;
             $data["apply_licence_id"]  = $request->licenceId ?? null;
             $data["nature_of_business"] = $mNatureOfBussiness;
-            
-            $data = $this->cltCharge($data);
+            // $data = $this->cltCharge($data);
+            $data = $this->AkolaCltCharge($data);
             // dd($data1,$data);
             if ($data['response'])
                 return responseMsg(true, "", $data);
             else
                 throw new Exception("some Errors on Calculation");
         } catch (Exception $e) {
-            return responseMsg(false, $e->getMessage(), $request->all());
+            return responseMsg(false, $e->getMessage(), "");
         }
     }
 
@@ -3037,7 +3055,7 @@ class Trade implements ITrade
      */
     public function createApplicationNo($wardNo, $licenceId,$mShortUlbName=null)
     {
-        return ($mShortUlbName && strtoupper($mShortUlbName)!="RMC"?strtoupper($mShortUlbName)."-" : "")."APN" . str_pad($wardNo, 2, '0', STR_PAD_LEFT) . str_pad($licenceId, 7, '0', STR_PAD_LEFT);
+        return ($mShortUlbName && strtoupper($mShortUlbName)!="RMC"?strtoupper($mShortUlbName)."-" : "APN") . str_pad($wardNo, 2, '0', STR_PAD_LEFT) . str_pad($licenceId, 7, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -3149,6 +3167,95 @@ class Trade implements ITrade
             return $response;
         }
     }
+
+    public function AkolaCltCharge(array $args)
+    {
+        $response = ['response' => false];
+        try {
+            $data = array();
+            $inputs = $args;
+            $data['area_in_sqft'] = (float)$inputs['areaSqft'];
+            $data['application_type_id'] = $inputs['application_type_id'];
+            $data['firm_date'] = $inputs['firmEstdDate'];
+            $data['firm_date'] = date('Y-m-d', strtotime($data['firm_date']));
+
+            $data['tobacco_status'] = $inputs['tobacco_status'] == True ? 1 : 0;
+            $data['timeforlicense'] = $inputs['licenseFor'];
+            $data['curdate'] = $inputs['curdate'] ?? date("Y-m-d");
+            $data["nature_of_business"]=$inputs['nature_of_business']??0;
+            $denial_amount_month = 0;
+            $count = $this->AkolaGetRate($data);
+            $rate = $count->rate * $data['timeforlicense'];
+            $notice_amount = 0;
+            if (isset($inputs['noticeDate']) && $inputs['noticeDate']) 
+            {
+                $notice_amount = 0; #$this->getDenialAmountTrade($inputs['noticeDate']);
+            }
+            $pre_app_amount = 0;
+            if (isset($data['application_type_id']) && in_array($data['application_type_id'], [1, 2])) 
+            {
+                $nob = array();
+                $data['nature_of_business'] = null;
+                if (isset($inputs['nature_of_business']))
+                    $nob = explode(',', $inputs['nature_of_business']);
+                if (sizeof($nob) == 1) 
+                {
+                    $data['nature_of_business'] = $nob[0];
+                }
+
+                $temp = $data['firm_date'];
+                $temp2 = $data['firm_date'];
+                // if ($data['nature_of_business'] == 198 && strtotime($temp) <= strtotime('2021-10-30')) 
+                // {
+                //     $temp = '2021-10-30';
+                //     $temp2 = $temp;
+                // } 
+                // elseif ($data['nature_of_business'] != 198 && strtotime($temp) <= strtotime('2020-01-01')) 
+                // {
+                //     $temp = '2020-01-01';
+                // }
+                $data['firm_date'] = $temp;
+                $diff_year = date_diff(date_create($temp2), date_create($data['curdate']))->format('%R%y');
+                $pre_app_amount = ($diff_year > 0 ? $diff_year : 0) * $count->rate;
+            }
+
+            $vDiff = abs(strtotime($data['curdate']) - strtotime($data['firm_date'])); // here abs in case theres a mix in the dates
+            $vMonths = ceil($vDiff / (30 * 60 * 60 * 24)); // number of seconds in a month of 30 days
+
+            if ($vMonths > 0 && strtotime($data['firm_date']) < strtotime($data['curdate'])) 
+            {
+                // $denial_amount_month = 100 + (($vMonths) * 20);
+            }
+            # In case of ammendment no denial amount
+            if ($data['application_type_id'] == 3)
+            {
+                $denial_amount_month = 0;
+            }
+            $total_denial_amount = $denial_amount_month + $rate + $pre_app_amount + $notice_amount;
+
+            # Check If Any cheque bounce charges
+            if (isset($inputs['apply_licence_id'], $inputs['apply_licence_id'])) 
+            {
+                $penalty = $this->getChequeBouncePenalty($inputs['apply_licence_id']);
+                $denial_amount_month += $penalty;
+                $total_denial_amount += $penalty;
+            }
+
+            if ($count) 
+            {
+                $response = ['response' => true, 'rate' => $rate, 'penalty' => $denial_amount_month, 'total_charge' => $total_denial_amount, 'rate_id' => $count['id'], 'arear_amount' => $pre_app_amount, "notice_amount" => $notice_amount,"months"=>$vMonths,"year"=>$diff_year??0];
+            } 
+            else 
+            {
+                $response = ['response' => false];
+            }
+            return $response;
+        } 
+        catch (Exception $e) 
+        {            
+            return $response;
+        }
+    }
     
     public function getDenialAmountTrade($notice_date = null, $current_date = null)
     {
@@ -3183,6 +3290,24 @@ class Trade implements ITrade
                 ->where('effective_date', '<', $input['curdate'])
                 ->where('status', 1)
                 ->where('tobacco_status', $input['tobacco_status'])
+                ->orderBy('effective_date', 'Desc')
+                ->first();
+            return $builder;
+        } catch (Exception $e) {
+            echo $e->getMessage();
+        }
+    }
+
+    public function AkolaGetRate(array $input) #stdcl object array
+    {
+        try {
+            DB::enableQueryLog();
+            $builder = AkolaTradeParamLicenceRate::select('id', 'rate')
+                ->where('application_type_id', $input['application_type_id'])
+                ->whereIn('item_type_id', explode(",",$input['nature_of_business']))
+                ->where('effective_date', '<', $input['curdate'])
+                ->where('status', 1)
+                // ->where('tobacco_status', $input['tobacco_status'])
                 ->orderBy('effective_date', 'Desc')
                 ->first();
             return $builder;

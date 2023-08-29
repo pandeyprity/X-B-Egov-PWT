@@ -34,6 +34,7 @@ use App\Models\Trade\TradeParamCategoryType;
 use App\Models\Trade\TradeParamOwnershipType;
 use App\Http\Requests\Trade\ReqUpdateBasicDtl;
 use App\Models\Trade\ActiveTradeOwner;
+use App\Models\Trade\AkolaTradeParamItemType;
 use App\Models\Trade\RejectedTradeOwner;
 use App\Models\Workflows\WfRoleusermap;
 use App\Traits\Trade\TradeTrait;
@@ -72,6 +73,7 @@ class TradeApplication extends Controller
     protected $_MODEL_TradeParamItemType;
     protected $_MODEL_ActiveTradeLicence;
     protected $_MODEL_ActiveTradeOwner;
+    protected $_MODEL_AkolaTradeParamItemType;
 
     public function __construct(ITrade $TradeRepository)
     {        
@@ -94,6 +96,7 @@ class TradeApplication extends Controller
         $this->_MODEL_TradeParamItemType = new TradeParamItemType($this->_DB_NAME );
         $this->_MODEL_ActiveTradeLicence = new ActiveTradeLicence( $this->_DB_NAME );
         $this->_MODEL_ActiveTradeOwner  = new ActiveTradeOwner($this->_DB_NAME);
+        $this->_MODEL_AkolaTradeParamItemType = new AkolaTradeParamItemType($this->_DB_NAME );
 
         $this->_WF_MASTER_Id = Config::get('workflow-constants.TRADE_MASTER_ID');
         $this->_WF_NOTICE_MASTER_Id = Config::get('workflow-constants.TRADE_NOTICE_ID');
@@ -197,7 +200,7 @@ class TradeApplication extends Controller
             $data["firmTypeList"]       =$this->_MODEL_TradeParamFirmType->List();
             $data["ownershipTypeList"]  =$this->_MODEL_TradeParamOwnershipType->List();
             $data["categoryTypeList"]   =$this->_MODEL_TradeParamCategoryType->List();
-            $data["natureOfBusiness"]   =$this->_MODEL_TradeParamItemType->List(true);
+            $data["natureOfBusiness"]   =  $this->_MODEL_AkolaTradeParamItemType->List(); #$this->_MODEL_TradeParamItemType->List(true);
             if (isset($request->licenseId) && $request->licenseId  && $mApplicationTypeId != 1) {
                 $mOldLicenceId = $request->licenseId;
                 $nextMonth = Carbon::now()->addMonths(1)->format('Y-m-d');
@@ -221,7 +224,7 @@ class TradeApplication extends Controller
                     throw new Exception("Application not approved Please Track  " . $refOldLicece->application_no);
                 }
                 $refOldOwneres = TradeOwner::owneresByLId($request->licenseId);
-                $mnaturOfBusiness = $this->_MODEL_TradeParamItemType->itemsById($refOldLicece->nature_of_bussiness);
+                $mnaturOfBusiness = $this->_MODEL_AkolaTradeParamItemType->itemsById($refOldLicece->nature_of_bussiness);
                 $natur = array();
                 foreach ($mnaturOfBusiness as $val) {
                     $natur[] = [

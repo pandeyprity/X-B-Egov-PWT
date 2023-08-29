@@ -262,7 +262,8 @@ class TradeCitizen implements ITradeCitizen
             $args['licenseFor']          = $refLecenceData->licence_for_years;
             $args['nature_of_business']  = $refLecenceData->nature_of_bussiness;
             $args['noticeDate']          = $mNoticeDate;
-            $chargeData = $this->_REPOSITORY_TRADE->cltCharge($args);
+            // $chargeData = $this->_REPOSITORY_TRADE->cltCharge($args);
+            $chargeData = $this->_REPOSITORY_TRADE->AkolaCltCharge($args);
             if ($chargeData['response'] == false || round($args['amount']) != round($chargeData['total_charge'])) {
                 throw new Exception("Payble Amount Missmatch!!!");
             }
