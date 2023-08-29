@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Water;
 
+use App\BLL\Water\WaterMonthelyCall;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Water\reqDeactivate;
 use App\Http\Requests\Water\reqMeterEntry;
@@ -1954,48 +1955,4 @@ class WaterConsumer extends Controller
             return $e->getMessage();
         }
     }
-
-
-    /**
-     * apply water connection for akola
-     * under working
-     |in process
-     
-     */
-    public function applyWaterConnection(newWaterRequest $req ){
-        try{
-          $ulbId                      =$req->ulbId;
-          $mWaterSecondConsumer       = new WaterSecondConsumer();
-          $refConParamId                = Config::get("waterConstaint.PARAM_IDS");
-          $this->begin();
-          $idGeneration            =  new PrefixIdGenerator($refConParamId['WCD'], $ulbId);
-          $applicationNo           =  $idGeneration->generate();
-          $applicationNo           = str_replace('/', '-', $applicationNo);
-          $meta =[
-            'status' =>'4'
-          ];
-          $water=$mWaterSecondConsumer->saveConsumer($req,$meta,$applicationNo);
-          $returnData = [
-            'applicationNo'         => $applicationNo,
-          ];
-          $this->commit();
-         return responseMsgs(true, "save consumer!", remove_null($returnData), "", "02", ".ms", "POST", $req->deviceId);
-        }
-          catch (Exception $e) {
-          $this->rollback();
-          return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", "");
-      }
-  
-       }
-    /**
-     * | 
-     */
-    public function this()
-    {
-        $test = new WaterSecondConsumer();
-        $resposne = $test->getConsumerDetailsById(1)->first();
-        return responseMsgs(true, "data", remove_null($resposne), "1.0", "350ms", "POST", "");
-    }
-
-  
 }

@@ -125,7 +125,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         # Deactivation
         Route::post('admin/consumer/apply-deactivation', 'applyDeactivation');                          // Admin / Not Used
         Route::post('admin/consumer/demand-deactivation', 'consumerDemandDeactivation');  // Here       // Admin / Not used
-        Route::post('find', 'this');
+        Route::post('get-listed-fee', 'test');
     });
 
 

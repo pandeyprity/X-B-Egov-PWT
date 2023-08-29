@@ -18,6 +18,8 @@ use App\Models\Trade\ActiveTradeDocument;
 use App\Models\Trade\ActiveTradeLicence;
 use App\Models\Trade\ActiveTradeNoticeConsumerDtl;
 use App\Models\Trade\ActiveTradeOwner;
+use App\Models\Trade\AkolaTradeParamItemType;
+use App\Models\Trade\AkolaTradeParamLicenceRate;
 use App\Models\Trade\RejectedTradeLicence;
 use App\Models\Trade\RejectedTradeOwner;
 use App\Models\Trade\RejectedTradeDocument;
@@ -102,6 +104,9 @@ class Trade implements ITrade
     protected $_MODEL_TradeParamItemType;
     protected $_MODEL_ActiveTradeLicence;
     protected $_MODEL_ActiveTradeOwner;
+    protected $_MODEL_AkolaTradeParamItemType;
+    protected $_MODEL_AkolaTradeParamLicenceRate;
+
 
     public function __construct()
     {
@@ -129,9 +134,12 @@ class Trade implements ITrade
         $this->_MODEL_TradeParamFirmType = new TradeParamFirmType($this->_DB_NAME );
         $this->_MODEL_TradeParamOwnershipType = new TradeParamOwnershipType($this->_DB_NAME );
         $this->_MODEL_TradeParamCategoryType = new TradeParamCategoryType($this->_DB_NAME );
-        $this->_MODEL_TradeParamItemType = new TradeParamItemType($this->_DB_NAME );
+        // $this->_MODEL_TradeParamItemType = new TradeParamItemType($this->_DB_NAME );
         $this->_MODEL_ActiveTradeLicence = new ActiveTradeLicence( $this->_DB_NAME );
         $this->_MODEL_ActiveTradeOwner  = new ActiveTradeOwner($this->_DB_NAME);
+
+        $this->_MODEL_AkolaTradeParamItemType = new AkolaTradeParamItemType($this->_DB_NAME );
+        $this->_MODEL_AkolaTradeParamLicenceRate = new AkolaTradeParamLicenceRate($this->_DB_NAME );
     }
 
     public function begin()
@@ -265,7 +273,7 @@ class Trade implements ITrade
                 $mShortUlbName .= $mval[0];
             }
             #------------------------End Declaration-----------------------
-            if (in_array(strtoupper($mUserType), ["ONLINE", "JSK", "SUPER ADMIN", "TL"])) {
+            if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-NO-HAVE-WARD"])) {
                 $data['wardList'] = $this->_MODEL_WARD->getAllWard($refUlbId)->map(function ($val) {
                     $val->ward_no = $val->ward_name;
                     return $val;
@@ -343,7 +351,7 @@ class Trade implements ITrade
                 $licence->finisher_role       = $refWorkflows['finisher']['id'];
                 $licence->workflow_id         = $refWfWorkflow->id;
 
-                if (strtoupper($mUserType) == "ONLINE") {
+                if (strtoupper($mUserType) == $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
                     $licence->citizen_id      = $refUserId;
                 }
                 #----------------Crate Application--------------------
@@ -388,11 +396,7 @@ class Trade implements ITrade
                 {
                     $wardId = $request->firmDetails['wardNo'];
                     $mWardNo = (collect($data['wardList'])->where("id",$wardId)->pluck("ward_no"));
-                    // $mWardNo = array_filter($data['wardList'], function ($val) use ($wardId) {
-                    //     return $val['id'] == $wardId;
-                    // });
                     
-                    // $mWardNo = array_values($mWardNo)[0]['ward_no'] ?? "";
                     $mWardNo =  $mWardNo[0]??"";
                     $this->newLicense($licence, $request);
                     $licence->valid_from    = $licence->application_date;
@@ -431,7 +435,7 @@ class Trade implements ITrade
                         }
                     }
                 }
-                if (in_array(strtoupper($mUserType), ["JSK", "UTC", "TC", "SUPER ADMIN", "TL"]) && $mApplicationTypeId != 4) 
+                if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"]) && $mApplicationTypeId != 4) 
                 {
                     $myRequest = new \Illuminate\Http\Request();
                     $myRequest->setMethod('POST');
@@ -754,14 +758,18 @@ class Trade implements ITrade
             $mDenialAmount  = 0;
             $mPaymentStatus = 1;
             $mNoticeDate    = null;
-            $mShortUlbName  = "";
+            $mShortUlbName  =  $refUlbDtl->short_name??null;
             $mWardNo        = "";
-            foreach ($refUlbName as $val) {
-                $mShortUlbName .= $val[0];
+            if(!$mShortUlbName)
+            {
+                foreach ($refUlbName as $val) {
+                    $mShortUlbName .= $val[0];
+                }
+
             }
 
             #-----------valication-------------------                            
-            if (!in_array($mUserType, ["JSK", "UTC", "TC", "SUPER ADMIN", "TL"])) {
+            if (!in_array($mUserType, $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"])) {
                 throw new Exception("You Are Not Authorized For Payment Cut");
             }
             $refLecenceData = ActiveTradeLicence::find($request->licenceId);
@@ -799,8 +807,14 @@ class Trade implements ITrade
             $args['tobacco_status']      = $refLecenceData->is_tobacco;
             $args['licenseFor']          = $request->licenseFor;
             $args['nature_of_business']  = $refLecenceData->nature_of_bussiness;
-            $args['noticeDate']          = $mNoticeDate;
-            $chargeData = $this->cltCharge($args);
+            $args['noticeDate']          = $mNoticeDate;            
+            if($refUlbId==2)
+            {
+                $chargeData = $this->AkolaCltCharge($args);
+            }
+            else{
+                $chargeData = $this->cltCharge($args);
+            }
             // dd($args,$chargeData);
             if ($chargeData['response'] == false || $chargeData['total_charge'] != $request->totalCharge) 
             {
@@ -832,7 +846,7 @@ class Trade implements ITrade
             $Tradetransaction->ulb_id           = $refUlbId;
             $Tradetransaction->save();
             $transaction_id                     = $Tradetransaction->id;
-            $Tradetransaction->tran_no   = $this->createTransactionNo($transaction_id,$shortUlbName); //"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
+            $Tradetransaction->tran_no   = $this->createTransactionNo($transaction_id,$mShortUlbName); //"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
             $Tradetransaction->update();
 
             $TradeFineRebet = new TradeFineRebete;
@@ -955,7 +969,7 @@ class Trade implements ITrade
             $refUlbId           = $refUser->ulb_id;
             $refWorkflowId = $this->_WF_MASTER_Id;
             $mUserType          = $this->_COMMON_FUNCTION->userType($refWorkflowId);
-            if (in_array(strtoupper($mUserType), ["SUPER ADMIN", "BO"])) {
+            if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-NO-HAVE-WARD"])) {
                 $data['wardList'] = $this->_MODEL_WARD->getAllWard($refUlbId)->map(function ($val) {
                     $val->ward_no = $val->ward_name;
                     return $val;
@@ -970,7 +984,7 @@ class Trade implements ITrade
                 throw new Exception("No Licence Found");
             }
             $refOldOwneres = ActiveTradeOwner::owneresByLId($mLicenceId);
-            $mnaturOfBusiness = !empty(trim($refOldLicece->nature_of_bussiness)) ? $this->_MODEL_TradeParamItemType->itemsById($refOldLicece->nature_of_bussiness) : [];
+            $mnaturOfBusiness = !empty(trim($refOldLicece->nature_of_bussiness)) ? $this->_MODEL_AkolaTradeParamItemType->itemsById($refOldLicece->nature_of_bussiness) : [];
             $natur = array();
             foreach ($mnaturOfBusiness as $val) {
                 $natur[] = [
@@ -986,7 +1000,7 @@ class Trade implements ITrade
             $data["firmTypeList"]       = TradeParamFirmType::List();
             $data["ownershipTypeList"]  = TradeParamOwnershipType::List();
             $data["categoryTypeList"]   = TradeParamCategoryType::List();
-            $data["natureOfBusiness"]   = TradeParamItemType::List(true);
+            $data["natureOfBusiness"]   = AkolaTradeParamItemType::List(true);
             return responseMsg(true, "", remove_null($data));
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
@@ -1000,17 +1014,14 @@ class Trade implements ITrade
         $redis      = new Redis;
         $mUserData  = json_decode($redis::get('user:' . $refUserId), true);
         $refWorkflowId = $this->_WF_MASTER_Id;
-        $rollId     =  $mUserData['role_id'] ?? ($this->_COMMON_FUNCTION->getUserRoll($refUserId, $refUlbId, $refWorkflowId)->role_id ?? -1);
+        $role = $this->_COMMON_FUNCTION->getUserRoll($refUserId, $refUlbId, $refWorkflowId);
+        $rollId     =  ($role->role_id ?? -1);
 
         $mUserType = $this->_COMMON_FUNCTION->userType($refWorkflowId);
         $mProprtyId = null;
-        $rules = [];
-        $message = [];
-
-        $mRegex = '/^[a-zA-Z1-9][a-zA-Z1-9\.\, \s]+$/';
-        $mFramNameRegex = '/^[a-zA-Z1-9][a-zA-Z1-9\.&\s]+$/';
+        
         try {
-            if ($rollId == -1 || (!in_array($mUserType, ['BO', 'SUPER ADMIN']))) {
+            if ($rollId == -1 ||!$role->can_edit) {
                 throw new Exception("You Are Not Authorized");
             }
             $mLicenceId         = $request->initialBusinessDetails['id'];
@@ -1171,7 +1182,7 @@ class Trade implements ITrade
             $item_name = "";
             $cods = "";
             if ($licence->nature_of_bussiness) {
-                $items = TradeParamItemType::itemsById($licence->nature_of_bussiness);
+                $items = AkolaTradeParamItemType::itemsById($licence->nature_of_bussiness);
                 foreach ($items as $val) {
                     $item_name .= $val->trade_item . ",";
                     $cods .= $val->trade_code . ",";
@@ -1297,7 +1308,7 @@ class Trade implements ITrade
             $mItemName      = "";
             $mCods          = "";
             if (trim($refApplication->nature_of_bussiness)) {
-                $items = TradeParamItemType::itemsById($refApplication->nature_of_bussiness);
+                $items = AkolaTradeParamItemType::itemsById($refApplication->nature_of_bussiness);
                 foreach ($items as $val) {
                     $mItemName  .= $val->trade_item . ",";
                     $mCods      .= $val->trade_code . ",";
@@ -1468,15 +1479,15 @@ class Trade implements ITrade
             $data["licenseFor"]     = $request->licenseFor;
             $data["apply_licence_id"]  = $request->licenceId ?? null;
             $data["nature_of_business"] = $mNatureOfBussiness;
-            
-            $data = $this->cltCharge($data);
+            // $data = $this->cltCharge($data);
+            $data = $this->AkolaCltCharge($data);
             // dd($data1,$data);
             if ($data['response'])
                 return responseMsg(true, "", $data);
             else
                 throw new Exception("some Errors on Calculation");
         } catch (Exception $e) {
-            return responseMsg(false, $e->getMessage(), $request->all());
+            return responseMsg(false, $e->getMessage(), "");
         }
     }
 
@@ -1491,7 +1502,7 @@ class Trade implements ITrade
             $rules = [
                 "safNo" => "required|string",
             ];
-            if ($mUserType == "ONLINE") {
+            if (strtoupper($mUserType) == $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
                 $rules["ulbId"] = "required|digits_between:1,92";
             }
             $validator = Validator::make($request->all(), $rules,);
@@ -1524,7 +1535,7 @@ class Trade implements ITrade
             $rules = [
                 "holdingNo" => "required|string",
             ];
-            if ($mUserType == "Online") {
+            if (strtoupper($mUserType) == $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
                 $rules["ulbId"] = "required|digits_between:1,92";
             }
             $validator = Validator::make($request->all(), $rules,);
@@ -1576,7 +1587,7 @@ class Trade implements ITrade
             $refWorkflowId      = $this->_WF_MASTER_Id;
             $mUserType          = $this->_COMMON_FUNCTION->userType($refWorkflowId);
             $request->request->add(['ulbId'=>$refUlbId]);
-            if (in_array(strtoupper($mUserType), ["ONLINE"])) {
+            if (in_array(strtoupper($mUserType), [$this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]])) {
                 $rules["ulbId"]     = "required|digits_between:1,92";
             }
 
@@ -2095,7 +2106,7 @@ class Trade implements ITrade
             if (!$role) {
                 throw new Exception("You Are Not Authorized");
             }
-            if ($role->is_initiator || in_array(strtoupper($mUserType), ["JSK", "SUPER ADMIN", "ADMIN", "TL", "PMU", "PM"])) {
+            if ($role->is_initiator || in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-NO-HAVE-WARD"])) {
 
                 $ward_permission = $this->_MODEL_WARD->getAllWard($ulb_id)->map(function ($val) {
                     $val->ward_no = $val->ward_name;
@@ -2175,7 +2186,7 @@ class Trade implements ITrade
             $ward_permission = $this->_COMMON_FUNCTION->WardPermission($refUserId);
             $role = $this->_COMMON_FUNCTION->getUserRoll($refUserId, $refUlbId, $refWorkflowId);
 
-            if ($role->is_initiator || in_array(strtoupper($mUserType), ["JSK", "SUPER ADMIN", "ADMIN", "TL", "PMU", "PM"])) {
+            if ($role->is_initiator || in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-NO-HAVE-WARD"])) {
 
                 $ward_permission = $this->_MODEL_WARD->getAllWard($refUlbId)->map(function ($val) {
                     $val->ward_no = $val->ward_name;
@@ -2322,7 +2333,7 @@ class Trade implements ITrade
             $refWorkflowId      = $this->_WF_MASTER_Id;
             $mUserType          = $this->_COMMON_FUNCTION->userType($refWorkflowId);
 
-            if (in_array(strtoupper($mUserType), ["ONLINE", "JSK", "BO", "SUPER ADMIN", "TL"])) 
+            if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-NO-HAVE-WARD"])) 
             {
                 $mWardPermission = $this->_MODEL_WARD->getAllWard($refUlbId)->map(function ($val) {
                     $val->ward_no = $val->ward_name;
@@ -2347,7 +2358,7 @@ class Trade implements ITrade
             {
                 $uptoDate = $request->uptoDate;
             }
-            if (in_array(strtoupper($mUserType), ["ONLINE"])) 
+            if (in_array(strtoupper($mUserType), [$this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]])) 
             {
                 $fromDate = $uptoDate = null;
             }
@@ -2422,7 +2433,7 @@ class Trade implements ITrade
                         ->whereBetween('trade_licences.license_date', [$fromDate, $uptoDate]);
             }
 
-            if (in_array(strtoupper($mUserType), ["ONLINE"])) 
+            if (in_array(strtoupper($mUserType), [$this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]])) 
             {
                 $license = $license
                     ->where("citizen_id", $refUserId);
@@ -2436,7 +2447,7 @@ class Trade implements ITrade
                 "data" => $paginator->items(),
                 "total" => $paginator->total(),
             ]; 
-            if (in_array(strtoupper($mUserType), ["ONLINE"])) 
+            if (in_array(strtoupper($mUserType), [$this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]])) 
             {
                 $license = $license
                     ->get();
@@ -2906,7 +2917,7 @@ class Trade implements ITrade
             $cods = "";
             if ($application->nature_of_bussiness) 
             {
-                $items = TradeParamItemType::itemsById($application->nature_of_bussiness);
+                $items = AkolaTradeParamItemType::itemsById($application->nature_of_bussiness);
                 foreach ($items as $val) {
                     $item_name .= $val->trade_item . ",";
                     $cods .= $val->trade_code . ",";
@@ -3037,7 +3048,7 @@ class Trade implements ITrade
      */
     public function createApplicationNo($wardNo, $licenceId,$mShortUlbName=null)
     {
-        return ($mShortUlbName && strtoupper($mShortUlbName)!="RMC"?strtoupper($mShortUlbName)."-" : "")."APN" . str_pad($wardNo, 2, '0', STR_PAD_LEFT) . str_pad($licenceId, 7, '0', STR_PAD_LEFT);
+        return ($mShortUlbName && strtoupper($mShortUlbName)!="RMC"?strtoupper($mShortUlbName)."-" : "APN") . str_pad($wardNo, 2, '0', STR_PAD_LEFT) . str_pad($licenceId, 7, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -3149,6 +3160,95 @@ class Trade implements ITrade
             return $response;
         }
     }
+
+    public function AkolaCltCharge(array $args)
+    {
+        $response = ['response' => false];
+        try {
+            $data = array();
+            $inputs = $args;
+            $data['area_in_sqft'] = (float)$inputs['areaSqft'];
+            $data['application_type_id'] = $inputs['application_type_id'];
+            $data['firm_date'] = $inputs['firmEstdDate'];
+            $data['firm_date'] = date('Y-m-d', strtotime($data['firm_date']));
+
+            $data['tobacco_status'] = $inputs['tobacco_status'] == True ? 1 : 0;
+            $data['timeforlicense'] = $inputs['licenseFor'];
+            $data['curdate'] = $inputs['curdate'] ?? date("Y-m-d");
+            $data["nature_of_business"]=$inputs['nature_of_business']??0;
+            $denial_amount_month = 0;
+            $count = $this->AkolaGetRate($data);
+            $rate = $count->rate * $data['timeforlicense'];
+            $notice_amount = 0;
+            if (isset($inputs['noticeDate']) && $inputs['noticeDate']) 
+            {
+                $notice_amount = 0; #$this->getDenialAmountTrade($inputs['noticeDate']);
+            }
+            $pre_app_amount = 0;
+            if (isset($data['application_type_id']) && in_array($data['application_type_id'], [1, 2])) 
+            {
+                $nob = array();
+                $data['nature_of_business'] = null;
+                if (isset($inputs['nature_of_business']))
+                    $nob = explode(',', $inputs['nature_of_business']);
+                if (sizeof($nob) == 1) 
+                {
+                    $data['nature_of_business'] = $nob[0];
+                }
+
+                $temp = $data['firm_date'];
+                $temp2 = $data['firm_date'];
+                // if ($data['nature_of_business'] == 198 && strtotime($temp) <= strtotime('2021-10-30')) 
+                // {
+                //     $temp = '2021-10-30';
+                //     $temp2 = $temp;
+                // } 
+                // elseif ($data['nature_of_business'] != 198 && strtotime($temp) <= strtotime('2020-01-01')) 
+                // {
+                //     $temp = '2020-01-01';
+                // }
+                $data['firm_date'] = $temp;
+                $diff_year = date_diff(date_create($temp2), date_create($data['curdate']))->format('%R%y');
+                $pre_app_amount = ($diff_year > 0 ? $diff_year : 0) * $count->rate;
+            }
+
+            $vDiff = abs(strtotime($data['curdate']) - strtotime($data['firm_date'])); // here abs in case theres a mix in the dates
+            $vMonths = ceil($vDiff / (30 * 60 * 60 * 24)); // number of seconds in a month of 30 days
+
+            if ($vMonths > 0 && strtotime($data['firm_date']) < strtotime($data['curdate'])) 
+            {
+                // $denial_amount_month = 100 + (($vMonths) * 20);
+            }
+            # In case of ammendment no denial amount
+            if ($data['application_type_id'] == 3)
+            {
+                $denial_amount_month = 0;
+            }
+            $total_denial_amount = $denial_amount_month + $rate + $pre_app_amount + $notice_amount;
+
+            # Check If Any cheque bounce charges
+            if (isset($inputs['apply_licence_id'], $inputs['apply_licence_id'])) 
+            {
+                $penalty = $this->getChequeBouncePenalty($inputs['apply_licence_id']);
+                $denial_amount_month += $penalty;
+                $total_denial_amount += $penalty;
+            }
+
+            if ($count) 
+            {
+                $response = ['response' => true, 'rate' => $rate, 'penalty' => $denial_amount_month, 'total_charge' => $total_denial_amount, 'rate_id' => $count['id'], 'arear_amount' => $pre_app_amount, "notice_amount" => $notice_amount,"months"=>$vMonths,"year"=>$diff_year??0];
+            } 
+            else 
+            {
+                $response = ['response' => false];
+            }
+            return $response;
+        } 
+        catch (Exception $e) 
+        {            
+            return $response;
+        }
+    }
     
     public function getDenialAmountTrade($notice_date = null, $current_date = null)
     {
@@ -3183,6 +3283,24 @@ class Trade implements ITrade
                 ->where('effective_date', '<', $input['curdate'])
                 ->where('status', 1)
                 ->where('tobacco_status', $input['tobacco_status'])
+                ->orderBy('effective_date', 'Desc')
+                ->first();
+            return $builder;
+        } catch (Exception $e) {
+            echo $e->getMessage();
+        }
+    }
+
+    public function AkolaGetRate(array $input) #stdcl object array
+    {
+        try {
+            DB::enableQueryLog();
+            $builder = AkolaTradeParamLicenceRate::select('id', 'rate')
+                ->where('application_type_id', $input['application_type_id'])
+                ->whereIn('item_type_id', explode(",",$input['nature_of_business']))
+                ->where('effective_date', '<', $input['curdate'])
+                ->where('status', 1)
+                // ->where('tobacco_status', $input['tobacco_status'])
                 ->orderBy('effective_date', 'Desc')
                 ->first();
             return $builder;
@@ -3644,7 +3762,7 @@ class Trade implements ITrade
         } elseif (!$application->is_active) {
             $status = "Application rejected ";
         } 
-        elseif ($docChequ2 && strtoupper($mUserType) == "ONLINE" && $application->citizen_id == $refUserId && $application->document_upload_status == 0 && $application->payment_status == 0) {
+        elseif ($docChequ2 && strtoupper($mUserType) == $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""] && $application->citizen_id == $refUserId && $application->document_upload_status == 0 && $application->payment_status == 0) {
             $request = new Request(["applicationId" => $licenceId, "ulb_id" => $refUlbId, "user_id" => $refUserId]);
             $doc_status = $this->checkWorckFlowForwardBackord($request);
             if ($doc_status && $application->payment_status == 0) {
@@ -3740,7 +3858,7 @@ class Trade implements ITrade
         if (!empty($allRolse)) {
             $fromRole = array_values(objToArray($allRolse->where("id", $request->senderRoleId)))[0] ?? [];
         }
-        if (strtoupper($mUserType) == "ONLINE" || ($fromRole["can_upload_document"] ?? false) ||  ($fromRole["can_verify_document"] ?? false)) 
+        if (strtoupper($mUserType) == $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""] || ($fromRole["can_upload_document"] ?? false) ||  ($fromRole["can_verify_document"] ?? false)) 
         {
             $documents = $this->getLicenseDocLists($request);
             if (!$documents->original["status"]) 
@@ -3787,7 +3905,7 @@ class Trade implements ITrade
             $is_ownerDocVerify              = $Wdocuments->where("is_docVerify", false);
             $is_ownerDocRejected            = $Wdocuments->where("is_docRejected", true);
             $is_ownerMadetoryDocRejected    = $Wdocuments->where("is_madetory_docRejected", true);
-            if (($fromRole["can_upload_document"] ?? false) || strtoupper($mUserType) == "ONLINE") 
+            if (($fromRole["can_upload_document"] ?? false) || strtoupper($mUserType) == $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) 
             {
                 return (empty($is_ownerUploadedDoc->all()) && empty($is_ownerDocRejected->all()) && empty($is_appMandUploadedDoc->all()) && empty($is_appUploadedDocRejected->all()));
             }

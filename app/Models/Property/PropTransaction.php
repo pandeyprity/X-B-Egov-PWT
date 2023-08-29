@@ -194,9 +194,7 @@ class PropTransaction extends Model
         $propTrans->ulb_id = $req['ulbId'];
         $propTrans->from_fyear = collect($demands)->first()['fyear'];
         $propTrans->to_fyear = collect($demands)->last()['fyear'];
-        $propTrans->from_qtr = collect($demands)->first()['qtr'];
-        $propTrans->to_qtr = collect($demands)->last()['qtr'];
-        $propTrans->demand_amt = collect($demands)->sum('balance');
+        $propTrans->demand_amt = $req['demandAmt'];
         $propTrans->tran_by_type = $req['tranBy'];
         $propTrans->verify_status = $req['verifyStatus'];
         $propTrans->save();

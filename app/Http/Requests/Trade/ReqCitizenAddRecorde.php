@@ -33,7 +33,7 @@ class ReqCitizenAddRecorde extends TradeRequest
         $rules = [];
         $rules["ulbId"]="required|digits_between:1,92";
         $rules["applicationType"]=$this->_REX_APPLICATION_TYPE;
-        if($this->applicationType!="NEWLICENSE")
+        if(!in_array($mApplicationTypeId, [1]))
         {
             $rules["licenseId"] ="required|digits_between:1,9223372036854775807";
         }
@@ -47,7 +47,7 @@ class ReqCitizenAddRecorde extends TradeRequest
             $rules["firmDetails.premisesOwner"] = "required|regex:/^[a-zA-Z1-9][a-zA-Z1-9\., \s]+$/";
             $rules["firmDetails.natureOfBusiness"] = "required|array";
             $rules["firmDetails.natureOfBusiness.*.id"] = "required|digits_between:1,9223372036854775807";
-            $rules["firmDetails.newWardNo"] = "nullable|digits_between:1,9223372036854775807";
+            $rules["firmDetails.newWardNo"] = "required|digits_between:1,9223372036854775807";
             $rules["firmDetails.wardNo"] = "required|digits_between:1,9223372036854775807";
             $rules["firmDetails.tocStatus"] = "required|bool";
             $rules["firmDetails.landmark"] = "regex:$mFramNameRegex";
@@ -69,14 +69,14 @@ class ReqCitizenAddRecorde extends TradeRequest
                 $rules["initialBusinessDetails.noticeDate"] = "required|date";
             }
             $rules["licenseDetails.licenseFor"] = "required|int";
-            if ($mApplicationTypeId != 4 && strtoupper($mUserType) != "ONLINE") {
+            if ($mApplicationTypeId != 4 && strtoupper($mUserType) != $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
                 $rules["licenseDetails.totalCharge"] = "required|numeric";
             }
             if (isset($this->firmDetails["tocStatus"]) && $this->firmDetails["tocStatus"]) 
             {
                 $rules["licenseDetails.licenseFor"] = "required|int|max:1";
             }
-            if (in_array(strtoupper($mUserType), ["JSK", "UTC", "TC", "SUPER ADMIN", "TL"])) 
+            if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"])) 
             {
                 $rules["licenseDetails.paymentMode"] = "required|alpha";
                 if (isset($this->licenseDetails['paymentMode']) && $this->licenseDetails['paymentMode'] != "CASH") 
@@ -104,10 +104,10 @@ class ReqCitizenAddRecorde extends TradeRequest
                     $rules["licenseDetails.licenseFor"] = "required|int|max:1";
                 }
             }
-            if ($mApplicationTypeId != 4 && strtoupper($mUserType) != "ONLINE") {
+            if ($mApplicationTypeId != 4 && strtoupper($mUserType) != $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
                 $rules["licenseDetails.totalCharge"] = "required|numeric";
             }
-            if (in_array(strtoupper($mUserType), ["JSK", "UTC", "TC", "SUPER ADMIN", "TL"]) && $mApplicationTypeId == 2) {
+            if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"]) && $mApplicationTypeId == 2) {
                 $rules["licenseDetails.paymentMode"] = "required|alpha";
                 if (isset($this->licenseDetails['paymentMode']) && $this->licenseDetails['paymentMode'] != "CASH") {
                     $rules["licenseDetails.chequeNo"] = "required";
@@ -130,10 +130,10 @@ class ReqCitizenAddRecorde extends TradeRequest
             if (isset($this->initialBusinessDetails['firmType']) && $this->initialBusinessDetails['firmType'] == 5) {
                 $rules["initialBusinessDetails.otherFirmType"] = "required|regex:$mRegex";
             }
-            if ($mApplicationTypeId != 4 && strtoupper($mUserType) != "ONLINE") {
+            if ($mApplicationTypeId != 4 && strtoupper($mUserType) != $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
                 $rules["licenseDetails.totalCharge"] = "required|numeric";
             }
-            if (in_array(strtoupper($mUserType), ["JSK", "UTC", "TC", "SUPER ADMIN", "TL"])) {
+            if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"])) {
                 $rules["licenseDetails.paymentMode"] = "required|alpha";
                 if (isset($this->licenseDetails['paymentMode']) && $this->licenseDetails['paymentMode'] != "CASH") {
                     $rules["licenseDetails.chequeNo"] = "required";
