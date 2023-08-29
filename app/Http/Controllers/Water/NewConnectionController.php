@@ -56,6 +56,7 @@ use App\Traits\Workflow\Workflow;
 use Carbon\Carbon;
 use DateTime;
 use Exception;
+use App\Models\Water\WaterSecondConsumer;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +65,7 @@ use Illuminate\Validation\Rules\Unique;
 use Ramsey\Collection\Collection as CollectionCollection;
 use SebastianBergmann\Type\VoidType;
 use Symfony\Contracts\Service\Attribute\Required;
+
 
 class NewConnectionController extends Controller
 {
@@ -142,6 +144,11 @@ class NewConnectionController extends Controller
             return responseMsg(false, $error->getMessage(), "");
         }
     }
+
+    /**
+     * apply consumer for water connection for al
+     */
+
 
     /**
      * |--------------------------------------------- Water workflow -----------------------------------------------|
@@ -1256,6 +1263,9 @@ class NewConnectionController extends Controller
     }
 
 
+   
+
+
     /**
      * | Get the document to be upoaded with list of dock uploaded 
         | Serial No :  
@@ -1280,10 +1290,11 @@ class NewConnectionController extends Controller
             $refWaterNewConnection  = new WaterNewConnection();
             $refWfActiveDocument    = new WfActiveDocument();
             $mWaterConnectionCharge = new WaterConnectionCharge();
+            $mWaterSecondConsumer   = new WaterSecondConsumer();
             $moduleId               = Config::get('module-constants.WATER_MODULE_ID');
 
             $connectionId = $request->applicationId;
-            $refApplication = WaterApplication::where("status", 1)->find($connectionId);
+            $refApplication = $mWaterSecondConsumer->getConsumerDetailsById($connectionId)->first();
             if (!$refApplication) {
                 throw new Exception("Application Not Found!");
             }
@@ -1331,7 +1342,7 @@ class NewConnectionController extends Controller
                 array_push($requiedDocs, $doc);
             }
             foreach ($refOwneres as $key => $val) {
-                $docRefList = ["CONSUMER_PHOTO", "ID_PROOF"];
+                $docRefList = ["ID_PROOF"];
                 foreach ($docRefList as $key => $refOwnerDoc) {
                     $doc = (array) null;
                     $testOwnersDoc[] = (array) null;
@@ -1373,7 +1384,6 @@ class NewConnectionController extends Controller
             return responseMsg(false, $e->getMessage(), $request->all());
         }
     }
-
     /**
      * | Serch the holding and the saf details
      * | Serch the property details for filling the water Application Form
@@ -2817,4 +2827,7 @@ class NewConnectionController extends Controller
     //         return responseMsgs(false, $e->getMessage(), "", "", "01", ".ms", "POST", $req->deviceId);
     //     }
     // }
+
+   
+
 }

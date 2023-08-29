@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Water;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Water\reqDeactivate;
+use App\Http\Requests\water\newWaterRequest;
 use App\Http\Requests\Water\reqMeterEntry;
 use App\MicroServices\DocUpload;
 use App\MicroServices\IdGeneration;
@@ -28,6 +29,7 @@ use App\Models\Water\WaterConsumerTax;
 use App\Models\Water\WaterDisconnection;
 use App\Models\Water\WaterMeterReadingDoc;
 use App\Models\Water\WaterPenaltyInstallment;
+use App\Models\Water\WaterSecondConsumer;
 use App\Models\Water\WaterSiteInspection;
 use App\Models\Water\WaterTran;
 use App\Models\Water\WaterTranDetail;

@@ -1254,31 +1254,8 @@ class WaterNewConnection implements IWaterNewConnection
     public function getDocumentTypeList(WaterApplication $application)
     {
         $return = (array)null;
-        $type   = ["METER_BILL", "ADDRESS_PROOF", "OTHER"];
-        if (in_array($application->connection_through, [1, 2]))      // Holding No, SAF No
-        {
-            $type[] = "HOLDING_PROOF";
-        }
-        if (strtoupper($application->category) == "BPL")                // FOR BPL APPLICATION
-        {
-            $type[] = "BPL";
-        }
-        if ($application->property_type_id == 2)                        // FOR COMERCIAL APPLICATION
-        {
-            $type[] = "COMMERCIAL";
-        }
-        if ($application->apply_from != "Online")                       // Online
-        {
-            $type[]  = "FORM_SCAN_COPY";
-        }
-        if ($application->owner_type == 2)                              // In case of Tanent
-        {
-            $type[]  = "TENANT";
-        }
-        if ($application->property_type_id == 7)                        // Appartment
-        {
-            $type[]  = "APPARTMENT";
-        }
+        $type   = ["ADDRESS_PROOF", "HOLDING_PROOF"];
+
         $doc = WaterParamDocumentType::select(
             "doc_for",
             DB::raw("CASE WHEN doc_for ='OTHER' THEN 0 

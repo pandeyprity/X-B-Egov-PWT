@@ -38,6 +38,7 @@ use App\Models\Water\WaterPropertyTypeMstr;
 use App\Models\Water\WaterSiteInspection;
 use App\Models\Water\WaterSiteInspectionsScheduling;
 use App\Models\Water\WaterTran;
+use App\Models\Water\WaterSecondConsumer;
 use App\Models\Workflows\WfActiveDocument;
 use App\Models\Workflows\WfRoleusermap;
 use App\Models\Workflows\WfWardUser;
@@ -1277,10 +1278,11 @@ class NewConnectionController extends Controller
             $refWaterNewConnection  = new WaterNewConnection();
             $refWfActiveDocument    = new WfActiveDocument();
             $mWaterConnectionCharge = new WaterConnectionCharge();
+            $mWaterSecondConsumer   = new WaterSecondConsumer();
             $moduleId               = Config::get('module-constants.WATER_MODULE_ID');
 
             $connectionId = $request->applicationId;
-            $refApplication = WaterApplication::where("status", 1)->find($connectionId);
+            return $refApplication = $mWaterSecondConsumer->getConsumerDetailsById($connectionId)->first();
             if (!$refApplication) {
                 throw new Exception("Application Not Found!");
             }
@@ -1328,7 +1330,7 @@ class NewConnectionController extends Controller
                 array_push($requiedDocs, $doc);
             }
             foreach ($refOwneres as $key => $val) {
-                $docRefList = ["CONSUMER_PHOTO", "ID_PROOF"];
+                $docRefList = ["ID_PROOF"];
                 foreach ($docRefList as $key => $refOwnerDoc) {
                     $doc = (array) null;
                     $testOwnersDoc[] = (array) null;
@@ -1380,6 +1382,7 @@ class NewConnectionController extends Controller
      */
     public function getSafHoldingDetails(Request $request)
     {
+
         $validated = Validator::make(
             $request->all(),
             [
@@ -2814,4 +2817,41 @@ class NewConnectionController extends Controller
     //         return responseMsgs(false, $e->getMessage(), "", "", "01", ".ms", "POST", $req->deviceId);
     //     }
     // }
+
+
+    public function searchHoldingsaf(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'propertyNo'        => 'required|int|in:1,2',
+                'id'                => 'required',
+                'ulbId'             => 'required'
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try {
+            $key                    = $request->propertyNo;
+            $mPropProperty          = new PropProperty();
+            $mPropActiveSaf         = new PropActiveSaf();
+            switch ($key) {
+                case ("1"):
+                    $application = collect($mPropProperty->getPropByHolding($request->id, $request->ulbId));
+                    $checkExist = collect($application)->first();
+                    if (!$checkExist) {
+                        throw new Exception("Data According to Holding Not Found!");
+                    }
+                case ("2"):
+                    $application = collect($mPropActiveSaf->getSafDtlBySafUlbNo($request->id, $request->ulbId));
+                    $checkExist = collect($application)->first();
+                    if (!$checkExist) {
+                        throw new Exception("Data According to SAF Not Found!");
+                    }
+                    break;
+            }
+        } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
 }
