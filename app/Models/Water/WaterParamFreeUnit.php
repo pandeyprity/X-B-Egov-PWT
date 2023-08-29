@@ -13,7 +13,7 @@ class WaterParamFreeUnit extends Model
     /**
      * | Get free units for the consuemr demand
      */
-    public function getFreeUnits($callParams)
+    public function getFeeUnits($callParams)
     {
         return WaterParamFreeUnit::where('property_type_id', $callParams->propertyType)
             ->where('catagory', $callParams->areaCatagory)

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Water;
 
+use App\BLL\Water\WaterMonthelyCall;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Water\reqDeactivate;
 use App\Http\Requests\Water\reqMeterEntry;
@@ -28,6 +29,7 @@ use App\Models\Water\WaterConsumerTax;
 use App\Models\Water\WaterDisconnection;
 use App\Models\Water\WaterMeterReadingDoc;
 use App\Models\Water\WaterPenaltyInstallment;
+use App\Models\Water\WaterSecondConsumer;
 use App\Models\Water\WaterSiteInspection;
 use App\Models\Water\WaterTran;
 use App\Models\Water\WaterTranDetail;
@@ -1950,6 +1952,34 @@ class WaterConsumer extends Controller
             return false;
         } catch (Exception $e) {
             return $e->getMessage();
+        }
+    }
+
+    /**
+     * | 
+     */
+    public function test(Request $req)
+    {
+        try{
+            $mNowDate             = Carbon::now()->format('Y-m-d');
+            $rules = [
+                'consumerId'       => "required|digits_between:1,9223372036854775807",
+                "demandUpto"       => "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate",
+                'finalRading'      => "nullable|numeric",
+            ];
+            $validator = Validator::make($req->all(), $rules,);
+            if ($validator->fails()) {
+                throw new Exception($validator->errors());
+            }
+            $returnData = new WaterMonthelyCall($req->consumerId,$req->demandUpto,$req->finalRading); #WaterSecondConsumer::get();
+            return $returnData->parentFunction($req);
+            return responseMsgs(true, "Successfully apply disconnection ", $returnData, "1.0", "350ms", "POST", "");
+
+        }
+        catch (Exception $e) {
+            $response["status"] = false;
+            $response["errors"] = json_decode($e->getMessage());
+            return collect($response);
         }
     }
 }

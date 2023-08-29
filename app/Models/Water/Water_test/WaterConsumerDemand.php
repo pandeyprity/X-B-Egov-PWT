@@ -255,4 +255,6 @@ class WaterConsumerDemand extends Model
             ->where('status', true)
             ->orderByDesc('id');
     }
+
+    
 }
