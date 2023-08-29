@@ -191,12 +191,13 @@ class WfActiveDocument extends Model
 
     public function getTradeDocByAppNo($applicationId, $workflowId, $moduleId)
     {
-
+        $docUrl = Config::get('module-constants.DOC_URL');
         return DB::connection("pgsql_trade")->table('wf_active_documents as d')
             ->select(
                 'd.id',
                 'd.document',
-                DB::raw("concat(d.relative_path,'/',d.document) as doc_path"),
+                // DB::raw("concat(d.relative_path,'/',d.document) as doc_path"),
+                DB::raw("concat('$docUrl/',relative_path,'/',document) as doc_path"),
                 'd.remarks',
                 'd.verify_status',
                 'd.doc_code as doc_for',
