@@ -439,4 +439,6 @@ class WaterConsumer extends Model
             ->where('status', 1)
             ->orderByDesc('id');
     }
+
+    ################################################### AKOLA SPECAFIC  #############################################
 }
