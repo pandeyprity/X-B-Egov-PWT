@@ -205,7 +205,7 @@ class TradeCitizenController extends Controller
             if (sizeOf($wardId) < 1) {
                 throw new Exception("Invalide Ward Id Pase");
             }
-            if (!in_array(strtoupper($mUserType), ["ONLINE"])) {
+            if (!$this->_COMMON_FUNCTION->checkUsersWithtocken("active_citizens")) {
                 throw new Exception("You Are Not Authorized For This Action. Please Apply From Counter");
             }
             if (!$mApplicationTypeId) {

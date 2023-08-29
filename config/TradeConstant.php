@@ -30,6 +30,7 @@ return [
     ],
     "USER-TYPE-SHORT-NAME" =>
     [
+        ""                 =>"ONLINE",
         "SUPER ADMIN"       =>  "SUPER ADMIN",
         "ADMIN"             =>  "ADMIN",
         "PROJECT MANAGER"   =>  "PM",
@@ -60,6 +61,16 @@ return [
         "AE"                =>  "AE",
         "EXECUTIVE OFFICER" =>  "EO",
         "EO"                =>  "EO",
+        "LIPIK"             =>  "LP",
+        "LP"                =>  "LP",
+        "SENIOUR LIPIK"     =>  "SRLP",
+        "SRLP"              =>  "SRLP",
+        "TAX SUPRETENDENT"  =>  "TS",
+        "TS"                =>  "TS",
 
     ],
+    
+    "CANE-NO-HAVE-WARD"=>["ONLINE", "JSK","BO" ,"PM","SUPER ADMIN", "TL"],
+    "CANE-APPLY-APPLICATION"=>["ONLINE", "JSK", "SRLP","UTC", "TC", "SUPER ADMIN", "TL"],
+    "CANE-CUTE-PAYMENT"=>["JSK", "SRLP","UTC", "TC", "SUPER ADMIN", "TL"],
 ];

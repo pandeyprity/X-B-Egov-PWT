@@ -140,7 +140,7 @@ class TradeCitizen implements ITradeCitizen
             $refWorkflowId      = $this->_WF_MASTER_Id;
             $mUserType          = $this->_COMMON_FUNCTION->userType($refWorkflowId);
             $mApplicationTypeId = $this->_TRADE_CONSTAINT["APPLICATION-TYPE"][$request->applicationType];
-            if (!in_array(strtoupper($mUserType), ["ONLINE"])) {
+            if (!$this->_COMMON_FUNCTION->checkUsersWithtocken("active_citizens")){
                 throw new Exception("You Are Not Authorized For This Action. Please Apply From Counter");
             }
             if ($mApplicationTypeId != 1) {
@@ -574,8 +574,7 @@ class TradeCitizen implements ITradeCitizen
             $refApplication->items      = $mItemName;
             $refApplication->items_code = $mCods;
             $refOwnerDtl                = $this->_REPOSITORY_TRADE->getAllOwnereDtlByLId($id);
-            $refTransactionDtl          = TradeTransaction::listByLicId($id);
-            // $refTimeLine                = $this->_REPOSITORY_TRADE->getTimelin($id);            
+            $refTransactionDtl          = TradeTransaction::listByLicId($id);            
             $refUploadDocuments         = $this->_MODEL_WfActiveDocument->getTradeDocByAppNo($refApplication->id,$refApplication->workflow_id,$modul_id);
             
             $pendingAt  = $init_finish['initiator']['id'];
@@ -583,20 +582,14 @@ class TradeCitizen implements ITradeCitizen
             if ($mlevelData) {
                 $pendingAt = $mlevelData->receiver_user_type_id;
             }
-            // $mworkflowRoles = $this->_COMMON_FUNCTION->getWorkFlowAllRoles($refUserId, $refUlbId, $refWorkflowId, true);
-            // $mileSton = $this->_COMMON_FUNCTION->sortsWorkflowRols($mworkflowRoles);
 
             $data['licenceDtl']     = $refApplication;
             $data['ownerDtl']       = $refOwnerDtl;
             $data['transactionDtl'] = $refTransactionDtl;
             $data['pendingStatus']  = $mStatus;
-            // $data['remarks']        = $refTimeLine;
             $data['documents']      = $refUploadDocuments;
             $data["userType"]       = $mUserType;
-            // $data["roles"]          = $mileSton;
             $data["pendingAt"]      = $pendingAt;
-            // $data["levelData"]      = $mlevelData;
-            // $data['finisher']       = $finisher;
             $data = remove_null($data);
 
             return responseMsg(true, "", $data);
