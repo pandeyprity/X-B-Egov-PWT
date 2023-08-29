@@ -34,6 +34,7 @@ class TradeRequest extends FormRequest
     protected $_REX_APPLICATION_TYPE;
     protected $_REX_OWNER_NAME;
     protected $_REX_MOBILE_NO;
+    protected $_APPLYCATION_TYPE ;
 
     public function __construct()
     {
@@ -45,7 +46,7 @@ class TradeRequest extends FormRequest
         $this->_MODULE_ID = Config::get('module-constants.TRADE_MODULE_ID');
         $this->_TRADE_CONSTAINT = Config::get("TradeConstant");
         $this->_REF_TABLE = $this->_TRADE_CONSTAINT["TRADE_REF_TABLE"];
-
+        
         $this->_CURRENT_DATE                                = Carbon::now()->format('Y-m-d');
         $this->_CURRENT_DATE_TIME                           = Carbon::now()->format('Y-m-d H:i:s');
         $this->_REX_DATE_YYYY_MM_DD                         = "/^([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))+$/i";
@@ -60,7 +61,12 @@ class TradeRequest extends FormRequest
         $this->_REX_OWNER_NAME                              = "/^([a-zA-Z0-9]+)(\s[a-zA-Z0-9\.\,\']+)*$/i";
         $this->_REX_MOBILE_NO                               = "/[0-9]{10}/";
 
-        $this->_REX_APPLICATION_TYPE = "required|string|in:NEWLICENSE,RENEWAL,AMENDMENT,SURRENDER";
+        $this->_APPLYCATION_TYPE = flipConstants($this->_TRADE_CONSTAINT["APPLICATION-TYPE"]);
+        if($this->_APPLYCATION_TYPE)
+        {
+            $this->_APPLYCATION_TYPE = collect($this->_APPLYCATION_TYPE)->implode(",");
+        }
+        $this->_REX_APPLICATION_TYPE = "required|string|in:".$this->_APPLYCATION_TYPE;
     }
     /**
      * Determine if the user is authorized to make this request.
