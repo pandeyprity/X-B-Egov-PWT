@@ -421,7 +421,7 @@ class Trade implements ITrade
                     $noticeNo = trim($request->initialBusinessDetails['noticeNo']);
                     $firm_date = $request->firmDetails['firmEstdDate'];
                     // $refNoticeDetails = $this->getDenialFirmDetails($refUlbId, strtoupper(trim($noticeNo)));
-                    $refNoticeDetails = $this->_NOTICE->getDtlByNoticeNo(strtoupper(trim($noticeNo)),$refUlbId,);
+                    $refNoticeDetails = $this->_NOTICE->getDtlByNoticeNo(strtoupper(trim($noticeNo)),$refUlbId);
                     if ($refNoticeDetails) 
                     {
                         $refDenialId = $refNoticeDetails->id;
@@ -785,7 +785,7 @@ class Trade implements ITrade
             if ($refLecenceData->tobacco_status == 1 && $request->licenseFor > 1) {
                 throw new Exception("Tobaco Application Not Take Licence More Than One Year");
             }
-            if ($refNoticeDetails = $this->_NOTICE->getNoticDtlById($refLecenceData->denial_id)) {
+            if ($refLecenceData->denial_id && $refNoticeDetails = $this->_NOTICE->getNoticDtlById($refLecenceData->denial_id)) {
                 $refDenialId = $refNoticeDetails->id;
                 $mNoticeDate = date("Y-m-d", strtotime($refNoticeDetails['notice_date'])); //notice date 
             }
@@ -793,7 +793,7 @@ class Trade implements ITrade
             $ward_no = UlbWardMaster::select("ward_name")
                 ->where("id", $refLecenceData->ward_id)
                 ->first();
-            $mWardNo = $ward_no['ward_name'];
+            $mWardNo = $ward_no['ward_name']??"";
 
             #-----------End valication-------------------
 
@@ -808,13 +808,8 @@ class Trade implements ITrade
             $args['licenseFor']          = $request->licenseFor;
             $args['nature_of_business']  = $refLecenceData->nature_of_bussiness;
             $args['noticeDate']          = $mNoticeDate;            
-            if($refUlbId==2)
-            {
-                $chargeData = $this->AkolaCltCharge($args);
-            }
-            else{
-                $chargeData = $this->cltCharge($args);
-            }
+            $chargeData = $this->AkolaCltCharge($args);
+            // $chargeData = $this->cltCharge($args);
             // dd($args,$chargeData);
             if ($chargeData['response'] == false || $chargeData['total_charge'] != $request->totalCharge) 
             {
@@ -1480,7 +1475,7 @@ class Trade implements ITrade
             $data["apply_licence_id"]  = $request->licenceId ?? null;
             $data["nature_of_business"] = $mNatureOfBussiness;
             // $data = $this->cltCharge($data);
-            $data = $this->AkolaCltCharge($data);
+            return $data = $this->AkolaCltCharge($data);
             // dd($data1,$data);
             if ($data['response'])
                 return responseMsg(true, "", $data);
@@ -2499,7 +2494,7 @@ class Trade implements ITrade
             ];
             $application = $this->_DB->table("active_trade_licences AS licences")->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
-                ->join("ulb_ward_masters", function ($join) {
+                ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "licences.ward_id");
                 })
                 ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -2519,7 +2514,7 @@ class Trade implements ITrade
             {
                 $application = $this->_DB->table("trade_licences AS licences")->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
-                    ->join("ulb_ward_masters", function ($join) {
+                    ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "licences.ward_id");
                     })
                     ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -2540,7 +2535,7 @@ class Trade implements ITrade
             {
                 $application = $this->_DB->table("rejected_trade_licences AS licences")->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
-                    ->join("ulb_ward_masters", function ($join) {
+                    ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "licences.ward_id");
                     })
                     ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -2561,7 +2556,7 @@ class Trade implements ITrade
             {
                 $application = $this->_DB->table("trade_renewals AS licences")->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
-                    ->join("ulb_ward_masters", function ($join) {
+                    ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "licences.ward_id");
                     })
                     ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -2684,7 +2679,7 @@ class Trade implements ITrade
             $application = $this->_DB->table("active_trade_licences as license")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                ->join("ulb_ward_masters", function ($join) {
+                ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                 })
                 ->join(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -2705,7 +2700,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("trade_licences as license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                    ->join("ulb_ward_masters", function ($join) {
+                    ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
                     ->join(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -2727,7 +2722,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("rejected_trade_licences as license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                    ->join("ulb_ward_masters", function ($join) {
+                    ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
                     ->join(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -2749,7 +2744,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("trade_renewals as license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                    ->join("ulb_ward_masters", function ($join) {
+                    ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
                     ->join(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -2868,7 +2863,7 @@ class Trade implements ITrade
             $application = $this->_DB->table("trade_licences AS license")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                ->join("ulb_ward_masters", function ($join) {
+                ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                 })
                 ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -2887,8 +2882,9 @@ class Trade implements ITrade
             if (!$application) 
             {
                 $application = $this->_DB->table("trade_renewals AS license")
-                    ->select($select)->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                    ->join("ulb_ward_masters", function ($join) {
+                    ->select($select)
+                    ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
+                    ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
                     ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
@@ -3236,7 +3232,7 @@ class Trade implements ITrade
 
             if ($count) 
             {
-                $response = ['response' => true, 'rate' => $rate, 'penalty' => $denial_amount_month, 'total_charge' => $total_denial_amount, 'rate_id' => $count['id'], 'arear_amount' => $pre_app_amount, "notice_amount" => $notice_amount,"months"=>$vMonths,"year"=>$diff_year??0];
+                $response = ['response' => true, 'rate' => $rate, 'penalty' => $denial_amount_month, 'total_charge' => $total_denial_amount, 'rate_id' => $count->ids, 'arear_amount' => $pre_app_amount, "notice_amount" => $notice_amount,"months"=>$vMonths,"year"=>$diff_year??0,"Dtl"=>$count,];
             } 
             else 
             {
@@ -3295,13 +3291,13 @@ class Trade implements ITrade
     {
         try {
             DB::enableQueryLog();
-            $builder = AkolaTradeParamLicenceRate::select('id', 'rate')
+            // $builder = AkolaTradeParamLicenceRate::select('id', 'rate')
+            $builder = AkolaTradeParamLicenceRate::select(DB::raw("string_agg(cast(id as text),',') as ids, sum(rate) as rate"))
                 ->where('application_type_id', $input['application_type_id'])
                 ->whereIn('item_type_id', explode(",",$input['nature_of_business']))
                 ->where('effective_date', '<', $input['curdate'])
                 ->where('status', 1)
-                // ->where('tobacco_status', $input['tobacco_status'])
-                ->orderBy('effective_date', 'Desc')
+                // ->orderBy('effective_date', 'Desc')
                 ->first();
             return $builder;
         } catch (Exception $e) {
