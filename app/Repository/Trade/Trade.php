@@ -1003,26 +1003,25 @@ class Trade implements ITrade
     }
     public function updateBasicDtl(Request $request)
     {
-        $user       = Auth()->user();
-        $refUserId  = $user->id;
-        $refUlbId   = $user->ulb_id;
-        $redis      = new Redis;
-        $mUserData  = json_decode($redis::get('user:' . $refUserId), true);
-        $refWorkflowId = $this->_WF_MASTER_Id;
-        $role = $this->_COMMON_FUNCTION->getUserRoll($refUserId, $refUlbId, $refWorkflowId);
-        $rollId     =  ($role->role_id ?? -1);
-
-        $mUserType = $this->_COMMON_FUNCTION->userType($refWorkflowId);
-        $mProprtyId = null;
-        
         try {
-            if ($rollId == -1 ||!$role->can_edit) {
-                throw new Exception("You Are Not Authorized");
-            }
+            $user       = Auth()->user();
+            $refUserId  = $user->id;
+            $refUlbId   = $user->ulb_id??0;
+            $refWorkflowId = $this->_WF_MASTER_Id;            
+
+            $mUserType = $this->_COMMON_FUNCTION->userType($refWorkflowId);
+            $mProprtyId = null;        
+            $mNoticeDate    = null;
             $mLicenceId         = $request->initialBusinessDetails['id'];
             $refOldLicece       = ActiveTradeLicence::find($mLicenceId);
             if (!$refOldLicece) {
                 throw new Exception("No Licence Found");
+            }
+            
+            $role = $this->_COMMON_FUNCTION->getUserRoll($refUserId, $refUlbId, $refWorkflowId);
+            $rollId     =  ($role->role_id ?? -1);
+            if (($rollId == -1 ||!$role->can_edit??false) &&  $this->_COMMON_FUNCTION->checkUsersWithtocken('users')) {
+                throw new Exception("You Are Not Authorized");
             }
             
             $mnaturOfBusiness = array_map(function ($val) {
@@ -1039,16 +1038,12 @@ class Trade implements ITrade
             }
             $this->begin();
 
-            if ($refOldLicece->payment_status == 0) 
+            // if ($refOldLicece->payment_status == 0) 
             {
                 $refOldLicece->area_in_sqft        = $request->firmDetails['areaSqft'];
                 $refOldLicece->establishment_date  = $request->firmDetails['firmEstdDate'];
                 $refOldLicece->nature_of_bussiness = $mnaturOfBusiness;
-                $refOldLicece->is_tobacco      = $request->firmDetails['tocStatus'];
-                if ($refOldLicece->is_tobacco) {
-                    $refOldLicece->licence_for_years   = 1;
-                    $refOldLicece->nature_of_bussiness = 187;
-                }
+                $refOldLicece->is_tobacco      = $request->firmDetails['tocStatus'];                
             }
             $refOldLicece->firm_type_id        = $request->initialBusinessDetails['firmType'];
             $refOldLicece->firm_description    = $request->initialBusinessDetails['otherFirmType'] ?? null;
@@ -1113,9 +1108,38 @@ class Trade implements ITrade
                     throw new Exception("You Can Not Update Owner Document is VeriFy On " . $refOldLicece->doc_verify_date . " !!!");
                 }
             }
+
+            if(in_array($refOldLicece->payment_status,[1,2]) && $refOldLicece->application_type_id != 4)
+            {
+                $tranDtl =    TradeTransaction::select("*")->where("temp_id",$refOldLicece->id)->whereIn("status",[1,2])->get();      
+                $args["curdate"]     =  $tranDtl->max("tran_date")??Carbon::now()->format("Y-m-d"); 
+                $totalPaidCharge = $tranDtl->sum("paid_amount")??0;
+                if ($refOldLicece->denial_id && $refNoticeDetails = $this->_NOTICE->getNoticDtlById($refOldLicece->denial_id)) {
+                    $refDenialId = $refNoticeDetails->id;
+                    $mNoticeDate = date("Y-m-d", strtotime($refNoticeDetails['notice_date'])); //notice date 
+                }
+                $args['areaSqft']            = (float)$refOldLicece->area_in_sqft;
+                $args['application_type_id'] = $refOldLicece->application_type_id;
+                $args['firmEstdDate'] = !empty(trim($refOldLicece->valid_from)) ? $refOldLicece->valid_from : $refOldLicece->apply_date;
+                if ($refOldLicece->application_type_id == 1) {
+                    $args['firmEstdDate'] = $refOldLicece->establishment_date;
+                }
+                $args['tobacco_status']      = $refOldLicece->is_tobacco;
+                $args['licenseFor']          = $request->licenseFor;
+                $args['nature_of_business']  = $refOldLicece->nature_of_bussiness;
+                $args['noticeDate']          = $mNoticeDate;                
+                $chargeData = $this->AkolaCltCharge($args);
+                if ($chargeData['response'] == false || $chargeData['total_charge'] > $totalPaidCharge) 
+                {
+                    throw new Exception("Paid Amount And New Payble Amount Missmatch!!!");
+                }
+
+            }
+
             $this->commit();
             return responseMsg(true, "Application Update SuccessFully!", "");
         } catch (Exception $e) {
+            $this->rollback();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
@@ -3299,6 +3323,7 @@ class Trade implements ITrade
                 ->where('status', 1)
                 // ->orderBy('effective_date', 'Desc')
                 ->first();
+                // return($this->_DB->getqueryLog());
             return $builder;
         } catch (Exception $e) {
             echo $e->getMessage();
@@ -3881,7 +3906,10 @@ class Trade implements ITrade
             $is_appUploadedDocVerified          = $appUploadedDocVerified->where("is_docVerify", false);
             $is_appUploadedDocRejected          = $appUploadedDocRejected->where("is_docRejected", true);
             $is_appUploadedMadetoryDocRejected  = $appMadetoryDocRejected->where("is_docRejected", true);
-            $is_appMandUploadedDoc              = $appMandetoryDoc->whereNull("uploadedDoc");
+            // $is_appMandUploadedDoc              = $appMandetoryDoc->whereNull("uploadedDoc");
+            $is_appMandUploadedDoc = $appMandetoryDoc->filter(function($val){
+                return ($val["uploadedDoc"]=="" || $val["uploadedDoc"]==null);
+            });
             
             $Wdocuments = collect();
             $ownerDoc->map(function ($val) use ($Wdocuments) {
@@ -3895,7 +3923,6 @@ class Trade implements ITrade
                     $Wdocuments->push($val1);
                 });
             });
-
             $ownerMandetoryDoc              = $Wdocuments->whereIn("docType", ["R", "OR"]);
             $is_ownerUploadedDoc            = $Wdocuments->where("is_uploded", false);
             $is_ownerDocVerify              = $Wdocuments->where("is_docVerify", false);
