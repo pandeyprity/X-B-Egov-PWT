@@ -46,4 +46,8 @@ class WaterConsumerInitialMeter extends Model
             ->orderBy("id", "DESC")
             ->first();
     }
+
+    /**
+     * |
+     */
 }

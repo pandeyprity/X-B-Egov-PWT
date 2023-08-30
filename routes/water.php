@@ -35,6 +35,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      */
     Route::controller(NewConnectionController::class)->group(function () {
         # Workflow
+
         Route::post('inbox', 'waterInbox');                                                             // Workflow
         Route::post('outbox', 'waterOutbox');                                                           // Workflow
         Route::post('post-next-level', 'postNextLevel');                                                // Workflow
@@ -71,6 +72,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('admin/application/je-site-details', 'getJeSiteDetails');                           // Workflow/Admin
         Route::post('admin/application/online-technical-inspection', 'onlineSiteInspection');           // Workflow
         Route::post('admin/application/technical-inspection-details', 'getTechnicalInsDetails');        // Workflow
+        Route::post('search-holding-saf', 'searchHoldingsaf');
+        Route::post('get-all-details', 'getdetailsbyId');           // akola 
+        
     });
 
     /**
@@ -80,6 +84,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      */
     Route::controller(WaterPaymentController::class)->group(function () {
         # Consumer And Citizen Transaction Operation
+
         Route::post('master/get-listed-details', 'getWaterMasterData');                                 // Admin/ Citizen
         Route::post('consumer/get-payment-history', 'getConsumerPaymentHistory');                       // Consumer
         Route::post('admin/application/generate-payment-receipt', 'generateOfflinePaymentReceipt');     // Citizen / Admin
@@ -91,9 +96,11 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('consumer/online-demand-payment', 'initiateOnlineDemandPayment');                   // Citizen
         Route::post('citizen/payment-history', 'paymentHistory');                                       // Citizen  
         Route::post('consumer/water-user-charges', 'getWaterUserCharges');                              // Admin / Citizen
+        Route::post('consumer/offline-request-payment', 'offlineConReqPayment'); 
 
         # Site inspection 
         Route::post('site-verification/save-site-details', 'saveSitedetails');                          // Admin
+        Route::post('consumer/offline-payment', 'Consumerofflinepayment'); 
     });
 
     /**
@@ -102,6 +109,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      * |------------- Water Consumer and Related -------------|
      */
     Route::controller(WaterConsumer::class)->group(function () {
+
+        Route::post('consumer/apply-data', 'consumerApplyData');
+        Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
         Route::post('consumer/list-demand', 'listConsumerDemand');                                      // Consumer
         Route::post('admin/consumer/generate-demand', 'saveGenerateConsumerDemand');                    // Admin
         Route::post('admin/consumer/save-connection-meter', 'saveUpdateMeterDetails');                  // Admin
@@ -120,6 +130,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         # Deactivation
         Route::post('admin/consumer/apply-deactivation', 'applyDeactivation');                          // Admin / Not Used
         Route::post('admin/consumer/demand-deactivation', 'consumerDemandDeactivation');  // Here       // Admin / Not used
+        Route::post('get-listed-fee', 'test');
     });
 
 

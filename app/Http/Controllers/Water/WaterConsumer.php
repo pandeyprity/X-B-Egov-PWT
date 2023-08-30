@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Water;
 
+use App\BLL\Water\WaterMonthelyCall;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Water\reqDeactivate;
 use App\Http\Requests\Water\reqMeterEntry;
+use App\Http\Requests\water\newWaterRequest;
 use App\MicroServices\DocUpload;
 use App\MicroServices\IdGeneration;
 use App\MicroServices\IdGenerator\PrefixIdGenerator;
@@ -28,8 +30,10 @@ use App\Models\Water\WaterConsumerTax;
 use App\Models\Water\WaterDisconnection;
 use App\Models\Water\WaterMeterReadingDoc;
 use App\Models\Water\WaterPenaltyInstallment;
+use App\Models\Water\WaterSecondConsumer;
 use App\Models\Water\WaterSiteInspection;
 use App\Models\Water\WaterTran;
+use App\Models\Water\WaterSecondConnectionCharge;
 use App\Models\Water\WaterTranDetail;
 use App\Models\Workflows\WfRoleusermap;
 use App\Models\Workflows\WfWorkflow;
@@ -1952,4 +1956,85 @@ class WaterConsumer extends Controller
             return $e->getMessage();
         }
     }
-}
+
+
+    /**
+     * apply water connection for akola
+     * under working
+     |in process
+     
+     */
+    public function applyWaterConnection(newWaterRequest $req) {
+        try {
+            $ulbId = $req->ulbId;
+            $mWaterSecondConsumer = new WaterSecondConsumer();
+            $mwaterConnection     = new WaterSecondConnectionCharge(); // Corrected class name
+            
+            $refConParamId = Config::get("waterConstaint.PARAM_IDS");
+            
+            $this->begin(); // Assuming this is part of your transaction handling
+            
+            $idGeneration = new PrefixIdGenerator($refConParamId['WCD'], $ulbId);
+            $applicationNo = $idGeneration->generate();
+            $applicationNo = str_replace('/', '-', $applicationNo);
+            
+            $meta = [
+                'status' => '4',
+                'wardmstrId'=>"3"
+            ];
+            
+             $water = $mWaterSecondConsumer->saveConsumer($req, $meta, $applicationNo);
+            
+            $refRequest = [
+                "consumerId" => $water->id,
+                "amount"    => 3250,
+                "chargeCategory" => "NEW CONNECTION"
+            ];
+            
+            $water = $mwaterConnection->saveCharges($refRequest);
+            
+            $returnData = [
+                'applicationNo' => $applicationNo,
+                "applicationId" => $refRequest['consumerId']
+                
+            ];
+            
+            $this->commit(); // Assuming this is part of your transaction handling
+            
+            return responseMsgs(true, "save consumer!", remove_null($returnData), "", "02", ".ms", "POST", $req->deviceId);
+        } catch (Exception $e) {
+            $this->rollback(); // Assuming this is part of your transaction handling
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", "");
+        }
+    }
+    
+
+  
+       /**
+        * | 
+        */
+       public function test(Request $req)
+       {
+           try{
+               $mNowDate             = Carbon::now()->format('Y-m-d');
+               $rules = [
+                   'consumerId'       => "required|digits_between:1,9223372036854775807",
+                   "demandUpto"       => "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate",
+                   'finalRading'      => "nullable|numeric",
+               ];
+               $validator = Validator::make($req->all(), $rules,);
+               if ($validator->fails()) {
+                   throw new Exception($validator->errors());
+               }
+               $returnData = new WaterMonthelyCall($req->consumerId,$req->demandUpto,$req->finalRading); #WaterSecondConsumer::get();
+               return $returnData->parentFunction($req);
+               return responseMsgs(true, "Successfully apply disconnection ", $returnData, "1.0", "350ms", "POST", "");
+   
+           }
+           catch (Exception $e) {
+               $response["status"] = false;
+               $response["errors"] = json_decode($e->getMessage());
+               return collect($response);
+           }
+       }
+   }
