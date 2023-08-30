@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Water;
 
+use App\BLL\Water\WaterMonthelyCall;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Water\reqDeactivate;
 use App\Http\Requests\Water\reqMeterEntry;
@@ -1988,14 +1989,33 @@ class WaterConsumer extends Controller
       }
   
        }
-    /**
-     * | 
-     */
-    public function this()
-    {
-        $test = new WaterSecondConsumer();
-        $resposne = $test->getConsumerDetailsById(1)->first();
-        return responseMsgs(true, "data", remove_null($resposne), "1.0", "350ms", "POST", "");
-    }
+
   
-}
+       /**
+        * | 
+        */
+       public function test(Request $req)
+       {
+           try{
+               $mNowDate             = Carbon::now()->format('Y-m-d');
+               $rules = [
+                   'consumerId'       => "required|digits_between:1,9223372036854775807",
+                   "demandUpto"       => "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate",
+                   'finalRading'      => "nullable|numeric",
+               ];
+               $validator = Validator::make($req->all(), $rules,);
+               if ($validator->fails()) {
+                   throw new Exception($validator->errors());
+               }
+               $returnData = new WaterMonthelyCall($req->consumerId,$req->demandUpto,$req->finalRading); #WaterSecondConsumer::get();
+               return $returnData->parentFunction($req);
+               return responseMsgs(true, "Successfully apply disconnection ", $returnData, "1.0", "350ms", "POST", "");
+   
+           }
+           catch (Exception $e) {
+               $response["status"] = false;
+               $response["errors"] = json_decode($e->getMessage());
+               return collect($response);
+           }
+       }
+   }
