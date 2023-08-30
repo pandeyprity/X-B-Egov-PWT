@@ -2299,6 +2299,7 @@ class WaterPaymentController extends Controller
             $charges->paid_status = 1;                                      // Update Demand Paid Status // Static
             $refReq = [
                 "payment_status"    => 1,
+                "status"            => 1
             ];
             $mwaterSecondConsumer->updateDataForPayment($activeConRequest->id, $refReq);
         }
@@ -2310,5 +2311,4 @@ class WaterPaymentController extends Controller
             $charges['id'],
         );
     }
-    
 }
