@@ -1499,7 +1499,7 @@ class Trade implements ITrade
             $data["apply_licence_id"]  = $request->licenceId ?? null;
             $data["nature_of_business"] = $mNatureOfBussiness;
             // $data = $this->cltCharge($data);
-            return $data = $this->AkolaCltCharge($data);
+            $data = $this->AkolaCltCharge($data);
             // dd($data1,$data);
             if ($data['response'])
                 return responseMsg(true, "", $data);
