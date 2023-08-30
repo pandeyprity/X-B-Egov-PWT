@@ -3906,7 +3906,10 @@ class Trade implements ITrade
             $is_appUploadedDocVerified          = $appUploadedDocVerified->where("is_docVerify", false);
             $is_appUploadedDocRejected          = $appUploadedDocRejected->where("is_docRejected", true);
             $is_appUploadedMadetoryDocRejected  = $appMadetoryDocRejected->where("is_docRejected", true);
-            $is_appMandUploadedDoc              = $appMandetoryDoc->whereNull("uploadedDoc");
+            // $is_appMandUploadedDoc              = $appMandetoryDoc->whereNull("uploadedDoc");
+            $is_appMandUploadedDoc = $appMandetoryDoc->filter(function($val){
+                return ($val["uploadedDoc"]=="" || $val["uploadedDoc"]==null);
+            });
             
             $Wdocuments = collect();
             $ownerDoc->map(function ($val) use ($Wdocuments) {
@@ -3920,7 +3923,6 @@ class Trade implements ITrade
                     $Wdocuments->push($val1);
                 });
             });
-
             $ownerMandetoryDoc              = $Wdocuments->whereIn("docType", ["R", "OR"]);
             $is_ownerUploadedDoc            = $Wdocuments->where("is_uploded", false);
             $is_ownerDocVerify              = $Wdocuments->where("is_docVerify", false);
