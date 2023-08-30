@@ -258,4 +258,11 @@ class WaterConsumerDemand extends Model
             ->where('status', true)
             ->orderByDesc('id');
     }
+
+    public function akolaCheckConsumerDemand($consumerId)
+    {
+        return WaterConsumerDemand::where('consumer_id', $consumerId)
+            ->where('status', true)
+            ->orderByDesc('id');
+    }
 }

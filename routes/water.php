@@ -35,6 +35,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      */
     Route::controller(NewConnectionController::class)->group(function () {
         # Workflow
+
         Route::post('inbox', 'waterInbox');                                                             // Workflow
         Route::post('outbox', 'waterOutbox');                                                           // Workflow
         Route::post('post-next-level', 'postNextLevel');                                                // Workflow
@@ -71,6 +72,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('admin/application/je-site-details', 'getJeSiteDetails');                           // Workflow/Admin
         Route::post('admin/application/online-technical-inspection', 'onlineSiteInspection');           // Workflow
         Route::post('admin/application/technical-inspection-details', 'getTechnicalInsDetails');        // Workflow
+        Route::post('search-holding-saf', 'searchHoldingsaf');
     });
 
     /**
@@ -102,6 +104,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      * |------------- Water Consumer and Related -------------|
      */
     Route::controller(WaterConsumer::class)->group(function () {
+        Route::post('generate/consumer-number', 'consumerNumber');
+        Route::post('consumer/apply-data', 'consumerApplyData');
+        Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
         Route::post('consumer/list-demand', 'listConsumerDemand');                                      // Consumer
         Route::post('admin/consumer/generate-demand', 'saveGenerateConsumerDemand');                    // Admin
         Route::post('admin/consumer/save-connection-meter', 'saveUpdateMeterDetails');                  // Admin
@@ -120,6 +125,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         # Deactivation
         Route::post('admin/consumer/apply-deactivation', 'applyDeactivation');                          // Admin / Not Used
         Route::post('admin/consumer/demand-deactivation', 'consumerDemandDeactivation');  // Here       // Admin / Not used
+        Route::post('get-listed-fee', 'test');
     });
 
 

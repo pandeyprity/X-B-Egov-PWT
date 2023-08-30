@@ -172,4 +172,9 @@ return [
         "Old Pipeline" => 1,
         "New Pipeline" => 2
     ],
+
+    "AKOLA_CATEGORY" =>[
+        "Slum"      => 1,
+        "General"   => 2
+    ],
 ];
