@@ -485,7 +485,7 @@ class Trade implements ITrade
             }
         } catch (Exception $e) {
             $this->rollBack();             
-            return responseMsg(false, [$e->getMessage(),$e->getLine(),$e->getFile()], "");
+            return responseMsg(false, $e->getMessage(), "");
         }
     }
 
