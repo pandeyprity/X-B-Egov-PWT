@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Water;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Water\newApplyRules;
+use  App\Models\water\WaterSecondConnectionCharge;
 use App\Http\Requests\Water\reqSiteVerification;
 use App\MicroServices\DocUpload;
 use App\Models\Masters\RefRequiredDocument;
@@ -1833,7 +1834,7 @@ class NewConnectionController extends Controller
             return validationError($validated);
 
         try {
-            $mWaterConsumer = new WaterConsumer();
+            $mWaterConsumer = new WaterSecondConsumer();
             $key            = $request->filterBy;
             $paramenter     = $request->parameter;
             $pages          = $request->pages ?? 10;
@@ -1855,26 +1856,6 @@ class NewConnectionController extends Controller
                     break;
                 case ("safNo"):                                                                             // Static
                     $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
-                    $checkVal = collect($waterReturnDetails)->last();
-                    if (!$checkVal || $checkVal == 0)
-                        throw new Exception("Data according to " . $key . " not Found!");
-                    break;
-                case ("applicantName"):                                                                     // Static
-                    $paramenter = strtoupper($paramenter);
-                    $waterReturnDetails = $mWaterConsumer->getDetailByOwnerDetails($refstring, $paramenter)->paginate($pages);
-                    $checkVal = collect($waterReturnDetails)->last();
-                    if (!$checkVal || $checkVal == 0)
-                        throw new Exception("Data according to " . $key . " not Found!");
-                    break;
-                case ('mobileNo'):                                                                          // Static
-                    $paramenter = strtoupper($paramenter);
-                    $waterReturnDetails = $mWaterConsumer->getDetailByOwnerDetails($refstring, $paramenter)->paginate($pages);
-                    $checkVal = collect($waterReturnDetails)->last();
-                    if (!$checkVal || $checkVal == 0)
-                        throw new Exception("Data according to " . $key . " not Found!");
-                    break;
-                case ('applicationNo'):
-                    $waterReturnDetails = $mWaterConsumer->getDetailByApplicationNo($paramenter)->paginate($pages);
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
@@ -2102,8 +2083,8 @@ class NewConnectionController extends Controller
         if ($validated->fails())
             return validationError($validated);
         try {
-            $mWaterConnectionCharge     = new WaterConnectionCharge();
-            $mWaterApplication          = new WaterApplication();
+            $mWaterConnectionCharge     = new WaterSecondConnectionCharge();
+            $mWaterApplication          = new WaterSecondConsumer();
             $mWaterPenaltyInstallment   = new WaterPenaltyInstallment();
             $mWaterTran                 = new WaterTran();
             $refChargeCatagory          = Config::get("waterConstaint.CHARGE_CATAGORY");
@@ -2122,68 +2103,69 @@ class NewConnectionController extends Controller
             $waterTransDetail['waterTransDetail'] = $waterTransaction;
 
             # calculation details
-            $charges = $mWaterConnectionCharge->getWaterchargesById($refAppDetails['id'])
-                ->orderByDesc('id')
-                ->firstOrFail();
+            // $charges = $mWaterConnectionCharge->getWaterchargesById($refAppDetails['id'])
+            //     ->orderByDesc('id')
+            //     ->firstOrFail();
 
-            switch ($charges['charge_category']) {
-                case ($refChargeCatagory['SITE_INSPECTON']):
-                    $chargeId = $refChargeCatagoryValue['SITE_INSPECTON'];
-                    break;
-                case ($refChargeCatagory['NEW_CONNECTION']):
-                    $chargeId = $refChargeCatagoryValue['NEW_CONNECTION'];
-                    break;
-                case ($refChargeCatagory['REGULAIZATION']):
-                    $chargeId = $refChargeCatagoryValue['REGULAIZATION'];
-                    break;
-            }
+            // switch ($charges['charge_category']) {
+            //     case ($refChargeCatagory['SITE_INSPECTON']):
+            //         $chargeId = $refChargeCatagoryValue['SITE_INSPECTON'];
+            //         break;
+            //     case ($refChargeCatagory['NEW_CONNECTION']):
+            //         $chargeId = $refChargeCatagoryValue['NEW_CONNECTION'];
+            //         break;
+            //     case ($refChargeCatagory['REGULAIZATION']):
+            //         $chargeId = $refChargeCatagoryValue['REGULAIZATION'];
+            //         break;
+            // }
 
-            if ($charges['paid_status'] == 0) {
-                $calculation['calculation'] = [
-                    'connectionFee'     => $charges['conn_fee'],
-                    'penalty'           => $charges['penalty'],
-                    'totalAmount'       => $charges['amount'],
-                    'chargeCatagory'    => $charges['charge_category'],
-                    'chargeCatagoryId'  => $chargeId,
-                    'paidStatus'        => $charges['paid_status']
-                ];
-                $waterTransDetail = array_merge($calculation, $waterTransDetail);
-            } else {
-                $penalty['penaltyInstallments'] = $mWaterPenaltyInstallment->getPenaltyByApplicationId($request->applicationId)
-                    ->where('paid_status', 0)
-                    ->get();
-                $refPenalty = collect($penalty['penaltyInstallments'])->first();
-                if ($refPenalty) {
-                    $penaltyAmount = collect($penalty['penaltyInstallments'])->map(function ($value) {
-                        return $value['balance_amount'];
-                    })->sum();
+            // if ($charges['paid_status'] == 0) {
+            //     $calculation['calculation'] = [
+            //         'connectionFee'     => $charges['conn_fee'],
+            //         'penalty'           => $charges['penalty'],
+            //         'totalAmount'       => $charges['amount'],
+            //         'chargeCatagory'    => $charges['charge_category'],
+            //         'chargeCatagoryId'  => $chargeId,
+            //         'paidStatus'        => $charges['paid_status']
+            //     ];
+            //     $waterTransDetail = array_merge($calculation, $waterTransDetail);
+            // } else {
+            //     $penalty['penaltyInstallments'] = $mWaterPenaltyInstallment->getPenaltyByApplicationId($request->applicationId)
+            //         ->where('paid_status', 0)
+            //         ->get();
+            //     $refPenalty = collect($penalty['penaltyInstallments'])->first();
+            //     if ($refPenalty) {
+            //         $penaltyAmount = collect($penalty['penaltyInstallments'])->map(function ($value) {
+            //             return $value['balance_amount'];
+            //         })->sum();
 
-                    $calculation['calculation'] = [
-                        'connectionFee'     => 0.00,           # Static
-                        'penalty'           => $penaltyAmount,
-                        'totalAmount'       => $penaltyAmount,
-                        'chargeCatagory'    => $charges['charge_category'],
-                        'chargeCatagoryId'  => $chargeId,
-                        'paidStatus'        => $charges['paid_status']
-                    ];
-                    $waterTransDetail = array_merge($calculation, $waterTransDetail);
-                }
-            }
+            //         $calculation['calculation'] = [
+            //             'connectionFee'     => 0.00,           # Static
+            //             'penalty'           => $penaltyAmount,
+            //             'totalAmount'       => $penaltyAmount,
+            //             'chargeCatagory'    => $charges['charge_category'],
+            //             'chargeCatagoryId'  => $chargeId,
+            //             'paidStatus'        => $charges['paid_status']
+            //         ];
+            //         $waterTransDetail = array_merge($calculation, $waterTransDetail);
+            //     }
+            // }
 
-            # penalty Data 
-            if ($charges['penalty'] > 0) {
-                $ids = null;
-                $penalty['penaltyInstallments'] = $mWaterPenaltyInstallment->getPenaltyByApplicationId($request->applicationId)
-                    ->where('paid_status', 0)
-                    ->get();
-                foreach ($penalty['penaltyInstallments'] as $key => $val) {
-                    $ids = trim(($ids . "," . $val["id"]), ",");
-                    $penalty['penaltyInstallments'][$key]["ids"] = $ids;
-                }
-                $waterTransDetail = array_merge($penalty, $waterTransDetail);
-            }
-            $returnData = array_merge($applicationDetails, $waterTransDetail);
+            // # penalty Data 
+            // if ($charges['penalty'] > 0) {
+            //     $ids = null;
+            //     $penalty['penaltyInstallments'] = $mWaterPenaltyInstallment->getPenaltyByApplicationId($request->applicationId)
+            //         ->where('paid_status', 0)
+            //         ->get();
+            //     foreach ($penalty['penaltyInstallments'] as $key => $val) {
+            //         $ids = trim(($ids . "," . $val["id"]), ",");
+            //         $penalty['penaltyInstallments'][$key]["ids"] = $ids;
+            //     }
+            //     $waterTransDetail = array_merge($penalty, $waterTransDetail);
+            // }
+            $returnData = $applicationDetails;    // array_merge($applicationDetails, $waterTransDetail);
             return responseMsgs(true, "Application Data!", remove_null($returnData), "", "", "", "Post", "");
+        
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
         }
@@ -2828,6 +2810,29 @@ class NewConnectionController extends Controller
     //     }
     // }
 
+/**
+ * get all details 
+ */
+public function getdetailsbyId(Request $req) {
+    $req->validate([
+        "applicationId" => "required|numeric",
+    ]);
+    
+    try {
+        $mwaterSecondConsumer = new WaterSecondConsumer(); 
+        $water = $mwaterSecondConsumer->getallDetails($req->input('applicationId'));
+        if(!$water){
+            throw new Exception('Application not found');
+        }
+        
+        return responseMsgs(true, "get all details", $water, "", "1.0", "", "POST", $req->deviceId ?? "");
+    } catch (Exception $e) { // Catch a more specific exception
+        return responseMsgs(false, $e->getMessage(), "", "", "01", ".ms", "POST", $req->deviceId);
+    }
+}
+
+    }
+
    
 
-}
+

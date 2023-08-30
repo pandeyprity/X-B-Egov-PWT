@@ -148,7 +148,8 @@ return [
         "1" => "Demand Collection",
         "4" => "Ferrule Cleaning Checking",
         "5" => "Pipe Shifting Alteration",
-        "2" => "Water Disconnection"
+        "2" => "Water Disconnection",
+
     ],
     "APP_APPLY_FROM" => [
         "1" => "Online",
@@ -177,4 +178,8 @@ return [
         "Slum"      => 1,
         "General"   => 2
     ],
+     "PAYMENT_FOR_CONSUMER" => [
+        "1" => "CONSUMER_CONNECTION",
+        ],
+
 ];

@@ -73,6 +73,8 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('admin/application/online-technical-inspection', 'onlineSiteInspection');           // Workflow
         Route::post('admin/application/technical-inspection-details', 'getTechnicalInsDetails');        // Workflow
         Route::post('search-holding-saf', 'searchHoldingsaf');
+        Route::post('get-all-details', 'getdetailsbyId');           // akola 
+        
     });
 
     /**
@@ -82,6 +84,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      */
     Route::controller(WaterPaymentController::class)->group(function () {
         # Consumer And Citizen Transaction Operation
+
         Route::post('master/get-listed-details', 'getWaterMasterData');                                 // Admin/ Citizen
         Route::post('consumer/get-payment-history', 'getConsumerPaymentHistory');                       // Consumer
         Route::post('admin/application/generate-payment-receipt', 'generateOfflinePaymentReceipt');     // Citizen / Admin
@@ -93,9 +96,11 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('consumer/online-demand-payment', 'initiateOnlineDemandPayment');                   // Citizen
         Route::post('citizen/payment-history', 'paymentHistory');                                       // Citizen  
         Route::post('consumer/water-user-charges', 'getWaterUserCharges');                              // Admin / Citizen
+        Route::post('consumer/offline-request-payment', 'offlineConReqPayment'); 
 
         # Site inspection 
         Route::post('site-verification/save-site-details', 'saveSitedetails');                          // Admin
+        Route::post('consumer/offline-payment', 'Consumerofflinepayment'); 
     });
 
     /**
@@ -104,7 +109,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      * |------------- Water Consumer and Related -------------|
      */
     Route::controller(WaterConsumer::class)->group(function () {
-        Route::post('generate/consumer-number', 'consumerNumber');
+
         Route::post('consumer/apply-data', 'consumerApplyData');
         Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
         Route::post('consumer/list-demand', 'listConsumerDemand');                                      // Consumer
