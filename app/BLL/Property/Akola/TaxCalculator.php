@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 
-use function PHPUnit\Framework\isEmpty;
 
 /**
  * | Author - Anshu Kumar
@@ -100,7 +99,7 @@ class TaxCalculator
     }
 
     /**
-     * | Calculate Floor Wise Calculation (2)
+     * | Calculate Floor Wise Calculation including Vacant also (2)
      */
     public function generateFloorWiseTax()
     {
@@ -363,9 +362,9 @@ class TaxCalculator
         // Act Of limitation
         $yearDiffs = Carbon::parse($this->_calculationDateFrom)->diffInYears(Carbon::now());                // year differences
 
-        if ($yearDiffs >= 5) {
-            $this->_GRID['demandPendingYrs'] = 5;
-            $this->_calculationDateFrom = Carbon::now()->addYears(-4)->format('Y-m-d');
+        if ($yearDiffs >= 6) {                                                                              // Act of limitation 6 Years
+            $this->_GRID['demandPendingYrs'] = 6;
+            $this->_calculationDateFrom = Carbon::now()->addYears(-5)->format('Y-m-d');
         }
         // Act Of Limitations end
         while ($this->_calculationDateFrom <= $currentFyearEndDate) {

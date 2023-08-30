@@ -1909,7 +1909,11 @@ class ActiveSafController extends Controller
             }
             DB::beginTransaction();
             $propTrans = $propTrans->postSafTransaction($req, $demands);
+
+            // 🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴 Pending Works
             // 🔴🔴🔴🔴🔴 💀💀 Transactions Rebate Amount is the part of discussion 🔴🔴🔴🔴🔴
+            // 🔴🔴🔴🔴🔴 💀💀 Demand insertion and tran details 🔴🔴🔴🔴🔴
+
 
             if (in_array($req['paymentMode'], $offlinePaymentModes)) {
                 $req->merge([

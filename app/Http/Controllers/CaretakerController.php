@@ -132,13 +132,18 @@ class CaretakerController extends Controller
      */
     public function careTakeModules(Request $req)
     {
-
-
-        try {
-            $req->validate([
+        $validated = Validator::make(
+            $req->all(),
+            [
                 'moduleId' => 'required|integer',
                 'referenceNo' => 'required'
-            ]);
+            ]
+        );
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+
+        try {
             $data = array();
             $response = app(Pipeline::class)
                 ->send($data)

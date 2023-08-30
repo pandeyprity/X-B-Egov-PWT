@@ -269,7 +269,7 @@ Route::group(['middleware' => ['json.response', 'request_logger', 'expireBearerT
 //  * Modified By :- Mrinal Kumar
 //  */
 
-Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
+Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger']], function () {
 
 
     /**
@@ -336,27 +336,29 @@ Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger'
         Route::post('quick-access-byuserid', 'getQuickAccessListByUser');
         Route::post('add-update-quickaccess', 'addUpdateQuickAccess');
     });
+});
 
 
 
-    /**
-     * | Caretaker Property , Water , Trade (10)
-     */
-    Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
-        Route::controller(CaretakerController::class)->group(function () {
-            Route::post('water/caretaker-otp', 'waterCaretakerOtp');
-            Route::post('water/caretaker-consumer-tagging', 'caretakerConsumerTag');
+/**
+ * | Caretaker Property , Water , Trade (10)
+ */
+Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
+    Route::controller(CaretakerController::class)->group(function () {
+        Route::post('water/caretaker-otp', 'waterCaretakerOtp');
+        Route::post('water/caretaker-consumer-tagging', 'caretakerConsumerTag');
 
-            Route::post('citizen/caretake-modules', 'careTakeModules');        // CareTake Modules (01)
-            Route::post('citizen/caretake-otp', 'careTakeOtp');                  // Otp for caretaker
-        });
+        Route::post('citizen/caretake-modules', 'careTakeModules');        // CareTake Modules (01)
+        Route::post('citizen/caretake-otp', 'careTakeOtp');                  // Otp for caretaker
+    });
 
-        Route::controller(ThirdPartyController::class)->group(function () {
-            Route::post('user/send-otp', 'sendOtp');
-            Route::post('user/verify-otp', "verifyOtp");
-        });
+    Route::controller(ThirdPartyController::class)->group(function () {
+        Route::post('user/send-otp', 'sendOtp');
+        Route::post('user/verify-otp', "verifyOtp");
     });
 });
+
+
 Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger', 'expireBearerToken']], function () {
 
     /**
