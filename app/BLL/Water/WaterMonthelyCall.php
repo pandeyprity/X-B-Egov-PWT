@@ -171,7 +171,7 @@ class WaterMonthelyCall
                     "current_meter_reading" => $this->_unitConsumed,
                     "unit_amount"           => 1,                                           // Statisc
                     "demand_from"           => $values . "-01",                              // Static
-                    "demand_upto"           => $lastDateOfMonth,
+                    "demand_upto"           => $lastDateOfMonth->format('Y-m-d'),
                     "connection_type"       => "Meter",
                 ];
             });
@@ -181,8 +181,8 @@ class WaterMonthelyCall
                     [
                         "charge_type"       => "Meter",
                         "rate_id"           => $this->_consumerCharges->id,
-                        "effective_from"    => $startDate,
-                        "initial_reading"   => $this->_consumerLastDemand->demand_upto,
+                        "effective_from"    => $startDate->format('Y-m-d'),
+                        "initial_reading"   => $this->_consumerLastDemand->demand_upto->format('Y-m-d'),
                         "final_reading"     => $this->_unitConsumed,
                         "amount"            => $returnData->sum('amount'),
                         "consumer_demand"   => $returnData->toArray()
