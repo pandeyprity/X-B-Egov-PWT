@@ -2107,64 +2107,65 @@ class NewConnectionController extends Controller
                 ->orderByDesc('id')
                 ->firstOrFail();
 
-            switch ($charges['charge_category']) {
-                case ($refChargeCatagory['SITE_INSPECTON']):
-                    $chargeId = $refChargeCatagoryValue['SITE_INSPECTON'];
-                    break;
-                case ($refChargeCatagory['NEW_CONNECTION']):
-                    $chargeId = $refChargeCatagoryValue['NEW_CONNECTION'];
-                    break;
-                case ($refChargeCatagory['REGULAIZATION']):
-                    $chargeId = $refChargeCatagoryValue['REGULAIZATION'];
-                    break;
-            }
+            // switch ($charges['charge_category']) {
+            //     case ($refChargeCatagory['SITE_INSPECTON']):
+            //         $chargeId = $refChargeCatagoryValue['SITE_INSPECTON'];
+            //         break;
+            //     case ($refChargeCatagory['NEW_CONNECTION']):
+            //         $chargeId = $refChargeCatagoryValue['NEW_CONNECTION'];
+            //         break;
+            //     case ($refChargeCatagory['REGULAIZATION']):
+            //         $chargeId = $refChargeCatagoryValue['REGULAIZATION'];
+            //         break;
+            // }
 
-            if ($charges['paid_status'] == 0) {
-                $calculation['calculation'] = [
-                    'connectionFee'     => $charges['conn_fee'],
-                    'penalty'           => $charges['penalty'],
-                    'totalAmount'       => $charges['amount'],
-                    'chargeCatagory'    => $charges['charge_category'],
-                    'chargeCatagoryId'  => $chargeId,
-                    'paidStatus'        => $charges['paid_status']
-                ];
-                $waterTransDetail = array_merge($calculation, $waterTransDetail);
-            } else {
-                $penalty['penaltyInstallments'] = $mWaterPenaltyInstallment->getPenaltyByApplicationId($request->applicationId)
-                    ->where('paid_status', 0)
-                    ->get();
-                $refPenalty = collect($penalty['penaltyInstallments'])->first();
-                if ($refPenalty) {
-                    $penaltyAmount = collect($penalty['penaltyInstallments'])->map(function ($value) {
-                        return $value['balance_amount'];
-                    })->sum();
+            // if ($charges['paid_status'] == 0) {
+            //     $calculation['calculation'] = [
+            //         'connectionFee'     => $charges['conn_fee'],
+            //         'penalty'           => $charges['penalty'],
+            //         'totalAmount'       => $charges['amount'],
+            //         'chargeCatagory'    => $charges['charge_category'],
+            //         'chargeCatagoryId'  => $chargeId,
+            //         'paidStatus'        => $charges['paid_status']
+            //     ];
+            //     $waterTransDetail = array_merge($calculation, $waterTransDetail);
+            // } else {
+            //     $penalty['penaltyInstallments'] = $mWaterPenaltyInstallment->getPenaltyByApplicationId($request->applicationId)
+            //         ->where('paid_status', 0)
+            //         ->get();
+            //     $refPenalty = collect($penalty['penaltyInstallments'])->first();
+            //     if ($refPenalty) {
+            //         $penaltyAmount = collect($penalty['penaltyInstallments'])->map(function ($value) {
+            //             return $value['balance_amount'];
+            //         })->sum();
 
-                    $calculation['calculation'] = [
-                        'connectionFee'     => 0.00,           # Static
-                        'penalty'           => $penaltyAmount,
-                        'totalAmount'       => $penaltyAmount,
-                        'chargeCatagory'    => $charges['charge_category'],
-                        'chargeCatagoryId'  => $chargeId,
-                        'paidStatus'        => $charges['paid_status']
-                    ];
-                    $waterTransDetail = array_merge($calculation, $waterTransDetail);
-                }
-            }
+            //         $calculation['calculation'] = [
+            //             'connectionFee'     => 0.00,           # Static
+            //             'penalty'           => $penaltyAmount,
+            //             'totalAmount'       => $penaltyAmount,
+            //             'chargeCatagory'    => $charges['charge_category'],
+            //             'chargeCatagoryId'  => $chargeId,
+            //             'paidStatus'        => $charges['paid_status']
+            //         ];
+            //         $waterTransDetail = array_merge($calculation, $waterTransDetail);
+            //     }
+            // }
 
-            # penalty Data 
-            if ($charges['penalty'] > 0) {
-                $ids = null;
-                $penalty['penaltyInstallments'] = $mWaterPenaltyInstallment->getPenaltyByApplicationId($request->applicationId)
-                    ->where('paid_status', 0)
-                    ->get();
-                foreach ($penalty['penaltyInstallments'] as $key => $val) {
-                    $ids = trim(($ids . "," . $val["id"]), ",");
-                    $penalty['penaltyInstallments'][$key]["ids"] = $ids;
-                }
-                $waterTransDetail = array_merge($penalty, $waterTransDetail);
-            }
-            $returnData = array_merge($applicationDetails, $waterTransDetail);
+            // # penalty Data 
+            // if ($charges['penalty'] > 0) {
+            //     $ids = null;
+            //     $penalty['penaltyInstallments'] = $mWaterPenaltyInstallment->getPenaltyByApplicationId($request->applicationId)
+            //         ->where('paid_status', 0)
+            //         ->get();
+            //     foreach ($penalty['penaltyInstallments'] as $key => $val) {
+            //         $ids = trim(($ids . "," . $val["id"]), ",");
+            //         $penalty['penaltyInstallments'][$key]["ids"] = $ids;
+            //     }
+            //     $waterTransDetail = array_merge($penalty, $waterTransDetail);
+            // }
+            $returnData = $applicationDetails;    // array_merge($applicationDetails, $waterTransDetail);
             return responseMsgs(true, "Application Data!", remove_null($returnData), "", "", "", "Post", "");
+        
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
         }
