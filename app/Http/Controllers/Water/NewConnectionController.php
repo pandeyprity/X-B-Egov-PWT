@@ -2103,9 +2103,9 @@ class NewConnectionController extends Controller
             $waterTransDetail['waterTransDetail'] = $waterTransaction;
 
             # calculation details
-            $charges = $mWaterConnectionCharge->getWaterchargesById($refAppDetails['id'])
-                ->orderByDesc('id')
-                ->firstOrFail();
+            // $charges = $mWaterConnectionCharge->getWaterchargesById($refAppDetails['id'])
+            //     ->orderByDesc('id')
+            //     ->firstOrFail();
 
             // switch ($charges['charge_category']) {
             //     case ($refChargeCatagory['SITE_INSPECTON']):

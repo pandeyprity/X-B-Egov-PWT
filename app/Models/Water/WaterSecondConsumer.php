@@ -122,6 +122,25 @@ class WaterSecondConsumer extends Model
             ->update($req);
     }
 
+    /**
+     * |----------------------- Get Water Application detals With all Relation ------------------|
+     * | @param request
+     * | @return 
+     */
+    public function fullWaterDetails($request)
+    {
+        return  WaterSecondConsumer::select(
+            'water_second_consumers.*',
+            'water_second_consumers.consumer_no',
+            // 'ulb_masters.ulb_name',
+            "water_second_connection_charges.amount",
+            'water_second_connection_charges.charge_category'
+           
+        )
+            ->join('water_second_connection_charges','water_second_connection_charges.consumer_id','water_second_consumers.id')
+            ->where('water_second_consumers.id', $request->applicationId)
+            ->where('water_second_consumers.status', 4);
+    }
 
 
 }

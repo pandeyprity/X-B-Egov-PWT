@@ -26,7 +26,7 @@ class WaterSecondConnectionCharge extends Model
     {
         return WaterSecondConnectionCharge::where('consumer_id', $applicationId)
             ->where('status', 1);
-    }
+    }   
    }
 
 

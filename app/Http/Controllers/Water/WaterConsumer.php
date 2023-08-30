@@ -1995,6 +1995,8 @@ class WaterConsumer extends Controller
             
             $returnData = [
                 'applicationNo' => $applicationNo,
+                "applicationId" => $refRequest['consumerId']
+                
             ];
             
             $this->commit(); // Assuming this is part of your transaction handling
