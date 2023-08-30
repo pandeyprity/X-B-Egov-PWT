@@ -38,6 +38,8 @@ use App\Models\Water\WaterSiteInspection;
 use App\Models\Water\WaterSiteInspectionsScheduling;
 use App\Models\Water\WaterTran;
 use App\Models\Water\WaterTranDetail;
+use App\Models\Water\WaterSecondConsumer;
+use App\Models\Water\WaterSecondConnectionCharge;
 use App\Models\Water\WaterTranFineRebate;
 use App\Models\Workflows\WfRoleusermap;
 use App\Repository\Water\Concrete\WaterNewConnection;
@@ -2133,7 +2135,7 @@ class WaterPaymentController extends Controller
 
 
     /**
-     * | Offline Paymet for Water Consumer request
+     * | Offline Paymet for Water Consumer request FOR AKOLA
         | Serial No :
         | Under Con
      */
@@ -2147,11 +2149,11 @@ class WaterPaymentController extends Controller
 
             $idGeneration                   = new IdGeneration;
             $mWaterTran                     = new WaterTran();
-            $mWaterConsumerActiveRequest    = new WaterConsumerActiveRequest();
-            $mWaterConsumerCharge           = new WaterConsumerCharge();
+            $mWaterSecondconsumer           = new WaterSecondConsumer();
+            $mWaterConsumerCharge           = new WaterSecondConnectionCharge();
 
             $offlinePaymentModes = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
-            $activeConRequest = $mWaterConsumerActiveRequest->getActiveReqById($applicatinId)
+            $activeConRequest = $mWaterSecondconsumer->getActiveReqById($applicatinId)
                 ->where('payment_status', 0)
                 ->first();
             if (!$activeConRequest) {
@@ -2161,8 +2163,9 @@ class WaterPaymentController extends Controller
                 throw new Exception("Online mode is not accepted!");
             }
 
+
             $activeConsumercharges = $mWaterConsumerCharge->getConsumerChargesById($applicatinId)
-                ->where('charge_category_id', $activeConRequest->charge_catagory_id)
+                // ->where('charge_category_id', $activeConRequest->charge_catagory_id)
                 ->where('paid_status', 0)
                 ->first();
             if (!$activeConsumercharges) {
@@ -2217,14 +2220,14 @@ class WaterPaymentController extends Controller
      */
     public function checkConReqPayment($applicationDetails)
     {
-        $ref = Config::get('waterConstaint.PAYMENT_FOR');
+        $ref = Config::get('waterConstaint.PAYMENT_FOR_CONSUMER');
         $mWaterTran = new WaterTran();
-        $transDetails = $mWaterTran->getTransNoForConsumer($applicationDetails->id, $ref["$applicationDetails->charge_catagory_id"])->first();
+        $transDetails = $mWaterTran->getTransNoForConsumer($applicationDetails->id, $ref["1"])->first();
         if ($transDetails) {
             throw new Exception("Transaction details is present in Database!");
         }
         return [
-            "chargeCatagory" => $ref["$applicationDetails->charge_catagory_id"]
+            "chargeCatagory" => $ref["1"]
         ];
     }
 
@@ -2281,7 +2284,7 @@ class WaterPaymentController extends Controller
      */
     public function saveConsumerRequestStatus($request, $offlinePaymentModes, $charges, $waterTrans, $activeConRequest)
     {
-        $mWaterConsumerActiveRequest    = new WaterConsumerActiveRequest();
+        $mwaterSecondConsumer           = new WaterSecondConsumer();
         $waterTranDetail                = new WaterTranDetail();
         $mWaterTran                     = new WaterTran();
 
@@ -2291,14 +2294,13 @@ class WaterPaymentController extends Controller
             $refReq = [
                 "payment_status" => 2,
             ];
-            $mWaterConsumerActiveRequest->updateDataForPayment($activeConRequest->id, $refReq);
+            $mwaterSecondConsumer->updateDataForPayment($activeConRequest->id, $refReq);
         } else {
             $charges->paid_status = 1;                                      // Update Demand Paid Status // Static
             $refReq = [
                 "payment_status"    => 1,
-                "current_role"      => $activeConRequest->initiator
             ];
-            $mWaterConsumerActiveRequest->updateDataForPayment($activeConRequest->id, $refReq);
+            $mwaterSecondConsumer->updateDataForPayment($activeConRequest->id, $refReq);
         }
         $charges->save();                                                   // Save Demand
         $waterTranDetail->saveDefaultTrans(
@@ -2308,4 +2310,5 @@ class WaterPaymentController extends Controller
             $charges['id'],
         );
     }
+    
 }

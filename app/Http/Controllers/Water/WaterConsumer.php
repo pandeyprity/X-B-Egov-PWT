@@ -33,6 +33,7 @@ use App\Models\Water\WaterPenaltyInstallment;
 use App\Models\Water\WaterSecondConsumer;
 use App\Models\Water\WaterSiteInspection;
 use App\Models\Water\WaterTran;
+use App\Models\Water\WaterSecondConnectionCharge;
 use App\Models\Water\WaterTranDetail;
 use App\Models\Workflows\WfRoleusermap;
 use App\Models\Workflows\WfWorkflow;
@@ -1963,32 +1964,48 @@ class WaterConsumer extends Controller
      |in process
      
      */
-    public function applyWaterConnection(newWaterRequest $req ){
-        try{
-            // $user                    
-          $ulbId                      =$req->ulbId;
-          $mWaterSecondConsumer       = new WaterSecondConsumer();
-          $refConParamId              = Config::get("waterConstaint.PARAM_IDS");
-          $this->begin();
-          $idGeneration            =  new PrefixIdGenerator($refConParamId['WCD'], $ulbId);
-          $applicationNo           =  $idGeneration->generate();
-          $applicationNo           = str_replace('/', '-', $applicationNo);
-          $meta =[
-            'status' =>'4'
-          ];
-          $water=$mWaterSecondConsumer->saveConsumer($req,$meta,$applicationNo);
-          $returnData = [
-            'applicationNo'         => $applicationNo,
-          ];
-          $this->commit();
-         return responseMsgs(true, "save consumer!", remove_null($returnData), "", "02", ".ms", "POST", $req->deviceId);
+    public function applyWaterConnection(newWaterRequest $req) {
+        try {
+            $ulbId = $req->ulbId;
+            $mWaterSecondConsumer = new WaterSecondConsumer();
+            $mwaterConnection     = new WaterSecondConnectionCharge(); // Corrected class name
+            
+            $refConParamId = Config::get("waterConstaint.PARAM_IDS");
+            
+            $this->begin(); // Assuming this is part of your transaction handling
+            
+            $idGeneration = new PrefixIdGenerator($refConParamId['WCD'], $ulbId);
+            $applicationNo = $idGeneration->generate();
+            $applicationNo = str_replace('/', '-', $applicationNo);
+            
+            $meta = [
+                'status' => '4',
+                'wardmstrId'=>"3"
+            ];
+            
+             $water = $mWaterSecondConsumer->saveConsumer($req, $meta, $applicationNo);
+            
+            $refRequest = [
+                "consumerId" => $water->id,
+                "amount"    => 3250,
+                "chargeCategory" => "NEW CONNECTION"
+            ];
+            
+            $water = $mwaterConnection->saveCharges($refRequest);
+            
+            $returnData = [
+                'applicationNo' => $applicationNo,
+            ];
+            
+            $this->commit(); // Assuming this is part of your transaction handling
+            
+            return responseMsgs(true, "save consumer!", remove_null($returnData), "", "02", ".ms", "POST", $req->deviceId);
+        } catch (Exception $e) {
+            $this->rollback(); // Assuming this is part of your transaction handling
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", "");
         }
-          catch (Exception $e) {
-          $this->rollback();
-          return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", "");
-      }
-  
-       }
+    }
+    
 
   
        /**
