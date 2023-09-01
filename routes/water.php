@@ -96,11 +96,14 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('consumer/online-demand-payment', 'initiateOnlineDemandPayment');                   // Citizen
         Route::post('citizen/payment-history', 'paymentHistory');                                       // Citizen  
         Route::post('consumer/water-user-charges', 'getWaterUserCharges');                              // Admin / Citizen
-        Route::post('consumer/offline-request-payment', 'offlineConReqPayment'); 
+        
 
         # Site inspection 
         Route::post('site-verification/save-site-details', 'saveSitedetails');                          // Admin
         Route::post('consumer/offline-payment', 'Consumerofflinepayment'); 
+
+        # FOR AKOLA 
+        Route::post('consumer/offline-request-payment', 'offlineConReqPayment');
     });
 
     /**
@@ -110,8 +113,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      */
     Route::controller(WaterConsumer::class)->group(function () {
 
-        Route::post('consumer/apply-data', 'consumerApplyData');
-        Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
+      
         Route::post('consumer/list-demand', 'listConsumerDemand');                                      // Consumer
         Route::post('admin/consumer/generate-demand', 'saveGenerateConsumerDemand');                    // Admin
         Route::post('admin/consumer/save-connection-meter', 'saveUpdateMeterDetails');                  // Admin
@@ -131,6 +133,12 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('admin/consumer/apply-deactivation', 'applyDeactivation');                          // Admin / Not Used
         Route::post('admin/consumer/demand-deactivation', 'consumerDemandDeactivation');  // Here       // Admin / Not used
         Route::post('get-listed-fee', 'test');
+        
+        # for akola 
+        Route::post('consumer/apply-data', 'consumerApplyData');
+        Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
+        Route::post('consumer/get-master-data','getMasterData');
+
     });
 
 

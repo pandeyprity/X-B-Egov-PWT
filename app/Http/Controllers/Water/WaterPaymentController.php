@@ -2287,6 +2287,7 @@ class WaterPaymentController extends Controller
         $mwaterSecondConsumer           = new WaterSecondConsumer();
         $waterTranDetail                = new WaterTranDetail();
         $mWaterTran                     = new WaterTran();
+        $today                          = Carbon::now();
 
         if (in_array($request['paymentMode'], $offlinePaymentModes)) {
             $charges->paid_status = 2;                                       // Update Demand Paid Status // Static
@@ -2299,7 +2300,8 @@ class WaterPaymentController extends Controller
             $charges->paid_status = 1;                                      // Update Demand Paid Status // Static
             $refReq = [
                 "payment_status"    => 1,
-                "status"            => 1
+                "status"            => 1,
+                "connection_date"   =>$today
             ];
             $mwaterSecondConsumer->updateDataForPayment($activeConRequest->id, $refReq);
         }

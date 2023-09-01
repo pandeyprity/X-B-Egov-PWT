@@ -50,4 +50,12 @@ class WaterConsumerInitialMeter extends Model
     /**
      * |
      */
+    
+     public function saveConsumerReadings($refrequest){
+        $mWaterConsumerInitialMeter  = new WaterConsumerInitialMeter();
+        $mWaterConsumerInitialMeter->consumer_id      =$refrequest['consumerId'];
+        $mWaterConsumerInitialMeter->initial_reading  =$refrequest['InitialMeter'];
+        $mWaterConsumerInitialMeter->save();
+        return $mWaterConsumerInitialMeter;
+}
 }
