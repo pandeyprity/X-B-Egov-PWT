@@ -51,6 +51,12 @@ class newWaterRequest extends FormRequest
         $rule['RentAmount']               = "required";
         $rule['TotalAmount']              = 'required';
         $rule['NearestConsumerNo']        = 'required';
+        $rules['initial_meter']           = 'nullable';
+        $rules['OwnerName']               = 'required';
+        $rules['GuardianName']            = 'required';
+        $rules['Email']                   ='required';
+        $rules['Category']                = 'required';
+        $rules['PropertyType']            ='required';
         return $rules;
     }
 

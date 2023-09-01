@@ -182,4 +182,20 @@ return [
         "1" => "CONSUMER_CONNECTION",
         ],
 
-];
+        'WATER_CONSUMER_MASTSER_DATA'=>[
+            "PIPE_DIAMETER" => [
+                "15",
+                "20",
+                "25"
+            ],
+            "PROPERTY_TYPE"=>[
+                "RESIDENTIAL"=>1,
+                "COMMERCIAL"=>2
+            ],
+            "CATEGORY"=>[
+                "SLUM",
+                "GENERAL"
+            ],
+        ]
+     
+    ];
