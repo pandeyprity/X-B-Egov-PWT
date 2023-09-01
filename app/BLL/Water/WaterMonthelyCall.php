@@ -188,6 +188,7 @@ class WaterMonthelyCall
             });
 
             $this->_tax = [
+                "status" => true,
                 "consumer_tax" => [
                     [
                         "charge_type"       => $this->_meterStatus,
@@ -197,7 +198,6 @@ class WaterMonthelyCall
                         "final_reading"     => $this->_unitConsumed,
                         "amount"            => $returnData->sum('amount'),
                         "consumer_demand"   => $returnData->toArray(),
-                        "status"            => true
                     ]
                 ]
             ];
@@ -242,26 +242,29 @@ class WaterMonthelyCall
                 ];
             });
 
-            if ($monthsDifference == 0) {
-                $amount = $this->_consumerFeeUnits->unit_fee * ($monthelyUnitConsumed - 10);                                // Static
-                if ($amount < 0) {
-                    $amount = 0;
+            if (empty($monthsArray)) {
+                if ($monthsDifference == 0) {
+                    $amount = $this->_consumerFeeUnits->unit_fee * ($monthelyUnitConsumed - 10);                                // Static
+                    if ($amount < 0) {
+                        $amount = 0;
+                    }
+                    $refArray = [
+                        "generation_date"       => $this->_now->format('Y-m-d'),
+                        "amount"                => $amount,
+                        "current_meter_reading" => $this->_unitConsumed,
+                        "unit_amount"           => 1,                                           // Statisc
+                        "demand_from"           => $endDate->format('Y-m-d'),                                    // Static
+                        "demand_upto"           => $this->_now->endOfMonth()->format('Y-m-d'),
+                        "connection_type"       => $this->_meterStatus,
+                    ];
+                    $returnData = new Collection($refArray);
                 }
-                $refArray = [
-                    "generation_date"       => $this->_now->format('Y-m-d'),
-                    "amount"                => $amount,
-                    "current_meter_reading" => $this->_unitConsumed,
-                    "unit_amount"           => 1,                                           // Statisc
-                    "demand_from"           => $endDate->format('Y-m-d'),                                    // Static
-                    "demand_upto"           => $this->_now->endOfMonth()->format('Y-m-d'),
-                    "connection_type"       => $this->_meterStatus,
-                ];
-                $returnData = new Collection($refArray);
             }
 
             # Return details
-            $refAmount = $returnData->sum('amount') ?? $amount;
+            $refAmount = $amount ?? $returnData->pluck('amount')->sum();
             $this->_tax = [
+                "status" => true,
                 "consumer_tax" => [
                     [
                         "charge_type"       => $this->_meterStatus,
@@ -271,7 +274,7 @@ class WaterMonthelyCall
                         "final_reading"     => $this->_unitConsumed,
                         "amount"            => $refAmount,
                         "consumer_demand"   => $returnData->toArray(),
-                        "status"            => true
+
                     ]
                 ]
             ];

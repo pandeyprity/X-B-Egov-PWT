@@ -216,18 +216,22 @@ class WaterConsumer extends Controller
             $mWaterConsumerInitialMeter = new WaterConsumerInitialMeter();
             $mWaterConsumerMeter        = new WaterConsumerMeter();
             $mWaterMeterReadingDoc      = new WaterMeterReadingDoc();
+            $mWaterSecondConsumer       = new WaterSecondConsumer();
             $refMeterConnectionType     = Config::get('waterConstaint.METER_CONN_TYPE');
             $meterRefImageName          = config::get('waterConstaint.WATER_METER_CODE');
             $demandIds = array();
 
             # Check and calculate Demand                    
-            $consumerDetails = WaterSecondConsumer::findOrFail($request->consumerId);
+            $consumerDetails = $mWaterSecondConsumer->getConsumerDetails($request->consumerId)->first();
+            if (!$consumerDetails) {
+                throw new Exception("Consumer detail not found!");
+            }
             $this->checkDemandGeneration($request, $consumerDetails);                                       // unfinished function
             $returnData = new WaterMonthelyCall($request->consumerId, $request->demandUpto, $request->finalRading); #WaterSecondConsumer::get();
-           $calculatedDemand =$returnData->parentFunction($request);
-           if ($calculatedDemand['status'] == false) {
-            throw new Exception($calculatedDemand['errors']);
-        }
+            $calculatedDemand = $returnData->parentFunction($request);
+            if ($calculatedDemand['status'] == false) {
+                throw new Exception($calculatedDemand['errors']);
+            }
 
             # Save demand details 
             $this->begin();
@@ -237,24 +241,24 @@ class WaterConsumer extends Controller
                 switch ($demandDetails['charge_type']) {
                         # For Meter Connection
                     case ($refMeterConnectionType['1']):
-                        $validated = Validator::make(
-                            $request->all(),
-                            [
-                                'document' => "required|mimes:pdf,jpeg,png,jpg",
-                            ]
-                        );
-                        if ($validated->fails())
-                            return validationError($validated);
+                        // $validated = Validator::make(
+                        //     $request->all(),
+                        //     [
+                        //         'document' => "required|mimes:pdf,jpeg,png,jpg",
+                        //     ]
+                        // );
+                        // if ($validated->fails())
+                        //     return validationError($validated);
                         $meterDetails = $mWaterConsumerMeter->saveMeterReading($request);
                         $mWaterConsumerInitialMeter->saveConsumerReading($request, $meterDetails, $userDetails);
                         $demandIds = $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
 
                         # save the chages doc
-                        $documentPath = $this->saveDocument($request, $meterRefImageName);
-                        collect($demandIds)->map(function ($value)
-                        use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
-                            $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
-                        });
+                        // $documentPath = $this->saveDocument($request, $meterRefImageName);
+                        // collect($demandIds)->map(function ($value)
+                        // use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
+                        //     $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
+                        // });
                         break;
                         $validated = Validator::make(
                             $request->all(),
@@ -375,12 +379,11 @@ class WaterConsumer extends Controller
      */
     public function checkDemandGeneration($request, $consumerDetails)
     {
-        $user                   = authUser($request);
         $today                  = Carbon::now();
         $refConsumerId          = $request->consumerId;
         $mWaterConsumerDemand   = new WaterConsumerDemand();
 
-        $lastDemand = $mWaterConsumerDemand->getRefConsumerDemand($refConsumerId)->first();
+        $lastDemand = $mWaterConsumerDemand->akolaCheckConsumerDemand($refConsumerId)->first();
         if ($lastDemand) {
             $refDemandUpto = Carbon::parse($lastDemand->demand_upto);
             if ($refDemandUpto > $today) {
@@ -397,6 +400,8 @@ class WaterConsumer extends Controller
                 throw new Exception("there should be a difference of month!");
             }
         }
+
+        # write the code to check the first meter reading exist and the other 
     }
 
 

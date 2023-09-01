@@ -259,6 +259,9 @@ class WaterConsumerDemand extends Model
             ->orderByDesc('id');
     }
 
+    /**
+     * | Akola get demand
+     */
     public function akolaCheckConsumerDemand($consumerId)
     {
         return WaterConsumerDemand::where('consumer_id', $consumerId)
