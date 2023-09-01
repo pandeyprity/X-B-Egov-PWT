@@ -410,9 +410,9 @@ class TaxCalculator
             if (collect($currentYearTax)->isEmpty())
                 throw new Exception("Current Year Taxes Not Available");
 
-            $cyGeneratlTax = $currentYearTax['generalTax'];
+            $cyGeneralTax = $currentYearTax['generalTax'];
             $this->_GRID['isRebateApplied'] = true;
-            $this->_GRID['rebateAmt'] = $cyGeneratlTax;
+            $this->_GRID['rebateAmt'] = $cyGeneralTax;
         }
 
         // Calculation of Payable Amount

@@ -124,167 +124,53 @@ class HoldingTaxController extends Controller
      */
     public function getHoldingDues(Request $req)
     {
-        $req->validate([
-            'propId' => 'required|digits_between:1,9223372036854775807'
-        ]);
+        $validated = Validator::make(
+            $req->all(),
+            ['propId' => 'required']
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ], 200);
+        }
 
         try {
-            $todayDate = Carbon::now()->format('Y-m-d');
             $mPropAdvance = new PropAdvance();
             $mPropDemand = new PropDemand();
             $mPropProperty = new PropProperty();
-            $penaltyRebateCalc = new PenaltyRebateCalculation;
-            $currentQuarter = calculateQtr(Carbon::now()->format('Y-m-d'));
-            $currentFYear = getFY();
             $user = authUser($req);
-            $loggedInUserType = $user->user_type ?? "Citizen";
-            $mPropOwners = new PropOwner();
-            $pendingFYears = collect();
-            $qtrs = collect([1, 2, 3, 4]);
             $mUlbMasters = new UlbMaster();
 
-            $ownerDetails = $mPropOwners->getOwnerByPropId($req->propId)->first();
             $demand = array();
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
 
-            collect($demandList)->map(function ($value) use ($pendingFYears) {
-                $fYear = $value->fyear;
-                $pendingFYears->push($fYear);
-            });
-            // Property Part Payment
-            if (isset($req->fYear) && isset($req->qtr)) {
-                $demandTillQtr = $demandList->where('fyear', $req->fYear)->where('qtr', $req->qtr)->first();
-                if (collect($demandTillQtr)->isNotEmpty()) {
-                    $demandDueDate = $demandTillQtr->due_date;
-                    $demandList = $demandList->filter(function ($item) use ($demandDueDate) {
-                        return $item->due_date <= $demandDueDate;
-                    });
-                    $demandList = $demandList->values();
-                }
-
-                if (collect($demandTillQtr)->isEmpty())
-                    $demandList = collect();                                    // Demand List blank in case of fyear and qtr         
-            }
-            $propDtls = $mPropProperty->getPropById($req->propId);
-            $balance = $propDtls->balance ?? 0;
-
-            $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
-            if (collect($propBasicDtls)->isEmpty()) {
-                throw new Exception("Property Details Not Available");
-            }
-            $holdingType = $propBasicDtls->holding_type;
-            $ownershipType = $propBasicDtls->ownership_type;
-            $basicDtls = collect($propBasicDtls)->only([
-                'holding_no',
-                'new_holding_no',
-                'old_ward_no',
-                'new_ward_no',
-                'property_type',
-                'zone_mstr_id',
-                'is_mobile_tower',
-                'is_hoarding_board',
-                'is_petrol_pump',
-                'is_water_harvesting',
-                'ulb_id',
-                'prop_address'
-            ]);
-            $basicDtls["holding_type"] = $holdingType;
-            $basicDtls["ownership_type"] = $ownershipType;
-
-            if ($demandList->isEmpty())
-                throw new Exception("No Dues Found Please See Your Payment History For Your Recent Transactions");
-
-            $demandList = $demandList->map(function ($item) {                                // One Perc Penalty Tax
-                return $this->calcOnePercPenalty($item);
+            $totalDemand = $demandList->pipe(function ($item) {
+                return [
+                    "general_tax" => $item->sum('general_tax'),
+                    "road_tax" => $item->sum('road_tax'),
+                    "firefighting_tax" => $item->sum('firefighting_tax'),
+                    "education_tax" => $item->sum('education_tax'),
+                    "water_tax" => $item->sum('water_tax'),
+                    "cleanliness_tax" => $item->sum('cleanliness_tax'),
+                    "sewarage_tax" => $item->sum('sewarage_tax'),
+                    "tree_tax" => $item->sum('tree_tax'),
+                    "professional_tax" => $item->sum('professional_tax'),
+                    "total_tax" => $item->sum('total_tax'),
+                    "balance" => $item->sum('balance'),
+                ];
             });
 
-            $dues = roundFigure($demandList->sum('balance'));
-            $dues = ($dues > 0) ? $dues : 0;
-
-            $onePercTax = roundFigure($demandList->sum('onePercPenaltyTax'));
-            $onePercTax = ($onePercTax > 0) ? $onePercTax : 0;
-
-            $rwhPenaltyTax = roundFigure($demandList->sum('additional_tax'));
-            $advanceAdjustments = $mPropAdvance->getPropAdvanceAdjustAmt($req->propId);
-            if (collect($advanceAdjustments)->isEmpty())
-                $advanceAmt = 0;
-            else
-                $advanceAmt = $advanceAdjustments->advance - $advanceAdjustments->adjustment_amt;
-
-            $mLastQuarterDemand = $demandList->where('fyear', $currentFYear)->sum('balance');
-
-            $paymentUptoYrs = $pendingFYears->unique()->values();
-            $dueFrom = "Quarter " . $demandList->last()->qtr . "/ Year " . $demandList->last()->fyear;
-            $dueTo = "Quarter " . $demandList->first()->qtr . "/ Year " . $demandList->first()->fyear;
-            $totalDuesList = [
-                'dueFromFyear' => $demandList->last()->fyear,
-                'dueFromQtr' => $demandList->last()->qtr,
-                'dueToFyear' => $demandList->first()->fyear,
-                'dueToQtr' => $demandList->first()->qtr,
-                'totalDues' => $dues,
-                'duesFrom' => $dueFrom,
-                'duesTo' => $dueTo,
-                'onePercPenalty' => $onePercTax,
-                'totalQuarters' => $demandList->count(),
-                'arrear' => $balance,
-                'advanceAmt' => $advanceAmt,
-                'additionalTax' => $rwhPenaltyTax
-            ];
-            $currentQtr = calculateQtr($todayDate);
-
-            $pendingQtrs = $qtrs->filter(function ($value) use ($currentQtr) {
-                return $value >= $currentQtr;
-            });
-
-            $totalDuesList = $penaltyRebateCalc->readRebates($currentQuarter, $loggedInUserType, $mLastQuarterDemand, $ownerDetails, $dues, $totalDuesList);
-
-            $totalRebates = $totalDuesList['rebateAmt'] + $totalDuesList['specialRebateAmt'];
-            $finalPayableAmt = ($dues + $onePercTax + $balance) - ($totalRebates + $advanceAmt);
-            if ($finalPayableAmt < 0)
-                $finalPayableAmt = 0;
-            $totalDuesList['totalRebatesAmt'] = $totalRebates;
-            $totalDuesList['totalPenaltiesAmt'] = $onePercTax;
-            $totalDuesList['payableAmount'] = round($finalPayableAmt);
-            $totalDuesList['paymentUptoYrs'] = [$paymentUptoYrs->first()];
-            $totalDuesList['paymentUptoQtrs'] = $pendingQtrs->unique()->values()->sort()->values();
-
-            $demand['duesList'] = $totalDuesList;
             $demand['demandList'] = $demandList;
+            $demand['totalDemand'] = $totalDemand;
 
-            $demand['basicDetails'] = $basicDtls;
-            $demand['can_pay'] = true;
-            // Calculations for showing demand receipt without any rebate
-            $total = roundFigure($dues - $advanceAmt);
-            if ($total < 0)
-                $total = 0;
-            $totalPayable = round($total + $onePercTax);
-            $totalPayable = roundFigure($totalPayable);
-            if ($totalPayable < 0)
-                $totalPayable = 0;
-            $demand['dueReceipt'] = [
-                'holdingNo' => $basicDtls['holding_no'],
-                'new_holding_no' => $basicDtls['new_holding_no'],
-                'date' => $todayDate,
-                'wardNo' => $basicDtls['old_ward_no'],
-                'newWardNo' => $basicDtls['new_ward_no'],
-                'holding_type' => $holdingType,
-                'ownerName' => $ownerDetails->ownerName,
-                'ownerMobile' => $ownerDetails->mobileNo,
-                'address' => $basicDtls['prop_address'],
-                'duesFrom' => $dueFrom,
-                'duesTo' => $dueTo,
-                'rwhPenalty' => $rwhPenaltyTax,
-                'demand' => $dues,
-                'alreadyPaid' => $advanceAmt,
-                'total' => $total,
-                'onePercPenalty' => $onePercTax,
-                'totalPayable' => $totalPayable,
-                'totalPayableInWords' => getIndianCurrency($totalPayable)
-            ];
+            // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
 
-            $ulb = $mUlbMasters->getUlbDetails($propDtls->ulb_id);
-            $demand['ulbDetails'] = $ulb;
+            // $propDtls = $mPropProperty->getPropById($req->propId);
+            // $ulb = $mUlbMasters->getUlbDetails($propDtls->ulb_id);
+            // $demand['ulbDetails'] = $ulb;
             return responseMsgs(true, "Demand Details", remove_null($demand), "011602", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), ['basicDetails' => $basicDtls ?? []], "011602", "1.0", "", "POST", $req->deviceId ?? "");
