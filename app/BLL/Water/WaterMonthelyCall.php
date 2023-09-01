@@ -12,6 +12,7 @@ use App\Models\Water\WaterSecondConsumer;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
@@ -39,10 +40,11 @@ class WaterMonthelyCall
     private $_tax;
     private $_consumerLastMeterReding;
     private $_catagoryType;
+    private $_meterStatus;
     # Class cons
     public function __construct(int $consumerId = 0, $toDate, $unitConsumed)
     {
-        $this->_unitConsumed            = $unitConsumed;
+        $this->_unitConsumed            = $unitConsumed ?? 0;
         $this->_consumerId              = $consumerId;
         $this->_toDate                  = $toDate;
         $this->_now                     = Carbon::now();
@@ -92,7 +94,7 @@ class WaterMonthelyCall
         $this->_consumerCharges         = $this->_mWaterParamDemandCharge->getConsumerCharges($chargesParams);
         $this->_consumerFeeUnits        = $this->_mWaterParamFreeUnit->getFeeUnits($chargesParams);
         $this->_consumerLastDemand      = $this->_mWaterConsumerDemand->akolaCheckConsumerDemand($this->_consumerId)->first();
-        $this->_consumerLastMeterReding = $this->_mWaterConsumerInitialMeter->getmeterReadingAndDetails($this->_consumerId)->first();
+        $this->_consumerLastMeterReding = $this->_mWaterConsumerInitialMeter->getmeterReadingAndDetails($this->_consumerId)->orderByDesc('id')->first();
     }
 
     /**
@@ -116,6 +118,10 @@ class WaterMonthelyCall
 
         # Charges for month 
         $lastDemandDate     = $this->_consumerLastDemand->demand_upto ?? $this->_consuemrDetails->connection_date;
+        if (!$lastDemandDate) {
+            throw new Exception("Demand date not Found!");
+        }
+
         $lastDemandMonth    = Carbon::parse($lastDemandDate)->format('Y-m');
         $currentMonth       = Carbon::parse($this->_now)->format('Y-m');
 
@@ -125,8 +131,14 @@ class WaterMonthelyCall
                 throw new Exception("demand is generated till $lastDemandDate!");
             }
         }
-        if ($this->_unitConsumed < $this->_consumerLastMeterReding->initial_reading) {
-            throw new Exception("finalRading should be grater than previous reading!");
+        if ($this->_consuemrDetails->is_meter_working == 1) {
+            $this->_meterStatus = "Meter";                                                                   // Static
+            if ($this->_unitConsumed < ($this->_consumerLastMeterReding->initial_reading ?? 0)) {                                 // Static
+                throw new Exception("finalRading should be grater than previous reading!");
+            }
+        }
+        if ($this->_consuemrDetails->is_meter_working == 0) {
+            $this->_meterStatus = "Fixed";
         }
     }
 
@@ -136,7 +148,6 @@ class WaterMonthelyCall
     public function generateDemand()
     {
         if ($this->_consumerLastDemand) {
-            $currentMonth       = Carbon::parse($this->_now)->format('Y-m-01');
             $endDate            = Carbon::parse($this->_now)->firstOfMonth();
             $startDate          = Carbon::parse($this->_consumerLastDemand->demand_from)->firstOfMonth();
             $monthsDifference   = $startDate->diffInMonths($endDate);
@@ -172,20 +183,95 @@ class WaterMonthelyCall
                     "unit_amount"           => 1,                                           // Statisc
                     "demand_from"           => $values . "-01",                              // Static
                     "demand_upto"           => $lastDateOfMonth->format('Y-m-d'),
-                    "connection_type"       => "Meter",
+                    "connection_type"       => $this->_meterStatus,
                 ];
             });
 
             $this->_tax = [
                 "consumer_tax" => [
                     [
-                        "charge_type"       => "Meter",
+                        "charge_type"       => $this->_meterStatus,
                         "rate_id"           => $this->_consumerCharges->id,
                         "effective_from"    => $startDate->format('Y-m-d'),
-                        "initial_reading"   => $this->_consumerLastDemand->demand_upto->format('Y-m-d'),
+                        "initial_reading"   => $this->_consumerLastMeterReding->initial_reading,
                         "final_reading"     => $this->_unitConsumed,
                         "amount"            => $returnData->sum('amount'),
-                        "consumer_demand"   => $returnData->toArray()
+                        "consumer_demand"   => $returnData->toArray(),
+                        "status"            => true
+                    ]
+                ]
+            ];
+        } else {
+            $endDate            = Carbon::parse($this->_now)->firstOfMonth();
+            $startDate          = Carbon::parse($this->_consuemrDetails->connection_date)->firstOfMonth();
+            $monthsDifference   = $startDate->diffInMonths($endDate);
+
+            # get all the month between dates
+            $monthsArray = [];
+            $currentDate = $startDate->copy();
+            while ($currentDate->lt($endDate)) {
+                $monthsArray[] = $currentDate->format('Y-m-01');
+                $currentDate->addMonth();
+            }
+
+            # calculate 
+            if ($monthsDifference > 0) {
+                $monthelyUnitConsumed = ($this->_unitConsumed - $this->_consumerLastMeterReding->initial_reading) / $monthsDifference;
+            } else {
+                $monthelyUnitConsumed = ($this->_unitConsumed - ($this->_consumerLastMeterReding->initial_reading ?? 0));
+            }
+
+            # demand generation
+            $returnData = collect($monthsArray)->map(function ($values, $key)
+            use ($monthelyUnitConsumed, $monthsDifference) {
+
+                $lastDateOfMonth = Carbon::parse($values . '-01')->endOfMonth();
+                $amount = $this->_consumerFeeUnits->unit_fee * ($monthelyUnitConsumed - 10);                                // Static
+                if ($amount < 0) {
+                    $amount = 0;
+                }
+                return [
+                    "generation_date"       => $this->_now,
+                    "amount"                => $amount,
+                    "current_meter_reading" => $this->_unitConsumed,
+                    "unit_amount"           => 1,                                           // Statisc
+                    "demand_from"           => $values . "-01",                              // Static
+                    "demand_upto"           => $lastDateOfMonth->format('Y-m-d'),
+                    "connection_type"       => $this->_meterStatus,
+
+                ];
+            });
+
+            if ($monthsDifference == 0) {
+                $amount = $this->_consumerFeeUnits->unit_fee * ($monthelyUnitConsumed - 10);                                // Static
+                if ($amount < 0) {
+                    $amount = 0;
+                }
+                $refArray = [
+                    "generation_date"       => $this->_now->format('Y-m-d'),
+                    "amount"                => $amount,
+                    "current_meter_reading" => $this->_unitConsumed,
+                    "unit_amount"           => 1,                                           // Statisc
+                    "demand_from"           => $endDate->format('Y-m-d'),                                    // Static
+                    "demand_upto"           => $this->_now->endOfMonth()->format('Y-m-d'),
+                    "connection_type"       => $this->_meterStatus,
+                ];
+                $returnData = new Collection($refArray);
+            }
+
+            # Return details
+            $refAmount = $returnData->sum('amount') ?? $amount;
+            $this->_tax = [
+                "consumer_tax" => [
+                    [
+                        "charge_type"       => $this->_meterStatus,
+                        "rate_id"           => $this->_consumerCharges->id,
+                        "effective_from"    => $startDate->format('Y-m-d'),
+                        "initial_reading"   => $this->_consumerLastMeterReding->initial_reading ?? 0,
+                        "final_reading"     => $this->_unitConsumed,
+                        "amount"            => $refAmount,
+                        "consumer_demand"   => $returnData->toArray(),
+                        "status"            => true
                     ]
                 ]
             ];
