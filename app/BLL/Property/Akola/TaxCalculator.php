@@ -66,7 +66,15 @@ class TaxCalculator
     public function readCalculatorParams()
     {
         $this->_refPropConstTypes = $this->_mRefPropConsTypes->propConstructionType();
-        $this->_propFyearFrom = Carbon::parse($this->_REQUEST->dateOfPurchase)->format('Y');
+
+        if ($this->_REQUEST->propertyType == 4)                                                // If the property is not vacand land it means the property is a independent building
+            $this->_propFyearFrom = Carbon::parse($this->_REQUEST->dateOfPurchase)->format('Y');                // For Vacant Land Only
+
+        if ($this->_REQUEST->propertyType != 4) {                                               // If the property is not vacand land it means the property is a independent building
+            $oldestFloor = collect($this->_REQUEST->floor)->sortBy('dateFrom')->first();
+            $this->_propFyearFrom = Carbon::parse($oldestFloor['dateFrom'])->format('Y');                // For Vacant Land Only
+        }
+
         $currentFYear = $this->_carbonToday->format('Y');
         $this->_pendingYrs = ($currentFYear - $this->_propFyearFrom) + 1;                      // Read Total FYears
         $propMonth = Carbon::parse($this->_REQUEST->dateOfPurchase)->format('m');
@@ -402,9 +410,9 @@ class TaxCalculator
             if (collect($currentYearTax)->isEmpty())
                 throw new Exception("Current Year Taxes Not Available");
 
-            $cyGeneratlTax = $currentYearTax['generalTax'];
+            $cyGeneralTax = $currentYearTax['generalTax'];
             $this->_GRID['isRebateApplied'] = true;
-            $this->_GRID['rebateAmt'] = $cyGeneratlTax;
+            $this->_GRID['rebateAmt'] = $cyGeneralTax;
         }
 
         // Calculation of Payable Amount

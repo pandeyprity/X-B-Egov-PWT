@@ -38,26 +38,30 @@ class PropDemand extends Model
         return PropDemand::select(
             'id',
             'property_id',
-            DB::raw("concat(qtr,'/',fyear) as quarterYear"),
-            'arv',
-            'qtr',
-            'holding_tax',
-            'water_tax',
-            'education_cess',
-            'health_cess',
-            'latrine_tax',
-            'additional_tax',
-            'amount',
-            'balance',
-            'fyear',
-            'adjust_amt',
-            'due_date',
-            'paid_status'
+            // DB::raw("concat(qtr,'/',fyear) as quarterYear"),
+            "alv",
+            "maintanance_amt",
+            "aging_amt",
+            "general_tax",
+            "road_tax",
+            "firefighting_tax",
+            "education_tax",
+            "water_tax",
+            "cleanliness_tax",
+            "sewarage_tax",
+            "tree_tax",
+            "professional_tax",
+            "total_tax",
+            "balance",
+            "paid_status",
+            "fyear",
+            "adjust_type",
+            "adjust_amt",
         )
             ->where('property_id', $propId)
             ->where('paid_status', 0)
             ->where('status', 1)
-            ->orderByDesc('due_date')
+            ->orderByDesc('fyear')
             ->get();
     }
 
