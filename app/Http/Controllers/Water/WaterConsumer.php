@@ -20,6 +20,7 @@ use App\Models\Water\WaterConnectionCharge;
 use App\Models\Water\WaterConnectionTypeMstr;
 use App\Models\Water\WaterConsumer as WaterWaterConsumer;
 use App\Models\Water\WaterConsumerActiveRequest;
+use App\Models\Water\WaterConsumerOwner;
 use App\Models\Water\WaterConsumerCharge;
 use App\Models\Water\WaterConsumerChargeCategory;
 use App\Models\Water\WaterConsumerDemand;
@@ -199,10 +200,13 @@ class WaterConsumer extends Controller
      */
     public function saveGenerateConsumerDemand(Request $request)
     {
+        $mNowDate = carbon::now()->format('Y-m-d');
         $validated = Validator::make(
             $request->all(),
             [
-                'consumerId'    => "required|digits_between:1,9223372036854775807",
+                'consumerId'       => "required|digits_between:1,9223372036854775807",
+                "demandUpto"       => "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate",
+                'finalRading'      => "nullable|numeric",
             ]
         );
         if ($validated->fails())
@@ -212,14 +216,19 @@ class WaterConsumer extends Controller
             $mWaterConsumerInitialMeter = new WaterConsumerInitialMeter();
             $mWaterConsumerMeter        = new WaterConsumerMeter();
             $mWaterMeterReadingDoc      = new WaterMeterReadingDoc();
+            $mWaterSecondConsumer       = new WaterSecondConsumer();
             $refMeterConnectionType     = Config::get('waterConstaint.METER_CONN_TYPE');
             $meterRefImageName          = config::get('waterConstaint.WATER_METER_CODE');
             $demandIds = array();
 
             # Check and calculate Demand                    
-            $consumerDetails = WaterWaterConsumer::findOrFail($request->consumerId);
+            $consumerDetails = $mWaterSecondConsumer->getConsumerDetails($request->consumerId)->first();
+            if (!$consumerDetails) {
+                throw new Exception("Consumer detail not found!");
+            }
             $this->checkDemandGeneration($request, $consumerDetails);                                       // unfinished function
-            $calculatedDemand = collect($this->Repository->calConsumerDemand($request));
+            $returnData = new WaterMonthelyCall($request->consumerId, $request->demandUpto, $request->finalRading); #WaterSecondConsumer::get();
+            $calculatedDemand = $returnData->parentFunction($request);
             if ($calculatedDemand['status'] == false) {
                 throw new Exception($calculatedDemand['errors']);
             }
@@ -232,48 +241,25 @@ class WaterConsumer extends Controller
                 switch ($demandDetails['charge_type']) {
                         # For Meter Connection
                     case ($refMeterConnectionType['1']):
-                        $validated = Validator::make(
-                            $request->all(),
-                            [
-                                'document' => "required|mimes:pdf,jpeg,png,jpg",
-                            ]
-                        );
-                        if ($validated->fails())
-                            return validationError($validated);
+                        // $validated = Validator::make(
+                        //     $request->all(),
+                        //     [
+                        //         'document' => "required|mimes:pdf,jpeg,png,jpg",
+                        //     ]
+                        // );
+                        // if ($validated->fails())
+                        //     return validationError($validated);
                         $meterDetails = $mWaterConsumerMeter->saveMeterReading($request);
                         $mWaterConsumerInitialMeter->saveConsumerReading($request, $meterDetails, $userDetails);
                         $demandIds = $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
 
                         # save the chages doc
-                        $documentPath = $this->saveDocument($request, $meterRefImageName);
-                        collect($demandIds)->map(function ($value)
-                        use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
-                            $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
-                        });
+                        // $documentPath = $this->saveDocument($request, $meterRefImageName);
+                        // collect($demandIds)->map(function ($value)
+                        // use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
+                        //     $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
+                        // });
                         break;
-                        # For Average Connection / Meter.Fixed
-                    case ($refMeterConnectionType['5']):
-                        $validated = Validator::make(
-                            $request->all(),
-                            [
-                                'document' => "required|mimes:pdf,jpeg,png,jpg",
-                            ]
-                        );
-                        if ($validated->fails())
-                            return validationError($validated);
-                        $meterDetails = $mWaterConsumerMeter->saveMeterReading($request);
-                        $mWaterConsumerInitialMeter->saveConsumerReading($request, $meterDetails, $userDetails);
-                        $demandIds = $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
-
-                        # save the chages doc
-                        $documentPath = $this->saveDocument($request, $meterRefImageName);
-                        collect($demandIds)->map(function ($value)
-                        use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
-                            $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
-                        });
-                        break;
-                        # For Gallon Connection
-                    case ($refMeterConnectionType['2']):
                         $validated = Validator::make(
                             $request->all(),
                             [
@@ -354,20 +340,6 @@ class WaterConsumer extends Controller
                     }
                     $refDemandIds = $mWaterConsumerDemand->saveConsumerDemand($refDemands, $consumerDetails, $request, $taxId, $userDetails);
                     break;
-                case ($refMeterConnectionType['5']):
-                    $refDemands = $firstValue['consumer_demand'];
-                    $check = collect($refDemands)->first();
-                    if (is_array($check)) {
-                        $refDemandIds = collect($refDemands)->map(function ($secondValue)
-                        use ($mWaterConsumerDemand, $consumerDetails, $request, $taxId, $userDetails) {
-                            $refDemandId = $mWaterConsumerDemand->saveConsumerDemand($secondValue, $consumerDetails, $request, $taxId, $userDetails);
-                            return $refDemandId;
-                        });
-                        break;
-                    }
-                    $refDemandIds = $mWaterConsumerDemand->saveConsumerDemand($refDemands,  $consumerDetails, $request, $taxId, $userDetails);
-                    break;
-                case ($refMeterConnectionType['2']):
                     $refDemands = $firstValue['consumer_demand'];
                     $check = collect($refDemands)->first();
                     if (is_array($check)) {
@@ -407,12 +379,11 @@ class WaterConsumer extends Controller
      */
     public function checkDemandGeneration($request, $consumerDetails)
     {
-        $user                   = authUser($request);
         $today                  = Carbon::now();
         $refConsumerId          = $request->consumerId;
         $mWaterConsumerDemand   = new WaterConsumerDemand();
 
-        $lastDemand = $mWaterConsumerDemand->getRefConsumerDemand($refConsumerId)->first();
+        $lastDemand = $mWaterConsumerDemand->akolaCheckConsumerDemand($refConsumerId)->first();
         if ($lastDemand) {
             $refDemandUpto = Carbon::parse($lastDemand->demand_upto);
             if ($refDemandUpto > $today) {
@@ -429,6 +400,8 @@ class WaterConsumer extends Controller
                 throw new Exception("there should be a difference of month!");
             }
         }
+
+        # write the code to check the first meter reading exist and the other 
     }
 
 
@@ -1964,77 +1937,105 @@ class WaterConsumer extends Controller
      |in process
      
      */
-    public function applyWaterConnection(newWaterRequest $req) {
+    public function applyWaterConnection(newWaterRequest $req)
+    {
         try {
             $ulbId = $req->ulbId;
             $mWaterSecondConsumer = new WaterSecondConsumer();
             $mwaterConnection     = new WaterSecondConnectionCharge(); // Corrected class name
-            
-            $refConParamId = Config::get("waterConstaint.PARAM_IDS");
-            
-            $this->begin(); // Assuming this is part of your transaction handling
-            
+            $mwaterConsumerMeter  = new WaterConsumerMeter();
+            $mwaterConsumerInitial = new WaterConsumerInitialMeter();
+            $mwaterConsumerOwner  = new WaterConsumerOwner();
+            $refConParamId        = Config::get("waterConstaint.PARAM_IDS");
+            $refPropertyType      = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
+
+
+
+            $this->begin();
             $idGeneration = new PrefixIdGenerator($refConParamId['WCD'], $ulbId);
             $applicationNo = $idGeneration->generate();
             $applicationNo = str_replace('/', '-', $applicationNo);
-            
+
             $meta = [
                 'status' => '4',
-                'wardmstrId'=>"3"
+                'wardmstrId' => "3",
+                "meterNo"   => $req['MeterNo']
             ];
-            
-             $water = $mWaterSecondConsumer->saveConsumer($req, $meta, $applicationNo);
-            
+
+            $water = $mWaterSecondConsumer->saveConsumer($req, $meta, $applicationNo);
+
             $refRequest = [
                 "consumerId" => $water->id,
                 "amount"    => 3250,
-                "chargeCategory" => "NEW CONNECTION"
+                "chargeCategory" => $refPropertyType['1'],
+                "InitialMeter"   => $water->meter_reading
             ];
-            
             $water = $mwaterConnection->saveCharges($refRequest);
-            
+            $water = $mwaterConsumerOwner->saveConsumerOwner($req, $refRequest);
+            $water = $mwaterConsumerInitial->saveConsumerReadings($refRequest);
+            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest);
+
+
             $returnData = [
                 'applicationNo' => $applicationNo,
                 "applicationId" => $refRequest['consumerId']
-                
+
             ];
-            
+
             $this->commit(); // Assuming this is part of your transaction handling
-            
+
             return responseMsgs(true, "save consumer!", remove_null($returnData), "", "02", ".ms", "POST", $req->deviceId);
         } catch (Exception $e) {
             $this->rollback(); // Assuming this is part of your transaction handling
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", "");
         }
     }
-    
 
-  
-       /**
-        * | 
-        */
-       public function test(Request $req)
-       {
-           try{
-               $mNowDate             = Carbon::now()->format('Y-m-d');
-               $rules = [
-                   'consumerId'       => "required|digits_between:1,9223372036854775807",
-                   "demandUpto"       => "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate",
-                   'finalRading'      => "nullable|numeric",
-               ];
-               $validator = Validator::make($req->all(), $rules,);
-               if ($validator->fails()) {
-                   throw new Exception($validator->errors());
-               }
-               $returnData = new WaterMonthelyCall($req->consumerId,$req->demandUpto,$req->finalRading); #WaterSecondConsumer::get();
-               return $returnData->parentFunction($req);
-               return responseMsgs(true, "Successfully apply disconnection ", $returnData, "1.0", "350ms", "POST", "");
-   
-           }
-           catch (Exception $e) {
-               $response["status"] = false;
-               $response["errors"] = json_decode($e->getMessage());
-               return collect($response);
-           }
-       }
-   }
+
+
+    /**
+     * | 
+     */
+    public function test(Request $req)
+    {
+        try {
+            $mNowDate             = Carbon::now()->format('Y-m-d');
+            $rules = [
+                'consumerId'       => "required|digits_between:1,9223372036854775807",
+                "demandUpto"       => "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate",
+                'finalRading'      => "nullable|numeric",
+            ];
+            $validator = Validator::make($req->all(), $rules,);
+            if ($validator->fails()) {
+                throw new Exception($validator->errors());
+            }
+            $returnData = new WaterMonthelyCall($req->consumerId, $req->demandUpto, $req->finalRading); #WaterSecondConsumer::get();
+            return $returnData->parentFunction($req);
+            return responseMsgs(true, "Successfully apply disconnection ", $returnData, "1.0", "350ms", "POST", "");
+        } catch (Exception $e) {
+            $response["status"] = false;
+            $response["errors"] = json_decode($e->getMessage());
+            return collect($response);
+        }
+    }
+
+    /**
+     * get master  data for consumer
+     */
+    public function getMasterData()
+    {
+        try {
+            $waterAkolaMaster = Config::get('waterConstaint.WATER_CONSUMER_MASTSER_DATA');
+            $returnValues = [
+                "PROPERTY_TYPE"    => $waterAkolaMaster['PROPERTY_TYPE'],
+                "pipe_diameter"    => $waterAkolaMaster['PIPE_DIAMETER'],
+                "CATEGORY"         => $waterAkolaMaster['CATEGORY'],
+
+            ];
+            // $returnValues = collect($masterValues)->merge($configMasterValues);
+            return responseMsgs(true, "list of Water Consumer Master Data!", remove_null($returnValues), "", "01", "ms", "POST", "");
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
+        }
+    }
+}

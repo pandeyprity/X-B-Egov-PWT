@@ -82,4 +82,18 @@ class WaterConsumerMeter extends Model
         $mWaterConsumerMeter->meter_doc                 = $documentPath['document'];
         $mWaterConsumerMeter->save();
     }
+    /**
+     * save meter details for akola 
+     */
+
+     public function saveInitialMeter($refrequest){
+        $mWaterConsumerMeter = new WaterConsumerMeter();
+        $mWaterConsumerMeter->consumer_id          =$refrequest['consumerId'];
+        $mWaterConsumerMeter->final_meter_reading  =$refrequest['InitialMeter'];
+        $mWaterConsumerMeter->initial_reading      =$refrequest['InitialMeter'];
+        $mWaterConsumerMeter->save();
+        return $mWaterConsumerMeter;
+
+     }
+   
 }

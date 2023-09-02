@@ -17,6 +17,7 @@ class WaterSecondConnectionCharge extends Model
     $watercharges->amount          =$refrequest['amount'];
     $watercharges->charge_category = $refrequest['chargeCategory'];
     $watercharges->save();
+    return $watercharges;
 
 }
  /**
