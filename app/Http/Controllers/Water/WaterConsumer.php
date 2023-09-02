@@ -206,7 +206,7 @@ class WaterConsumer extends Controller
             [
                 'consumerId'       => "required|digits_between:1,9223372036854775807",
                 "demandUpto"       => "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate",
-                'finalRading'      => "nullable|numeric",
+                'finalRading'      => "required|numeric",
             ]
         );
         if ($validated->fails())
@@ -1982,7 +1982,7 @@ class WaterConsumer extends Controller
 
             ];
 
-            $this->commit(); // Assuming this is part of your transaction handling
+            $this->commit(); 
 
             return responseMsgs(true, "save consumer!", remove_null($returnData), "", "02", ".ms", "POST", $req->deviceId);
         } catch (Exception $e) {
