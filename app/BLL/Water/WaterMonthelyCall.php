@@ -76,7 +76,7 @@ class WaterMonthelyCall
         $catagory = collect($this->_catagoryType)->flip();
         # Check the existence of consumer 
         $this->_consuemrDetails = $this->_mWaterConsumer->getConsumerDetailsById($this->_consumerId)
-            // ->where('status', 1)                                                                            // Static
+            ->where('status', 1)                                                                            // Static
             ->first();
 
         if ($this->_consuemrDetails->category == $catagory['1']) {
