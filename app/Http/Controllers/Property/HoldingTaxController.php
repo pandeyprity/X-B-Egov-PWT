@@ -138,9 +138,13 @@ class HoldingTaxController extends Controller
 
         try {
             $mPropDemand = new PropDemand();
+            $mPropProperty = new PropProperty();
             $demand = array();
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
+
+            // Get Property Details
+            $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
 
             $totalDemand = $demandList->pipe(function ($item) {
                 return [
@@ -162,6 +166,26 @@ class HoldingTaxController extends Controller
             $demand['totalDemand'] = $totalDemand;
             $demand['payableAmt'] = $totalDemand['balance'];
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
+            $holdingType = $propBasicDtls->holding_type;
+            $ownershipType = $propBasicDtls->ownership_type;
+            $basicDtls = collect($propBasicDtls)->only([
+                'holding_no',
+                'new_holding_no',
+                'ward_no',
+                'property_type',
+                'zone_name',
+                'is_mobile_tower',
+                'is_hoarding_board',
+                'is_petrol_pump',
+                'is_water_harvesting',
+                'ulb_id',
+                'prop_address',
+                'land_occupation_date'
+            ]);
+            $basicDtls["holding_type"] = $holdingType;
+            $basicDtls["ownership_type"] = $ownershipType;
+
+            $demand['basicDetails'] = $basicDtls;
 
             return responseMsgs(true, "Demand Details", remove_null($demand), "011602", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
@@ -450,7 +474,7 @@ class HoldingTaxController extends Controller
             if ($propCalculation->original['status'] == false)
                 throw new Exception($propCalculation->original['message']);
 
-            return $propCalculation;                        // 🔴🏮🏮🔴🔴🔴🔴🏮
+            // return $propCalculation;                        // 🔴🏮🏮🔴🔴🔴🔴🏮
 
             $demands = $propCalculation->original['data']['demandList'];
             $dueList = $propCalculation->original['data']['duesList'];
