@@ -1554,6 +1554,23 @@ class ActiveSafController extends Controller
                 $propId = $safDtls->property_id;
                 $calculateByPropId = new CalculatePropTaxByPropId($propId);
                 $demand['ulbWiseTax'] = $calculateByPropId->_GRID;
+
+                $safGrandTax = $demand['grandTaxes'];
+                $ulbGrandTax = $demand['ulbWiseTax']['grandTaxes'];
+                $demand['taxDiffs'] = [                                 // Differences in Tax
+                    "alv" => roundFigure($ulbGrandTax['alv'] - $safGrandTax['alv']),
+                    "generalTax" => roundFigure($ulbGrandTax['generalTax'] - $safGrandTax['generalTax']),
+                    "roadTax" => roundFigure($ulbGrandTax['roadTax'] - $safGrandTax['roadTax']),
+                    "firefightingTax" => roundFigure($ulbGrandTax['firefightingTax'] - $safGrandTax['firefightingTax']),
+                    "educationTax" => roundFigure($ulbGrandTax['educationTax'] - $safGrandTax['educationTax']),
+                    "waterTax" => roundFigure($ulbGrandTax['waterTax'] - $safGrandTax['waterTax']),
+                    "cleanlinessTax" => roundFigure($ulbGrandTax['cleanlinessTax'] - $safGrandTax['cleanlinessTax']),
+                    "sewerageTax" => roundFigure($ulbGrandTax['sewerageTax'] - $safGrandTax['sewerageTax']),
+                    "treeTax" => roundFigure($ulbGrandTax['treeTax'] - $safGrandTax['treeTax']),
+                    "stateEducationTax" => roundFigure($ulbGrandTax['stateEducationTax'] - $safGrandTax['stateEducationTax']),
+                    "professionalTax" => roundFigure($ulbGrandTax['professionalTax'] - $safGrandTax['professionalTax']),
+                    "totalTax" => roundFigure($ulbGrandTax['totalTax'] - $safGrandTax['totalTax'])
+                ];
             }
 
             $demand['basicDetails'] = [
@@ -2453,24 +2470,28 @@ class ActiveSafController extends Controller
     // ----------start------------
     public function getVerifications(Request $request)
     {
-        $request->validate([
-            'verificationId' => 'required|digits_between:1,9223372036854775807',
-        ]);
+        $validated = Validator::make(
+            $request->all(),
+            ['verificationId' => 'required']
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ], 200);
+        }
 
         try {
             $data = array();
             $verifications = PropSafVerification::select(
                 'prop_saf_verifications.*',
                 'p.property_type',
-                'r.road_type',
                 'u.ward_name as ward_no',
-                'u1.ward_name as new_ward_no',
                 "users.name as user_name"
             )
                 ->leftjoin('ref_prop_types as p', 'p.id', '=', 'prop_saf_verifications.prop_type_id')
-                ->leftjoin('ref_prop_road_types as r', 'r.id', '=', 'prop_saf_verifications.road_type_id')
                 ->leftjoin('ulb_ward_masters as u', 'u.id', '=', 'prop_saf_verifications.ward_id')
-                ->leftJoin('ulb_ward_masters as u1', 'u1.id', '=', 'prop_saf_verifications.new_ward_id')
                 ->leftjoin('users', 'users.id', '=', 'prop_saf_verifications.user_id')
                 ->where("prop_saf_verifications.id", $request->verificationId)
                 ->first();
@@ -2480,13 +2501,11 @@ class ActiveSafController extends Controller
             $saf = PropActiveSaf::select(
                 'prop_active_safs.*',
                 'p.property_type',
-                'r.road_type',
                 'u.ward_name as ward_no',
                 'u1.ward_name as new_ward_no',
                 "ownership_types.ownership_type"
             )
                 ->leftjoin('ref_prop_types as p', 'p.id', '=', 'prop_active_safs.prop_type_mstr_id')
-                ->leftjoin('ref_prop_road_types as r', 'r.id', '=', 'prop_active_safs.road_type_mstr_id')
                 ->leftjoin('ulb_ward_masters as u', 'u.id', '=', 'prop_active_safs.ward_mstr_id')
                 ->leftjoin('ulb_ward_masters as u1', 'u.id', '=', 'prop_active_safs.new_ward_mstr_id')
                 ->leftjoin('ref_prop_ownership_types as ownership_types', 'ownership_types.id', '=', 'prop_active_safs.ownership_type_mstr_id')
@@ -2498,13 +2517,11 @@ class ActiveSafController extends Controller
                     ->select(
                         'prop_rejected_safs.*',
                         'p.property_type',
-                        'r.road_type',
                         'u.ward_name as ward_no',
                         'u1.ward_name as new_ward_no',
                         "ownership_types.ownership_type"
                     )
                     ->leftjoin('ref_prop_types as p', 'p.id', '=', 'prop_rejected_safs.prop_type_mstr_id')
-                    ->leftjoin('ref_prop_road_types as r', 'r.id', '=', 'prop_rejected_safs.road_type_mstr_id')
                     ->leftjoin('ulb_ward_masters as u', 'u.id', '=', 'prop_rejected_safs.ward_mstr_id')
                     ->leftjoin('ref_prop_ownership_types as ownership_types', 'ownership_types.id', '=', 'prop_rejected_safs.ownership_type_mstr_id')
                     ->leftJoin('ulb_ward_masters as u1', 'u1.id', '=', 'prop_rejected_safs.new_ward_mstr_id')
@@ -2517,13 +2534,11 @@ class ActiveSafController extends Controller
                     ->select(
                         'prop_safs.*',
                         'p.property_type',
-                        'r.road_type',
                         'u.ward_name as ward_no',
                         'u1.ward_name as new_ward_no',
                         "ownership_types.ownership_type"
                     )
                     ->leftjoin('ref_prop_types as p', 'p.id', '=', 'prop_safs.prop_type_mstr_id')
-                    ->leftjoin('ref_prop_road_types as r', 'r.id', '=', 'prop_safs.road_type_mstr_id')
                     ->leftjoin('ulb_ward_masters as u', 'u.id', '=', 'prop_safs.ward_mstr_id')
                     ->leftjoin('ref_prop_ownership_types as ownership_types', 'ownership_types.id', '=', 'prop_safs.ownership_type_mstr_id')
                     ->leftJoin('ulb_ward_masters as u1', 'u1.id', '=', 'prop_safs.new_ward_mstr_id')
@@ -2558,12 +2573,6 @@ class ActiveSafController extends Controller
                     "according_verification" => $verifications->ward_no,
                 ],
                 [
-                    "key" => "New Ward No",
-                    "values" => $saf->new_ward_mstr_id == $verifications->new_ward_id,
-                    "according_application" => $saf->new_ward_no,
-                    "according_verification" => $verifications->new_ward_no,
-                ],
-                [
                     "key" => "Property Type",
                     "values" => $saf->prop_type_mstr_id == $verifications->prop_type_id,
                     "according_application" => $saf->property_type,
@@ -2575,12 +2584,12 @@ class ActiveSafController extends Controller
                     "according_application" => $saf->area_of_plot,
                     "according_verification" => $verifications->area_of_plot,
                 ],
-                [
-                    "key" => "Road Type",
-                    "values" => $saf->road_type_mstr_id == $verifications->road_type_id,
-                    "according_application" => $saf->road_type,
-                    "according_verification" => $verifications->road_type,
-                ],
+                // [
+                //     "key" => "Road Type",
+                //     "values" => $saf->road_type_mstr_id == $verifications->road_type_id,
+                //     "according_application" => $saf->road_type,
+                //     "according_verification" => $verifications->road_type,
+                // ],
                 [
                     "key" => "Mobile Tower",
                     "values" => $saf->is_mobile_tower == $verifications->has_mobile_tower,
@@ -2676,13 +2685,6 @@ class ActiveSafController extends Controller
                 $safDetails = json_decode(json_encode($safDetails), true);
                 $safDetails['floors'] = $floars;
                 $safDetails['owners'] = $owners;
-                $req = $safDetails;
-                $array = $this->generateSafRequest($req);                                                                       // Generate SAF Request by SAF Id Using Trait
-                $safCalculation = new SafCalculation();
-                $request = new Request($array);
-                $safTaxes = $safCalculation->calculateTax($request);
-                // dd($array);
-                // $safTaxes = json_decode(json_encode($safTaxes), true);
 
                 $safDetails2 = json_decode(json_encode($verifications), true);
 
@@ -2711,7 +2713,6 @@ class ActiveSafController extends Controller
                 $safDetails2["petrol_pump_completion_date"] = $safDetails2["petrol_pump_completion_date"];
 
                 $safDetails2["is_water_harvesting"] = $safDetails2["has_water_harvesting"];
-                $safDetails2["rwh_date_from"] = $safDetails2["rwh_date_from"];
 
                 $safDetails2['floors'] = $verifications_detals;
                 $safDetails2['floors'] = $safDetails2['floors']->map(function ($val) {
@@ -2726,30 +2727,6 @@ class ActiveSafController extends Controller
 
 
                 $safDetails2['owners'] = $owners;
-                $array2 = $this->generateSafRequest($safDetails2);
-                // dd($array);
-                $request2 = new Request($array2);
-                $safTaxes2 = $safCalculation->calculateTax($request2);
-                // $safTaxes2 = json_decode(json_encode($safTaxes2), true);
-                // dd($safTaxes,$array);
-                if (!$safTaxes->original["status"]) {
-                    throw new Exception($safTaxes->original["message"]);
-                }
-                if (!$safTaxes2->original["status"]) {
-                    throw new Exception($safTaxes2->original["message"]);
-                }
-                $safTaxes3 = $this->reviewTaxCalculation($safTaxes);
-                $safTaxes4 = $this->reviewTaxCalculation($safTaxes2);
-                // dd(json_decode(json_encode($safTaxes), true));
-                $compairTax = $this->reviewTaxCalculationCom($safTaxes, $safTaxes2);
-
-                $safTaxes2 = json_decode(json_encode($safTaxes4), true);
-                $safTaxes = json_decode(json_encode($safTaxes3), true);
-                $compairTax = json_decode(json_encode($compairTax), true);
-
-                $data["Tax"]["according_application"] = $safTaxes["original"]["data"];
-                $data["Tax"]["according_verification"] = $safTaxes2["original"]["data"];
-                $data["Tax"]["compairTax"] = $compairTax["original"]["data"];
             }
             $data["saf_details"] = $saf;
             $data["employee_details"] = ["user_name" => $verifications->user_name, "date" => ymdToDmyDate($verifications->created_at)];
