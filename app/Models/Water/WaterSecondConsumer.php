@@ -24,7 +24,6 @@ class WaterSecondConsumer extends Model
     public function saveConsumer($req, $meta, $applicationNo)
     {
         $waterSecondConsumer = new WaterSecondConsumer();
-
         $waterSecondConsumer->ulb_id                    = $req->ulbId;
         $waterSecondConsumer->zone                      = $req->zone;
         $waterSecondConsumer->cycle                     = $req->Cycle;
@@ -45,7 +44,6 @@ class WaterSecondConsumer extends Model
         $waterSecondConsumer->disconned_reading         = $req->DisconnedDate;
         $waterSecondConsumer->book_no                   = $req->BookNo;
         $waterSecondConsumer->folio_no                  = $req->FolioNo;
-        // $waterSecondConsumer->building_type             = $req->BuildingType;
         $waterSecondConsumer->no_of_connection          = $req->NoOfConnection;
         $waterSecondConsumer->is_meter_rented           = $req->IsMeterRented;
         $waterSecondConsumer->rent_amount               = $req->RentAmount;
@@ -56,6 +54,7 @@ class WaterSecondConsumer extends Model
         $waterSecondConsumer->category                  = $req->Category;
         $waterSecondConsumer->property_type_id          = $req->PropertyType;
         $waterSecondConsumer->meter_reading             = $req->MeterReading;
+        $waterSecondConsumer->is_meter_working          = $req->IsMeterWorking;
 
         $waterSecondConsumer->save();
         return $waterSecondConsumer;
