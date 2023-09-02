@@ -38,7 +38,6 @@ class PropDemand extends Model
         return PropDemand::select(
             'id',
             'property_id',
-            // DB::raw("concat(qtr,'/',fyear) as quarterYear"),
             "alv",
             "maintanance_amt",
             "aging_amt",

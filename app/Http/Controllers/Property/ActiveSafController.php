@@ -155,6 +155,7 @@ class ActiveSafController extends Controller
             $refPropConstructionType = new RefPropConstructionType();
             $mZoneMasters = new ZoneMaster();
             $mRefPropCategory = new RefPropCategory();
+            $refPropTransferMode = new RefPropTransferMode();
 
             // Getting Masters from Redis Cache
             $wards = json_decode(Redis::get('wards-ulb'));
@@ -166,6 +167,7 @@ class ActiveSafController extends Controller
             $constructionType = json_decode(Redis::get('akola-property-construction-types'));
             $zone = json_decode(Redis::get('zones'));
             $categories = json_decode(Redis::get('ref_prop_categories'));
+            $transferModuleType = json_decode(Redis::get('property-transfer-modes'));
 
             // Ward Masters
             if (!$wards) {
@@ -242,6 +244,14 @@ class ActiveSafController extends Controller
             }
 
             $data['categories'] = $categories;
+
+            // property transfer modes
+            if (!$transferModuleType) {
+                $transferModuleType = $refPropTransferMode->getTransferModes();
+                $redisConn->set('property-transfer-modes', json_encode($transferModuleType));
+            }
+
+            $data['transfer_mode'] = $transferModuleType;
 
             return responseMsgs(true, 'Property Masters', $data, "010101", "1.0", responseTime(), "GET", "");
         } catch (Exception $e) {

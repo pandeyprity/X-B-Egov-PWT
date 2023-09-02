@@ -1316,7 +1316,10 @@ class Trade implements ITrade
             $finisher['short_user_name'] = $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][strtoupper($init_finish['finisher']['role_name'])];
             $mUserType      = $this->_COMMON_FUNCTION->userType($refWorkflowId);
             $refApplication = $this->getAllLicenceById($id);
-            
+            if(!$refApplication)
+            {
+                throw new Exception("Data Not Found");
+            }
             $refApplication->application_date = $refApplication->application_date?Carbon::parse($refApplication->application_date)->format("d-m-Y"):"";
             $refApplication->license_date = $refApplication->license_date?Carbon::parse($refApplication->license_date)->format("d-m-Y"):"";
             $refApplication->valid_from = $refApplication->valid_from?Carbon::parse($refApplication->valid_from)->format("d-m-Y"):"";
