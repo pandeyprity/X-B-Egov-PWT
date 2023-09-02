@@ -78,7 +78,8 @@ class Trade implements ITrade
      * | @param Request $request
      * | @param response
      */
-    protected $_DB;
+    protected $_DB;   
+    protected $_DB_MASTER;
     protected $_DB_NAME;
     protected $_NOTICE_DB;
     protected $_NOTICE_DB_NAME;
@@ -113,6 +114,7 @@ class Trade implements ITrade
         $this->_DB_NAME = "pgsql_trade";
         $this->_NOTICE_DB = "pgsql_notice";
         $this->_DB = DB::connection( $this->_DB_NAME );
+        $this->_DB_MASTER = DB::connection("pgsql_master");
         $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
         DB::enableQueryLog();
         $this->_DB->enableQueryLog();
@@ -147,22 +149,29 @@ class Trade implements ITrade
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
         $db3 = $this->_NOTICE_DB->getDatabaseName();
+        $db4 = $this->_DB_MASTER->getDatabaseName();
         DB::beginTransaction();
         if($db1!=$db2 )
-        $this->_DB->beginTransaction();
-        if($db1!=$db3 && $db2!=$db3) 
-        $this->_NOTICE_DB->beginTransaction();
+            $this->_DB->beginTransaction();
+        if($db1!=$db3 && $db2!=$db3)
+            $this->_NOTICE_DB->beginTransaction();
+        if($db1!=$db4 && $db2!=$db4 && $db3!=$db4) 
+            $this->_DB_MASTER->beginTransaction();
     }
+
     public function rollback()
     {
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
         $db3 = $this->_NOTICE_DB->getDatabaseName();
+        $db4 = $this->_DB_MASTER->getDatabaseName();
         DB::rollBack();
         if($db1!=$db2 )
-        $this->_DB->rollBack();
+            $this->_DB->rollBack();
         if($db1!=$db3 && $db2!=$db3)
-        $this->_NOTICE_DB->rollBack();
+            $this->_NOTICE_DB->rollBack();
+        if($db1!=$db4 && $db2!=$db4 && $db3!=$db4) 
+            $this->_DB_MASTER->rollBack();
     }
      
     public function commit()
@@ -170,12 +179,14 @@ class Trade implements ITrade
         $db1 = DB::connection()->getDatabaseName();
         $db2 = $this->_DB->getDatabaseName();
         $db3 = $this->_NOTICE_DB->getDatabaseName();
-
+        $db4 = $this->_DB_MASTER->getDatabaseName();
         DB::commit();
         if($db1!=$db2 )        
-        $this->_DB->commit();
+            $this->_DB->commit();
         if($db1!=$db3 && $db2!=$db3)
-        $this->_NOTICE_DB->commit();
+            $this->_NOTICE_DB->commit();
+        if($db1!=$db4 && $db2!=$db4 && $db3!=$db4) 
+            $this->_DB_MASTER->commit();
     }
     # Serial No : 01
     /**
