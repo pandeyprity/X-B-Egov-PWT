@@ -1923,6 +1923,15 @@ class WaterConsumer extends Controller
             $refConParamId        = Config::get("waterConstaint.PARAM_IDS");
             $refPropertyType      = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
 
+            if ($req->IsMeterWorking == 1) {
+                $connectionType = 1;
+            } else {
+                $connectionType = 3;
+            }
+            if ($req->Category == 'Slum' && $req->TabSize != 15) {
+                throw new Exception('Tab size must be 15 for Slum');
+            }
+            
 
 
             $this->begin();
@@ -1942,12 +1951,13 @@ class WaterConsumer extends Controller
                 "consumerId" => $water->id,
                 "amount"    => 3250,
                 "chargeCategory" => $refPropertyType['1'],
-                "InitialMeter"   => $water->meter_reading
+                "InitialMeter"   => $water->meter_reading,
+                "connectionType" => $connectionType
             ];
             $water = $mwaterConnection->saveCharges($refRequest);
             $water = $mwaterConsumerOwner->saveConsumerOwner($req, $refRequest);
             $water = $mwaterConsumerInitial->saveConsumerReadings($refRequest);
-            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest);
+            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest,$meta);
 
 
             $returnData = [
