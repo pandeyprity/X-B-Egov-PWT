@@ -157,14 +157,7 @@ class WaterConsumer extends Controller
                 $refMeterData = $mWaterConsumerMeter->getMeterDetailsByConsumerId($refConsumerId)->first();
                 switch ($refMeterData['connection_type']) {
                     case (1):
-                        if ($refMeterData['meter_status'] == 1) {
-                            $connectionName = $refConnectionName['1'];
-                            break;
-                        }
-                        $connectionName = $refConnectionName['4'];
-                        break;
-                    case (2):
-                        $connectionName = $refConnectionName['2'];
+                        $connectionName = $refConnectionName['1'];
                         break;
                     case (3):
                         $connectionName = $refConnectionName['3'];
@@ -260,26 +253,7 @@ class WaterConsumer extends Controller
                         //     $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
                         // });
                         break;
-                        $validated = Validator::make(
-                            $request->all(),
-                            [
-                                'document' => "required|mimes:pdf,jpeg,png,jpg",
-                            ]
-                        );
-                        if ($validated->fails())
-                            return validationError($validated);
 
-                        $meterDetails = $mWaterConsumerMeter->saveMeterReading($request);
-                        $mWaterConsumerInitialMeter->saveConsumerReading($request, $meterDetails, $userDetails);
-                        $demandIds = $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
-
-                        # save the chages doc
-                        $documentPath = $this->saveDocument($request, $meterRefImageName);
-                        collect($demandIds)->map(function ($value)
-                        use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
-                            $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
-                        });
-                        break;
                         # For Fixed connection
                     case ($refMeterConnectionType['3']):
                         $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
