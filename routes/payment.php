@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Payment\BankReconcillationController;
 use App\Http\Controllers\Payment\CashVerificationController;
+use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\Payment\RazorpayPaymentController;
 use Illuminate\Support\Facades\Route;
 
@@ -69,4 +70,12 @@ Route::controller(RazorpayPaymentController::class)->group(function () {
     Route::post('razorpay-webhook', 'gettingWebhookDetails');                                       // 14 collecting the all data provided by the webhook and updating the related database
     Route::post('get-tran-by-orderid', 'getTranByOrderId');                                     // 15 Get Transaction by Order ID and payment ID
     Route::post('verify-payment-status', 'verifyPaymentStatus');                                // 08 verifiying the payment status and saving both success, fails, suspeciousdata  
+});
+
+/**
+ * | Controller PaymentController 
+ * | Author-Anshu Kumar Dated-02-09-2023
+ */
+Route::controller(PaymentController::class)->group(function () {
+    Route::post('v1/get-referal-url', 'getReferalUrl');
 });

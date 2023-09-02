@@ -234,24 +234,24 @@ class WaterConsumer extends Controller
                 switch ($demandDetails['charge_type']) {
                         # For Meter Connection
                     case ($refMeterConnectionType['1']):
-                        // $validated = Validator::make(
-                        //     $request->all(),
-                        //     [
-                        //         'document' => "required|mimes:pdf,jpeg,png,jpg",
-                        //     ]
-                        // );
-                        // if ($validated->fails())
-                        //     return validationError($validated);
+                        $validated = Validator::make(
+                            $request->all(),
+                            [
+                                'document' => "required|mimes:pdf,jpeg,png,jpg",
+                            ]
+                        );
+                        if ($validated->fails())
+                            return validationError($validated);
                         $meterDetails = $mWaterConsumerMeter->saveMeterReading($request);
                         $mWaterConsumerInitialMeter->saveConsumerReading($request, $meterDetails, $userDetails);
                         $demandIds = $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
 
                         # save the chages doc
-                        // $documentPath = $this->saveDocument($request, $meterRefImageName);
-                        // collect($demandIds)->map(function ($value)
-                        // use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
-                        //     $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
-                        // });
+                        $documentPath = $this->saveDocument($request, $meterRefImageName);
+                        collect($demandIds)->map(function ($value)
+                        use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
+                            $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
+                        });
                         break;
 
                         # For Fixed connection
