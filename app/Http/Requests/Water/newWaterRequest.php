@@ -57,6 +57,7 @@ class newWaterRequest extends FormRequest
         $rules['Email']                   ='required';
         $rules['Category']                = 'required';
         $rules['PropertyType']            ='required';
+        $rules['IsMeterWorking']          ='required';
         return $rules;
     }
 

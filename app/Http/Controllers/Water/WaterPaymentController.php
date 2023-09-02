@@ -329,7 +329,7 @@ class WaterPaymentController extends Controller
 
             $mWaterConnectionCharge             = new WaterConnectionCharge();
             $mWaterPenaltyInstallment           = new WaterPenaltyInstallment();
-            $mWaterApplication                  = new WaterApplication();
+            $mWaterApplication                  = new WaterSecondConsumer();
             $mWaterApprovalApplicationDetail    = new WaterApprovalApplicationDetail();
             $mWaterChequeDtl                    = new WaterChequeDtl();
             $mWaterTran                         = new WaterTran();
@@ -352,7 +352,7 @@ class WaterPaymentController extends Controller
                 $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->firstOrFail();
             }
             # Application Deatils
-            $applicationDetails = $mWaterApplication->getDetailsByApplicationId($transactionDetails->related_id)->first();
+            $applicationDetails = $mWaterApplication->fullWaterDetails($transactionDetails->related_id)->first();
             if (is_null($applicationDetails)) {
                 $applicationDetails = $mWaterApprovalApplicationDetail->getApprovedApplicationById($transactionDetails->related_id)->firstOrFail();
             }

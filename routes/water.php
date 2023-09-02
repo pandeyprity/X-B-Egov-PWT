@@ -112,8 +112,6 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      * |------------- Water Consumer and Related -------------|
      */
     Route::controller(WaterConsumer::class)->group(function () {
-
-      
         Route::post('consumer/list-demand', 'listConsumerDemand');                                      // Consumer
         Route::post('admin/consumer/generate-demand', 'saveGenerateConsumerDemand');                    // Admin
         Route::post('admin/consumer/save-connection-meter', 'saveUpdateMeterDetails');                  // Admin

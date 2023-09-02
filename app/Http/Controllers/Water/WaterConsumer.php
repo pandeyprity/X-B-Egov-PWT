@@ -157,14 +157,7 @@ class WaterConsumer extends Controller
                 $refMeterData = $mWaterConsumerMeter->getMeterDetailsByConsumerId($refConsumerId)->first();
                 switch ($refMeterData['connection_type']) {
                     case (1):
-                        if ($refMeterData['meter_status'] == 1) {
-                            $connectionName = $refConnectionName['1'];
-                            break;
-                        }
-                        $connectionName = $refConnectionName['4'];
-                        break;
-                    case (2):
-                        $connectionName = $refConnectionName['2'];
+                        $connectionName = $refConnectionName['1'];
                         break;
                     case (3):
                         $connectionName = $refConnectionName['3'];
@@ -206,7 +199,7 @@ class WaterConsumer extends Controller
             [
                 'consumerId'       => "required|digits_between:1,9223372036854775807",
                 "demandUpto"       => "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate",
-                'finalRading'      => "nullable|numeric",
+                'finalRading'      => "required|numeric",
             ]
         );
         if ($validated->fails())
@@ -241,25 +234,6 @@ class WaterConsumer extends Controller
                 switch ($demandDetails['charge_type']) {
                         # For Meter Connection
                     case ($refMeterConnectionType['1']):
-                        // $validated = Validator::make(
-                        //     $request->all(),
-                        //     [
-                        //         'document' => "required|mimes:pdf,jpeg,png,jpg",
-                        //     ]
-                        // );
-                        // if ($validated->fails())
-                        //     return validationError($validated);
-                        $meterDetails = $mWaterConsumerMeter->saveMeterReading($request);
-                        $mWaterConsumerInitialMeter->saveConsumerReading($request, $meterDetails, $userDetails);
-                        $demandIds = $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
-
-                        # save the chages doc
-                        // $documentPath = $this->saveDocument($request, $meterRefImageName);
-                        // collect($demandIds)->map(function ($value)
-                        // use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
-                        //     $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
-                        // });
-                        break;
                         $validated = Validator::make(
                             $request->all(),
                             [
@@ -268,7 +242,6 @@ class WaterConsumer extends Controller
                         );
                         if ($validated->fails())
                             return validationError($validated);
-
                         $meterDetails = $mWaterConsumerMeter->saveMeterReading($request);
                         $mWaterConsumerInitialMeter->saveConsumerReading($request, $meterDetails, $userDetails);
                         $demandIds = $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
@@ -280,6 +253,7 @@ class WaterConsumer extends Controller
                             $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
                         });
                         break;
+
                         # For Fixed connection
                     case ($refMeterConnectionType['3']):
                         $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
@@ -1949,6 +1923,15 @@ class WaterConsumer extends Controller
             $refConParamId        = Config::get("waterConstaint.PARAM_IDS");
             $refPropertyType      = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
 
+            if ($req->IsMeterWorking == 1) {
+                $connectionType = 1;
+            } else {
+                $connectionType = 3;
+            }
+            if ($req->Category == 'Slum' && $req->TabSize != 15) {
+                throw new Exception('Tab size must be 15 for Slum');
+            }
+            
 
 
             $this->begin();
@@ -1968,12 +1951,13 @@ class WaterConsumer extends Controller
                 "consumerId" => $water->id,
                 "amount"    => 3250,
                 "chargeCategory" => $refPropertyType['1'],
-                "InitialMeter"   => $water->meter_reading
+                "InitialMeter"   => $water->meter_reading,
+                "connectionType" => $connectionType
             ];
             $water = $mwaterConnection->saveCharges($refRequest);
             $water = $mwaterConsumerOwner->saveConsumerOwner($req, $refRequest);
             $water = $mwaterConsumerInitial->saveConsumerReadings($refRequest);
-            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest);
+            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest,$meta);
 
 
             $returnData = [
@@ -1982,7 +1966,7 @@ class WaterConsumer extends Controller
 
             ];
 
-            $this->commit(); // Assuming this is part of your transaction handling
+            $this->commit(); 
 
             return responseMsgs(true, "save consumer!", remove_null($returnData), "", "02", ".ms", "POST", $req->deviceId);
         } catch (Exception $e) {
