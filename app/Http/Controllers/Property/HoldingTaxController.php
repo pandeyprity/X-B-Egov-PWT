@@ -137,12 +137,7 @@ class HoldingTaxController extends Controller
         }
 
         try {
-            $mPropAdvance = new PropAdvance();
             $mPropDemand = new PropDemand();
-            $mPropProperty = new PropProperty();
-            $user = authUser($req);
-            $mUlbMasters = new UlbMaster();
-
             $demand = array();
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
@@ -165,30 +160,13 @@ class HoldingTaxController extends Controller
 
             $demand['demandList'] = $demandList;
             $demand['totalDemand'] = $totalDemand;
-
+            $demand['payableAmt'] = $totalDemand['balance'];
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
 
-            // $propDtls = $mPropProperty->getPropById($req->propId);
-            // $ulb = $mUlbMasters->getUlbDetails($propDtls->ulb_id);
-            // $demand['ulbDetails'] = $ulb;
             return responseMsgs(true, "Demand Details", remove_null($demand), "011602", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), ['basicDetails' => $basicDtls ?? []], "011602", "1.0", "", "POST", $req->deviceId ?? "");
         }
-    }
-
-    /**
-     * | One Percent Penalty Calculation(2.1)
-     */
-    public function calcOnePercPenalty($item)
-    {
-        $penaltyRebateCalc = new PenaltyRebateCalculation;
-        $dueDate = $item->due_date ?? $item['due_date'];
-        $onePercPenalty = $penaltyRebateCalc->calcOnePercPenalty($dueDate);        // Calculation One Percent Penalty
-        $item['onePercPenalty'] = $onePercPenalty;
-        $onePercPenaltyTax = ($item['balance'] * $onePercPenalty) / 100;
-        $item['onePercPenaltyTax'] = roundFigure($onePercPenaltyTax);
-        return $item;
     }
 
     /**
@@ -465,14 +443,14 @@ class HoldingTaxController extends Controller
             $tranNo = $idGeneration->generateTransactionNo($propDetails->ulb_id);
 
             $propCalReq = new Request([
-                'propId' => $req['id'],
-                'fYear' => $req['fYear'],
-                'qtr' => $req['qtr']
+                'propId' => $req['id']
             ]);
             $propCalculation = $this->getHoldingDues($propCalReq);
 
             if ($propCalculation->original['status'] == false)
                 throw new Exception($propCalculation->original['message']);
+
+            return $propCalculation;                        // 🔴🏮🏮🔴🔴🔴🔴🏮
 
             $demands = $propCalculation->original['data']['demandList'];
             $dueList = $propCalculation->original['data']['duesList'];
