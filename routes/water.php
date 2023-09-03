@@ -74,7 +74,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('admin/application/technical-inspection-details', 'getTechnicalInsDetails');        // Workflow
         Route::post('search-holding-saf', 'searchHoldingsaf');
         Route::post('get-all-details', 'getdetailsbyId');           // akola 
-        
+
     });
 
     /**
@@ -96,11 +96,11 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('consumer/online-demand-payment', 'initiateOnlineDemandPayment');                   // Citizen
         Route::post('citizen/payment-history', 'paymentHistory');                                       // Citizen  
         Route::post('consumer/water-user-charges', 'getWaterUserCharges');                              // Admin / Citizen
-        
+
 
         # Site inspection 
         Route::post('site-verification/save-site-details', 'saveSitedetails');                          // Admin
-        Route::post('consumer/offline-payment', 'Consumerofflinepayment'); 
+        Route::post('consumer/offline-payment', 'Consumerofflinepayment');
 
         # FOR AKOLA 
         Route::post('consumer/offline-request-payment', 'offlineConReqPayment');
@@ -113,7 +113,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
      */
     Route::controller(WaterConsumer::class)->group(function () {
         Route::post('consumer/list-demand', 'listConsumerDemand');                                      // Consumer
-        Route::post('admin/consumer/generate-demand', 'saveGenerateConsumerDemand');                    // Admin
+        Route::post('admin/consumer/generate-demand', 'saveGenerateConsumerDemand');                    // Admin   Akola
         Route::post('admin/consumer/save-connection-meter', 'saveUpdateMeterDetails');                  // Admin
         Route::post('admin/consumer/get-meter-list', 'getMeterList');                                   // Admin
         Route::post('consumer/caretaken-connections', 'viewCaretakenConnection');                       // Citiizen
@@ -131,12 +131,11 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('admin/consumer/apply-deactivation', 'applyDeactivation');                          // Admin / Not Used
         Route::post('admin/consumer/demand-deactivation', 'consumerDemandDeactivation');  // Here       // Admin / Not used
         Route::post('get-listed-fee', 'test');
-        
+
         # for akola 
         Route::post('consumer/apply-data', 'consumerApplyData');
         Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
-        Route::post('consumer/get-master-data','getMasterData');
-
+        Route::post('consumer/get-master-data', 'getMasterData');
     });
 
 
