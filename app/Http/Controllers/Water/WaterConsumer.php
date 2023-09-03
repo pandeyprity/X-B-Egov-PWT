@@ -2022,4 +2022,35 @@ class WaterConsumer extends Controller
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
     }
+
+    /**
+     * get listed drtails
+     */
+
+     public function consumerDetails(Request $req)
+{
+    $validated = Validator::make(
+        $req->all(),
+        [
+            'applicationId' => 'required|integer',
+        ]
+    );
+
+    if ($validated->fails()) {
+        return validationError($validated);
+    }
+
+    try {
+        $mwaterConsumer = new WaterSecondConsumer();
+        $applicationId = $req->applicationId;
+        $consumerDetails = $mwaterConsumer->fullWaterDetails($applicationId)->first();
+
+        // Return the data directly as JSON without an outer data array
+        return responseMsgs(true, "Consumer Details!", $consumerDetails, "", "01", ".ms", "POST", $req->deviceId);
+    } catch (Exception $e) {
+        return responseMsg(false, $e->getMessage(), "");
+    }
+}
+
+     
 }
