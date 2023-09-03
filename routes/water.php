@@ -133,7 +133,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('get-listed-fee', 'test');
 
         # for akola 
-        Route::post('consumer/apply-data', 'consumerApplyData');
+        Route::post('consumer/get-details', 'consumerDetails');
         Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
         Route::post('consumer/get-master-data', 'getMasterData');
     });
