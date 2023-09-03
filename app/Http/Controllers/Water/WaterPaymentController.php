@@ -934,7 +934,7 @@ class WaterPaymentController extends Controller
         if ($startingDate > $endDate) {
             throw new Exception("'demandFrom' date should not be grater than 'demandUpto' date!");
         }
-        $consumerDetails = WaterConsumer::find($request->consumerId);
+        $consumerDetails = WaterSecondConsumer::find($request->consumerId);
         if (!$consumerDetails) {
             throw new Exception("Consumer dont exist!");
         }
