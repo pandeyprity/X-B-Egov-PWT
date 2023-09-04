@@ -329,7 +329,7 @@ class WaterPaymentController extends Controller
 
             $mWaterConnectionCharge             = new WaterConnectionCharge();
             $mWaterPenaltyInstallment           = new WaterPenaltyInstallment();
-            $mWaterApplication                  = new WaterApplication();
+            $mWaterApplication                  = new WaterSecondConsumer();
             $mWaterApprovalApplicationDetail    = new WaterApprovalApplicationDetail();
             $mWaterChequeDtl                    = new WaterChequeDtl();
             $mWaterTran                         = new WaterTran();
@@ -352,7 +352,7 @@ class WaterPaymentController extends Controller
                 $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->firstOrFail();
             }
             # Application Deatils
-            $applicationDetails = $mWaterApplication->getDetailsByApplicationId($transactionDetails->related_id)->first();
+            $applicationDetails = $mWaterApplication->fullWaterDetails($transactionDetails->related_id)->first();
             if (is_null($applicationDetails)) {
                 $applicationDetails = $mWaterApprovalApplicationDetail->getApprovedApplicationById($transactionDetails->related_id)->firstOrFail();
             }
@@ -761,14 +761,14 @@ class WaterPaymentController extends Controller
     public function preOfflinePaymentParams($request, $startingDate, $endDate)
     {
         $mWaterConsumerDemand   = new WaterConsumerDemand();
-        $mWaterConsumer         = new WaterConsumer();
+        $mWaterSecondConsumer   = new WaterSecondConsumer();
         $consumerId             = $request->consumerId;
         $refAmount              = $request->amount;
 
         if ($startingDate > $endDate) {
             throw new Exception("demandFrom Date should not be grater than demandUpto date!");
         }
-        $refConsumer = $mWaterConsumer->getConsumerDetailById($consumerId);
+        $refConsumer = $mWaterSecondConsumer->getConsumerDetails($consumerId)->first();
         if (!$refConsumer) {
             throw new Exception("Consumer Not Found!");
         }
@@ -934,7 +934,7 @@ class WaterPaymentController extends Controller
         if ($startingDate > $endDate) {
             throw new Exception("'demandFrom' date should not be grater than 'demandUpto' date!");
         }
-        $consumerDetails = WaterConsumer::find($request->consumerId);
+        $consumerDetails = WaterSecondConsumer::find($request->consumerId);
         if (!$consumerDetails) {
             throw new Exception("Consumer dont exist!");
         }
@@ -2301,7 +2301,7 @@ class WaterPaymentController extends Controller
             $refReq = [
                 "payment_status"    => 1,
                 "status"            => 1,
-                "connection_date"   =>$today
+                "connection_date"   => $today
             ];
             $mwaterSecondConsumer->updateDataForPayment($activeConRequest->id, $refReq);
         }

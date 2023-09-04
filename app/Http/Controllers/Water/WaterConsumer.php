@@ -234,24 +234,24 @@ class WaterConsumer extends Controller
                 switch ($demandDetails['charge_type']) {
                         # For Meter Connection
                     case ($refMeterConnectionType['1']):
-                        // $validated = Validator::make(
-                        //     $request->all(),
-                        //     [
-                        //         'document' => "required|mimes:pdf,jpeg,png,jpg",
-                        //     ]
-                        // );
-                        // if ($validated->fails())
-                        //     return validationError($validated);
+                        $validated = Validator::make(
+                            $request->all(),
+                            [
+                                'document' => "required|mimes:pdf,jpeg,png,jpg",
+                            ]
+                        );
+                        if ($validated->fails())
+                            return validationError($validated);
                         $meterDetails = $mWaterConsumerMeter->saveMeterReading($request);
                         $mWaterConsumerInitialMeter->saveConsumerReading($request, $meterDetails, $userDetails);
                         $demandIds = $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
 
                         # save the chages doc
-                        // $documentPath = $this->saveDocument($request, $meterRefImageName);
-                        // collect($demandIds)->map(function ($value)
-                        // use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
-                        //     $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
-                        // });
+                        $documentPath = $this->saveDocument($request, $meterRefImageName);
+                        collect($demandIds)->map(function ($value)
+                        use ($mWaterMeterReadingDoc, $meterDetails, $documentPath) {
+                            $mWaterMeterReadingDoc->saveDemandDocs($meterDetails, $documentPath, $value);
+                        });
                         break;
 
                         # For Fixed connection
@@ -1923,6 +1923,18 @@ class WaterConsumer extends Controller
             $refConParamId        = Config::get("waterConstaint.PARAM_IDS");
             $refPropertyType      = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
 
+            if ($req->IsMeterWorking == 1) {
+                $connectionType = 1;
+            } else {
+                $connectionType = 3;
+            }
+            if ($req->Category == 'Slum' && $req->TabSize != 15) {
+                throw new Exception('Tab size must be 15 for Slum');
+            }
+            if ($req->PropertyType == '2' && $req->Category == 'Slum') {
+                throw new Exception('slum is not under the commercial');
+            }
+            
 
 
             $this->begin();
@@ -1942,12 +1954,13 @@ class WaterConsumer extends Controller
                 "consumerId" => $water->id,
                 "amount"    => 3250,
                 "chargeCategory" => $refPropertyType['1'],
-                "InitialMeter"   => $water->meter_reading
+                "InitialMeter"   => $water->meter_reading,
+                "connectionType" => $connectionType
             ];
             $water = $mwaterConnection->saveCharges($refRequest);
             $water = $mwaterConsumerOwner->saveConsumerOwner($req, $refRequest);
             $water = $mwaterConsumerInitial->saveConsumerReadings($refRequest);
-            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest);
+            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest,$meta);
 
 
             $returnData = [
@@ -2012,4 +2025,35 @@ class WaterConsumer extends Controller
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
     }
+
+    /**
+     * get listed drtails
+     */
+
+     public function consumerDetails(Request $req)
+{
+    $validated = Validator::make(
+        $req->all(),
+        [
+            'applicationId' => 'required|integer',
+        ]
+    );
+
+    if ($validated->fails()) {
+        return validationError($validated);
+    }
+
+    try {
+        $mwaterConsumer = new WaterSecondConsumer();
+        $applicationId = $req->applicationId;
+        $consumerDetails = $mwaterConsumer->fullWaterDetails($applicationId)->first();
+
+        // Return the data directly as JSON without an outer data array
+        return responseMsgs(true, "Consumer Details!", $consumerDetails, "", "01", ".ms", "POST", $req->deviceId);
+    } catch (Exception $e) {
+        return responseMsg(false, $e->getMessage(), "");
+    }
+}
+
+     
 }

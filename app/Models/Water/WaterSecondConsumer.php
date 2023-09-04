@@ -4,6 +4,7 @@ namespace App\Models\Water;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class WaterSecondConsumer extends Model
 {
@@ -137,28 +138,67 @@ class WaterSecondConsumer extends Model
      * | @param request
      * | @return 
      */
-    public function fullWaterDetails($request)
+    public function fullWaterDetails($applicationId)
     {
-        return  WaterSecondConsumer::select(
+        return WaterSecondConsumer::select(
             'water_second_consumers.*',
             'water_second_consumers.consumer_no',
-            // 'ulb_masters.ulb_name',
-            "water_second_connection_charges.amount",
-            'water_second_connection_charges.charge_category'
-
+            'water_second_connection_charges.amount',
+            'water_second_connection_charges.charge_category',
+            'water_consumer_meters.meter_no',
+            'water_consumer_meters.connection_type',
+            'water_consumer_meters.initial_reading',
+            'water_consumer_meters.final_meter_reading',
+            'ulb_masters.ulb_name',
+            "water_consumer_owners.applicant_name",
+            "water_consumer_owners.guardian_name",
+            "water_consumer_owners.email",
+            DB::raw('ulb_ward_masters.ward_name as ward_number') // Alias the column as "ward_number"
         )
-            ->join('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
-            ->where('water_second_consumers.id', $request->applicationId)
-            ->where('water_second_consumers.status', 4);
+            ->join("water_consumer_owners", 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
+            ->join('ulb_masters', 'ulb_masters.id', 'water_second_consumers.ulb_id')
+            ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
+            ->join('water_consumer_meters', 'water_consumer_meters.consumer_id', 'water_second_consumers.id')
+            ->leftjoin('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
+            ->where('water_second_consumers.id', $applicationId)
+            ->where('water_second_consumers.status', 1);
     }
-
-
     /**
      * | Get consumer 
      */
     public function getConsumerDetails($applicationId)
     {
         return WaterSecondConsumer::where('id', $applicationId)
-            ->where('status', 1);
+            ->where('status', 1)
+            ->first();
     }
+    /**
+     * 
+     */
+    public function fullWaterDetail($applicationId)
+    {
+        return WaterSecondConsumer::select(
+            'water_second_consumers.*',
+            'water_second_consumers.consumer_no',
+            'water_second_connection_charges.amount',
+            'water_second_connection_charges.charge_category',
+            'water_consumer_meters.meter_no',
+            'water_consumer_meters.connection_type',
+            'water_consumer_meters.initial_reading',
+            'water_consumer_meters.final_meter_reading',
+            'ulb_masters.ulb_name',
+            "water_consumer_owners.applicant_name",
+            "water_consumer_owners.guardian_name",
+            "water_consumer_owners.email",
+            DB::raw('ulb_ward_masters.ward_name as ward_number') // Alias the column as "ward_number"
+        ) 
+            ->join("water_consumer_owners",'water_consumer_owners.consumer_id','water_second_consumers.id')
+            ->join('ulb_masters','ulb_masters.id','water_second_consumers.ulb_id')
+            ->join('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
+            ->join('water_consumer_meters', 'water_consumer_meters.consumer_id', 'water_second_consumers.id')
+            ->join('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
+            ->where('water_second_consumers.id', $applicationId)
+            ->where('water_second_consumers.status', 4);
+    }
+    
 }
