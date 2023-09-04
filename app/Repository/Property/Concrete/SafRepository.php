@@ -21,6 +21,7 @@ class SafRepository implements iSafRepository
             ->leftJoin('ulb_ward_masters as ward', 'ward.id', '=', 'prop_active_safs.ward_mstr_id')
             ->select(
                 'prop_active_safs.payment_status',
+                'prop_active_safs.doc_upload_status',
                 'prop_active_safs.saf_no',
                 'prop_active_safs.id',
                 'prop_active_safs.workflow_id',
@@ -43,7 +44,11 @@ class SafRepository implements iSafRepository
                 'prop_active_safs.citizen_id',
             )
             ->whereIn('workflow_id', $workflowIds)
-            ->where('is_gb_saf', false);
+            ->where('is_gb_saf', false)
+            ->where(function ($query) {
+                $query->whereNull('citizen_id')
+                    ->orWhere('doc_upload_status', 1);
+            });
     }
 
     /**
