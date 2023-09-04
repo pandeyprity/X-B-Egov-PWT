@@ -26,9 +26,9 @@ class newWaterRequest extends FormRequest
     public function rules()
     {
         $rules['Zone']                  = 'required';
-        $rule['ulbId']                  = 'required';
+        $rule['ulbId']                  = 'required|numeric';
         $rules['PropertyNo']            = 'required';
-        $rules['MobileNo']               = 'required';
+        $rules['MobileNo']               = 'required|numeric';
         $rules['Address']                = 'required';
         $rules['PoleLandmark']           = "required";
         $rules['DtcCode']                = 'required';
@@ -36,12 +36,15 @@ class newWaterRequest extends FormRequest
         $rules['MeterNo']                = "required";
         $rules['MeterDigit']             = 'required';
         $rules['MeterCategory']          = "required";
-        $rule['TabSize']                 = "required";
+        $rule['TabSize']                 = "required|numeric";
         $rule['MeterState']              = "required";
-        $rule['MeterReadig']             = 'required';
+        $rule['MeterReadig']             = 'required|numeric';
         $rule['ReadingDate']             = 'required';
-        $rule['ConnectionDate']          = 'required';
-        $rule['DisconnectionDate']       = 'required';
+     $rules = [
+    'ConnectionDate' => 'required|date_format:Y-m-d',
+];
+
+        $rule['DisconnectionDate']       = 'required|date_format:Y-m-d';
         $rule['DisconnedReading']        = "required";
         $rule['BookNo']                   = 'required';
         $rule['FolioNo']                  = "required";

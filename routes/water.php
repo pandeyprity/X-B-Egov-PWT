@@ -73,7 +73,8 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('admin/application/online-technical-inspection', 'onlineSiteInspection');           // Workflow
         Route::post('admin/application/technical-inspection-details', 'getTechnicalInsDetails');        // Workflow
         Route::post('search-holding-saf', 'searchHoldingsaf');
-        Route::post('get-all-details', 'getdetailsbyId');           // akola 
+        Route::post('get-all-details', 'getdetailsbyId');                                               // akola
+   
 
     });
 
@@ -87,7 +88,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
 
         Route::post('master/get-listed-details', 'getWaterMasterData');                                 // Admin/ Citizen
         Route::post('consumer/get-payment-history', 'getConsumerPaymentHistory');                       // Consumer
-        Route::post('admin/application/generate-payment-receipt', 'generateOfflinePaymentReceipt');     // Citizen / Admin
+        Route::post('admin/application/generate-payment-receipt', 'generateOfflinePaymentReceipt');     // akola    // Citizen / Admin
         Route::post('consumer/calculate-month-demand', 'callDemandByMonth');                            // Admin/Consumer
         Route::post('application/payment/get-payment-history', 'getApplicationPaymentHistory');         // Admin/Consumer
         Route::post('consumer/offline-demand-payment', 'offlineDemandPayment');                         // Consumer
@@ -136,6 +137,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('consumer/get-details', 'consumerDetails');
         Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
         Route::post('consumer/get-master-data', 'getMasterData');
+        Route::post('get-diactivation-docList','getdeactivationList');  // akola
     });
 
 
@@ -170,7 +172,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
 
     /**
      * | Created On:09-12-2022 
-     * | Created by:Sandeep Bara
+     * | Created by: Sandeep Bara
      * | Modified by: Sam kerketta
      * | Modified on: 11-01-2023
      * | ------------------- Water Connection / mobile ------------------------ |

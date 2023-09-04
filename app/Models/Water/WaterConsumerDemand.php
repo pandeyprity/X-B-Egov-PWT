@@ -84,7 +84,7 @@ class WaterConsumerDemand extends Model
     public function saveConsumerDemand($demands, $consumerDetails, $request, $taxId, $userDetails)
     {
         $mWaterConsumerDemand = new WaterConsumerDemand();
-        $mWaterConsumerDemand->consumer_id              =  $consumerDetails->id;
+        $mWaterConsumerDemand->consumer_id              =  $request->consumerId;
         $mWaterConsumerDemand->ward_id                  =  $consumerDetails->ward_mstr_id;
         $mWaterConsumerDemand->ulb_id                   =  $consumerDetails->ulb_id;
         $mWaterConsumerDemand->generation_date          =  $demands['generation_date'];

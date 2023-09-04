@@ -8,6 +8,8 @@ use App\Http\Requests\Water\reqDeactivate;
 use App\Http\Requests\Water\reqMeterEntry;
 use App\Http\Requests\water\newWaterRequest;
 use App\MicroServices\DocUpload;
+use App\Models\Workflows\WfActiveDocument;
+use App\Models\Masters\RefRequiredDocument;
 use App\MicroServices\IdGeneration;
 use App\MicroServices\IdGenerator\PrefixIdGenerator;
 use App\Models\Citizen\ActiveCitizenUndercare;
@@ -214,7 +216,7 @@ class WaterConsumer extends Controller
             $meterRefImageName          = config::get('waterConstaint.WATER_METER_CODE');
             $demandIds = array();
 
-            # Check and calculate Demand                    
+            # Check and calculate Demand                  
             $consumerDetails = $mWaterSecondConsumer->getConsumerDetails($request->consumerId)->first();
             if (!$consumerDetails) {
                 throw new Exception("Consumer detail not found!");
@@ -225,7 +227,6 @@ class WaterConsumer extends Controller
             if ($calculatedDemand['status'] == false) {
                 throw new Exception($calculatedDemand['errors']);
             }
-
             # Save demand details 
             $this->begin();
             $userDetails = $this->checkUserType($request);
@@ -313,18 +314,6 @@ class WaterConsumer extends Controller
                         break;
                     }
                     $refDemandIds = $mWaterConsumerDemand->saveConsumerDemand($refDemands, $consumerDetails, $request, $taxId, $userDetails);
-                    break;
-                    $refDemands = $firstValue['consumer_demand'];
-                    $check = collect($refDemands)->first();
-                    if (is_array($check)) {
-                        $refDemandIds = collect($refDemands)->map(function ($secondValue)
-                        use ($mWaterConsumerDemand, $consumerDetails, $request, $taxId, $userDetails) {
-                            $refDemandId = $mWaterConsumerDemand->saveConsumerDemand($secondValue, $consumerDetails, $request, $taxId, $userDetails);
-                            return $refDemandId;
-                        });
-                        break;
-                    }
-                    $refDemandIds = $mWaterConsumerDemand->saveConsumerDemand($refDemands,  $consumerDetails, $request, $taxId, $userDetails);
                     break;
                 case ($refMeterConnectionType['3']):
                     $refDemands = $firstValue['consumer_demand'];
@@ -1934,7 +1923,7 @@ class WaterConsumer extends Controller
             if ($req->PropertyType == '2' && $req->Category == 'Slum') {
                 throw new Exception('slum is not under the commercial');
             }
-            
+
 
 
             $this->begin();
@@ -1945,7 +1934,8 @@ class WaterConsumer extends Controller
             $meta = [
                 'status' => '4',
                 'wardmstrId' => "3",
-                "meterNo"   => $req['MeterNo']
+                "meterNo"   => $req['MeterNo'],
+                "connectionType" => $connectionType
             ];
 
             $water = $mWaterSecondConsumer->saveConsumer($req, $meta, $applicationNo);
@@ -1960,7 +1950,7 @@ class WaterConsumer extends Controller
             $water = $mwaterConnection->saveCharges($refRequest);
             $water = $mwaterConsumerOwner->saveConsumerOwner($req, $refRequest);
             $water = $mwaterConsumerInitial->saveConsumerReadings($refRequest);
-            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest,$meta);
+            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest, $meta);
 
 
             $returnData = [
@@ -1969,7 +1959,7 @@ class WaterConsumer extends Controller
 
             ];
 
-            $this->commit(); 
+            $this->commit();
 
             return responseMsgs(true, "save consumer!", remove_null($returnData), "", "02", ".ms", "POST", $req->deviceId);
         } catch (Exception $e) {
@@ -2030,30 +2020,133 @@ class WaterConsumer extends Controller
      * get listed drtails
      */
 
-     public function consumerDetails(Request $req)
-{
-    $validated = Validator::make(
-        $req->all(),
-        [
-            'applicationId' => 'required|integer',
-        ]
-    );
+    public function consumerDetails(Request $req)
+    {
+        $validated = Validator::make(
+            $req->all(),
+            [
+                'applicationId' => 'required|integer',
+            ]
+        );
 
-    if ($validated->fails()) {
-        return validationError($validated);
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+
+        try {
+            $mwaterConsumer = new WaterSecondConsumer();
+            $applicationId = $req->applicationId;
+            $consumerDetails = $mwaterConsumer->fullWaterDetails($applicationId)->first();
+
+            // Return the data directly as JSON without an outer data array
+            return responseMsgs(true, "Consumer Details!", $consumerDetails, "", "01", ".ms", "POST", $req->deviceId);
+        } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+       /***
+     * get deactivation Doc list 
+     */
+    public function getdeactivationList(Request $req)
+    {
+        $req->validate([
+            'applicationId' => 'required|numeric'
+        ]);
+        try {
+            $applicationId                  = $req->applicationId;
+            $mWaterConsumerActiveRequest    = new WaterConsumerActiveRequest();
+
+            $refWaterApplication = $mWaterConsumerActiveRequest->getActiveRequest($applicationId)->first();                      // Get Saf Details
+            if (!$refWaterApplication) {
+                throw new Exception("Application Not Found for this id");
+            }
+            $documentList = $this->getdiactivationDocLists();                                                      // this funstion is for doc list 
+            $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
+                return $this->filterdeactivationDocument($value, $refWaterApplication)->first();
+            });
+            $totalDocLists = collect($waterTypeDocs);
+            $totalDocLists['docUploadStatus'] = $refWaterApplication->doc_upload_status;
+            $totalDocLists['docVerifyStatus'] = $refWaterApplication->doc_status;
+            return responseMsgs(true, "", remove_null($totalDocLists), "010203", "", "", 'POST', "");
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "010203", "1.0", "", 'POST', "");
+        }
+    }
+/**
+ * 
+ */
+    
+    public function getdiactivationDocLists()
+    {
+        $mRefReqDocs    = new RefRequiredDocument();
+        $moduleId       = Config::get('module-constants.WATER_MODULE_ID');
+        $type           = ["METER_BILL"];                                                 // Static
+        return $mRefReqDocs->getCollectiveDocByCode($moduleId, $type);
+    }
+    /**
+     * filter the doc name 
+     */
+    public function filterdeactivationDocument($documentList, $refWaterApplication, $ownerId = null)
+    {
+        $mWfActiveDocument  = new WfActiveDocument();
+        $applicationId      = $refWaterApplication->id;
+        $workflowId         = $refWaterApplication->workflow_id;
+        $moduleId           = Config::get('module-constants.WATER_MODULE_ID');
+        $uploadedDocs       = $mWfActiveDocument->getDocByRefIds($applicationId, $workflowId, $moduleId);
+
+        $explodeDocs = collect(explode('#', $documentList->requirements));
+        $filteredDocs = $explodeDocs->map(function ($explodeDoc) use ($uploadedDocs, $ownerId, $documentList) {
+
+            # var defining
+            $document   = explode(',', $explodeDoc);
+            $key        = array_shift($document);
+            $label      = array_shift($document);
+            $documents  = collect();
+
+            collect($document)->map(function ($item) use ($uploadedDocs, $documents, $ownerId, $documentList) {
+                $uploadedDoc = $uploadedDocs->where('doc_code', $item)
+                    ->where('owner_dtl_id', $ownerId)
+                    ->first();
+                if ($uploadedDoc) {
+                    $path = $this->readDocumentPath($uploadedDoc->doc_path);
+                    $fullDocPath = !empty(trim($uploadedDoc->doc_path)) ? $path : null;
+                    $response = [
+                        "uploadedDocId" => $uploadedDoc->id ?? "",
+                        "documentCode"  => $item,
+                        "ownerId"       => $uploadedDoc->owner_dtl_id ?? "",
+                        "docPath"       => $fullDocPath ?? "",
+                        "verifyStatus"  => $uploadedDoc->verify_status ?? "",
+                        "remarks"       => $uploadedDoc->remarks ?? "",
+                    ];
+                    $documents->push($response);
+                }
+            });
+            $reqDoc['docType']      = $key;
+            $reqDoc['uploadedDoc']  = $documents->last();
+            $reqDoc['docName']      = substr($label, 1, -1);
+            // $reqDoc['refDocName'] = substr($label, 1, -1);
+
+            $reqDoc['masters'] = collect($document)->map(function ($doc) use ($uploadedDocs) {
+                $uploadedDoc = $uploadedDocs->where('doc_code', $doc)->first();
+                $strLower = strtolower($doc);
+                $strReplace = str_replace('_', ' ', $strLower);
+                if (isset($uploadedDoc)) {
+                    $path =  $this->readDocumentPath($uploadedDoc->doc_path);
+                    $fullDocPath = !empty(trim($uploadedDoc->doc_path)) ? $path : null;
+                }
+                $arr = [
+                    "documentCode"  => $doc,
+                    "docVal"        => ucwords($strReplace),
+                    "uploadedDoc"   => $fullDocPath ?? "",
+                    "uploadedDocId" => $uploadedDoc->id ?? "",
+                    "verifyStatus'" => $uploadedDoc->verify_status ?? "",
+                    "remarks"       => $uploadedDoc->remarks ?? "",
+                ];
+                return $arr;
+            });
+            return $reqDoc;
+        });
+        return $filteredDocs;
     }
 
-    try {
-        $mwaterConsumer = new WaterSecondConsumer();
-        $applicationId = $req->applicationId;
-        $consumerDetails = $mwaterConsumer->fullWaterDetails($applicationId)->first();
-
-        // Return the data directly as JSON without an outer data array
-        return responseMsgs(true, "Consumer Details!", $consumerDetails, "", "01", ".ms", "POST", $req->deviceId);
-    } catch (Exception $e) {
-        return responseMsg(false, $e->getMessage(), "");
-    }
-}
-
-     
 }
