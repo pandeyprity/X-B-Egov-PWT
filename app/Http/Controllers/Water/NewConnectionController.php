@@ -2083,6 +2083,7 @@ class NewConnectionController extends Controller
         if ($validated->fails())
             return validationError($validated);
         try {
+            $applicationId              = $request->applicationId;
             $mWaterConnectionCharge     = new WaterSecondConnectionCharge();
             $mWaterApplication          = new WaterSecondConsumer();
             $mWaterPenaltyInstallment   = new WaterPenaltyInstallment();
@@ -2091,7 +2092,7 @@ class NewConnectionController extends Controller
             $refChargeCatagoryValue     = Config::get("waterConstaint.CONNECTION_TYPE");
 
             # Application Details
-            $applicationDetails['applicationDetails'] = $mWaterApplication->fullWaterDetails($request)->first();
+           $applicationDetails['applicationDetails'] = $mWaterApplication->fullWaterDetail($applicationId)->first();
 
             # Payment Details 
             $refAppDetails = collect($applicationDetails)->first();

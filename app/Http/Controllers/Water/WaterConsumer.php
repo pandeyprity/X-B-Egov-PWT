@@ -1931,6 +1931,9 @@ class WaterConsumer extends Controller
             if ($req->Category == 'Slum' && $req->TabSize != 15) {
                 throw new Exception('Tab size must be 15 for Slum');
             }
+            if ($req->PropertyType == '2' && $req->Category == 'Slum') {
+                throw new Exception('slum is not under the commercial');
+            }
             
 
 
