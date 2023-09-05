@@ -57,7 +57,7 @@ class ReqUpdateBasicDtl extends TradeRequest
         $rules["firmDetails.accountNo"] = "regex:$mRegex";
 
         $rules["initialBusinessDetails.firmType"] = "required|digits_between:1,9223372036854775807";
-        $rules["initialBusinessDetails.categoryTypeId"] = "required|digits_between:1,9223372036854775807";
+        $rules["initialBusinessDetails.categoryTypeId"] = "nullable|digits_between:1,9223372036854775807";
         if (isset($this->initialBusinessDetails['firmType']) && $this->initialBusinessDetails['firmType'] == 5) 
         {
             $rules["initialBusinessDetails.otherFirmType"] = "required|regex:$mRegex";
