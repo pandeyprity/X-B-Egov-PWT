@@ -70,4 +70,9 @@ return [
         "Assistant Engineer" => "14",
         "Commitee Member" => "32"
     ],
+
+    'local' => [                // local storage to put file in json
+        'driver' => 'local',
+        'root' => storage_path('app'),
+    ],
 ];

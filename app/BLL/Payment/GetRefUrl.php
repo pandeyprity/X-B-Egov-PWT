@@ -25,7 +25,7 @@ class GetRefUrl
     public function generateRefUrl()
     {
         $todayDate = Carbon::now()->format('d/M/Y');
-        $refNo = rand();
+        $refNo = time() . rand();
 
         $mandatoryField = "$refNo|" . self::$subMerchantId . "|10|" . $todayDate . "|6201675668|xy|xy";               // 10 is transactional amount
         $eMandatoryField = $this->encryptAes($mandatoryField);
