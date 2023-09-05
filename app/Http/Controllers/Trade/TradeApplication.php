@@ -33,6 +33,7 @@ use App\Http\Requests\Trade\ReqPaybleAmount;
 use App\Models\Trade\TradeParamCategoryType;
 use App\Models\Trade\TradeParamOwnershipType;
 use App\Http\Requests\Trade\ReqUpdateBasicDtl;
+use App\Models\Property\ZoneMaster;
 use App\Models\Trade\ActiveTradeOwner;
 use App\Models\Trade\AkolaTradeParamItemType;
 use App\Models\Trade\RejectedTradeOwner;
@@ -209,6 +210,8 @@ class TradeApplication extends Controller
             #------------------------End Declaration-----------------------                       
             
             $data['userType']           = $mUserType;
+            $data['userType']           = $mUserType;
+            $data["zone"]  = (new ZoneMaster())->getZone($refUlbId);
             $data["firmTypeList"]       =$this->_MODEL_TradeParamFirmType->List();
             $data["ownershipTypeList"]  =$this->_MODEL_TradeParamOwnershipType->List();
             $data["categoryTypeList"]   =$this->_MODEL_TradeParamCategoryType->List();

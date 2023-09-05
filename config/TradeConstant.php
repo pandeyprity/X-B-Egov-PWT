@@ -65,7 +65,7 @@ return [
         "LP"                =>  "LP",
         "SENIOUR LIPIK"     =>  "SRLP",
         "SRLP"              =>  "SRLP",
-        "TAX SUPRETENDENT"  =>  "TS",
+        "TAX SUPERITENDENT"  =>  "TS",
         "TS"                =>  "TS",
 
     ],
