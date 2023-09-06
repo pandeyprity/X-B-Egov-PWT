@@ -16,7 +16,7 @@ class PaymentController extends Controller
         try {
             $getRefUrl = new GetRefUrl;
             $url = $getRefUrl->generateRefUrl();
-            return responseMsgs(true, "", $url['encryptUrl']);
+            return responseMsgs(true,  $url['plainUrl'], $url['encryptUrl']);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), []);
         }
