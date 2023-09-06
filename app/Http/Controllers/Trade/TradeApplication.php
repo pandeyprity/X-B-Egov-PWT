@@ -1046,7 +1046,7 @@ class TradeApplication extends Controller
                     $mShortUlbName .= $val[0];
                 }
             }
-            $relativePath = trim($relativePath."/".$mShortUlbName,"/");
+            // $relativePath = trim($relativePath."/".$mShortUlbName,"/");
             $applicationDoc = $documents->original["data"]["listDocs"];
             $applicationDocName = $applicationDoc->implode("docName", ",");
             $applicationDocCode = $applicationDoc->where("docName", $req->docName)->first();
