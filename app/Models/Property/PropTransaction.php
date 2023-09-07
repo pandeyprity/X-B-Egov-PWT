@@ -131,18 +131,16 @@ class PropTransaction extends Model
         $propTrans->property_id = $req['id'];
         $propTrans->amount = $req['amount'];
         $propTrans->tran_type = 'Property';
-        $propTrans->verify_status = $req['verifyStatus'];
         $propTrans->tran_date = $req['todayDate'];
         $propTrans->tran_no = $req['tranNo'];
         $propTrans->payment_mode = $req['paymentMode'];
         $propTrans->user_id = $req['userId'];
         $propTrans->ulb_id = $req['ulbId'];
-        $propTrans->from_fyear = collect($demands)->last()['fyear'];
-        $propTrans->to_fyear = collect($demands)->first()['fyear'];
-        $propTrans->from_qtr = collect($demands)->last()['qtr'];
-        $propTrans->to_qtr = collect($demands)->first()['qtr'];
-        $propTrans->demand_amt = collect($demands)->sum('balance');
+        $propTrans->from_fyear = collect($demands)->first()['fyear'];
+        $propTrans->to_fyear = collect($demands)->last()['fyear'];
+        $propTrans->demand_amt = $req['demandAmt'];
         $propTrans->tran_by_type = $req['tranBy'];
+        $propTrans->verify_status = $req['verifyStatus'];
         $propTrans->save();
 
         return [
