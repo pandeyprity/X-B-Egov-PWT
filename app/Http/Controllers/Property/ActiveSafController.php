@@ -1894,6 +1894,7 @@ class ActiveSafController extends Controller
             $propSaf = PropSaf::findOrFail($req['id']);
             $mPropSafsDemands = new PropSafsDemand();
             $mPropTranDtl = new PropTranDtl();
+            $mPropPenaltyRebates = new PropPenaltyrebate();
 
             if ($propSaf->payment_status == 1)
                 throw new Exception("Payment Already Done");
@@ -1960,7 +1961,7 @@ class ActiveSafController extends Controller
                     "balance" => $demand->totalTax,
                     "paid_status" => 1,
                     "fyear" => $demand->fyear,
-                    "adjust_amt" => $demand->adjustAmt ?? null,
+                    "adjust_amt" => $demand->adjustAmt ?? 0,
                     "user_id" => $userId,
                     "ulb_id" => $propSaf->ulb_id,
                 ];
@@ -1977,8 +1978,20 @@ class ActiveSafController extends Controller
             }
 
             // 🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴 Pending Works
-            // 🔴🔴🔴🔴🔴 💀💀 Transactions Rebate Amount is the part of discussion 🔴🔴🔴🔴🔴
-
+            // 🔴🔴🔴🔴🔴 💀💀 Type of Rebates and Penalty should be defined  🔴🔴🔴🔴🔴
+            if ($calulatedTaxes['isRebateApplied']) {
+                $penalRebateReq = [
+                    'tran_id' => $propTrans['id'],
+                    'head_name' => 'Rebate',
+                    'amount' => $calulatedTaxes['rebateAmt'],
+                    'is_rebate' => true,
+                    'tran_date' => $todayDate->format('Y-m-d'),
+                    'saf_id' => $propSaf->id,
+                    'prop_id' => $propSaf->property_id,
+                    'app_type' => 'SAF'
+                ];
+                $mPropPenaltyRebates->create($penalRebateReq);
+            }
 
             if (in_array($req['paymentMode'], $offlinePaymentModes)) {
                 $req->merge([
@@ -1989,7 +2002,6 @@ class ActiveSafController extends Controller
                 ]);
                 $this->postOtherPaymentModes($req);
             }
-
 
             // Update SAF Payment Status
             $propSaf->save();

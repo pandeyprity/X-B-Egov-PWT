@@ -146,7 +146,9 @@ class HoldingTaxController extends Controller
             // Get Property Details
             $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
 
-            $totalDemand = $demandList->pipe(function ($item) {
+            $arrear = $propBasicDtls->balance;
+
+            $grandTaxes = $demandList->pipe(function ($item) {
                 return [
                     "general_tax" => $item->sum('general_tax'),
                     "road_tax" => $item->sum('road_tax'),
@@ -163,8 +165,9 @@ class HoldingTaxController extends Controller
             });
 
             $demand['demandList'] = $demandList;
-            $demand['totalDemand'] = $totalDemand;
-            $demand['payableAmt'] = $totalDemand['balance'];
+            $demand['grandTaxes'] = $grandTaxes;
+            $demand['arrear'] = $arrear;
+            $demand['payableAmt'] = $grandTaxes['balance'] + $arrear;
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
             $holdingType = $propBasicDtls->holding_type;
             $ownershipType = $propBasicDtls->ownership_type;
@@ -456,88 +459,89 @@ class HoldingTaxController extends Controller
             $offlinePaymentModes = Config::get('payment-constants.PAYMENT_MODE_OFFLINE');
             $todayDate = Carbon::now();
             $userId = authUser($req)->id;
-            $propDemand = new PropDemand();
+            $mPropDemand = new PropDemand();
             $idGeneration = new IdGeneration;
             $mPropTrans = new PropTransaction();
             $propId = $req['id'];
             $verifyPaymentModes = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
-            $mPropAdjustment = new PropAdjustment();
-            $propDetails = PropProperty::findOrFail($propId);
+            $propDetails = PropProperty::find($propId);
+            $mPropTranDtl = new PropTranDtl();
+
+            if (collect($propDetails)->isEmpty())
+                throw new Exception("Property Details Not Available for this id");
 
             $tranNo = $idGeneration->generateTransactionNo($propDetails->ulb_id);
 
             $propCalReq = new Request([
                 'propId' => $req['id']
             ]);
+
             $propCalculation = $this->getHoldingDues($propCalReq);
 
             if ($propCalculation->original['status'] == false)
                 throw new Exception($propCalculation->original['message']);
 
-            // return $propCalculation;                        // 🔴🏮🏮🔴🔴🔴🔴🏮
-
             $demands = $propCalculation->original['data']['demandList'];
-            $dueList = $propCalculation->original['data']['duesList'];
 
-            $advanceAmt = $dueList['advanceAmt'];
+            // 🔺🔺 Arrears and Settlements is on under process
+            // $arrear = $propCalculation->original['data']['arrear'];
+
+            // if (isset($arrear) && $arrear > 0)
+            //     $arrear = $arrear;
+            // else
+            //     $arrear = 0;
+
+            $payableAmount = $propCalculation->original['data']['payableAmt'];
             if ($demands->isEmpty())
                 throw new Exception("No Dues For this Property");
+
             // Property Transactions
             $tranBy = authUser($req)->user_type;
             $req->merge([
                 'userId' => $userId,
                 'todayDate' => $todayDate->format('Y-m-d'),
                 'tranNo' => $tranNo,
-                'amount' => $dueList['payableAmount'],
+                'amount' => $payableAmount,                                                                         // Payable Amount with Arrear
+                'demandAmt' => $propCalculation->original['data']['grandTaxes']['balance'],                         // Demandable Amount
                 'tranBy' => $tranBy
             ]);
+
             if (in_array($req['paymentMode'], $verifyPaymentModes)) {
                 $req->merge([
                     'verifyStatus' => 2
                 ]);
             }
 
+            // Begining Transactions
             DB::beginTransaction();
+            $propDetails->balance = 0;                  // Update Arrear
             $req['ulbId'] = $propDetails->ulb_id;
             $propTrans = $mPropTrans->postPropTransactions($req, $demands);
+
+            // Updation of payment status in demand table
+            foreach ($demands as $demand) {
+                $demand = (object)$demand->toArray();
+                $tblDemand = $mPropDemand->findOrFail($demand->id);
+                $tblDemand->paid_status = 1;           // Paid Status Updation
+                $tblDemand->balance = 0;
+                $tblDemand->save();
+
+                // ✅✅✅✅✅ Tran details insertion
+                $tranDtlReq = [
+                    "tran_id" => $propTrans['id'],
+                    "saf_demand_id" => $demand->id,
+                    "total_demand" => $demand->balance,
+                    "ulb_id" => $req['ulbId'],
+                ];
+                $mPropTranDtl->create($tranDtlReq);
+            }
+
             if (in_array($req['paymentMode'], $offlinePaymentModes)) {
                 $req->merge([
                     'chequeDate' => $req['chequeDate'],
                     'tranId' => $propTrans['id']
                 ]);
                 $this->postOtherPaymentModes($req);
-            }
-
-            // Reflect on Prop Tran Details
-            foreach ($demands as $demand) {
-                $propDemand = $propDemand->getDemandById($demand['id']);
-                $propDemand->balance = 0;
-                $propDemand->paid_status = 1;           // <-------- Update Demand Paid Status 
-                $propDemand->save();
-
-                $propTranDtl = new PropTranDtl();
-                $propTranDtl->tran_id = $propTrans['id'];
-                $propTranDtl->prop_demand_id = $demand['id'];
-                $propTranDtl->total_demand = $demand['amount'];
-                $propTranDtl->ulb_id = $propDetails->ulb_id;
-                $propTranDtl->save();
-            }
-
-            // Replication Prop Rebates Penalties
-            $this->postPaymentPenaltyRebate($dueList, $propId, $propTrans['id']);
-            // Advance Adjustment 
-            if ($advanceAmt > 0) {
-                $adjustReq = [
-                    'prop_id' => $propId,
-                    'tran_id' => $propTrans['id'],
-                    'amount' => $advanceAmt
-                ];
-                if ($tranBy == 'Citizen')
-                    $adjustReq = array_merge($adjustReq, ['citizen_id' => $userId ?? 0]);
-                else
-                    $adjustReq = array_merge($adjustReq, ['user_id' => $userId ?? 0]);
-
-                $mPropAdjustment->store($adjustReq);
             }
             DB::commit();
             return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $tranNo], "011604", "1.0", "", "POST", $req->deviceId);
@@ -684,6 +688,7 @@ class HoldingTaxController extends Controller
 
             $propTrans = $mTransaction->getPropByTranPropId($req->tranNo);
             $reqPropId = new Request(['propertyId' => $propTrans->property_id]);
+
             $propProperty = $safController->getPropByHoldingNo($reqPropId)->original['data'];
             if (empty($propProperty))
                 throw new Exception("Property Not Found");
@@ -716,7 +721,7 @@ class HoldingTaxController extends Controller
                 "applicationNo" => !empty($propProperty['new_holding_no']) ? $propProperty['new_holding_no'] : $propProperty['holding_no'],
                 "customerName" => !empty($propProperty['applicant_name']) ? $propProperty['applicant_name'] : $ownerDetails['owner_name'],
                 "mobileNo" => $ownerDetails['mobile_no'],
-                "receiptWard" => $propProperty['new_ward_no'],
+                // "receiptWard" => $propProperty['new_ward_no'],
                 "address" => $propProperty['prop_address'],
                 "paidFrom" => $propTrans->from_fyear,
                 "paidFromQtr" => $propTrans->from_qtr,
@@ -732,8 +737,8 @@ class HoldingTaxController extends Controller
                 "totalRebate" => $totalRebatePenals['totalRebate'],
                 "totalPenalty" => $totalRebatePenals['totalPenalty'],
                 "ulbId" => $propProperty['ulb_id'],
-                "oldWardNo" => $propProperty['old_ward_no'],
-                "newWardNo" => $propProperty['new_ward_no'],
+                // "oldWardNo" => $propProperty['old_ward_no'],
+                // "newWardNo" => $propProperty['new_ward_no'],
                 "towards" => $mTowards,
                 "description" => [
                     "keyString" => "Holding Tax"
