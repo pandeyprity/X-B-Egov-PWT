@@ -583,14 +583,14 @@ class TradeApplication extends Controller
         $refWorkflowId = $this->_WF_MASTER_Id;
         $role = $this->_COMMON_FUNCTION->getUserRoll($user_id, $ulb_id, $refWorkflowId);
 
-        $req->validate([
-            'applicationId' => 'required|digits_between:1,9223372036854775807',
-            'workflowId' => 'required|integer',
-            'currentRoleId' => 'required|integer',
-            'comment' => 'required|string'
-        ]);
-
+        
         try {
+            $req->validate([
+                'applicationId' => 'required|digits_between:1,9223372036854775807',
+                // 'workflowId' => 'required|integer',
+                'currentRoleId' => 'required|integer',
+                'comment' => 'required|string'
+            ]);
 
             if (!$this->_COMMON_FUNCTION->checkUsersWithtocken("users")) {
                 throw new Exception("Citizen Not Allowed");
@@ -614,7 +614,7 @@ class TradeApplication extends Controller
                 ->first();
             $this->begin();
             $initiatorRoleId = $activeLicence->initiator_role;
-            $activeLicence->current_role = $initiatorRoleId;
+            // $activeLicence->current_role = $initiatorRoleId;
             $activeLicence->is_parked = true;
             $activeLicence->save();
 
@@ -705,9 +705,13 @@ class TradeApplication extends Controller
             $initFinish   = $this->_COMMON_FUNCTION->iniatorFinisher($user_id, $ulb_id, $refWorkflowId);
             $receiverRole = array_values(objToArray($allRolse->where("id", $request->receiverRoleId)))[0] ?? [];
             $senderRole   = array_values(objToArray($allRolse->where("id", $request->senderRoleId)))[0] ?? [];
-
+            
             if ($licence->payment_status != 1 && ($role->serial_no  < $receiverRole["serial_no"] ?? 0)) {
                 throw new Exception("Payment Not Clear");
+            }
+            if ((!$role->is_finisher ?? 0) && $request->action == 'backward' && $receiverRole["id"] == $initFinish['initiator']['id']) {
+                $request->request->add(["currentRoleId" => $request->senderRoleId]);
+                return $this->backToCitizen($request);
             }
 
             if ($licence->current_role != $role->role_id && (!$licence->is_parked)) {

@@ -66,4 +66,9 @@ class TradeTransaction extends Model
             ->where('trade_transactions.ulb_id', $ulbId)
             ->groupBy(["users.id", "users.user_name"]);
     }
+
+    public function chequeDtl()
+    {
+        return $this->belongsTo(TradeChequeDtl::class,"id",'tran_id')->whereNotIn("status",[0,3]);
+    }
 }
