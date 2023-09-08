@@ -592,18 +592,30 @@ class TradeApplication extends Controller
                 'comment' => 'required|string'
             ]);
 
+            $activeLicence = $this->_MODEL_ActiveTradeLicence->find($req->applicationId);
+            if(!$activeLicence)
+            {
+                throw new Exception("Application Not Found");
+            }
+            if($activeLicence->is_parked)
+            {
+                throw new Exception("Application Already BTC");
+            }
             if (!$this->_COMMON_FUNCTION->checkUsersWithtocken("users")) {
                 throw new Exception("Citizen Not Allowed");
             }
             if (!$req->senderRoleId) 
             {
-                $req->request->add(["senderRoleId" => $role->role_id ?? 0]);
+                $req->merge(["senderRoleId" => $role->role_id ?? 0]);
             }
             if (!$req->receiverRoleId) 
             {
-                $req->request->add(["receiverRoleId" => $role->backward_role_id ?? 0]);               
+                $req->merge(["receiverRoleId" => $role->backward_role_id ?? 0]);               
             }
-            $activeLicence = $this->_MODEL_ActiveTradeLicence->find($req->applicationId);
+            if($activeLicence->current_role!= $req->senderRoleId )
+            {
+                throw new Exception("Application Access Forbiden");
+            }
             $track = new WorkflowTrack();
             $lastworkflowtrack = $track->select("*")
                 ->where('ref_table_id_value', $req->applicationId)
@@ -625,10 +637,10 @@ class TradeApplication extends Controller
             $metaReqs['trackDate'] = $lastworkflowtrack && $lastworkflowtrack->forward_date ? ($lastworkflowtrack->forward_date . " " . $lastworkflowtrack->forward_time) : Carbon::now()->format('Y-m-d H:i:s');
             $metaReqs['forwardDate'] = Carbon::now()->format('Y-m-d');
             $metaReqs['forwardTime'] = Carbon::now()->format('H:i:s');
-            $metaReqs['verificationStatus'] = 2;
+            $metaReqs['verificationStatus'] = $this->_TRADE_CONSTAINT["VERIFICATION-STATUS"]["BTC"];#2
             $metaReqs['user_id'] = $user_id;
             $metaReqs['ulb_id'] = $ulb_id;
-            $req->request->add($metaReqs);
+            $req->merge($metaReqs);
             $track->saveTrack($req);
 
             $this->commit();
@@ -661,21 +673,21 @@ class TradeApplication extends Controller
 
         try {
             if (!$request->senderRoleId) {
-                $request->request->add(["senderRoleId" => $role->role_id ?? 0]);
+                $request->merge(["senderRoleId" => $role->role_id ?? 0]);
             }
             if (!$request->receiverRoleId) {
                 if ($request->action == 'forward') {
-                    $request->request->add(["receiverRoleId" => $role->forward_role_id ?? 0]);
+                    $request->merge(["receiverRoleId" => $role->forward_role_id ?? 0]);
                 }
                 if ($request->action == 'backward') {
-                    $request->request->add(["receiverRoleId" => $role->backward_role_id ?? 0]);
+                    $request->merge(["receiverRoleId" => $role->backward_role_id ?? 0]);
                 }
             }
 
 
             #if finisher forward then
             if (($role->is_finisher ?? 0) && $request->action == 'forward') {
-                $request->request->add(["status" => 1]);
+                $request->merge(["status" => 1]);
                 return $this->approveReject($request);
             }
 
@@ -710,7 +722,7 @@ class TradeApplication extends Controller
                 throw new Exception("Payment Not Clear");
             }
             if ((!$role->is_finisher ?? 0) && $request->action == 'backward' && $receiverRole["id"] == $initFinish['initiator']['id']) {
-                $request->request->add(["currentRoleId" => $request->senderRoleId]);
+                $request->merge(["currentRoleId" => $request->senderRoleId]);
                 return $this->backToCitizen($request);
             }
 
@@ -789,8 +801,8 @@ class TradeApplication extends Controller
             $metaReqs['trackDate'] = $lastworkflowtrack && $lastworkflowtrack->forward_date ? ($lastworkflowtrack->forward_date . " " . $lastworkflowtrack->forward_time) : Carbon::now()->format('Y-m-d H:i:s');
             $metaReqs['forwardDate'] = Carbon::now()->format('Y-m-d');
             $metaReqs['forwardTime'] = Carbon::now()->format('H:i:s');
-            $metaReqs['verificationStatus'] = 1;
-            $request->request->add($metaReqs);
+            $metaReqs['verificationStatus'] = ($request->action == 'forward') ? $this->_TRADE_CONSTAINT["VERIFICATION-STATUS"]["VERIFY"] : $this->_TRADE_CONSTAINT["VERIFICATION-STATUS"]["BACKWARD"];
+            $request->merge($metaReqs);
             $track->saveTrack($request);
 
             $this->commit();
@@ -832,14 +844,14 @@ class TradeApplication extends Controller
                 throw new Exception("Forbidden Access");
             }
             if (!$req->senderRoleId) {
-                $req->request->add(["senderRoleId" => $role->role_id ?? 0]);
+                $req->merge(["senderRoleId" => $role->role_id ?? 0]);
             }
             if (!$req->receiverRoleId) {
                 if ($req->action == 'forward') {
-                    $req->request->add(["receiverRoleId" => $role->forward_role_id ?? 0]);
+                    $req->merge(["receiverRoleId" => $role->forward_role_id ?? 0]);
                 }
                 if ($req->action == 'backward') {
-                    $req->request->add(["receiverRoleId" => $role->backward_role_id ?? 0]);
+                    $req->merge(["receiverRoleId" => $role->backward_role_id ?? 0]);
                 }
             }
             $track = new WorkflowTrack();
@@ -859,8 +871,8 @@ class TradeApplication extends Controller
             $metaReqs['trackDate'] = $lastworkflowtrack && $lastworkflowtrack->forward_date ? ($lastworkflowtrack->forward_date . " " . $lastworkflowtrack->forward_time) : Carbon::now()->format('Y-m-d H:i:s');
             $metaReqs['forwardDate'] = Carbon::now()->format('Y-m-d');
             $metaReqs['forwardTime'] = Carbon::now()->format('H:i:s');
-            $metaReqs['verificationStatus'] = 1;
-            $req->request->add($metaReqs);
+            $metaReqs['verificationStatus'] = ($req->status == 1) ? $this->_TRADE_CONSTAINT["VERIFICATION-STATUS"]["APROVE"] : $this->_TRADE_CONSTAINT["VERIFICATION-STATUS"]["REJECT"];
+            $req->merge($metaReqs);
 
             $this->begin();
 
@@ -896,8 +908,6 @@ class TradeApplication extends Controller
 
             // Rejection
             if ($req->status == 0) {
-                $track = new WorkflowTrack();
-                $d = $track->saveTrack($req);
                 // Objection Application replication
                 $approvedLicence = $activeLicence->replicate();
                 $approvedLicence->setTable('rejected_trade_licences');
