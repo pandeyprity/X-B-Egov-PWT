@@ -3004,7 +3004,7 @@ class Trade implements ITrade
             $role_id = 0;
             $refWorkflowId = $this->_WF_MASTER_Id;
             $role = $this->_COMMON_FUNCTION->getUserRoll($userId, $ulbId, $refWorkflowId);
-            if ($role && auth()->user()->gettable()=='users') {
+            if ($role && $this->_COMMON_FUNCTION->checkUsersWithtocken()) {
                 $role_id = $role->role_id??0;
             }
 
@@ -3014,7 +3014,7 @@ class Trade implements ITrade
 
             if ($validator->fails()) 
             {
-                return responseMsg(false, $validator->errors(), $request->all());
+                return responseMsg(false, $validator->errors(), "");
             }
 
             $refLicense = ActiveTradeLicence::find($request->applicationId);
@@ -3029,7 +3029,7 @@ class Trade implements ITrade
             $metaReqs['refTableDotId'] = 'active_trade_licences';
             $metaReqs['refTableIdValue'] = $refLicense->id;
             $metaReqs['senderRoleId'] = $role_id;
-            if(auth()->user()->gettable()=='users')
+            if($this->_COMMON_FUNCTION->checkUsersWithtocken())
             {
                 $metaReqs['user_id'] = $userId;
             }
@@ -3396,6 +3396,27 @@ class Trade implements ITrade
             ->where("ulb_id", $ulb_id)
             ->first();
         // dd(DB::getQueryLog());
+        if(!$property)
+        {
+            $property = PropProperty::select("*")
+            ->leftjoin(
+                DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name ,property_id
+                                        FROM Prop_OwnerS 
+                                        WHERE status = 1
+                                        GROUP BY property_id
+                                        ) owners
+                                        "),
+                function ($join) {
+                    $join->on("owners.property_id", "=", "prop_properties.id");
+                }
+            )
+            ->where("status", 1)
+            // ->where("new_holding_no", "<>", "")
+            ->where("holding_no", "ILIKE", $holdingNo)
+            ->where("ulb_id", $ulb_id)
+            ->orderBy("id",'DESC')
+            ->first();
+        }
         
         if ($property) {
             $owner = PropOwner::where("property_id",$property->id)->where("status",1)->get();
