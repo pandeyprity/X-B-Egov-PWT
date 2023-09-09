@@ -267,6 +267,8 @@ class WaterMonthelyCall
                 "status" => true,
                 "consumer_tax" => [
                     [
+                        "monthely_demand"   => $monthelyUnitConsumed,
+                        "fee_unit"          => $this->_consumerFeeUnits->unit_fee,
                         "charge_type"       => $this->_meterStatus,
                         "rate_id"           => $this->_consumerCharges->id,
                         "effective_from"    => $startDate->format('Y-m-d'),

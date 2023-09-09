@@ -10,6 +10,7 @@
 namespace App\Repository\Trade;
 
 use App\EloquentModels\Common\ModelWard;
+use App\Http\Requests\Trade\CitizenApplication;
 use App\Models\Trade\ActiveLicence;
 use App\Models\Trade\ExpireLicence;
 use App\Models\Trade\TradeFineRebetDetail;
@@ -37,6 +38,7 @@ use App\Models\Trade\TradeRenewal;
 use App\Models\Workflows\WfActiveDocument;
 use App\Models\WorkflowTrack;
 use App\Repository\Notice\Notice;
+use Illuminate\Support\Facades\Validator;
 
 class TradeCitizen implements ITradeCitizen
 {
@@ -377,14 +379,14 @@ class TradeCitizen implements ITradeCitizen
     }
 
     # Serial No : 27
-    public function citizenApplication(Request $request)
+    public function citizenApplication_old(Request $request)
     {
         try {
 
             $refUser        = Auth()->user();
             $refUserId      = $refUser->id;
             $refWorkflowId      = $this->_WF_MASTER_Id;
-
+            $request->merge(["citizenId"=>$refUserId]);
             $select = [
                 "licences.id",
                 "licences.application_no",
@@ -541,12 +543,231 @@ class TradeCitizen implements ITradeCitizen
         }
     }
 
+    public function citizenApplicationByCitizenId(Request $request)
+    {
+        try{
+            $refUserId = $request->citizenId;
+            $ulbId     = $request->ulbId;
+            $cotegory = $request->cotegory;
+            $status  = $request->status;
+            $applicationTypeId = null;
+            if($request->applicationType)
+            {
+                $applicationTypeId = $this->_TRADE_CONSTAINT["APPLICATION-TYPE"][$request->applicationType];
+            }
+            $select = [
+                "licences.id",
+                "trade_param_application_types.application_type",
+                "licences.application_no",
+                "licences.provisional_license_no",
+                "licences.license_no",
+                "licences.license_date",
+                "licences.valid_from",
+                "licences.valid_upto",
+                "licences.document_upload_status",
+                "licences.payment_status",
+                "licences.pending_status",
+                "licences.firm_name",
+                "licences.application_date",
+                "licences.apply_from",
+                "licences.application_type_id",
+                "licences.ulb_id",
+                "owner.owner_name",
+                "owner.guardian_name",
+                "owner.mobile_no",
+                "owner.email_id",
+                "ulb_masters.ulb_name",
+                DB::RAW("TO_CHAR( CAST(licences.license_date AS DATE), 'DD-MM-YYYY') as license_date,
+                        TO_CHAR( CAST(licences.valid_from AS DATE), 'DD-MM-YYYY') as valid_from,
+                        TO_CHAR( CAST(licences.valid_upto AS DATE), 'DD-MM-YYYY') as valid_upto,
+                        TO_CHAR( CAST(licences.application_date AS DATE), 'DD-MM-YYYY') as application_date
+                "),
+            ];
+
+            $ActiveSelect = $select;
+            $ActiveSelect[] = DB::raw("'active' as license_type");
+            $ActiveLicence = $this->_DB->TABLE("active_trade_licences AS licences")
+                ->select($ActiveSelect)
+                ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
+                ->join("trade_param_application_types","trade_param_application_types.id","licences.application_type_id")
+                ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
+                                    STRING_AGG(guardian_name,',') AS guardian_name,
+                                    STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
+                                    STRING_AGG(email_id,',') AS email_id,
+                                    active_trade_owners.temp_id
+                                    FROM active_trade_owners 
+                                    JOIN active_trade_licences on active_trade_licences.citizen_id = $refUserId 
+                                        AND active_trade_licences.id = active_trade_owners.temp_id 
+                                    WHERE active_trade_owners.is_active = true
+                                    GROUP BY active_trade_owners.temp_id
+                                    )owner"), function ($join) {
+                    $join->on("owner.temp_id", "licences.id");
+                })
+                ->where("licences.citizen_id", $refUserId);
+                // ->get();
+
+            $RejectedSelect = $select;        
+            $RejectedSelect[] = DB::raw("'rejected' as license_type");
+            $RejectedLicence = $this->_DB->TABLE("rejected_trade_licences AS licences")
+                ->select($RejectedSelect)
+                ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
+                ->join("trade_param_application_types","trade_param_application_types.id","licences.application_type_id")
+                ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
+                                    STRING_AGG(guardian_name,',') AS guardian_name,
+                                    STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
+                                    STRING_AGG(email_id,',') AS email_id,
+                                    rejected_trade_owners.temp_id
+                                    FROM rejected_trade_owners
+                                    JOIN rejected_trade_licences on rejected_trade_licences.citizen_id = $refUserId 
+                                        AND rejected_trade_licences.id = rejected_trade_owners.temp_id 
+                                    WHERE rejected_trade_owners.is_active = true
+                                    GROUP BY rejected_trade_owners.temp_id
+                                    )owner"), function ($join) {
+                    $join->on("owner.temp_id", "licences.id");
+                })
+                ->where("licences.citizen_id", $refUserId);
+                // ->get();
+
+            $ApprovedSelect = $select;        
+            $ApprovedSelect[] = DB::raw("'approved' as license_type");
+            $ApprovedLicence = $this->_DB->TABLE("trade_licences AS licences")
+                ->select($ApprovedSelect)
+                ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
+                ->join("trade_param_application_types","trade_param_application_types.id","licences.application_type_id")
+                ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
+                                        STRING_AGG(guardian_name,',') AS guardian_name,
+                                        STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
+                                        STRING_AGG(email_id,',') AS email_id,
+                                        trade_owners.temp_id
+                                        FROM trade_owners
+                                        JOIN trade_licences on trade_licences.citizen_id = $refUserId 
+                                        AND trade_licences.id = trade_owners.temp_id 
+                                        WHERE trade_owners.is_active = true
+                                        GROUP BY trade_owners.temp_id
+                                        )owner"), function ($join) {
+                    $join->on("owner.temp_id", "licences.id");
+                })
+                ->where("licences.is_active", true)
+                ->where("licences.citizen_id", $refUserId);
+                // ->get();
+
+            
+            $OldSelect = $select;        
+            $OldSelect[] = DB::raw("'old' as license_type");
+            $OldLicence = $this->_DB->TABLE("trade_renewals AS licences")
+                ->select($OldSelect)
+                ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
+                ->join("trade_param_application_types","trade_param_application_types.id","licences.application_type_id")
+                ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
+                                        STRING_AGG(guardian_name,',') AS guardian_name,
+                                        STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
+                                        STRING_AGG(email_id,',') AS email_id,
+                                        trade_owners.temp_id
+                                        FROM trade_owners
+                                        JOIN trade_renewals on trade_renewals.citizen_id = $refUserId 
+                                        AND trade_renewals.id = trade_owners.temp_id 
+                                        WHERE trade_owners.is_active = true
+                                        GROUP BY trade_owners.temp_id
+                                        )owner"), function ($join) {
+                    $join->on("owner.temp_id", "licences.id");
+                })
+                ->where("licences.citizen_id", $refUserId);
+            if($applicationTypeId)
+            {
+                $ActiveLicence = $ActiveLicence->where("licences.application_type_id",$applicationTypeId);
+                $RejectedLicence = $RejectedLicence->where("licences.application_type_id",$applicationTypeId);
+                $ApprovedLicence = $ApprovedLicence->where("licences.application_type_id",$applicationTypeId);
+                $OldLicence      = $OldLicence->where("licences.application_type_id",$applicationTypeId);
+            }
+            if($ulbId)
+            {
+                $ActiveLicence = $ActiveLicence->where("licences.ulb_id",$ulbId);
+                $RejectedLicence = $RejectedLicence->where("licences.ulb_id",$ulbId);
+                $ApprovedLicence = $ApprovedLicence->where("licences.ulb_id",$ulbId);
+                $OldLicence      = $OldLicence->where("licences.ulb_id",$ulbId);
+            }
+            if($status)
+            {
+                $ActiveLicence = $ActiveLicence->where("licences.is_active",$status);
+                $RejectedLicence = $RejectedLicence->where("licences.is_active",$status);
+                $ApprovedLicence = $ApprovedLicence->where("licences.is_active",$status);
+                $OldLicence      = $OldLicence->where("licences.is_active",$status);
+            }
+            else{
+                $ActiveLicence = $ActiveLicence->where("licences.is_active",true);
+                $RejectedLicence = $RejectedLicence->where("licences.is_active",true);
+                $ApprovedLicence = $ApprovedLicence->where("licences.is_active",true);
+                $OldLicence      = $OldLicence->where("licences.is_active",true);
+            }
+            switch($cotegory){
+                case "PENDIG"   : $final = $ActiveLicence->get();
+                                  break;
+                case "REJECT"   : $final = $RejectedLicence->get();
+                                  break;
+                case "APROVE"   : $final = $ApprovedLicence->union($OldLicence)->get();
+                                  break;
+                case "OLD"      : $final = $OldLicence->get();
+                                  break;
+                default         : $final = $ActiveLicence->union($RejectedLicence)->union($ApprovedLicence)->union($OldLicence)->get();
+                                  break;
+            }
+            
+            $final->map(function($val) use($refUserId){
+                $option = [];
+                $nextMonth = Carbon::now()->addMonths(1)->format('Y-m-d');
+                $validUpto="";
+                if($val->valid_upto)
+                {
+                    $validUpto = Carbon::createFromFormat("d-m-Y",$val->valid_upto)->format('Y-m-d');
+                }
+                if(trim($val->license_type)=="approved" && $val->pending_status == 5 && $validUpto < $nextMonth)
+                {
+                    $option[]="RENEWAL";
+                }
+                if(trim($val->license_type)=="approved" && $val->pending_status == 5 && $validUpto >= Carbon::now()->format('Y-m-d'))
+                {
+                    $option[]="AMENDMENT";
+                    $option[]="SURRENDER";
+                }
+                if(trim($val->license_type)=="approved" && $val->pending_status == 5 && $val->application_type_id == 4 && $validUpto >= Carbon::now()->format('Y-m-d'))
+                {                    
+                    $option=[];
+                }
+                $val->option = $option;
+                $val->pending_at = $this->_REPOSITORY_TRADE->applicationStatus($val->id,false);                
+                if(str_contains(strtoupper($val->pending_at),strtoupper("All Required Documents Are Uploaded")))
+                {
+                    $val->document_upload_status =1; 
+                }
+                return $val;
+            });
+            return responseMsg(true, "", remove_null($final));
+        }
+        catch (Exception $e) 
+        {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+    public function citizenApplication(Request $request)
+    {
+        try {            
+            $refUser        = Auth()->user();
+            $refUserId      = $refUser->id;
+            $refWorkflowId      = $this->_WF_MASTER_Id;
+            $request->merge(["citizenId"=>$refUserId]);
+            return $this->citizenApplicationByCitizenId($request);            
+        } 
+        catch (Exception $e) 
+        {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
     # Serial No : 28
     public function readCitizenLicenceDtl(Request $request)
-    {
-       
-        try {
-           
+    {       
+        try {           
             $id = $request->id;
             $refUser        = Auth()->user(); 
             $refUserId      = $refUser->id;

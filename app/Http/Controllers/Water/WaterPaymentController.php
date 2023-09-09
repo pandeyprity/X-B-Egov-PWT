@@ -382,9 +382,9 @@ class WaterPaymentController extends Controller
                 "accountDescription"    => $mAccDescription,
                 "transactionDate"       => $transactionDate,
                 "transactionNo"         => $refTransactionNo,
-                "applicationNo"         => $applicationDetails['application_no'],
-                "customerName"          => $applicationDetails['applicantname'],
-                "customerMobile"        => $applicationDetails['mobileno'],
+                "applicationNo"         => $applicationDetails['consumer_no'],
+                "customerName"          => $applicationDetails['applicant_name'],
+                "customerMobile"        => $applicationDetails['mobile_no'],
                 "address"               => $applicationDetails['address'],
                 "paidFrom"              => $connectionCharges['charge_category'] ?? $transactionDetails['tran_type'],
                 "holdingNo"             => $applicationDetails['holding_no'],
@@ -408,6 +408,9 @@ class WaterPaymentController extends Controller
                 "connectionFee"         => $connectionCharges['conn_fee'] ?? 0,
                 "totalPaidAmount"       => $transactionDetails->amount,
                 "penaltyAmount"         => $totalPenaltyAmount ?? 0,
+                "tabize"                => $applicationDetails['tab_size'],
+                "category"              =>$applicationDetails['category'],
+            
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
             ];
             return responseMsgs(true, "Payment Receipt", remove_null($returnValues), "", "1.0", "", "POST", $req->deviceId ?? "");

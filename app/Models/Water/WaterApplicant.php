@@ -153,4 +153,19 @@ class WaterApplicant extends Model
                 'status' => false
             ]);
     }
+
+    /**
+     * 
+     */
+    public function saveWaterApplicants($meta, $req)
+    {
+        $applicant = new WaterApplicant();
+        $applicant->application_id  = $meta['applicationId'];
+        $applicant->applicant_name  = $req['OwnerName'];
+        $applicant->guardian_name   = $req['GuardianName'] ?? null;
+        $applicant->mobile_no       = $req['MobileNo'];
+        $applicant->email           = $req['Email'] ?? null;
+        $applicant->save();
+        return $applicant;
+    }
 }

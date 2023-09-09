@@ -184,7 +184,7 @@ trait Workflow
             ->where('user_id', $userId)
             ->where('wf_workflowrolemaps.workflow_id', $request->workflowId)
             ->first();
-        // dd(DB::getQueryLog());
+        // return (DB::getQueryLog());
 
         return remove_null($role);
     }

@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Water\newApplyRules;
 use  App\Models\water\WaterSecondConnectionCharge;
 use App\Http\Requests\Water\reqSiteVerification;
+use App\MicroServices\IdGenerator\PrefixIdGenerator;
 use App\MicroServices\DocUpload;
+use App\Http\Requests\water\newWaterRequest;
 use App\Models\Masters\RefRequiredDocument;
 use App\Models\Payment\WebhookPaymentData;
 use App\Models\Property\PropActiveObjection;
@@ -25,6 +27,7 @@ use App\Models\Water\waterAudit;
 use App\Models\Water\WaterConnectionCharge;
 use App\Models\Water\WaterConnectionThroughMstr;
 use App\Models\Water\WaterConnectionThroughMstrs;
+use App\Models\Water\WaterConnectionTypeCharge;
 use App\Models\Water\WaterConnectionTypeMstr;
 use App\Models\Water\WaterConsumer;
 use App\Models\Water\WaterConsumerDemand;
@@ -1264,7 +1267,7 @@ class NewConnectionController extends Controller
     }
 
 
-   
+
 
 
     /**
@@ -2092,7 +2095,7 @@ class NewConnectionController extends Controller
             $refChargeCatagoryValue     = Config::get("waterConstaint.CONNECTION_TYPE");
 
             # Application Details
-           $applicationDetails['applicationDetails'] = $mWaterApplication->fullWaterDetail($applicationId)->first();
+            $applicationDetails['applicationDetails'] = $mWaterApplication->fullWaterDetail($applicationId)->first();
 
             # Payment Details 
             $refAppDetails = collect($applicationDetails)->first();
@@ -2166,7 +2169,6 @@ class NewConnectionController extends Controller
             // }
             $returnData = $applicationDetails;    // array_merge($applicationDetails, $waterTransDetail);
             return responseMsgs(true, "Application Data!", remove_null($returnData), "", "", "", "Post", "");
-        
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
         }
@@ -2811,29 +2813,236 @@ class NewConnectionController extends Controller
     //     }
     // }
 
-/**
- * get all details 
- */
-public function getdetailsbyId(Request $req) {
-    $req->validate([
-        "applicationId" => "required|numeric",
-    ]);
-    
-    try {
-        $mwaterSecondConsumer = new WaterSecondConsumer(); 
-        $water = $mwaterSecondConsumer->getallDetails($req->input('applicationId'));
-        if(!$water){
-            throw new Exception('Application not found');
+    /**
+     * get all details 
+     */
+    public function getdetailsbyId(Request $req)
+    {
+        $req->validate([
+            "applicationId" => "required|numeric",
+        ]);
+
+        try {
+            $mwaterSecondConsumer = new WaterSecondConsumer();
+            $water = $mwaterSecondConsumer->getallDetails($req->input('applicationId'));
+            if (!$water) {
+                throw new Exception('Application not found');
+            }
+
+            return responseMsgs(true, "get all details", $water, "", "1.0", "", "POST", $req->deviceId ?? "");
+        } catch (Exception $e) { // Catch a more specific exception
+            return responseMsgs(false, $e->getMessage(), "", "", "01", ".ms", "POST", $req->deviceId);
+        }
+    }
+
+    /**
+ apply water connection for akola
+
+     */
+    public function applyWaterNew(Request $req)
+    {
+        # ref variables
+        $user       = authUser($req);
+        $waterRoles = $this->_waterRoles;
+        $ulbId      = $req->ulbId;
+        $owner      = $req['ownerDetails'];
+        $owners     = $req;
+        $reftenant  = true;
+        $citizenId  = null;
+        $connectypeId  = $req->connectionTypeId;
+
+        $ulbWorkflowObj             = new WfWorkflow();
+        $mWaterNewConnection        = new WaterNewConnection();
+        $mWaterApplication          = new WaterApplication();
+        $mWaterApplicant            = new WaterApplicant();
+        $mWaterCharges              = new WaterConnectionCharge();
+        $mWorkflowTrack             = new WorkflowTrack();
+        $mWaterChrges               = new WaterConnectionTypeCharge();
+        $workflowID                 = Config::get('workflow-constants.WATER_MASTER_ID');
+        $refUserType                = Config::get('waterConstaint.REF_USER_TYPE');
+        $refApplyFrom               = Config::get('waterConstaint.APP_APPLY_FROM');
+        $refPropertyType            = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
+        $waterRole                  = Config::get("waterConstaint.ROLE-LABEL");
+        $confModuleId               = Config::get('module-constants.WATER_MODULE_ID');
+        $refParamId                 = Config::get('waterConstaint.PARAM_IDS');
+
+        # Connection Type 
+        switch ($req->connectionTypeId) {
+            case (1):
+                $connectionType = "New Connection";                                     // Static
+                break;
+        }
+
+        # get initiater and finisher
+        $ulbWorkflowId = $ulbWorkflowObj->getulbWorkflowId($workflowID, $ulbId);
+        if (!$ulbWorkflowId) {
+            throw new Exception("Respective Ulb is not maped to Water Workflow!");
+        }
+        $refInitiatorRoleId = $this->getInitiatorId($ulbWorkflowId->id);
+        $refFinisherRoleId  = $this->getFinisherId($ulbWorkflowId->id);
+        $finisherRoleId     = DB::select($refFinisherRoleId);
+        $initiatorRoleId    = DB::select($refInitiatorRoleId);
+        if (!$finisherRoleId || !$initiatorRoleId) {
+            throw new Exception("initiatorRoleId or finisherRoleId not found for respective Workflow!");
+        }
+        #coonection charges 
+        $refRequest["initiatorRoleId"]   = collect($initiatorRoleId)->first()->role_id;
+        $refRequest["finisherRoleId"]    = collect($finisherRoleId)->first()->role_id;
+        $refRequest['roleId']            = $roleId ?? null;
+        $refRequest['userType']          = $user->user_type;
+
+        # Get the role details and distinguish btw user and employ
+        # If the user is not citizen
+        if ($user->user_type != $refUserType['1']) {
+            $req->merge(['workflowId' => $ulbWorkflowId->id]);
+            $roleDetails = $this->getRole($req);
+            if (!$roleDetails) {
+                throw new Exception("Role detail Not found!");
+            }
+            $roleId = $roleDetails['wf_role_id'];
+            $refRequest = [
+                "applyFrom" => $user->user_type,
+                "empId"     => $user->id
+            ];
+        } else {
+            $refRequest = [
+                "applyFrom" => $refApplyFrom['1'],
+                "citizenId" => $user->id
+            ];
+        }
+
+        # collect the application charges 
+        $Charges = $mWaterChrges->getChargesByIds($connectypeId);   
+
+        $this->begin();
+        # Generating Application No
+        $idGeneration   = new PrefixIdGenerator($refParamId["WAPP"], $ulbId);
+        $applicationNo  = $idGeneration->generate();
+        $applicationNo  = str_replace('/', '-', $applicationNo);
+
+        $applicationId = $mWaterApplication->saveWaterApplications($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
+         $meta = [
+            'applicationId' => $applicationId->id,
+            "amount"         => $Charges->amount,
+            "chargeCategory" => $Charges->charge_category,
+        ];
+
+        # water applicant
+        foreach ($owner as $owners) {
+            $mWaterApplicant->saveWaterApplicant($applicationId, $owners, null);
         }
         
-        return responseMsgs(true, "get all details", $water, "", "1.0", "", "POST", $req->deviceId ?? "");
-    } catch (Exception $e) { // Catch a more specific exception
-        return responseMsgs(false, $e->getMessage(), "", "", "01", ".ms", "POST", $req->deviceId);
+        $mWaterApplicant = $mWaterCharges->saveWaterCharges($meta);
+        # save for  work flow track
+        $metaReqs = new Request(
+            [
+                'citizenId'         => $refRequest['citizenId'] ?? null,
+                'moduleId'          => $confModuleId,
+                'workflowId'        => $ulbWorkflowId->id,
+                'refTableDotId'     => 'water_applications.id',             // Static                          // Static                              // Static
+                'refTableIdValue'   => $meta['applicationId'],
+                'user_id'           => $refRequest['empId'] ?? null,
+                'ulb_id'            => $ulbId,
+                'senderRoleId'      => $roleId ?? null,
+                'receiverRoleId'    => collect($initiatorRoleId)->first()->role_id,
+            ]
+        );
+        $mWorkflowTrack->saveTrack($metaReqs);
+        $this->commit();
+        $returnResponse = [
+            'applicationId' => $applicationId,
+            'applicationNo' => $applicationNo,
+           
+        ];
+        return responseMsgs(true, "Successfully Saved!", $returnResponse, "", "02", "", "POST", "");
+    }
+
+    /**
+     * search holding  
+     */
+    public function searchHolding(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'PropertyNo' => 'required',
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try {
+            $holding    = $request->PropertyNo;
+            $mPropPerty = new PropProperty();
+            $mPropOwner = new PropOwner();
+            $holdingDetails = $mPropPerty->getPropert($holding);
+            if (!$holdingDetails) {
+                throw new Exception('holding not found !');
+            }
+            $holdingOwnerDeails = $mPropOwner->getOwnerByPropId($holdingDetails->id);
+            $holdingDetails['ownerDetails'] = $holdingOwnerDeails;
+            return responseMsgs(true, "Property Details!", remove_null($holdingDetails), "", "01", responseTime(), $request->getMethod(), $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+
+    public function getPropUsageTypes($request, $id)
+    {
+        $mPropActiveSafsFloor   = new PropActiveSafsFloor();
+        $mPropFloor             = new PropFloor();
+        $refPropertyTypeId      = config::get('waterConstaint.PROPERTY_TYPE');
+
+        switch ($request->connectionThrough) {
+            case ('1'):
+                $usageCatagory = $mPropFloor->getPropUsageCatagory($id);
+                break;
+            case ('2'):
+                $usageCatagory = $mPropActiveSafsFloor->getSafUsageCatagory($id);
+        }
+
+        $usage = collect($usageCatagory)->map(function ($value) use ($refPropertyTypeId) {
+            $var = $value['usage_code'];
+            switch (true) {
+                case ($var == 'A'):
+                    return [
+                        'id'        => $refPropertyTypeId['Residential'],
+                        'usageType' => 'Residential'                                        // Static
+                    ];
+                    break;
+                case ($var == 'F'):
+                    return [
+                        'id'        => $refPropertyTypeId['Industrial'],
+                        'usageType' => 'Industrial'                                         // Static
+                    ];
+                    break;
+                case ($var == 'G' || $var == 'I'):
+                    return [
+                        'id'        => $refPropertyTypeId['Government'],
+                        'usageType' => 'Government & PSU'                                   // Static
+                    ];
+                    break;
+                case ($var == 'B' || $var == 'C' || $var == 'D' || $var == 'E'):
+                    return [
+                        'id'        => $refPropertyTypeId['Commercial'],
+                        'usageType' => 'Commercial'                                         // Static
+                    ];
+                    break;
+                case ($var == 'H' || $var == 'J' || $var == 'K' || $var == 'L'):
+                    return [
+                        'id'        => $refPropertyTypeId['Institutional'],
+                        'usageType' => 'Institutional'                                      // Static
+                    ];
+                    break;
+                case ($var == 'M'):                                                         // Check wether the property (M) belongs to the commercial catagory
+                    return [
+                        'id'        => $refPropertyTypeId['Commercial'],
+                        'usageType' => 'Other / Commercial'                                 // Static
+                    ];
+                    break;
+            }
+        });
+        $returnData['usageType'] = $usage->unique()->values();
+        return $returnData;
     }
 }
-
-    }
-
-   
-
-

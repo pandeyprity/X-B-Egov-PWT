@@ -179,7 +179,7 @@ return [
         "General"   => 2
     ],
      "PAYMENT_FOR_CONSUMER" => [
-        "1" => "CONSUMER_CONNECTION",
+        "1" => "NEW_CONNECTION",
         ],
 
         'WATER_CONSUMER_MASTSER_DATA'=>[
