@@ -144,6 +144,7 @@ class WaterConsumer extends Controller
         try {
             $mWaterConsumerDemand   = new WaterConsumerDemand();
             $mWaterConsumerMeter    = new WaterConsumerMeter();
+            $mNowDate               = carbon::now()->format('Y-m-d');
             $refConnectionName      = Config::get('waterConstaint.METER_CONN_TYPE');
             $refConsumerId          = $request->ConsumerId;
 
@@ -165,8 +166,16 @@ class WaterConsumer extends Controller
                         $connectionName = $refConnectionName['3'];
                         break;
                 }
+                if ($checkParam['demand_from'] == null && $checkParam['paid_status'] == 0 && $checkParam['demand_upto'] == null) {
+                        // return('last demand is not available');
+        
+                        $checkParam['demand_from'] =   $checkParam['generation_date'];
+                        $checkParam['demand_upto'] =   $mNowDate;
+                }
+        
                 $refMeterData['connectionName'] = $connectionName;
                 $consumerDemand['meterDetails'] = $refMeterData;
+                
 
                 return responseMsgs(true, "List of Consumer Demand!", $consumerDemand, "", "01", "ms", "POST", "");
             }
@@ -1895,8 +1904,8 @@ class WaterConsumer extends Controller
 
 
     /**
-     * apply water connection for akola
-     * under working
+     * |apply water connection for akola
+     * |made by :- Arshad 
      |in process
      
      */
@@ -1904,13 +1913,13 @@ class WaterConsumer extends Controller
     {
         try {
             $ulbId = $req->ulbId;
-            $mWaterSecondConsumer = new WaterSecondConsumer();
-            $mwaterConnection     = new WaterSecondConnectionCharge(); // Corrected class name
-            $mwaterConsumerMeter  = new WaterConsumerMeter();
+            $mWaterSecondConsumer  = new WaterSecondConsumer();
+            $mwaterConnection      = new WaterSecondConnectionCharge(); // Corrected class name
+            $mwaterConsumerMeter   = new WaterConsumerMeter();
             $mwaterConsumerInitial = new WaterConsumerInitialMeter();
-            $mwaterConsumerOwner  = new WaterConsumerOwner();
-            $refConParamId        = Config::get("waterConstaint.PARAM_IDS");
-            $refPropertyType      = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
+            $mwaterConsumerOwner   = new WaterConsumerOwner();
+            $refConParamId         = Config::get("waterConstaint.PARAM_IDS");
+            $refPropertyType       = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
 
             if ($req->IsMeterWorking == 1) {
                 $connectionType = 1;
@@ -1923,9 +1932,7 @@ class WaterConsumer extends Controller
             if ($req->PropertyType == '2' && $req->Category == 'Slum') {
                 throw new Exception('slum is not under the commercial');
             }
-
-
-
+            // save consumer details 
             $this->begin();
             $idGeneration = new PrefixIdGenerator($refConParamId['WCD'], $ulbId);
             $applicationNo = $idGeneration->generate();
@@ -1938,7 +1945,7 @@ class WaterConsumer extends Controller
                 "connectionType" => $connectionType
             ];
 
-            $water = $mWaterSecondConsumer->saveConsumer($req, $meta, $applicationNo);
+            $water = $mWaterSecondConsumer->saveConsumer($req, $meta, $applicationNo);  // save active consumer
 
             $refRequest = [
                 "consumerId" => $water->id,
@@ -1947,10 +1954,10 @@ class WaterConsumer extends Controller
                 "InitialMeter"   => $water->meter_reading,
                 "connectionType" => $connectionType
             ];
-            $water = $mwaterConnection->saveCharges($refRequest);
-            $water = $mwaterConsumerOwner->saveConsumerOwner($req, $refRequest);
-            $water = $mwaterConsumerInitial->saveConsumerReadings($refRequest);
-            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest, $meta);
+            $water = $mwaterConnection->saveCharges($refRequest);                // save connection charges 
+            $water = $mwaterConsumerOwner->saveConsumerOwner($req, $refRequest);  // save owner detail
+            $water = $mwaterConsumerInitial->saveConsumerReadings($refRequest);   // meter reading
+            $water = $mwaterConsumerMeter->saveInitialMeter($refRequest, $meta);   // initail or final reading
 
 
             $returnData = [
@@ -2148,5 +2155,7 @@ class WaterConsumer extends Controller
         });
         return $filteredDocs;
     }
+
+    
 
 }

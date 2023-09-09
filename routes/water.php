@@ -74,7 +74,11 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('admin/application/technical-inspection-details', 'getTechnicalInsDetails');        // Workflow
         Route::post('search-holding-saf', 'searchHoldingsaf');
         Route::post('get-all-details', 'getdetailsbyId');                                               // akola
-   
+        # new connection for akoal water 
+        Route::post('application/apply-new-connection', 'applyWaterNew');
+        Route::post('application/holding', 'searchHolding');  
+
+    
 
     });
 
@@ -138,6 +142,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
         Route::post('consumer/get-master-data', 'getMasterData');
         Route::post('get-diactivation-docList','getdeactivationList');  // akola
+        Route::post('consumer/get-connection-list', 'getConnectionList'); // akola
     });
 
 

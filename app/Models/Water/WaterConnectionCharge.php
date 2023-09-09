@@ -123,4 +123,18 @@ class WaterConnectionCharge extends Model
                 'status' => 0
             ]);
     }
+
+    /**
+     * 
+     */
+
+    public function saveWaterCharges($meta)
+    {
+        $saveCharges = new WaterConnectionCharge();
+        $saveCharges->application_id    = $meta['applicationId'];
+        $saveCharges->amount            = $meta['amount'];
+        $saveCharges->charge_category   = $meta['chargeCategory'];
+        $saveCharges->save();
+        return $saveCharges;
+    }
 }

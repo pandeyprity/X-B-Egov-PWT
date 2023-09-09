@@ -25,42 +25,44 @@ class newWaterRequest extends FormRequest
      */
     public function rules()
     {
-        $rules['Zone']                  = 'required';
+        $rules['Zone']                  = 'nullable';
         $rule['ulbId']                  = 'required|numeric';
         $rules['PropertyNo']            = 'required';
         $rules['MobileNo']               = 'required|numeric';
         $rules['Address']                = 'required';
         $rules['PoleLandmark']           = "required";
-        $rules['DtcCode']                = 'required';
-        $rules['MeterMake']              = 'required';
+        $rules['DtcCode']                = 'nullable';
+        $rules['MeterMake']              = 'nullable';
         $rules['MeterNo']                = "required";
-        $rules['MeterDigit']             = 'required';
-        $rules['MeterCategory']          = "required";
+        $rules['MeterDigit']             = 'nullable';
+        $rules['MeterCategory']          = "nullable";
         $rule['TabSize']                 = "required|numeric";
-        $rule['MeterState']              = "required";
-        $rule['MeterReadig']             = 'required|numeric';
-        $rule['ReadingDate']             = 'required';
+        $rule['MeterState']              = "nullable";
+        $rule['MeterReadig']             = 'nullable|numeric';
+        $rule['ReadingDate']             = 'nullable';
      $rules = [
-    'ConnectionDate' => 'required|date_format:Y-m-d',
+    'ConnectionDate' => 'nullable|date_format:Y-m-d',
 ];
 
-        $rule['DisconnectionDate']       = 'required|date_format:Y-m-d';
-        $rule['DisconnedReading']        = "required";
-        $rule['BookNo']                   = 'required';
-        $rule['FolioNo']                  = "required";
-        $rule['BuildingNo']               = 'required';
+        $rule['DisconnectionDate']       = 'nullable|date_format:Y-m-d';
+        $rule['DisconnedReading']        = "nullable";
+        $rule['BookNo']                   = 'nullable';
+        $rule['FolioNo']                  = "nullable";
+        $rule['BuildingNo']               = 'nullable';
         $rule['NoOfConnection']           = "nullable";
-        $rule['IsMeterRented']            = "required";
-        $rule['RentAmount']               = "required";
-        $rule['TotalAmount']              = 'required';
-        $rule['NearestConsumerNo']        = 'required';
+        $rule['IsMeterRented']            = "nullable";
+        $rule['RentAmount']               = "nullable";
+        $rule['TotalAmount']              = 'nullable';
+        $rule['NearestConsumerNo']        = 'nullable';
         $rules['initial_meter']           = 'nullable';
-        $rules['OwnerName']               = 'required';
+        $rules['ownerName']               = 'required';
         $rules['GuardianName']            = 'required';
         $rules['Email']                   ='required';
         $rules['Category']                = 'required';
         $rules['PropertyType']            ='required';
-        $rules['IsMeterWorking']          ='required';
+        $rules['IsMeterWorking']          = 'nullbale';
+        $rules['ConnectionId']            ="required";
+        $rules['propertyNoType']          ="required";
         return $rules;
     }
 

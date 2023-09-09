@@ -32,7 +32,7 @@ class WaterApplication extends Model
      * | @param newConnectionCharges
      * | @return applicationId
      */
-    public function saveWaterApplication($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo, $waterFeeId, $newConnectionCharges)
+    public function saveWaterApplication($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo)
     {
 
         $saveNewApplication = new WaterApplication();
@@ -48,7 +48,7 @@ class WaterApplication extends Model
         $saveNewApplication->pin                    = $req->pin;
         $saveNewApplication->connection_through     = $req->connection_through;
         $saveNewApplication->workflow_id            = $ulbWorkflowId->id;
-        $saveNewApplication->connection_fee_id      = $waterFeeId;
+        // $saveNewApplication->connection_fee_id      = $waterFeeId;
         $saveNewApplication->initiator              = collect($initiatorRoleId)->first()->role_id;
         $saveNewApplication->finisher               = collect($finisherRoleId)->first()->role_id;
         $saveNewApplication->application_no         = $applicationNo;
@@ -58,38 +58,39 @@ class WaterApplication extends Model
         $saveNewApplication->user_type              = authUser($req)->user_type;
         $saveNewApplication->area_sqmt              = sqFtToSqMt($req->areaSqft);
 
-        # condition entry 
-        if (!is_null($req->holdingNo) && $req->connection_through == 1) {
-            $propertyId = new PropProperty();
-            $propertyId = $propertyId->getPropertyId($req->holdingNo);
-            $saveNewApplication->prop_id = $propertyId->id;
-            $saveNewApplication->holding_no = $req->holdingNo;
-        }
-        if (!is_null($req->safNo) && $req->connection_through == 2) {
-            $safId = new PropActiveSaf();
-            $safId = $safId->getSafId($req->safNo);
-            $saveNewApplication->saf_id = $safId->id;
-            $saveNewApplication->saf_no = $req->safNo;
-        }
 
-        switch ($saveNewApplication->user_type) {
-            case ('Citizen'):
-                $saveNewApplication->apply_from = "Online";                                             // Static
-                if ($newConnectionCharges['conn_fee_charge']['amount'] == 0) {
-                    $saveNewApplication->payment_status = 1;
-                }
-                break;
-            case ('JSK'):
-                $saveNewApplication->apply_from = "JSK";                                                // Static
-                if ($newConnectionCharges['conn_fee_charge']['amount'] == 0) {
-                    $saveNewApplication->payment_status = 1;
-                }
-                break;
-            default: # Check
-                $saveNewApplication->apply_from = authUser($req)->user_type;
-                $saveNewApplication->current_role = Config::get('waterConstaint.ROLE-LABEL.BO');
-                break;
-        }
+        # condition entry 
+        // if (!is_null($req->holdingNo) && $req->connection_through == 1) {
+        //     $propertyId = new PropProperty();
+        //     $propertyId = $propertyId->getPropertyId($req->holdingNo);
+        //     $saveNewApplication->prop_id = $propertyId->id;
+        //     $saveNewApplication->holding_no = $req->holdingNo;
+        // }
+        // if (!is_null($req->safNo) && $req->connection_through == 2) {
+        //     $safId = new PropActiveSaf();
+        //     $safId = $safId->getSafId($req->safNo);
+        //     $saveNewApplication->saf_id = $safId->id;
+        //     $saveNewApplication->saf_no = $req->safNo;
+        // }
+
+        // switch ($saveNewApplication->user_type) {
+        //     case ('Citizen'):
+        //         $saveNewApplication->apply_from = "Online";                                             // Static
+        //         if ($newConnectionCharges['conn_fee_charge']['amount'] == 0) {
+        //             $saveNewApplication->payment_status = 1;
+        //         }
+        //         break;
+        //     case ('JSK'):
+        //         $saveNewApplication->apply_from = "JSK";                                                // Static
+        //         if ($newConnectionCharges['conn_fee_charge']['amount'] == 0) {
+        //             $saveNewApplication->payment_status = 1;
+        //         }
+        //         break;
+        //     default: # Check
+        //         $saveNewApplication->apply_from = authUser($req)->user_type;
+        //         $saveNewApplication->current_role = Config::get('waterConstaint.ROLE-LABEL.BO');
+        //         break;
+        // }
 
         $saveNewApplication->save();
 
@@ -644,4 +645,37 @@ class WaterApplication extends Model
         }
         $mWaterApplication->save();
     }
+    public function saveWaterApplications($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo)
+    {
+
+        $saveNewApplication = new WaterApplication();
+        $saveNewApplication->connection_type_id     = $req->connectionTypeId;
+        $saveNewApplication->property_type_id       = $req->propertyTypeId;
+        $saveNewApplication->owner_type             = $req->ownerType;
+        $saveNewApplication->category               = $req->category;
+        $saveNewApplication->pipeline_type_id       = $req->pipelineTypeId ?? 1;
+        $saveNewApplication->ward_id                = $req->wardId;
+        $saveNewApplication->area_sqft              = $req->areaSqft;
+        $saveNewApplication->address                = $req->address;
+        $saveNewApplication->landmark               = $req->landmark ?? null;
+        $saveNewApplication->pin                    = $req->pin;
+        $saveNewApplication->connection_through     = $req->connection_through;
+        $saveNewApplication->workflow_id            = $ulbWorkflowId->id;
+        // $saveNewApplication->connection_fee_id      = $waterFeeId;
+        $saveNewApplication->initiator              = collect($initiatorRoleId)->first()->role_id;
+        $saveNewApplication->finisher               = collect($finisherRoleId)->first()->role_id;
+        $saveNewApplication->application_no         = $applicationNo;
+        $saveNewApplication->ulb_id                 = $ulbId;
+        $saveNewApplication->apply_date             = date('Y-m-d H:i:s');
+        $saveNewApplication->user_id                = authUser($req)->id;    // <--------- here
+        $saveNewApplication->user_type              = authUser($req)->user_type;
+        // $saveNewApplication->area_sqmt              = sqFtToSqMt($req->areaSqft);
+        $saveNewApplication->property_no_type       = $req->propertyNoType;
+        $saveNewApplication->property_no            = $req->PropertyNo;
+        $saveNewApplication->tab_size               = $req->TabSize;
+        $saveNewApplication->save();
+        return $saveNewApplication;
+
+    
+}
 }
