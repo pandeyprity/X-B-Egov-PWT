@@ -2025,6 +2025,7 @@ class WaterConsumer extends Controller
 
     /**
      * get listed drtails
+        | Add route 
      */
 
     public function consumerDetails(Request $req)
