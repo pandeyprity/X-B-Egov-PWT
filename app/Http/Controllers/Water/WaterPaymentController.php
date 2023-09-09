@@ -1857,6 +1857,7 @@ class WaterPaymentController extends Controller
 
         try {
             $citizen        = authUser($request);
+            $pages          = $request->pages ?? 10;
             $citizenId      = $citizen->id;
             $mWaterTran     = new WaterTran();
             $refUserType    = Config::get("waterConstaint.USER_TYPE");
@@ -1873,7 +1874,7 @@ class WaterPaymentController extends Controller
                         END AS tran_type_id
                     '),
                     "water_trans.*"
-                )->paginate($request->pages);
+                )->paginate($pages);
             return responseMsgs(true, "List of transactions", remove_null($transactionDetails), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), [], "", "01", ".ms", "POST", $request->deviceId);
@@ -1890,7 +1891,6 @@ class WaterPaymentController extends Controller
      */
     public function getWaterUserCharges(Request $request)
     {
-
         $validated = Validator::make(
             $request->all(),
             [
@@ -2326,5 +2326,73 @@ class WaterPaymentController extends Controller
             $waterTrans['id'],
             $charges['id'],
         );
+    }
+
+    /**
+     * | Get transaction details behalf of user id 
+     * | Used in Grievance 
+        | Serial No:
+        | Under Con  
+     */
+    public function getUserTransactions(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'userId' => 'required'
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try {
+            $pages = $request->pages ?? 10;
+            $citizenId = $request->userId;
+            $mWaterTran = new WaterTran();
+            $transactionDetails = $mWaterTran->getTransByCitizenId($citizenId)
+                ->select(
+                    DB::raw('
+                    CASE
+                        WHEN tran_type = \'Demand Collection\' THEN \'1\'
+                        ELSE \'2\'
+                    END AS tran_type_id
+                '),
+                    "water_trans.*"
+                )->paginate($pages);
+            return responseMsgs(true, "List of transactions", remove_null($transactionDetails), "", "01", ".ms", "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "03", ".ms", "POST", $request->deviceId);
+        }
+    }
+
+    /**
+     * | Get citizen Application list 
+     * | Used in Grievance
+        | Serial No :
+        | Under Con  
+     */
+    public function getCitizenApplicationList(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "citizenId" => "required|",
+            ]
+        );
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+
+        try {
+            $citizenId = $request->citizenId;
+            $mWaterConsumer = new WaterConsumer();
+            $mWaterApplication = new WaterApplication();
+            $userType = "Citizen";                                              // static
+
+            $applicationData = $mWaterApplication->getAppplicationByUserId($citizenId, $userType)
+                ->get();
+            return responseMsgs(true, "List of transactions", remove_null($applicationData), "", "01", ".ms", "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "03", responseTime(), $request->getMethod(), $request->deviceId);
+        }
     }
 }
