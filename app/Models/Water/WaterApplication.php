@@ -644,4 +644,28 @@ class WaterApplication extends Model
         }
         $mWaterApplication->save();
     }
+
+    /**
+     * | Water Application detials 
+     */
+    public function getAppplicationByUserId($userId, $usertype)
+    {
+        return WaterApplication::select(
+            'water_applications.*',
+            'water_connection_type_mstrs.connection_type as connectionTypeName',
+            DB::raw("string_agg(water_applicants.applicant_name,',') as applicantName"),
+            DB::raw("string_agg(water_applicants.mobile_no::VARCHAR,',') as mobileNo"),
+            DB::raw("string_agg(water_applicants.guardian_name,',') as guardianName"),
+        )
+
+            ->join('water_applicants', 'water_applicants.application_id', 'water_applications.id')
+            ->join('water_connection_type_mstrs', 'water_connection_type_mstrs.id', 'water_applications.connection_type_id')
+            ->where('water_applications.user_id', $userId)
+            ->where('water_applications.user_type', $usertype)
+            ->where('water_applications.status', true)
+            ->groupBy(
+                'water_connection_type_mstrs.connection_type',
+                'water_applications.id'
+            );
+    }
 }
