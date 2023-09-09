@@ -735,4 +735,18 @@ class PropProperty extends Model
             ->orderBy('o.id')
             ->first();
     }
+
+    // get Prpoperty 
+    public function getPropert($holdingNo)
+    {
+        $propDetails = PropProperty::where('holding_no', $holdingNo)
+            ->where('prop_properties.status', 1)
+            ->first();
+        if (!$propDetails) {
+            $propDetails = PropProperty::where('new_holding_no', $holdingNo)
+                ->where('prop_properties.status', 1)
+                ->first();
+        }
+        return $propDetails;
+    }
 }

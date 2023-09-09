@@ -823,6 +823,7 @@ class TradeCitizenController extends Controller
                 $rowLicenseNo = ($rowLicenseNo->implode(","));
                 $select = [
                     "licences.id",
+                    "trade_param_application_types.application_type",
                     "licences.application_no",
                     "licences.provisional_license_no",
                     "licences.license_no",
@@ -854,6 +855,7 @@ class TradeCitizenController extends Controller
                 $ActiveLicence = $this->_DB->TABLE("active_trade_licences AS licences")
                     ->select($ActiveSelect)
                     ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
+                    ->join("trade_param_application_types","trade_param_application_types.id","licences.application_type_id")
                     ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
                                         STRING_AGG(guardian_name,',') AS guardian_name,
                                         STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
@@ -882,6 +884,7 @@ class TradeCitizenController extends Controller
                 $RejectedLicence = $this->_DB->TABLE("rejected_trade_licences AS licences")
                     ->select($RejectedSelect)
                     ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
+                    ->join("trade_param_application_types","trade_param_application_types.id","licences.application_type_id")
                     ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
                                         STRING_AGG(guardian_name,',') AS guardian_name,
                                         STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
@@ -912,6 +915,7 @@ class TradeCitizenController extends Controller
                 $ApprovedLicence = $this->_DB->TABLE("trade_licences AS licences")
                     ->select($ApprovedSelect)
                     ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
+                    ->join("trade_param_application_types","trade_param_application_types.id","licences.application_type_id")
                     ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
                                             STRING_AGG(guardian_name,',') AS guardian_name,
                                             STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
@@ -940,6 +944,7 @@ class TradeCitizenController extends Controller
                 $OldLicence = $this->_DB->TABLE("trade_renewals AS licences")
                     ->select($OldSelect)
                     ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
+                    ->join("trade_param_application_types","trade_param_application_types.id","licences.application_type_id")
                     ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
                                             STRING_AGG(guardian_name,',') AS guardian_name,
                                             STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
@@ -1029,6 +1034,10 @@ class TradeCitizenController extends Controller
             $activeTrade = ActiveTradeLicence::where("citizen_id",$refUserId)->get();
             $activeTran = $activeTrade->map(function($val){
                 $tran =  $val->transactionDtl()->get();
+                $tran->map(function($t){
+                    $t->chequDtl = $t->chequeDtl()->first();
+                    return $t;
+                });
                 return([
                     "total_amount"=>$tran->sum("paid_amount"),
                     "total_penalty"=>$tran->sum("penalty"),
@@ -1054,6 +1063,10 @@ class TradeCitizenController extends Controller
             $rejecTrade = RejectedTradeLicence::where("citizen_id",$refUserId)->get();
             $rejectTran = $rejecTrade->map(function($val){
                 $tran =  $val->transactionDtl()->get();
+                $tran->map(function($t){
+                    $t->chequDtl = $t->chequeDtl()->first();
+                    return $t;
+                });
                 return([
                     "total_amount"=>$tran->sum("paid_amount"),
                     "total_penalty"=>$tran->sum("penalty"),
@@ -1080,6 +1093,10 @@ class TradeCitizenController extends Controller
             $trade = TradeLicence::where("citizen_id",$refUserId)->get();
             $tradeTran = $trade->map(function($val){
                 $tran =  $val->transactionDtl()->get();
+                $tran->map(function($t){
+                    $t->chequDtl = $t->chequeDtl()->first();
+                    return $t;
+                });
                 return([
                     "total_amount"=>$tran->sum("paid_amount"),
                     "total_penalty"=>$tran->sum("penalty"),
@@ -1105,6 +1122,10 @@ class TradeCitizenController extends Controller
             $old = TradeRenewal::where("citizen_id",$refUserId)->get();
             $oldTran = $old->map(function($val){
                 $tran =  $val->transactionDtl()->get();
+                $tran->map(function($t){
+                    $t->chequDtl = $t->chequeDtl()->first();
+                    return $t;
+                });
                 return([
                     "total_amount"=>$tran->sum("paid_amount"),
                     "total_penalty"=>$tran->sum("penalty"),

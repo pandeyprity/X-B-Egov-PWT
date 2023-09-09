@@ -382,9 +382,9 @@ class WaterPaymentController extends Controller
                 "accountDescription"    => $mAccDescription,
                 "transactionDate"       => $transactionDate,
                 "transactionNo"         => $refTransactionNo,
-                "applicationNo"         => $applicationDetails['application_no'],
-                "customerName"          => $applicationDetails['applicantname'],
-                "customerMobile"        => $applicationDetails['mobileno'],
+                "applicationNo"         => $applicationDetails['consumer_no'],
+                "customerName"          => $applicationDetails['applicant_name'],
+                "customerMobile"        => $applicationDetails['mobile_no'],
                 "address"               => $applicationDetails['address'],
                 "paidFrom"              => $connectionCharges['charge_category'] ?? $transactionDetails['tran_type'],
                 "holdingNo"             => $applicationDetails['holding_no'],
@@ -408,6 +408,9 @@ class WaterPaymentController extends Controller
                 "connectionFee"         => $connectionCharges['conn_fee'] ?? 0,
                 "totalPaidAmount"       => $transactionDetails->amount,
                 "penaltyAmount"         => $totalPenaltyAmount ?? 0,
+                "tabize"                => $applicationDetails['tab_size'],
+                "category"              =>$applicationDetails['category'],
+            
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
             ];
             return responseMsgs(true, "Payment Receipt", remove_null($returnValues), "", "1.0", "", "POST", $req->deviceId ?? "");
@@ -1854,6 +1857,7 @@ class WaterPaymentController extends Controller
 
         try {
             $citizen        = authUser($request);
+            $pages          = $request->pages ?? 10;
             $citizenId      = $citizen->id;
             $mWaterTran     = new WaterTran();
             $refUserType    = Config::get("waterConstaint.USER_TYPE");
@@ -1870,7 +1874,7 @@ class WaterPaymentController extends Controller
                         END AS tran_type_id
                     '),
                     "water_trans.*"
-                )->paginate($request->pages);
+                )->paginate($pages);
             return responseMsgs(true, "List of transactions", remove_null($transactionDetails), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), [], "", "01", ".ms", "POST", $request->deviceId);
@@ -1887,7 +1891,6 @@ class WaterPaymentController extends Controller
      */
     public function getWaterUserCharges(Request $request)
     {
-
         $validated = Validator::make(
             $request->all(),
             [
@@ -2149,11 +2152,11 @@ class WaterPaymentController extends Controller
 
             $idGeneration                   = new IdGeneration;
             $mWaterTran                     = new WaterTran();
-            $mWaterSecondconsumer           = new WaterSecondConsumer();
-            $mWaterConsumerCharge           = new WaterSecondConnectionCharge();
+            $mWaterApplications             = new WaterApplication();
+            $mWaterConsumerCharge           = new WaterConnectionCharge();
 
             $offlinePaymentModes = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
-            $activeConRequest = $mWaterSecondconsumer->getActiveReqById($applicatinId)
+            $activeConRequest = $mWaterApplications->getApplicationById($applicatinId)
                 ->where('payment_status', 0)
                 ->first();
             if (!$activeConRequest) {
@@ -2164,7 +2167,7 @@ class WaterPaymentController extends Controller
             }
 
 
-            $activeConsumercharges = $mWaterConsumerCharge->getConsumerChargesById($applicatinId)
+            $activeConsumercharges = $mWaterConsumerCharge->getWaterchargesById($applicatinId)
                 // ->where('charge_category_id', $activeConRequest->charge_catagory_id)
                 ->where('paid_status', 0)
                 ->first();
@@ -2189,7 +2192,7 @@ class WaterPaymentController extends Controller
             ]);
 
             # Save the Details of the transaction
-            $wardId['ward_mstr_id'] = $activeConRequest->ward_mstr_id;
+            $wardId['ward_mstr_id'] = $activeConRequest->ward_id;
             $waterTrans = $mWaterTran->waterTransaction($request, $wardId);
 
             # Save the Details for the Cheque,DD,neft
@@ -2284,9 +2287,11 @@ class WaterPaymentController extends Controller
      */
     public function saveConsumerRequestStatus($request, $offlinePaymentModes, $charges, $waterTrans, $activeConRequest)
     {
-        $mwaterSecondConsumer           = new WaterSecondConsumer();
+        $mWaterApplication              = new WaterApplication();
         $waterTranDetail                = new WaterTranDetail();
         $mWaterTran                     = new WaterTran();
+        $userType                       = Config::get('waterConstaint.REF_USER_TYPE');
+        $refRole                        = Config::get("waterConstaint.ROLE-LABEL");
         $today                          = Carbon::now();
 
         if (in_array($request['paymentMode'], $offlinePaymentModes)) {
@@ -2295,16 +2300,25 @@ class WaterPaymentController extends Controller
             $refReq = [
                 "payment_status" => 2,
             ];
-            $mwaterSecondConsumer->updateDataForPayment($activeConRequest->id, $refReq);
+            $mWaterApplication->updatePendingStatus($activeConRequest->id, $refReq);
         } else {
             $charges->paid_status = 1;                                      // Update Demand Paid Status // Static
             $refReq = [
                 "payment_status"    => 1,
                 "status"            => 1,
-                "connection_date"   => $today
+                // "connection_date"   => $today
             ];
-            $mwaterSecondConsumer->updateDataForPayment($activeConRequest->id, $refReq);
+            $mWaterApplication->updateOnlyPaymentstatus($activeConRequest->id, $refReq);
         }
+         # saving Details in application table if payment is in JSK
+            if ($activeConRequest->user_type == $userType['1'] && $activeConRequest->doc_upload_status == true) {
+                # write code for track table
+                $mWaterApplication->sendApplicationToRole($request['id'], $refRole['DA']);                // Save current role as Da
+            } else {
+                # write code for track table
+                $mWaterApplication->sendApplicationToRole($request['id'], $refRole['BO']);                // Save current role as Bo
+            }
+        
         $charges->save();                                                   // Save Demand
         $waterTranDetail->saveDefaultTrans(
             $charges->amount,
@@ -2312,5 +2326,73 @@ class WaterPaymentController extends Controller
             $waterTrans['id'],
             $charges['id'],
         );
+    }
+
+    /**
+     * | Get transaction details behalf of user id 
+     * | Used in Grievance 
+        | Serial No:
+        | Under Con  
+     */
+    public function getUserTransactions(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'userId' => 'required'
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try {
+            $pages = $request->pages ?? 10;
+            $citizenId = $request->userId;
+            $mWaterTran = new WaterTran();
+            $transactionDetails = $mWaterTran->getTransByCitizenId($citizenId)
+                ->select(
+                    DB::raw('
+                    CASE
+                        WHEN tran_type = \'Demand Collection\' THEN \'1\'
+                        ELSE \'2\'
+                    END AS tran_type_id
+                '),
+                    "water_trans.*"
+                )->paginate($pages);
+            return responseMsgs(true, "List of transactions", remove_null($transactionDetails), "", "01", ".ms", "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "03", ".ms", "POST", $request->deviceId);
+        }
+    }
+
+    /**
+     * | Get citizen Application list 
+     * | Used in Grievance
+        | Serial No :
+        | Under Con  
+     */
+    public function getCitizenApplicationList(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "citizenId" => "required|",
+            ]
+        );
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+
+        try {
+            $citizenId = $request->citizenId;
+            $mWaterConsumer = new WaterConsumer();
+            $mWaterApplication = new WaterApplication();
+            $userType = "Citizen";                                              // static
+
+            $applicationData = $mWaterApplication->getAppplicationByUserId($citizenId, $userType)
+                ->get();
+            return responseMsgs(true, "List of transactions", remove_null($applicationData), "", "01", ".ms", "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "03", responseTime(), $request->getMethod(), $request->deviceId);
+        }
     }
 }

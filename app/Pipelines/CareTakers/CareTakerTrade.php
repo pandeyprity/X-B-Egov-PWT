@@ -81,7 +81,7 @@ class CareTakerTrade
 
         $citizens = $taggedTradeList->pluck('citizen_id');
 
-        if ($citizens->contains(authUser()->id))                                // Check Is the Property already tagged by the citizen 
+        if ($citizens->contains(auth()->user()->id))                                // Check Is the Property already tagged by the citizen 
             throw new Exception("License Already Tagged");
     }
 }

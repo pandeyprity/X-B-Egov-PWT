@@ -797,6 +797,9 @@ class Trade implements ITrade
             } elseif (in_array($refLecenceData->payment_status, [1, 2])) {
                 throw new Exception("Payment Already Done Of This Application");
             }
+            if (!$refLecenceData->holding_no && $request->licenseFor > 1) {
+                throw new Exception("Without Holding Map You Can Not Take Licence More Than One Year");
+            }
             if ($refLecenceData->tobacco_status == 1 && $request->licenseFor > 1) {
                 throw new Exception("Tobaco Application Not Take Licence More Than One Year");
             }
@@ -2729,7 +2732,7 @@ class Trade implements ITrade
             $application = $this->_DB->table("active_trade_licences as license")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                ->join("zone_masters", "zone_masters.id", "licences.zone_id")
+                ->join("zone_masters", "zone_masters.id", "license.zone_id")
                 ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                 })
@@ -2751,7 +2754,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("trade_licences as license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                    ->join("zone_masters", "zone_masters.id", "licences.zone_id")
+                    ->join("zone_masters", "zone_masters.id", "license.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
@@ -2774,7 +2777,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("rejected_trade_licences as license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                    ->join("zone_masters", "zone_masters.id", "licences.zone_id")
+                    ->join("zone_masters", "zone_masters.id", "license.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
@@ -2797,7 +2800,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("trade_renewals as license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                    ->join("zone_masters", "zone_masters.id", "licences.zone_id")
+                    ->join("zone_masters", "zone_masters.id", "license.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
@@ -3004,7 +3007,7 @@ class Trade implements ITrade
             $role_id = 0;
             $refWorkflowId = $this->_WF_MASTER_Id;
             $role = $this->_COMMON_FUNCTION->getUserRoll($userId, $ulbId, $refWorkflowId);
-            if ($role && auth()->user()->gettable()=='users') {
+            if ($role && $this->_COMMON_FUNCTION->checkUsersWithtocken()) {
                 $role_id = $role->role_id??0;
             }
 
@@ -3014,7 +3017,7 @@ class Trade implements ITrade
 
             if ($validator->fails()) 
             {
-                return responseMsg(false, $validator->errors(), $request->all());
+                return responseMsg(false, $validator->errors(), "");
             }
 
             $refLicense = ActiveTradeLicence::find($request->applicationId);
@@ -3029,7 +3032,7 @@ class Trade implements ITrade
             $metaReqs['refTableDotId'] = 'active_trade_licences';
             $metaReqs['refTableIdValue'] = $refLicense->id;
             $metaReqs['senderRoleId'] = $role_id;
-            if(auth()->user()->gettable()=='users')
+            if($this->_COMMON_FUNCTION->checkUsersWithtocken())
             {
                 $metaReqs['user_id'] = $userId;
             }
@@ -3396,6 +3399,27 @@ class Trade implements ITrade
             ->where("ulb_id", $ulb_id)
             ->first();
         // dd(DB::getQueryLog());
+        if(!$property)
+        {
+            $property = PropProperty::select("*")
+            ->leftjoin(
+                DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name ,property_id
+                                        FROM Prop_OwnerS 
+                                        WHERE status = 1
+                                        GROUP BY property_id
+                                        ) owners
+                                        "),
+                function ($join) {
+                    $join->on("owners.property_id", "=", "prop_properties.id");
+                }
+            )
+            ->where("status", 1)
+            // ->where("new_holding_no", "<>", "")
+            ->where("holding_no", "ILIKE", $holdingNo)
+            ->where("ulb_id", $ulb_id)
+            ->orderBy("id",'DESC')
+            ->first();
+        }
         
         if ($property) {
             $owner = PropOwner::where("property_id",$property->id)->where("status",1)->get();
@@ -3757,7 +3781,6 @@ class Trade implements ITrade
     public function check_doc_exist_owner($licenceId, $owner_id, $document_id = null, $doc_type_code = null)
     {
         try {
-            // DB::enableQueryLog();
             $doc = ActiveTradeDocument::select("id", "doc_type_code", "is_verified", "remarks",  "document_id")
                 ->where('temp_id', $licenceId)
                 ->where('temp_owner_id', $owner_id);
@@ -3771,8 +3794,7 @@ class Trade implements ITrade
                 $doc = $doc->where("document_id", "<>", 0);
             }
             $doc = $doc->orderBy('id', 'DESC')
-                ->first();
-            //    print_var(DB::getQueryLog());                    
+                ->first();                   
             return $doc;
         } catch (Exception $e) {
             return $e->getMessage();

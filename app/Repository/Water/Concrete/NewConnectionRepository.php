@@ -128,8 +128,8 @@ class NewConnectionRepository implements iNewConnection
      * | Generating the demand amount for the applicant in Water Connection Charges Table 
         | Serila No : 01
         | Check the ulb_id
-        | make Application No using id generation
-        | send it in track / while sending the record to track through jsk check the role id
+        | make Application No using id generation ✔
+        | send it in track / while sending the record to track through jsk check the role id 
      */
     public function store(Request $req)
     {

@@ -56,6 +56,8 @@ class WaterSecondConsumer extends Model
         $waterSecondConsumer->property_type_id          = $req->PropertyType;
         $waterSecondConsumer->meter_reading             = $req->MeterReading;
         $waterSecondConsumer->is_meter_working          = $req->IsMeterWorking;
+        $waterSecondConsumer->connection_type_id        = $meta['connectionType'];
+
 
         $waterSecondConsumer->save();
         return $waterSecondConsumer;
@@ -169,8 +171,7 @@ class WaterSecondConsumer extends Model
     public function getConsumerDetails($applicationId)
     {
         return WaterSecondConsumer::where('id', $applicationId)
-            ->where('status', 1)
-            ->first();
+            ->where('status', 1);
     }
     /**
      * 
@@ -190,7 +191,7 @@ class WaterSecondConsumer extends Model
             "water_consumer_owners.applicant_name",
             "water_consumer_owners.guardian_name",
             "water_consumer_owners.email",
-            DB::raw('ulb_ward_masters.ward_name as ward_number') // Alias the column as "ward_number"
+            DB::raw('ulb_ward_masters.ward_name as ward_number')   // Alias the column as "ward_number"
         ) 
             ->join("water_consumer_owners",'water_consumer_owners.consumer_id','water_second_consumers.id')
             ->join('ulb_masters','ulb_masters.id','water_second_consumers.ulb_id')

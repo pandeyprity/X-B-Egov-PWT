@@ -152,4 +152,12 @@ class WaterConsumerActiveRequest extends Model
         $mWaterConsumeActive->save();
         return $mWaterConsumeActive;
     }
+      /**
+     * | Get active request
+     */
+    public function getActiveRequest($applicationId )
+    {
+        return WaterConsumerActiveRequest::where('id',$applicationId)
+        ->where('status',1);
+    }
 }
