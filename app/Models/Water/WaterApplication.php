@@ -650,11 +650,11 @@ class WaterApplication extends Model
 
         $saveNewApplication = new WaterApplication();
         $saveNewApplication->connection_type_id     = $req->connectionTypeId;
-        $saveNewApplication->property_type_id       = $req->propertyTypeId;
+        $saveNewApplication->property_type_id       = $req->buildingType;
         $saveNewApplication->owner_type             = $req->ownerType;
-        $saveNewApplication->category               = $req->category;
+        $saveNewApplication->category               = $req->Category;
         $saveNewApplication->pipeline_type_id       = $req->pipelineTypeId ?? 1;
-        $saveNewApplication->ward_id                = $req->wardId;
+        $saveNewApplication->ward_id                = $req->wardNo;
         $saveNewApplication->area_sqft              = $req->areaSqft;
         $saveNewApplication->address                = $req->address;
         $saveNewApplication->landmark               = $req->landmark ?? null;
@@ -671,8 +671,11 @@ class WaterApplication extends Model
         $saveNewApplication->user_type              = authUser($req)->user_type;
         // $saveNewApplication->area_sqmt              = sqFtToSqMt($req->areaSqft);
         $saveNewApplication->property_no_type       = $req->propertyNoType;
-        $saveNewApplication->property_no            = $req->PropertyNo;
+        $saveNewApplication->holding_no             = $req->PropertyNo;
         $saveNewApplication->tab_size               = $req->TabSize;
+        $saveNewApplication->zone                   = $req->zone;
+        $saveNewApplication->cycle                  = $req->cycle;
+
         $saveNewApplication->save();
         return $saveNewApplication;
 

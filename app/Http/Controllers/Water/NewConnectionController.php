@@ -2842,29 +2842,25 @@ class NewConnectionController extends Controller
     public function applyWaterNew(Request $req)
     {
         # ref variables
-        $user       = authUser($req);
-        $waterRoles = $this->_waterRoles;
-        $ulbId      = $req->ulbId;
-        $owner      = $req['ownerDetails'];
-        $owners     = $req;
-        $reftenant  = true;
-        $citizenId  = null;
-        $connectypeId  = $req->connectionTypeId;
+        $user           = authUser($req);
+        $ulbId          = $req->ulbId;
+        $owner          = $req->onwerDetails;
+        $connectypeId   = $req->connectionTypeId ?? 1;
 
-        $ulbWorkflowObj             = new WfWorkflow();
-        $mWaterNewConnection        = new WaterNewConnection();
-        $mWaterApplication          = new WaterApplication();
-        $mWaterApplicant            = new WaterApplicant();
-        $mWaterCharges              = new WaterConnectionCharge();
-        $mWorkflowTrack             = new WorkflowTrack();
-        $mWaterChrges               = new WaterConnectionTypeCharge();
-        $workflowID                 = Config::get('workflow-constants.WATER_MASTER_ID');
-        $refUserType                = Config::get('waterConstaint.REF_USER_TYPE');
-        $refApplyFrom               = Config::get('waterConstaint.APP_APPLY_FROM');
-        $refPropertyType            = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
-        $waterRole                  = Config::get("waterConstaint.ROLE-LABEL");
-        $confModuleId               = Config::get('module-constants.WATER_MODULE_ID');
-        $refParamId                 = Config::get('waterConstaint.PARAM_IDS');
+        $ulbWorkflowObj         = new WfWorkflow();
+        $mWaterNewConnection    = new WaterNewConnection();
+        $mWaterApplication      = new WaterApplication();
+        $mWaterApplicant        = new WaterApplicant();
+        $mWaterCharges          = new WaterConnectionCharge();
+        $mWorkflowTrack         = new WorkflowTrack();
+        $mWaterChrges           = new WaterConnectionTypeCharge();
+        $workflowID             = Config::get('workflow-constants.WATER_MASTER_ID');
+        $refUserType            = Config::get('waterConstaint.REF_USER_TYPE');
+        $refApplyFrom           = Config::get('waterConstaint.APP_APPLY_FROM');
+        $refPropertyType        = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
+        $waterRole              = Config::get("waterConstaint.ROLE-LABEL");
+        $confModuleId           = Config::get('module-constants.WATER_MODULE_ID');
+        $refParamId             = Config::get('waterConstaint.PARAM_IDS');
 
         # Connection Type 
         switch ($req->connectionTypeId) {
@@ -2912,7 +2908,7 @@ class NewConnectionController extends Controller
         }
 
         # collect the application charges 
-        $Charges = $mWaterChrges->getChargesByIds($connectypeId);   
+        $Charges = $mWaterChrges->getChargesByIds($connectypeId);
 
         $this->begin();
         # Generating Application No
@@ -2921,17 +2917,17 @@ class NewConnectionController extends Controller
         $applicationNo  = str_replace('/', '-', $applicationNo);
 
         $applicationId = $mWaterApplication->saveWaterApplications($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
-         $meta = [
-            'applicationId' => $applicationId->id,
-            "amount"         => $Charges->amount,
-            "chargeCategory" => $Charges->charge_category,
+        $meta = [
+            'applicationId'     => $applicationId->id,
+            "amount"            => $Charges->amount,
+            "chargeCategory"    => $Charges->charge_category,
         ];
 
         # water applicant
         foreach ($owner as $owners) {
-            $mWaterApplicant->saveWaterApplicant($applicationId, $owners, null);
+            $mWaterApplicant->saveWaterApplicant($meta, $owners);
         }
-        
+
         $mWaterApplicant = $mWaterCharges->saveWaterCharges($meta);
         # save for  work flow track
         $metaReqs = new Request(
@@ -2950,9 +2946,9 @@ class NewConnectionController extends Controller
         $mWorkflowTrack->saveTrack($metaReqs);
         $this->commit();
         $returnResponse = [
-            'applicationId' => $applicationId,
+            'applicationId' => $meta['applicationId'],
             'applicationNo' => $applicationNo,
-           
+
         ];
         return responseMsgs(true, "Successfully Saved!", $returnResponse, "", "02", "", "POST", "");
     }

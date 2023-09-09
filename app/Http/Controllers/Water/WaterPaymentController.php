@@ -2152,11 +2152,11 @@ class WaterPaymentController extends Controller
 
             $idGeneration                   = new IdGeneration;
             $mWaterTran                     = new WaterTran();
-            $mWaterSecondconsumer           = new WaterSecondConsumer();
-            $mWaterConsumerCharge           = new WaterSecondConnectionCharge();
+            $mWaterApplications             = new WaterApplication();
+            $mWaterConsumerCharge           = new WaterConnectionCharge();
 
             $offlinePaymentModes = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
-            $activeConRequest = $mWaterSecondconsumer->getActiveReqById($applicatinId)
+            $activeConRequest = $mWaterApplications->getApplicationById($applicatinId)
                 ->where('payment_status', 0)
                 ->first();
             if (!$activeConRequest) {
@@ -2167,7 +2167,7 @@ class WaterPaymentController extends Controller
             }
 
 
-            $activeConsumercharges = $mWaterConsumerCharge->getConsumerChargesById($applicatinId)
+            $activeConsumercharges = $mWaterConsumerCharge->getWaterchargesById($applicatinId)
                 // ->where('charge_category_id', $activeConRequest->charge_catagory_id)
                 ->where('paid_status', 0)
                 ->first();
@@ -2192,7 +2192,7 @@ class WaterPaymentController extends Controller
             ]);
 
             # Save the Details of the transaction
-            $wardId['ward_mstr_id'] = $activeConRequest->ward_mstr_id;
+            $wardId['ward_mstr_id'] = $activeConRequest->ward_id;
             $waterTrans = $mWaterTran->waterTransaction($request, $wardId);
 
             # Save the Details for the Cheque,DD,neft
@@ -2287,9 +2287,11 @@ class WaterPaymentController extends Controller
      */
     public function saveConsumerRequestStatus($request, $offlinePaymentModes, $charges, $waterTrans, $activeConRequest)
     {
-        $mwaterSecondConsumer           = new WaterSecondConsumer();
+        $mWaterApplication              = new WaterApplication();
         $waterTranDetail                = new WaterTranDetail();
         $mWaterTran                     = new WaterTran();
+        $userType                       = Config::get('waterConstaint.REF_USER_TYPE');
+        $refRole                        = Config::get("waterConstaint.ROLE-LABEL");
         $today                          = Carbon::now();
 
         if (in_array($request['paymentMode'], $offlinePaymentModes)) {
@@ -2298,16 +2300,25 @@ class WaterPaymentController extends Controller
             $refReq = [
                 "payment_status" => 2,
             ];
-            $mwaterSecondConsumer->updateDataForPayment($activeConRequest->id, $refReq);
+            $mWaterApplication->updatePendingStatus($activeConRequest->id, $refReq);
         } else {
             $charges->paid_status = 1;                                      // Update Demand Paid Status // Static
             $refReq = [
                 "payment_status"    => 1,
                 "status"            => 1,
-                "connection_date"   => $today
+                // "connection_date"   => $today
             ];
-            $mwaterSecondConsumer->updateDataForPayment($activeConRequest->id, $refReq);
+            $mWaterApplication->updateOnlyPaymentstatus($activeConRequest->id, $refReq);
         }
+         # saving Details in application table if payment is in JSK
+            if ($activeConRequest->user_type == $userType['1'] && $activeConRequest->doc_upload_status == true) {
+                # write code for track table
+                $mWaterApplication->sendApplicationToRole($request['id'], $refRole['DA']);                // Save current role as Da
+            } else {
+                # write code for track table
+                $mWaterApplication->sendApplicationToRole($request['id'], $refRole['BO']);                // Save current role as Bo
+            }
+        
         $charges->save();                                                   // Save Demand
         $waterTranDetail->saveDefaultTrans(
             $charges->amount,

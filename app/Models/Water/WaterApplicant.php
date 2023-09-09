@@ -18,16 +18,16 @@ class WaterApplicant extends Model
      * |
         | Apply City and District
      */
-    public function saveWaterApplicant($applicationId, $owners, $tenant)
+    public function saveWaterApplicant($meta, $owners)
     {
         $applicant = new WaterApplicant();
-        $applicant->application_id  = $applicationId;
+        $applicant->application_id  = $meta['applicationId'];
         $applicant->applicant_name  = $owners['ownerName'];
         $applicant->guardian_name   = $owners['guardianName'] ?? null;
         $applicant->mobile_no       = $owners['mobileNo'];
         $applicant->email           = $owners['email'] ?? null;
-        $applicant->tenant          = $tenant ?? null;
         $applicant->save();
+        return $applicant;
     }
 
     /**
