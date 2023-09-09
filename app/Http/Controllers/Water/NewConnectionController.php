@@ -2818,115 +2818,120 @@ class NewConnectionController extends Controller
     public function applyWaterNew(Request $req)
     {
         # ref variables
-        $user           = authUser($req);
-        $ulbId          = $req->ulbId;
-        $owner          = $req->onwerDetails;
-        $connectypeId   = $req->connectionTypeId ?? 1;
+        try {
+            $user           = authUser($req);
+            $ulbId          = $req->ulbId;
+            $owner          = $req->onwerDetails;
+            $connectypeId   = $req->connectionTypeId ?? 1;
 
-        $ulbWorkflowObj         = new WfWorkflow();
-        $mWaterNewConnection    = new WaterNewConnection();
-        $mWaterApplication      = new WaterApplication();
-        $mWaterApplicant        = new WaterApplicant();
-        $mWaterCharges          = new WaterConnectionCharge();
-        $mWorkflowTrack         = new WorkflowTrack();
-        $mWaterChrges           = new WaterConnectionTypeCharge();
-        $workflowID             = Config::get('workflow-constants.WATER_MASTER_ID');
-        $refUserType            = Config::get('waterConstaint.REF_USER_TYPE');
-        $refApplyFrom           = Config::get('waterConstaint.APP_APPLY_FROM');
-        $refPropertyType        = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
-        $waterRole              = Config::get("waterConstaint.ROLE-LABEL");
-        $confModuleId           = Config::get('module-constants.WATER_MODULE_ID');
-        $refParamId             = Config::get('waterConstaint.PARAM_IDS');
+            $ulbWorkflowObj         = new WfWorkflow();
+            $mWaterNewConnection    = new WaterNewConnection();
+            $mWaterApplication      = new WaterApplication();
+            $mWaterApplicant        = new WaterApplicant();
+            $mWaterCharges          = new WaterConnectionCharge();
+            $mWorkflowTrack         = new WorkflowTrack();
+            $mWaterChrges           = new WaterConnectionTypeCharge();
+            $workflowID             = Config::get('workflow-constants.WATER_MASTER_ID');
+            $refUserType            = Config::get('waterConstaint.REF_USER_TYPE');
+            $refApplyFrom           = Config::get('waterConstaint.APP_APPLY_FROM');
+            $refPropertyType        = Config::get("waterConstaint.PAYMENT_FOR_CONSUMER");
+            $waterRole              = Config::get("waterConstaint.ROLE-LABEL");
+            $confModuleId           = Config::get('module-constants.WATER_MODULE_ID');
+            $refParamId             = Config::get('waterConstaint.PARAM_IDS');
 
-        # Connection Type 
-        switch ($req->connectionTypeId) {
-            case (1):
-                $connectionType = "New Connection";                                     // Static
-                break;
-        }
-
-        # get initiater and finisher
-        $ulbWorkflowId = $ulbWorkflowObj->getulbWorkflowId($workflowID, $ulbId);
-        if (!$ulbWorkflowId) {
-            throw new Exception("Respective Ulb is not maped to Water Workflow!");
-        }
-        $refInitiatorRoleId = $this->getInitiatorId($ulbWorkflowId->id);
-        $refFinisherRoleId  = $this->getFinisherId($ulbWorkflowId->id);
-        $finisherRoleId     = DB::select($refFinisherRoleId);
-        $initiatorRoleId    = DB::select($refInitiatorRoleId);
-        if (!$finisherRoleId || !$initiatorRoleId) {
-            throw new Exception("initiatorRoleId or finisherRoleId not found for respective Workflow!");
-        }
-        #coonection charges 
-        $refRequest["initiatorRoleId"]   = collect($initiatorRoleId)->first()->role_id;
-        $refRequest["finisherRoleId"]    = collect($finisherRoleId)->first()->role_id;
-        $refRequest['roleId']            = $roleId ?? null;
-        $refRequest['userType']          = $user->user_type;
-
-        # Get the role details and distinguish btw user and employ
-        # If the user is not citizen
-        if ($user->user_type != $refUserType['1']) {
-            $req->merge(['workflowId' => $ulbWorkflowId->id]);
-            $roleDetails = $this->getRole($req);
-            if (!$roleDetails) {
-                throw new Exception("Role detail Not found!");
+            # Connection Type 
+            switch ($req->connectionTypeId) {
+                case (1):
+                    $connectionType = "New Connection";                                     // Static
+                    break;
             }
-            $roleId = $roleDetails['wf_role_id'];
-            $refRequest = [
-                "applyFrom" => $user->user_type,
-                "empId"     => $user->id
+
+            # get initiater and finisher
+            $ulbWorkflowId = $ulbWorkflowObj->getulbWorkflowId($workflowID, $ulbId);
+            if (!$ulbWorkflowId) {
+                throw new Exception("Respective Ulb is not maped to Water Workflow!");
+            }
+            $refInitiatorRoleId = $this->getInitiatorId($ulbWorkflowId->id);
+            $refFinisherRoleId  = $this->getFinisherId($ulbWorkflowId->id);
+            $finisherRoleId     = DB::select($refFinisherRoleId);
+            $initiatorRoleId    = DB::select($refInitiatorRoleId);
+            if (!$finisherRoleId || !$initiatorRoleId) {
+                throw new Exception("initiatorRoleId or finisherRoleId not found for respective Workflow!");
+            }
+            #coonection charges 
+            $refRequest["initiatorRoleId"]   = collect($initiatorRoleId)->first()->role_id;
+            $refRequest["finisherRoleId"]    = collect($finisherRoleId)->first()->role_id;
+            $refRequest['roleId']            = $roleId ?? null;
+            $refRequest['userType']          = $user->user_type;
+
+            # Get the role details and distinguish btw user and employ
+            # If the user is not citizen
+            if ($user->user_type != $refUserType['1']) {
+                $req->merge(['workflowId' => $ulbWorkflowId->id]);
+                $roleDetails = $this->getRole($req);
+                if (!$roleDetails) {
+                    throw new Exception("Role detail Not found!");
+                }
+                $roleId = $roleDetails['wf_role_id'];
+                $refRequest = [
+                    "applyFrom" => $user->user_type,
+                    "empId"     => $user->id
+                ];
+            } else {
+                $refRequest = [
+                    "applyFrom" => $refApplyFrom['1'],
+                    "citizenId" => $user->id
+                ];
+            }
+
+            # collect the application charges 
+            $Charges = $mWaterChrges->getChargesByIds($connectypeId);
+
+            $this->begin();
+            # Generating Application No
+            $idGeneration   = new PrefixIdGenerator($refParamId["WAPP"], $ulbId);
+            $applicationNo  = $idGeneration->generate();
+            $applicationNo  = str_replace('/', '-', $applicationNo);
+
+            $applicationId = $mWaterApplication->saveWaterApplications($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
+            $meta = [
+                'applicationId'     => $applicationId->id,
+                "amount"            => $Charges->amount,
+                "chargeCategory"    => $Charges->charge_category,
             ];
-        } else {
-            $refRequest = [
-                "applyFrom" => $refApplyFrom['1'],
-                "citizenId" => $user->id
+
+            # water applicant
+            foreach ($owner as $owners) {
+                $mWaterApplicant->saveWaterApplicant($meta, $owners);
+            }
+
+            $mWaterApplicant = $mWaterCharges->saveWaterCharges($meta);
+            # save for  work flow track
+            $metaReqs = new Request(
+                [
+                    'citizenId'         => $refRequest['citizenId'] ?? null,
+                    'moduleId'          => $confModuleId,
+                    'workflowId'        => $ulbWorkflowId->id,
+                    'refTableDotId'     => 'water_applications.id',             // Static                          // Static                              // Static
+                    'refTableIdValue'   => $meta['applicationId'],
+                    'user_id'           => $refRequest['empId'] ?? null,
+                    'ulb_id'            => $ulbId,
+                    'senderRoleId'      => $roleId ?? null,
+                    'receiverRoleId'    => collect($initiatorRoleId)->first()->role_id,
+                ]
+            );
+            $mWorkflowTrack->saveTrack($metaReqs);
+            $this->commit();
+            $returnResponse = [
+                'applicationId' => $meta['applicationId'],
+                'applicationNo' => $applicationNo,
+
             ];
+            return responseMsgs(true, "Successfully Saved!", $returnResponse, "", "02", "", "POST", "");
+        } catch (Exception $e) {
+            $this->rollback();
+            return responseMsgs(false, $e->getMessage(), "", "", "01", ".ms", "POST", $req->deviceId);
         }
-
-        # collect the application charges 
-        $Charges = $mWaterChrges->getChargesByIds($connectypeId);
-
-        $this->begin();
-        # Generating Application No
-        $idGeneration   = new PrefixIdGenerator($refParamId["WAPP"], $ulbId);
-        $applicationNo  = $idGeneration->generate();
-        $applicationNo  = str_replace('/', '-', $applicationNo);
-
-        $applicationId = $mWaterApplication->saveWaterApplications($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
-        $meta = [
-            'applicationId'     => $applicationId->id,
-            "amount"            => $Charges->amount,
-            "chargeCategory"    => $Charges->charge_category,
-        ];
-
-        # water applicant
-        foreach ($owner as $owners) {
-            $mWaterApplicant->saveWaterApplicant($meta, $owners);
-        }
-
-        $mWaterApplicant = $mWaterCharges->saveWaterCharges($meta);
-        # save for  work flow track
-        $metaReqs = new Request(
-            [
-                'citizenId'         => $refRequest['citizenId'] ?? null,
-                'moduleId'          => $confModuleId,
-                'workflowId'        => $ulbWorkflowId->id,
-                'refTableDotId'     => 'water_applications.id',             // Static                          // Static                              // Static
-                'refTableIdValue'   => $meta['applicationId'],
-                'user_id'           => $refRequest['empId'] ?? null,
-                'ulb_id'            => $ulbId,
-                'senderRoleId'      => $roleId ?? null,
-                'receiverRoleId'    => collect($initiatorRoleId)->first()->role_id,
-            ]
-        );
-        $mWorkflowTrack->saveTrack($metaReqs);
-        $this->commit();
-        $returnResponse = [
-            'applicationId' => $meta['applicationId'],
-            'applicationNo' => $applicationNo,
-
-        ];
-        return responseMsgs(true, "Successfully Saved!", $returnResponse, "", "02", "", "POST", "");
     }
 
     /**
