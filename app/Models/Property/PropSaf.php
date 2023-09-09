@@ -229,4 +229,26 @@ class PropSaf extends Model
         return PropSaf::where('previous_holding_id', $previousHoldingId)
             ->count();
     }
+
+
+    /**
+     * | Get Property Applications for Payment details Purpose
+     */
+    public function getBasicDetails($safId)
+    {
+        return DB::table('prop_safs as p')
+            ->select(
+                'p.holding_no as application_no',
+                'p.prop_address',
+                'p.ulb_id',
+                'o.owner_name',
+                'o.mobile_no',
+                'u.ward_name as ward_no'
+            )
+            ->leftJoin('prop_safs_owners as o', 'o.saf_id', '=', 'p.id')
+            ->leftJoin('ulb_ward_masters as u', 'u.id', '=', 'p.ulb_id')
+            ->where('p.id', $safId)
+            ->orderBy('o.id')
+            ->first();
+    }
 }

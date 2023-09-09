@@ -220,4 +220,14 @@ class PropDemand extends Model
                 'status' => 2
             ]);
     }
+
+    /**
+     * | Get Demands list by Demand ids
+     */
+    public function getDemandsListByIds(array $demandIds)
+    {
+        return PropDemand::whereIn('id', $demandIds)
+            ->where('status', 1)
+            ->get();
+    }
 }

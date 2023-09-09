@@ -27,6 +27,20 @@ class PropPenaltyrebate extends Model
     public function getPropPenalRebateByTranId($tranId)
     {
         return PropPenaltyrebate::where('tran_id', $tranId)
+            ->where('status', 1)
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
+     * | Get Penalty Rebates
+     */
+    public function getPenaltyRebatesHeads($tranId, $appType)
+    {
+        return PropPenaltyrebate::where('tran_id', $tranId)
+            ->select('head_name', 'amount', 'is_rebate')
+            ->where('app_type', $appType)
+            ->where('status', 1)
             ->orderByDesc('id')
             ->get();
     }

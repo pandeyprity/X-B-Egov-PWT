@@ -23,6 +23,13 @@ class PropTransaction extends Model
             ->get();
     }
 
+    public function getTranByTranNo($tranNo)
+    {
+        return PropTransaction::where('tran_no', $tranNo)
+            ->where('status', 1)
+            ->first();
+    }
+
     /**
      * | Get PropTran By tranno property id
      */
@@ -141,6 +148,7 @@ class PropTransaction extends Model
         $propTrans->demand_amt = $req['demandAmt'];
         $propTrans->tran_by_type = $req['tranBy'];
         $propTrans->verify_status = $req['verifyStatus'];
+        $propTrans->arrear_settled_amt = $req['arrearSettledAmt'];
         $propTrans->save();
 
         return [
