@@ -678,4 +678,15 @@ class WaterApplication extends Model
 
     
 }
+
+public function fullWaterDetail($applicationId){
+    return WaterApplication::select(
+        'water_applications.*',
+        'water_connection_charges.amount',
+        "water_connection_charges.charge_category"
+
+    )
+    ->join('water_connection_charges','water_connection_charges.application_id','water_applications.id')
+    ->where('water_applications.id',$applicationId);
+}
 }
