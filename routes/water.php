@@ -27,7 +27,7 @@ Route::post('/apply-new-connection', function () {
  * | Updated by-Sam kerketta
  * | ------------------- Apply New Water Connection ------------------------ |
  */
-Route::resource('application/apply-new-connection', NewConnectionController::class);                //01
+// Route::resource('application/apply-new-connection', NewConnectionController::class);                //01
 /**
  * | Created On:08-11-2022 
  * | Created by:Sam Kerketta
@@ -64,21 +64,21 @@ Route::controller(NewConnectionController::class)->group(function () {
     Route::post('search-consumer', 'searchWaterConsumer');                                          // Admin/Consumer   
     Route::post('consumer/get-listed-details', 'approvedWaterApplications');                        // Consumer 
 
-        # Site Inspection
-        Route::post('admin/search-application', 'searchApplicationByParameter');                        // Admin
-        Route::post('admin/application/save-inspection-date', 'saveInspectionDateTime');                // Workflow/Admin
-        Route::post('admin/application/site-inspection-details', 'getSiteInspectionDetails');           // Workflow/Admin
-        Route::post('admin/application/cancel-inspection-scheduling', 'cancelSiteInspection');          // Workflow/Admin
-        Route::post('admin/application/je-site-details', 'getJeSiteDetails');                           // Workflow/Admin
-        Route::post('admin/application/online-technical-inspection', 'onlineSiteInspection');           // Workflow
-        Route::post('admin/application/technical-inspection-details', 'getTechnicalInsDetails');        // Workflow
-        Route::post('search-holding-saf', 'searchHoldingsaf');
-        Route::post('get-all-details', 'getdetailsbyId');                                               // akola
-        # new connection for akoal water 
-        Route::post('application/apply-new-connection', 'applyWaterNew');
-        Route::post('application/holding', 'searchHolding');  
+    # Site Inspection
+    Route::post('admin/search-application', 'searchApplicationByParameter');                        // Admin
+    Route::post('admin/application/save-inspection-date', 'saveInspectionDateTime');                // Workflow/Admin
+    Route::post('admin/application/site-inspection-details', 'getSiteInspectionDetails');           // Workflow/Admin
+    Route::post('admin/application/cancel-inspection-scheduling', 'cancelSiteInspection');          // Workflow/Admin
+    Route::post('admin/application/je-site-details', 'getJeSiteDetails');                           // Workflow/Admin
+    Route::post('admin/application/online-technical-inspection', 'onlineSiteInspection');           // Workflow
+    Route::post('admin/application/technical-inspection-details', 'getTechnicalInsDetails');        // Workflow
+    Route::post('search-holding-saf', 'searchHoldingsaf');
+    Route::post('get-all-details', 'getdetailsbyId');                                               // akola
+    # new connection for akoal water 
+    Route::post('application/apply-new-connection', 'applyWaterNew');
+    Route::post('application/holding', 'searchHolding');
 
-    
+
     # Site Inspection
     Route::post('admin/search-application', 'searchApplicationByParameter');                        // Admin
     Route::post('admin/application/save-inspection-date', 'saveInspectionDateTime');                // Workflow/Admin
@@ -100,25 +100,25 @@ Route::controller(NewConnectionController::class)->group(function () {
 Route::controller(WaterPaymentController::class)->group(function () {
     # Consumer And Citizen Transaction Operation
 
-        Route::post('master/get-listed-details', 'getWaterMasterData');                                 // Admin/ Citizen
-        Route::post('consumer/get-payment-history', 'getConsumerPaymentHistory');                       // Consumer
-        Route::post('admin/application/generate-payment-receipt', 'generateOfflinePaymentReceipt');     // Citizen / Admin
-        Route::post('consumer/calculate-month-demand', 'callDemandByMonth');                            // Admin/Consumer
-        Route::post('application/payment/get-payment-history', 'getApplicationPaymentHistory');         // Admin/Consumer
-        Route::post('consumer/offline-demand-payment', 'offlineDemandPayment');                         // Consumer
-        Route::post('application/payment/offline/pay-connection-charge', 'offlineConnectionPayment');   // Admin
-        Route::post('consumer/demand/generate-payment-receipt', 'generateDemandPaymentReceipt');        // Admin/ Citizen
-        Route::post('consumer/online-demand-payment', 'initiateOnlineDemandPayment');                   // Citizen
-        Route::post('citizen/payment-history', 'paymentHistory');                                       // Citizen  
-        Route::post('consumer/water-user-charges', 'getWaterUserCharges');                              // Admin / Citizen
+    Route::post('master/get-listed-details', 'getWaterMasterData');                                 // Admin/ Citizen
+    Route::post('consumer/get-payment-history', 'getConsumerPaymentHistory');                       // Consumer
+    Route::post('admin/application/generate-payment-receipt', 'generateOfflinePaymentReceipt');     // Citizen / Admin
+    Route::post('consumer/calculate-month-demand', 'callDemandByMonth');                            // Admin/Consumer
+    Route::post('application/payment/get-payment-history', 'getApplicationPaymentHistory');         // Admin/Consumer
+    Route::post('consumer/offline-demand-payment', 'offlineDemandPayment');                         // Consumer
+    Route::post('application/payment/offline/pay-connection-charge', 'offlineConnectionPayment');   // Admin
+    Route::post('consumer/demand/generate-payment-receipt', 'generateDemandPaymentReceipt');        // Admin/ Citizen
+    Route::post('consumer/online-demand-payment', 'initiateOnlineDemandPayment');                   // Citizen
+    Route::post('citizen/payment-history', 'paymentHistory');                                       // Citizen  
+    Route::post('consumer/water-user-charges', 'getWaterUserCharges');                              // Admin / Citizen
 
 
     # Site inspection 
     Route::post('site-verification/save-site-details', 'saveSitedetails');                          // Admin
     Route::post('consumer/offline-payment', 'Consumerofflinepayment');
 
-        // # FOR AKOLA 
-        // Route::post('consumer/offline-request-payment', 'offlineConReqPayment');    
+    // # FOR AKOLA 
+    // Route::post('consumer/offline-request-payment', 'offlineConReqPayment');    
     # FOR AKOLA 
     Route::post('consumer/offline-request-payment', 'offlineConReqPayment');
 
@@ -153,11 +153,11 @@ Route::controller(WaterConsumer::class)->group(function () {
     Route::post('admin/consumer/demand-deactivation', 'consumerDemandDeactivation');  // Here       // Admin / Not used
     Route::post('get-listed-fee', 'test');
 
-        # for akola 
-        Route::post('application/get-details', 'consumerDetails');
-        Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
-        Route::post('consumer/get-master-data', 'getMasterData');
-    });
+    # for akola 
+    Route::post('application/get-details', 'consumerDetails');
+    Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
+    Route::post('consumer/get-master-data', 'getMasterData');
+});
 
 
 /**
@@ -189,18 +189,18 @@ Route::controller(WaterReportController::class)->group(function () {
 });
 
 
-    /**
-     * | Created On:09-12-2022 
-     * | Created by:Sandeep Bara
-     * | Modified by: Sam kerketta
-     * | Modified on: 11-01-2023
-     * | ------------------- Water Connection / mobile ------------------------ |
-     */
-    Route::controller(WaterApplication::class)->group(function () {
-        Route::post('citizenApplications', 'getCitizenApplication');                                    //10
-        Route::post('Razorpay-Orderid', 'handeRazorPay');                                               //11
-        Route::post('getTranNo', 'readTransectionAndApl');                                              //12
-        Route::post('update-applications', 'updateWaterApplication');       // Here 
+/**
+ * | Created On:09-12-2022 
+ * | Created by:Sandeep Bara
+ * | Modified by: Sam kerketta
+ * | Modified on: 11-01-2023
+ * | ------------------- Water Connection / mobile ------------------------ |
+ */
+Route::controller(WaterApplication::class)->group(function () {
+    Route::post('citizenApplications', 'getCitizenApplication');                                    //10
+    Route::post('Razorpay-Orderid', 'handeRazorPay');                                               //11
+    Route::post('getTranNo', 'readTransectionAndApl');                                              //12
+    Route::post('update-applications', 'updateWaterApplication');       // Here 
 
     # Dashbording Api
     Route::post('admin/application/dashboard-data', 'getJskAppliedApplication');                    //13
