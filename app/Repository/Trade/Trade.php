@@ -797,6 +797,9 @@ class Trade implements ITrade
             } elseif (in_array($refLecenceData->payment_status, [1, 2])) {
                 throw new Exception("Payment Already Done Of This Application");
             }
+            if (!$refLecenceData->holding_no && $request->licenseFor > 1) {
+                throw new Exception("Without Holding Map You Can Not Take Licence More Than One Year");
+            }
             if ($refLecenceData->tobacco_status == 1 && $request->licenseFor > 1) {
                 throw new Exception("Tobaco Application Not Take Licence More Than One Year");
             }
@@ -3778,7 +3781,6 @@ class Trade implements ITrade
     public function check_doc_exist_owner($licenceId, $owner_id, $document_id = null, $doc_type_code = null)
     {
         try {
-            // DB::enableQueryLog();
             $doc = ActiveTradeDocument::select("id", "doc_type_code", "is_verified", "remarks",  "document_id")
                 ->where('temp_id', $licenceId)
                 ->where('temp_owner_id', $owner_id);
@@ -3792,8 +3794,7 @@ class Trade implements ITrade
                 $doc = $doc->where("document_id", "<>", 0);
             }
             $doc = $doc->orderBy('id', 'DESC')
-                ->first();
-            //    print_var(DB::getQueryLog());                    
+                ->first();                   
             return $doc;
         } catch (Exception $e) {
             return $e->getMessage();
