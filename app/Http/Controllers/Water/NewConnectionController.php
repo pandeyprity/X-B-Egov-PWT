@@ -1636,7 +1636,7 @@ class NewConnectionController extends Controller
             $refWaterApplicant = $mWaterApplicant->getOwnerList($req->applicationId)->get();
             $documentList = $this->getWaterDocLists($refWaterApplication);
             $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
-                return $filteredDocs = $this->filterDocument($value, $refWaterApplication)->first();
+                return $this->filterDocument($value, $refWaterApplication)->first();
             });
 
             $waterOwnerDocs['ownerDocs'] = collect($refWaterApplicant)->map(function ($owner) use ($refWaterApplication) {
@@ -1741,32 +1741,8 @@ class NewConnectionController extends Controller
         $mRefReqDocs    = new RefRequiredDocument();
         $moduleId       = Config::get('module-constants.WATER_MODULE_ID');
 
-        $type = ["METER_BILL", "ADDRESS_PROOF", "OTHER"];
-        if (in_array($application->connection_through, [1, 2]))         // Holding No, SAF No // Static
-        {
-            $type[] = "HOLDING_PROOF";
-        }
-        if (strtoupper($application->category) == "BPL")                // FOR BPL APPLICATION // Static
-        {
-            $type[] = "BPL";
-        }
-        if ($application->property_type_id == 2)                        // FOR COMERCIAL APPLICATION // Static
-        {
-            $type[] = "COMMERCIAL";
-        }
-        if ($application->apply_from != "Online")                       // Online // Static
-        {
-            $type[]  = "FORM_SCAN_COPY";
-        }
-        if ($application->owner_type == 2)                              // In case of Tanent // Static
-        {
-            $type[]  = "TENANT";
-        }
-        if ($application->property_type_id == 7)                        // Appartment // Static
-        {
-            $type[]  = "APPARTMENT";
-        }
-        return $documentList = $mRefReqDocs->getCollectiveDocByCode($moduleId, $type);
+        $type = ["FORM_SCAN_COPY", "STAMP"];
+        return $mRefReqDocs->getCollectiveDocByCode($moduleId, $type);
     }
 
 
