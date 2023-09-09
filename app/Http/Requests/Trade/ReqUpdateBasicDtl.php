@@ -46,7 +46,8 @@ class ReqUpdateBasicDtl extends TradeRequest
         $rules["firmDetails.businessDescription"] = "required|regex:$mFramNameRegex";
         $rules["firmDetails.firmName"] = "required|regex:$mFramNameRegex";
         $rules["firmDetails.premisesOwner"] = "required|regex:$mFramNameRegex";
-        $rules["firmDetails.newWardNo"] = "required|digits_between:1,9223372036854775807";
+        $rules["firmDetails.zoneId"] = "required|digits_between:1,9223372036854775807";
+        $rules["firmDetails.newWardNo"] = "nullable|digits_between:1,9223372036854775807";
         $rules["firmDetails.wardNo"] = "required|digits_between:1,9223372036854775807";
         $rules["firmDetails.pincode"] = "required|digits:6|regex:/[0-9]{6}/|nullable";
 
@@ -56,7 +57,7 @@ class ReqUpdateBasicDtl extends TradeRequest
         $rules["firmDetails.accountNo"] = "regex:$mRegex";
 
         $rules["initialBusinessDetails.firmType"] = "required|digits_between:1,9223372036854775807";
-        $rules["initialBusinessDetails.categoryTypeId"] = "required|digits_between:1,9223372036854775807";
+        $rules["initialBusinessDetails.categoryTypeId"] = "nullable|digits_between:1,9223372036854775807";
         if (isset($this->initialBusinessDetails['firmType']) && $this->initialBusinessDetails['firmType'] == 5) 
         {
             $rules["initialBusinessDetails.otherFirmType"] = "required|regex:$mRegex";

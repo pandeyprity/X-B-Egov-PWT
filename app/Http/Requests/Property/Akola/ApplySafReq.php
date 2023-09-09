@@ -10,6 +10,9 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 class ApplySafReq extends FormRequest
 {
     /**
+     * | Used as Only Review Calculation
+     */
+    /**
      * Determine if the user is authorized to make this request.
      *
      * @return bool
@@ -32,17 +35,17 @@ class ApplySafReq extends FormRequest
             "areaOfPlot" => "required|numeric",
             "category" => "required|integer",
             "dateOfPurchase" => "required|date|date_format:Y-m-d|before_or_equal:$todayDate",
-            "owner" => "required|array",
-            "owner.*.gender" => "required|In:Male,Female,Transgender",
-            "owner.*.dob" => "required|date|date_format:Y-m-d|before_or_equal:$todayDate",
-            "owner.*.guardianName" => "required|string",
-            "owner.*.relation" => "required|string|in:S/O,W/O,D/O,C/O",
-            "owner.*.mobileNo" => "required|digits:10|regex:/[0-9]{10}/",
+            "owner" => "nullable|array",
+            "owner.*.gender" => "nullable|In:Male,Female,Transgender",
+            "owner.*.dob" => "nullable|date|date_format:Y-m-d|before_or_equal:$todayDate",
+            "owner.*.guardianName" => "nullable|string",
+            "owner.*.relation" => "nullable|string|in:S/O,W/O,D/O,C/O",
+            "owner.*.mobileNo" => "nullable|digits:10|regex:/[0-9]{10}/",
             "owner.*.aadhar" => "digits:12|regex:/[0-9]{12}/|nullable",
             "owner.*.pan" => "string|nullable",
             "owner.*.email" => "email|nullable",
-            "owner.*.isArmedForce" => "required|bool",
-            "owner.*.isSpeciallyAbled" => "required|bool"
+            "owner.*.isArmedForce" => "nullable|bool",
+            "owner.*.isSpeciallyAbled" => "nullable|bool"
         ];
 
         if ($this->propertyType != 4) {

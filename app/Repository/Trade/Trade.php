@@ -12,6 +12,7 @@ use App\Models\Property\PropActiveSaf;
 use App\Models\Property\PropActiveSafsOwner;
 use App\Models\Property\PropOwner;
 use App\Models\Property\PropProperty;
+use App\Models\Property\ZoneMaster;
 use App\Models\Trade\TradeLicence;
 use App\Models\Trade\TradeDocument;
 use App\Models\Trade\ActiveTradeDocument;
@@ -507,8 +508,9 @@ class Trade implements ITrade
         $refActiveLicense->firm_description    = $request->initialBusinessDetails['otherFirmType'] ?? null;
         $refActiveLicense->category_type_id    = $request->initialBusinessDetails['categoryTypeId'] ?? null;
         $refActiveLicense->ownership_type_id   = $request->initialBusinessDetails['ownershipType'];
+        $refActiveLicense->zone_id             = $request->firmDetails['zoneId'];
         $refActiveLicense->ward_id             = $request->firmDetails['wardNo'];
-        $refActiveLicense->new_ward_id         = $request->firmDetails['newWardNo'];
+        $refActiveLicense->new_ward_id         = $request->firmDetails['newWardNo']??null;
         $refActiveLicense->holding_no          = $request->firmDetails['holdingNo'];
         $refActiveLicense->firm_name           = $request->firmDetails['firmName'];
         $refActiveLicense->premises_owner_name = $request->firmDetails['premisesOwner'] ?? null;
@@ -540,6 +542,7 @@ class Trade implements ITrade
         $refActiveLicense->firm_description    = $request->initialBusinessDetails['otherFirmType'] ?? null;
         $refActiveLicense->category_type_id    = $refOldLicece->category_type_id;
         $refActiveLicense->ownership_type_id   = $request->initialBusinessDetails['ownershipType']; //$refOldLicece->ownership_type_id;
+        $refActiveLicense->zone_id             = $refOldLicece->zone_id;
         $refActiveLicense->ward_id             = $refOldLicece->ward_id;
         $refActiveLicense->new_ward_id         = $refOldLicece->new_ward_id;
         $refActiveLicense->holding_no          = $request->firmDetails['holdingNo'];
@@ -582,6 +585,7 @@ class Trade implements ITrade
         $refActiveLicense->firm_description    = $refOldLicece->firm_description;
         $refActiveLicense->category_type_id    = $refOldLicece->category_type_id;
         $refActiveLicense->ownership_type_id   = $refOldLicece->ownership_type_id;
+        $refActiveLicense->zone_id             = $refOldLicece->zone_id;
         $refActiveLicense->ward_id             = $refOldLicece->ward_id;
         $refActiveLicense->new_ward_id         = $refOldLicece->new_ward_id;
         $refActiveLicense->holding_no          = $request->firmDetails['holdingNo'];
@@ -793,6 +797,9 @@ class Trade implements ITrade
             } elseif (in_array($refLecenceData->payment_status, [1, 2])) {
                 throw new Exception("Payment Already Done Of This Application");
             }
+            if (!$refLecenceData->holding_no && $request->licenseFor > 1) {
+                throw new Exception("Without Holding Map You Can Not Take Licence More Than One Year");
+            }
             if ($refLecenceData->tobacco_status == 1 && $request->licenseFor > 1) {
                 throw new Exception("Tobaco Application Not Take Licence More Than One Year");
             }
@@ -1003,6 +1010,7 @@ class Trade implements ITrade
             $data["licenceDtl"]         =  $refOldLicece;
             $data["ownerDtl"]           = $refOldOwneres;
             $data['userType']           = $mUserType;
+            $data["zone"]               = (new ZoneMaster())->getZone($refUlbId);
             $data["firmTypeList"]       = TradeParamFirmType::List();
             $data["ownershipTypeList"]  = TradeParamOwnershipType::List();
             $data["categoryTypeList"]   = TradeParamCategoryType::List();
@@ -1060,8 +1068,9 @@ class Trade implements ITrade
             $refOldLicece->firm_description    = $request->initialBusinessDetails['otherFirmType'] ?? null;
             $refOldLicece->category_type_id    = $request->initialBusinessDetails['categoryTypeId'] ?? null;
             $refOldLicece->ownership_type_id   = $request->initialBusinessDetails['ownershipType'];
+            $refOldLicece->zone_id             = $request->firmDetails['zoneId'];
             $refOldLicece->ward_id             = $request->firmDetails['wardNo'];
-            $refOldLicece->new_ward_id         = $request->firmDetails['newWardNo'];
+            $refOldLicece->new_ward_id         = $request->firmDetails['newWardNo']??null;
 
             $refOldLicece->property_id         = $mProprtyId;
             $refOldLicece->holding_no          = $request->firmDetails['holdingNo'];
@@ -1579,7 +1588,7 @@ class Trade implements ITrade
 
             $propdet = $this->propertyDetailsfortradebyHoldingNo($inputs['holdingNo'], $refUlbId);
             if ($propdet['status']) {
-                $response = ['status' => true, "data" => ["property" => $propdet['property']], "message" => ""];
+                $response = ['status' => true, "data" => ["property" => $propdet['property'],"owner"=>$propdet['owner']], "message" => ""];
             } else {
                 $response = ['status' => false, "data" => '', "message" => 'No Property Found'];
             }
@@ -2525,6 +2534,7 @@ class Trade implements ITrade
                         ulb_masters.parent_website as ulb_parent_website,
                         ulb_masters.toll_free_no as ulb_toll_free_no,
                         ulb_masters.mobile_no AS ulb_mobile_no,
+                        zone_masters.zone_name,
                         TO_CHAR(cast(licences.application_date as date), 'DD-MM-YYYY') AS application_date,
                         TO_CHAR(cast(licences.valid_from as date), 'DD-MM-YYYY') AS valid_from,
                         TO_CHAR(cast(licences.valid_upto as date), 'DD-MM-YYYY') AS valid_upto
@@ -2532,6 +2542,7 @@ class Trade implements ITrade
             ];
             $application = $this->_DB->table("active_trade_licences AS licences")->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
+                ->join("zone_masters", "zone_masters.id", "licences.zone_id")
                 ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "licences.ward_id");
                 })
@@ -2552,6 +2563,7 @@ class Trade implements ITrade
             {
                 $application = $this->_DB->table("trade_licences AS licences")->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
+                    ->join("zone_masters", "zone_masters.id", "licences.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "licences.ward_id");
                     })
@@ -2573,6 +2585,7 @@ class Trade implements ITrade
             {
                 $application = $this->_DB->table("rejected_trade_licences AS licences")->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
+                    ->join("zone_masters", "zone_masters.id", "licences.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "licences.ward_id");
                     })
@@ -2594,6 +2607,7 @@ class Trade implements ITrade
             {
                 $application = $this->_DB->table("trade_renewals AS licences")->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "licences.ulb_id")
+                    ->join("zone_masters", "zone_masters.id", "licences.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "licences.ward_id");
                     })
@@ -2707,6 +2721,7 @@ class Trade implements ITrade
                         ulb_masters.parent_website as ulb_parent_website,
                         ulb_masters.toll_free_no as ulb_toll_free_no,
                         ulb_masters.mobile_no AS ulb_mobile_no,
+                        zone_masters.zone_name ,
                         TO_CHAR(CAST(license.application_date AS DATE), 'DD-MM-YYYY') as application_date,
                         TO_CHAR(CAST(license.establishment_date AS DATE), 'DD-MM-YYYY') as establishment_date,
                         TO_CHAR(CAST(license.license_date AS DATE), 'DD-MM-YYYY') as license_date,
@@ -2717,6 +2732,7 @@ class Trade implements ITrade
             $application = $this->_DB->table("active_trade_licences as license")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
+                ->join("zone_masters", "zone_masters.id", "license.zone_id")
                 ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                 })
@@ -2738,6 +2754,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("trade_licences as license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
+                    ->join("zone_masters", "zone_masters.id", "license.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
@@ -2760,6 +2777,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("rejected_trade_licences as license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
+                    ->join("zone_masters", "zone_masters.id", "license.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
@@ -2782,6 +2800,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("trade_renewals as license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
+                    ->join("zone_masters", "zone_masters.id", "license.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
@@ -2891,6 +2910,7 @@ class Trade implements ITrade
                         ulb_masters.parent_website as ulb_parent_website,
                         ulb_masters.toll_free_no as ulb_toll_free_no,
                         ulb_masters.mobile_no AS ulb_mobile_no,
+                        zone_masters.zone_name,
                         TO_CHAR(CAST(license.application_date AS DATE), 'DD-MM-YYYY') as application_date,
                         TO_CHAR(CAST(license.establishment_date AS DATE), 'DD-MM-YYYY') as establishment_date,
                         TO_CHAR(CAST(license.license_date AS DATE), 'DD-MM-YYYY') as license_date,
@@ -2901,6 +2921,7 @@ class Trade implements ITrade
             $application = $this->_DB->table("trade_licences AS license")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
+                ->join("zone_masters", "zone_masters.id", "licences.zone_id")
                 ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                 })
@@ -2922,6 +2943,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("trade_renewals AS license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
+                    ->join("zone_masters", "zone_masters.id", "licences.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })
@@ -2985,7 +3007,7 @@ class Trade implements ITrade
             $role_id = 0;
             $refWorkflowId = $this->_WF_MASTER_Id;
             $role = $this->_COMMON_FUNCTION->getUserRoll($userId, $ulbId, $refWorkflowId);
-            if ($role && auth()->user()->gettable()=='users') {
+            if ($role && $this->_COMMON_FUNCTION->checkUsersWithtocken()) {
                 $role_id = $role->role_id??0;
             }
 
@@ -2995,7 +3017,7 @@ class Trade implements ITrade
 
             if ($validator->fails()) 
             {
-                return responseMsg(false, $validator->errors(), $request->all());
+                return responseMsg(false, $validator->errors(), "");
             }
 
             $refLicense = ActiveTradeLicence::find($request->applicationId);
@@ -3010,7 +3032,7 @@ class Trade implements ITrade
             $metaReqs['refTableDotId'] = 'active_trade_licences';
             $metaReqs['refTableIdValue'] = $refLicense->id;
             $metaReqs['senderRoleId'] = $role_id;
-            if(auth()->user()->gettable()=='users')
+            if($this->_COMMON_FUNCTION->checkUsersWithtocken())
             {
                 $metaReqs['user_id'] = $userId;
             }
@@ -3377,8 +3399,31 @@ class Trade implements ITrade
             ->where("ulb_id", $ulb_id)
             ->first();
         // dd(DB::getQueryLog());
+        if(!$property)
+        {
+            $property = PropProperty::select("*")
+            ->leftjoin(
+                DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name ,property_id
+                                        FROM Prop_OwnerS 
+                                        WHERE status = 1
+                                        GROUP BY property_id
+                                        ) owners
+                                        "),
+                function ($join) {
+                    $join->on("owners.property_id", "=", "prop_properties.id");
+                }
+            )
+            ->where("status", 1)
+            // ->where("new_holding_no", "<>", "")
+            ->where("holding_no", "ILIKE", $holdingNo)
+            ->where("ulb_id", $ulb_id)
+            ->orderBy("id",'DESC')
+            ->first();
+        }
+        
         if ($property) {
-            return ["status" => true, 'property' => objToArray($property)];
+            $owner = PropOwner::where("property_id",$property->id)->where("status",1)->get();
+            return ["status" => true, 'property' => objToArray($property),"owner"=>$owner];
         }
         return ["status" => false, 'property' => ''];
     }
@@ -3408,7 +3453,7 @@ class Trade implements ITrade
                 "trade_param_category_types.category_type",
                 "trade_param_firm_types.firm_type",
                 "trade_param_ownership_types.ownership_type",
-                DB::raw("ulb_ward_masters.ward_name AS ward_no, new_ward.ward_name as new_ward_no")
+                DB::raw("ulb_ward_masters.ward_name AS ward_no, new_ward.ward_name as new_ward_no, zone_masters.zone_name ")
             )
                 ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "trade_licences.ward_id");
@@ -3416,6 +3461,7 @@ class Trade implements ITrade
                 ->leftjoin("ulb_ward_masters AS new_ward", function ($join) {
                     $join->on("new_ward.id", "=", "trade_licences.new_ward_id");
                 })
+                ->join("zone_masters", "zone_masters.id", "trade_licences.zone_id")
                 ->join("trade_param_application_types", "trade_param_application_types.id", "trade_licences.application_type_id")
                 ->leftjoin("trade_param_category_types", "trade_param_category_types.id", "trade_licences.category_type_id")
                 ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", "trade_licences.firm_type_id")
@@ -3436,7 +3482,7 @@ class Trade implements ITrade
                 "trade_param_category_types.category_type",
                 "trade_param_firm_types.firm_type",
                 "trade_param_ownership_types.ownership_type",
-                DB::raw("ulb_ward_masters.ward_name AS ward_no, new_ward.ward_name as new_ward_no")
+                DB::raw("ulb_ward_masters.ward_name AS ward_no, new_ward.ward_name as new_ward_no, zone_masters.zone_name ")
             )
                 ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "active_trade_licences.ward_id");
@@ -3444,6 +3490,7 @@ class Trade implements ITrade
                 ->leftjoin("ulb_ward_masters AS new_ward", function ($join) {
                     $join->on("new_ward.id", "=", "active_trade_licences.new_ward_id");
                 })
+                ->join("zone_masters", "zone_masters.id", "active_trade_licences.zone_id")
                 ->join("trade_param_application_types", "trade_param_application_types.id", "active_trade_licences.application_type_id")
                 ->leftjoin("trade_param_category_types", "trade_param_category_types.id", "active_trade_licences.category_type_id")
                 ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", "active_trade_licences.firm_type_id")
@@ -3466,7 +3513,7 @@ class Trade implements ITrade
                 "trade_param_category_types.category_type",
                 "trade_param_firm_types.firm_type",
                 "trade_param_ownership_types.ownership_type",
-                DB::raw("ulb_ward_masters.ward_name AS ward_no, new_ward.ward_name as new_ward_no,ulb_masters.ulb_name, '$table' AS tbl")
+                DB::raw("ulb_ward_masters.ward_name AS ward_no, new_ward.ward_name as new_ward_no,ulb_masters.ulb_name, zone_masters.zone_name , '$table' AS tbl")
             );
             if (!$test) 
             {
@@ -3478,7 +3525,7 @@ class Trade implements ITrade
                     "trade_param_category_types.category_type",
                     "trade_param_firm_types.firm_type",
                     "trade_param_ownership_types.ownership_type",
-                    DB::raw("ulb_ward_masters.ward_name AS ward_no, new_ward.ward_name as new_ward_no,ulb_masters.ulb_name,'$table' AS tbl")
+                    DB::raw("ulb_ward_masters.ward_name AS ward_no, new_ward.ward_name as new_ward_no,ulb_masters.ulb_name, zone_masters.zone_name , '$table' AS tbl")
                 );
             }
             if (!$test) 
@@ -3492,7 +3539,7 @@ class Trade implements ITrade
                     "trade_param_firm_types.firm_type",
                     "trade_param_ownership_types.ownership_type",
                     DB::raw("ulb_ward_masters.ward_name AS ward_no, 
-                    new_ward.ward_name as new_ward_no,ulb_masters.ulb_name,'$table' AS tbl")
+                    new_ward.ward_name as new_ward_no,ulb_masters.ulb_name, zone_masters.zone_name , '$table' AS tbl")
                 );
             }
             if (!$test) 
@@ -3505,7 +3552,7 @@ class Trade implements ITrade
                     "trade_param_firm_types.firm_type",
                     "trade_param_ownership_types.ownership_type",
                     DB::raw("ulb_ward_masters.ward_name AS ward_no, 
-                    new_ward.ward_name as new_ward_no,ulb_masters.ulb_name,'$table' AS tbl")
+                    new_ward.ward_name as new_ward_no,ulb_masters.ulb_name, zone_masters.zone_name , '$table' AS tbl")
                 );
             }
 
@@ -3517,6 +3564,7 @@ class Trade implements ITrade
                     $join->on("new_ward.id", "=", $table . ".new_ward_id");
                 })
                 ->join("ulb_masters", "ulb_masters.id", $table . ".ulb_id")
+                ->join("zone_masters", "zone_masters.id", $table . ".zone_id")
                 ->join("trade_param_application_types", "trade_param_application_types.id", $table . ".application_type_id")
                 ->leftjoin("trade_param_category_types", "trade_param_category_types.id", $table . ".category_type_id")
                 ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", $table . ".firm_type_id")
@@ -3733,7 +3781,6 @@ class Trade implements ITrade
     public function check_doc_exist_owner($licenceId, $owner_id, $document_id = null, $doc_type_code = null)
     {
         try {
-            // DB::enableQueryLog();
             $doc = ActiveTradeDocument::select("id", "doc_type_code", "is_verified", "remarks",  "document_id")
                 ->where('temp_id', $licenceId)
                 ->where('temp_owner_id', $owner_id);
@@ -3747,8 +3794,7 @@ class Trade implements ITrade
                 $doc = $doc->where("document_id", "<>", 0);
             }
             $doc = $doc->orderBy('id', 'DESC')
-                ->first();
-            //    print_var(DB::getQueryLog());                    
+                ->first();                   
             return $doc;
         } catch (Exception $e) {
             return $e->getMessage();

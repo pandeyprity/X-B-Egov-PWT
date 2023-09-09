@@ -18,7 +18,7 @@ class GetRefUrl
     private static $paymentMode = 9;
     private static $baseUrl = "https://eazypayuat.icicibank.com";
     private static $returnUrl = "http://203.129.217.244/citizen";
-    private static $ciphering = "AES-128-CTR";                 // Store the cipher method for encryption
+    private static $ciphering = "aes-128-ecb";                 // Store the cipher method for encryption
 
     /**
      * | Generate Referal Url
@@ -26,9 +26,8 @@ class GetRefUrl
     public function generateRefUrl()
     {
         $todayDate = Carbon::now()->format('d/M/Y');
-        $refNo = rand(3, 3);
-
-        $mandatoryField = "$refNo|" . self::$subMerchantId . "10" . $todayDate . "|6201675668|xy|xy";
+        $refNo = time() . rand();
+        $mandatoryField = "$refNo|" . self::$subMerchantId . "|10|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
         $eMandatoryField = $this->encryptAes($mandatoryField);
         $optionalField = $this->encryptAes("X|X|X");
         $returnUrl = $this->encryptAes(self::$returnUrl);
@@ -37,9 +36,15 @@ class GetRefUrl
         $tranAmt = $this->encryptAes(10);
         $paymentMode = $this->encryptAes(self::$paymentMode);
 
-        $plainUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatoryfields=' . $eMandatoryField . "&optionalfields=$optionalField" . '&returnurl=' . $returnUrl . '&ReferenceNo=' . $eRefNo
-            . '&submerchantid=' . $subMerchantId . '&transactionamount=' . $tranAmt . '&paymentMode=' . $paymentMode;
-        return $plainUrl;
+        $plainUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatoryf ields=' . $mandatoryField . "&optional fields=X|X|X" . '&returnurl=' . self::$returnUrl . '&Reference No=' . $refNo
+            . '&submerchantid=' . self::$subMerchantId . '&transaction amount=' . "10" . '&paymode=' . self::$paymentMode;
+
+        $encryptUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $eMandatoryField . "&optional fields=$optionalField" . '&returnurl=' . $returnUrl . '&Reference No=' . $eRefNo
+            . '&submerchantid=' . $subMerchantId . '&transaction amount=' . $tranAmt . '&paymode=' . $paymentMode;
+        return [
+            'plainUrl' => $plainUrl,
+            'encryptUrl' => $encryptUrl
+        ];
     }
 
     /**
@@ -48,21 +53,14 @@ class GetRefUrl
     public function encryptAes($string)
     {
         // Encrption AES
-        // Use OpenSSl Encryption method
-        $options = 0;
-
-        // Non-NULL Initialization Vector for encryption
-        $encryption_iv = '1234567891011121';
-
-        // Use openssl_encrypt() function to encrypt the data
-        $encryption = openssl_encrypt(
-            $string,
-            self::$ciphering,
-            self::$aesKey,
-            $options,
-            $encryption_iv
-        );
-
-        return $encryption;
+        $cipher = self::$ciphering;
+        $key = self::$aesKey;
+        in_array($cipher, openssl_get_cipher_methods(true));
+        $ivlen = openssl_cipher_iv_length($cipher);
+        //echo "ivlen [". $ivlen . "]";
+        $iv = openssl_random_pseudo_bytes(1);
+        // echo "iv [". $iv . "]";
+        $ciphertext = openssl_encrypt($string, $cipher, $key, $options = 0, "");
+        return $ciphertext;
     }
 }

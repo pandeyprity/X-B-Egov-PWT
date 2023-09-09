@@ -1891,8 +1891,10 @@ class ActiveSafController extends Controller
             $idGeneration = new IdGeneration;
             $propTrans = new PropTransaction();
             $verifyPaymentModes = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
-
             $propSaf = PropSaf::findOrFail($req['id']);
+            $mPropSafsDemands = new PropSafsDemand();
+            $mPropTranDtl = new PropTranDtl();
+            $mPropPenaltyRebates = new PropPenaltyrebate();
 
             if ($propSaf->payment_status == 1)
                 throw new Exception("Payment Already Done");
@@ -1936,11 +1938,60 @@ class ActiveSafController extends Controller
             }
             DB::beginTransaction();
             $propTrans = $propTrans->postSafTransaction($req, $demands);
+            // 🔴🔴🔴🔴🔴 💀💀 Demand insertion and tran details 🔴🔴🔴🔴🔴
+            foreach ($demands as $demand) {
+                $demand = (object)$demand;
+                $demandReq = [
+                    "saf_id" => $req['id'],
+                    "property_id" => $propSaf->property_id,
+                    "alv" => $demand->alv,
+                    "maintanance_amt" => $demand->maintantance10Perc,
+                    "aging_amt" => $demand->agingAmt,
+                    "general_tax" => $demand->generalTax,
+                    "road_tax" => $demand->roadTax,
+                    "firefighting_tax" => $demand->firefightingTax,
+                    "education_tax" => $demand->educationTax,
+                    "water_tax" => $demand->waterTax,
+                    "cleanliness_tax" => $demand->cleanlinessTax,
+                    "sewarage_tax" => $demand->sewerageTax,
+                    "tree_tax" => $demand->treeTax,
+                    "professional_tax" => $demand->professionalTax,
+                    "state_education_tax" => $demand->stateEducationTax,
+                    "total_tax" => $demand->totalTax,
+                    "balance" => $demand->totalTax,
+                    "paid_status" => 1,
+                    "fyear" => $demand->fyear,
+                    "adjust_amt" => $demand->adjustAmt ?? 0,
+                    "user_id" => $userId,
+                    "ulb_id" => $propSaf->ulb_id,
+                ];
+                $insertedDemand = $mPropSafsDemands->create($demandReq);
+
+                // ✅✅✅✅✅ Tran details insertion
+                $tranDtlReq = [
+                    "tran_id" => $propTrans['id'],
+                    "saf_demand_id" => $insertedDemand->id,
+                    "total_demand" => $insertedDemand->balance,
+                    "ulb_id" => $insertedDemand->ulb_id,
+                ];
+                $mPropTranDtl->create($tranDtlReq);
+            }
 
             // 🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴 Pending Works
-            // 🔴🔴🔴🔴🔴 💀💀 Transactions Rebate Amount is the part of discussion 🔴🔴🔴🔴🔴
-            // 🔴🔴🔴🔴🔴 💀💀 Demand insertion and tran details 🔴🔴🔴🔴🔴
-
+            // 🔴🔴🔴🔴🔴 💀💀 Type of Rebates and Penalty should be defined  🔴🔴🔴🔴🔴
+            if ($calulatedTaxes['isRebateApplied']) {
+                $penalRebateReq = [
+                    'tran_id' => $propTrans['id'],
+                    'head_name' => 'Rebate',
+                    'amount' => $calulatedTaxes['rebateAmt'],
+                    'is_rebate' => true,
+                    'tran_date' => $todayDate->format('Y-m-d'),
+                    'saf_id' => $propSaf->id,
+                    'prop_id' => $propSaf->property_id,
+                    'app_type' => 'SAF'
+                ];
+                $mPropPenaltyRebates->create($penalRebateReq);
+            }
 
             if (in_array($req['paymentMode'], $offlinePaymentModes)) {
                 $req->merge([
@@ -1951,7 +2002,6 @@ class ActiveSafController extends Controller
                 ]);
                 $this->postOtherPaymentModes($req);
             }
-
 
             // Update SAF Payment Status
             $propSaf->save();

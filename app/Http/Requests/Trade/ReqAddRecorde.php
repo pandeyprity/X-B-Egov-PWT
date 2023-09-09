@@ -46,7 +46,8 @@ class ReqAddRecorde extends TradeRequest
             $rules["firmDetails.premisesOwner"] = "required|regex:/^[a-zA-Z1-9][a-zA-Z1-9\., \s]+$/";
             $rules["firmDetails.natureOfBusiness"] = "required|array";
             $rules["firmDetails.natureOfBusiness.*.id"] = "required|digits_between:1,9223372036854775807";
-            $rules["firmDetails.newWardNo"] = "required|digits_between:1,9223372036854775807";
+            $rules["firmDetails.zoneId"] = "required|digits_between:1,9223372036854775807";
+            $rules["firmDetails.newWardNo"] = "nullable|digits_between:1,9223372036854775807";
             $rules["firmDetails.wardNo"] = "required|digits_between:1,9223372036854775807";
             $rules["firmDetails.tocStatus"] = "required|bool";
             $rules["firmDetails.landmark"] = "regex:$mFramNameRegex";
