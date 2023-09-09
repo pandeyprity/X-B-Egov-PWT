@@ -715,6 +715,27 @@ class PropProperty extends Model
             ->get();
     }
 
+    /**
+     * | Get Property Applications for Payment details Purpose
+     */
+    public function getBasicDetails($propId)
+    {
+        return DB::table('prop_properties as p')
+            ->select(
+                'p.holding_no as application_no',
+                'p.prop_address',
+                'p.ulb_id',
+                'o.owner_name',
+                'o.mobile_no',
+                'u.ward_name as ward_no'
+            )
+            ->leftJoin('prop_owners as o', 'o.property_id', '=', 'p.id')
+            ->leftJoin('ulb_ward_masters as u', 'u.id', '=', 'p.ulb_id')
+            ->where('p.id', $propId)
+            ->orderBy('o.id')
+            ->first();
+    }
+
     // get Prpoperty 
     public function getPropert($holdingNo)
     {

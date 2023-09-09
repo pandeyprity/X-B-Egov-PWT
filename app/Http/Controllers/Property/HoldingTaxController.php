@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Property;
 
+use App\BLL\Property\Akola\GeneratePaymentReceipt;
 use App\BLL\Property\PaymentReceiptHelper;
 use App\BLL\Property\PostRazorPayPenaltyRebate;
 use App\BLL\Property\YearlyDemandGeneration;
@@ -143,6 +144,7 @@ class HoldingTaxController extends Controller
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
 
+            $paymentStatus = $demandList->isEmpty() ? 1 : 0;
             // Get Property Details
             $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
 
@@ -159,11 +161,22 @@ class HoldingTaxController extends Controller
                     "sewarage_tax" => $item->sum('sewarage_tax'),
                     "tree_tax" => $item->sum('tree_tax'),
                     "professional_tax" => $item->sum('professional_tax'),
+                    "tax1" => $item->sum('professional_tax'),
+                    "tax2" => $item->sum('professional_tax'),
+                    "tax3" => $item->sum('professional_tax'),
+                    "state_education_tax" => $item->sum('sp_education_tax'),
+                    "water_benefit" => $item->sum('water_benefit'),
+                    "water_bill" => $item->sum('water_bill'),
+                    "sp_water_cess" => $item->sum('sp_water_cess'),
+                    "drain_cess" => $item->sum('drain_cess'),
+                    "light_cess" => $item->sum('light_cess'),
+                    "major_building" => $item->sum('major_building'),
                     "total_tax" => $item->sum('total_tax'),
                     "balance" => $item->sum('balance'),
                 ];
             });
 
+            $demand['paymentStatus'] = $paymentStatus;
             $demand['demandList'] = $demandList;
             $demand['grandTaxes'] = $grandTaxes;
             $demand['arrear'] = $arrear;
@@ -484,12 +497,12 @@ class HoldingTaxController extends Controller
             $demands = $propCalculation->original['data']['demandList'];
 
             // 🔺🔺 Arrears and Settlements is on under process
-            // $arrear = $propCalculation->original['data']['arrear'];
+            $arrear = $propCalculation->original['data']['arrear'];
 
-            // if (isset($arrear) && $arrear > 0)
-            //     $arrear = $arrear;
-            // else
-            //     $arrear = 0;
+            if (isset($arrear) && $arrear > 0)
+                $arrear = $arrear;
+            else
+                $arrear = 0;
 
             $payableAmount = $propCalculation->original['data']['payableAmt'];
             if ($demands->isEmpty())
@@ -503,7 +516,8 @@ class HoldingTaxController extends Controller
                 'tranNo' => $tranNo,
                 'amount' => $payableAmount,                                                                         // Payable Amount with Arrear
                 'demandAmt' => $propCalculation->original['data']['grandTaxes']['balance'],                         // Demandable Amount
-                'tranBy' => $tranBy
+                'tranBy' => $tranBy,
+                'arrearSettledAmt' => $arrear
             ]);
 
             if (in_array($req['paymentMode'], $verifyPaymentModes)) {
@@ -529,13 +543,13 @@ class HoldingTaxController extends Controller
                 // ✅✅✅✅✅ Tran details insertion
                 $tranDtlReq = [
                     "tran_id" => $propTrans['id'],
-                    "saf_demand_id" => $demand->id,
+                    "prop_demand_id" => $demand->id,
                     "total_demand" => $demand->balance,
                     "ulb_id" => $req['ulbId'],
                 ];
                 $mPropTranDtl->create($tranDtlReq);
             }
-
+            // Cheque Entry
             if (in_array($req['paymentMode'], $offlinePaymentModes)) {
                 $req->merge([
                     'chequeDate' => $req['chequeDate'],
@@ -670,87 +684,11 @@ class HoldingTaxController extends Controller
             ], 401);
         }
         try {
-            $mTransaction = new PropTransaction();
-            $mPropPenalties = new PropPenaltyrebate();
-            $safController = new ActiveSafController($this->_safRepo);
-            $paymentReceiptHelper = new PaymentReceiptHelper;
-            $mUlbMasters = new UlbMaster();
 
-            $mTowards = Config::get('PropertyConstaint.SAF_TOWARDS');
-            $mAccDescription = Config::get('PropertyConstaint.ACCOUNT_DESCRIPTION');
-            $mDepartmentSection = Config::get('PropertyConstaint.DEPARTMENT_SECTION');
-
-            $rebatePenalMstrs = collect(Config::get('PropertyConstaint.REBATE_PENAL_MASTERS'));
-            $onePercKey = $rebatePenalMstrs->where('id', 1)->first()['value'];
-            $specialRebateKey = $rebatePenalMstrs->where('id', 6)->first()['value'];
-            $firstQtrKey = $rebatePenalMstrs->where('id', 2)->first()['value'];
-            $onlineRebate = $rebatePenalMstrs->where('id', 3)->first()['value'];
-
-            $propTrans = $mTransaction->getPropByTranPropId($req->tranNo);
-            $reqPropId = new Request(['propertyId' => $propTrans->property_id]);
-
-            $propProperty = $safController->getPropByHoldingNo($reqPropId)->original['data'];
-            if (empty($propProperty))
-                throw new Exception("Property Not Found");
-
-            $ownerDetails = $propProperty['owners']->first();
-            // Get Ulb Details
-            $ulbDetails = $mUlbMasters->getUlbDetails($propProperty['ulb_id']);
-            // Get Property Penalty and Rebates
-            $penalRebates = $mPropPenalties->getPropPenalRebateByTranId($propTrans->id);
-
-            $onePercPenalty = collect($penalRebates)->where('head_name', $onePercKey)->first()->amount ?? 0;
-            $this->_holdingTaxInterest = $onePercPenalty;
-            $rebate = collect($penalRebates)->where('head_name', 'Rebate')->first()->amount ?? "";
-            $specialRebate = collect($penalRebates)->where('head_name', $specialRebateKey)->first()->amount ?? 0;
-            $firstQtrRebate = collect($penalRebates)->where('head_name', $firstQtrKey)->first()->amount ?? 0;
-            $jskOrOnlineRebate = collect($penalRebates)
-                ->where('head_name', $onlineRebate)
-                ->first()->amount ?? 0;
-
-            $lateAssessmentPenalty = 0;
-            $taxDetails = $paymentReceiptHelper->readPenalyPmtAmts($lateAssessmentPenalty, $onePercPenalty, $rebate, $specialRebate, $firstQtrRebate, $propTrans->amount, $jskOrOnlineRebate);
-            $totalRebatePenals = $paymentReceiptHelper->calculateTotalRebatePenals($taxDetails);
-
-            $responseData = [
-                "departmentSection" => $mDepartmentSection,
-                "accountDescription" => $mAccDescription,
-                "transactionDate" => Carbon::parse($propTrans->tran_date)->format('d-m-Y'),
-                "transactionNo" => $propTrans->tran_no,
-                "transactionTime" => $propTrans->created_at->format('H:i:s'),
-                "applicationNo" => !empty($propProperty['new_holding_no']) ? $propProperty['new_holding_no'] : $propProperty['holding_no'],
-                "customerName" => !empty($propProperty['applicant_name']) ? $propProperty['applicant_name'] : $ownerDetails['owner_name'],
-                "mobileNo" => $ownerDetails['mobile_no'],
-                // "receiptWard" => $propProperty['new_ward_no'],
-                "address" => $propProperty['prop_address'],
-                "paidFrom" => $propTrans->from_fyear,
-                "paidFromQtr" => $propTrans->from_qtr,
-                "paidUpto" => $propTrans->to_fyear,
-                "paidUptoQtr" => $propTrans->to_qtr,
-                "paymentMode" => $propTrans->payment_mode,
-                "bankName" => $propTrans->bank_name,
-                "branchName" => $propTrans->branch_name,
-                "chequeNo" => $propTrans->cheque_no,
-                "chequeDate" => ymdToDmyDate($propTrans->cheque_date),
-                "demandAmount" => $propTrans->demand_amt,
-                "taxDetails" => $taxDetails,
-                "totalRebate" => $totalRebatePenals['totalRebate'],
-                "totalPenalty" => $totalRebatePenals['totalPenalty'],
-                "ulbId" => $propProperty['ulb_id'],
-                // "oldWardNo" => $propProperty['old_ward_no'],
-                // "newWardNo" => $propProperty['new_ward_no'],
-                "towards" => $mTowards,
-                "description" => [
-                    "keyString" => "Holding Tax"
-                ],
-                "totalPaidAmount" => $propTrans->amount,
-                "paidAmtInWords" => getIndianCurrency($propTrans->amount),
-                "tcName" => $propTrans->tc_name,
-                "tcMobile" => $propTrans->tc_mobile,
-                "ulbDetails" => $ulbDetails
-            ];
-
-            return responseMsgs(true, "Payment Receipt", remove_null($responseData), "011605", "1.0", "", "POST", $req->deviceId ?? "");
+            $generatePaymentReceipt = new GeneratePaymentReceipt;
+            $generatePaymentReceipt->generateReceipt($req->tranNo);
+            $receipt = $generatePaymentReceipt->_GRID;
+            return responseMsgs(true, "Payment Receipt", remove_null($receipt), "011605", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "011605", "1.0", "", "POST", $req->deviceId);
         }

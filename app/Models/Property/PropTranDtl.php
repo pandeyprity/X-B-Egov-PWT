@@ -15,4 +15,14 @@ class PropTranDtl extends Model
     {
         PropTranDtl::create($req);
     }
+
+    /**
+     * | Get Tran Demands by TranId
+     */
+    public function getTranDemandsByTranId($tranId)
+    {
+        return PropTranDtl::where('tran_id', $tranId)
+            ->where('status', 1)
+            ->get();
+    }
 }

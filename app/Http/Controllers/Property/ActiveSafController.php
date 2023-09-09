@@ -1880,7 +1880,7 @@ class ActiveSafController extends Controller
     }
 
     /**
-     * | Offline Saf Payment
+     * | Offline Saf Payment  
      */
     public function offlinePaymentSaf(ReqPayment $req)
     {
@@ -2081,7 +2081,7 @@ class ActiveSafController extends Controller
      * | Generate Payment Receipt(1)
      * | @param request req
      * | Status-Closed
-     * | Query Cost-3
+     * | Query Cost-3  (Not Used)
      */
     public function generatePaymentReceipt(Request $req)
     {
