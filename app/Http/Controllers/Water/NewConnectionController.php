@@ -164,6 +164,7 @@ class NewConnectionController extends Controller
      * | Repositiory Call
         | Serial No :
         | Working
+        | Check the ward 
      */
     public function waterInbox(Request $request)
     {
@@ -179,7 +180,7 @@ class NewConnectionController extends Controller
 
             $waterList = $this->getWaterApplicatioList($workflowIds, $ulbId)
                 ->whereIn('water_applications.current_role', $roleId)
-                ->whereIn('water_applications.ward_id', $occupiedWards)
+                // ->whereIn('water_applications.ward_id', $occupiedWards)
                 ->where('water_applications.is_escalate', false)
                 ->where('water_applications.parked', false)
                 ->orderByDesc('water_applications.id')
@@ -197,6 +198,7 @@ class NewConnectionController extends Controller
      * | Reposotory Call
         | Serial No :
         | Working
+        | Check the ward
      */
     public function waterOutbox(Request $req)
     {
@@ -221,7 +223,7 @@ class NewConnectionController extends Controller
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
             $waterList = $this->getWaterApplicatioList($workflowIds, $ulbId)
                 ->whereNotIn('water_applications.current_role', $roleId)
-                ->whereIn('water_applications.ward_id', $wardId)
+                // ->whereIn('water_applications.ward_id', $wardId)
                 ->orderByDesc('water_applications.id')
                 ->get();
             $filterWaterList = collect($waterList)->unique('id')->values();
@@ -248,6 +250,7 @@ class NewConnectionController extends Controller
      * | @return filterWaterList 
         | Serial No : 
         | Use
+        | Check the ward
      */
     public function btcInbox(Request $req)
     {
@@ -270,7 +273,7 @@ class NewConnectionController extends Controller
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
 
             $waterList = $this->getWaterApplicatioList($workflowIds, $ulbId)
-                ->whereIn('water_applications.ward_id', $wardId)
+                // ->whereIn('water_applications.ward_id', $wardId)
                 ->where('parked', true)
                 ->orderByDesc('water_applications.id')
                 ->get();
@@ -288,6 +291,8 @@ class NewConnectionController extends Controller
      * | Water Special Inbox
      * | excalated applications
         | Serial No :
+        | Working
+        | Check the ward 
      */
     public function waterSpecialInbox(Request $request)
     {
@@ -307,7 +312,7 @@ class NewConnectionController extends Controller
 
             $waterData = $this->getWaterApplicatioList($workflowIds, $ulbId)                              // Repository function to get SAF Details
                 ->where('water_applications.is_escalate', 1)
-                ->whereIn('water_applications.ward_id', $wardId)
+                // ->whereIn('water_applications.ward_id', $wardId)
                 ->orderByDesc('water_applications.id')
                 ->get();
             $filterWaterList = collect($waterData)->unique('id')->values();
@@ -1633,18 +1638,18 @@ class NewConnectionController extends Controller
             if (!$refWaterApplication) {
                 throw new Exception("Application Not Found for this id");
             }
-            $refWaterApplicant = $mWaterApplicant->getOwnerList($req->applicationId)->get();
+            // $refWaterApplicant = $mWaterApplicant->getOwnerList($req->applicationId)->get();
             $documentList = $this->getWaterDocLists($refWaterApplication);
             $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
                 return $this->filterDocument($value, $refWaterApplication)->first();
             });
 
-            $waterOwnerDocs['ownerDocs'] = collect($refWaterApplicant)->map(function ($owner) use ($refWaterApplication) {
-                return $this->getOwnerDocLists($owner, $refWaterApplication);
-            });
-            $waterOwnerDocs;
+            // $waterOwnerDocs['ownerDocs'] = collect($refWaterApplicant)->map(function ($owner) use ($refWaterApplication) {
+            //     return $this->getOwnerDocLists($owner, $refWaterApplication);
+            // });
+            // $waterOwnerDocs;
 
-            $totalDocLists = collect($waterTypeDocs)->merge($waterOwnerDocs);
+            $totalDocLists = collect($waterTypeDocs);//->merge($waterOwnerDocs);
             $totalDocLists['docUploadStatus'] = $refWaterApplication->doc_upload_status;
             $totalDocLists['docVerifyStatus'] = $refWaterApplication->doc_status;
             return responseMsgs(true, "", remove_null($totalDocLists), "010203", "", "", 'POST', "");
