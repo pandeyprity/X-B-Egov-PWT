@@ -329,7 +329,7 @@ class WaterPaymentController extends Controller
 
             $mWaterConnectionCharge             = new WaterConnectionCharge();
             $mWaterPenaltyInstallment           = new WaterPenaltyInstallment();
-            $mWaterApplication                  = new WaterSecondConsumer();
+            $mWaterApplication                  = new WaterApplication();
             $mWaterApprovalApplicationDetail    = new WaterApprovalApplicationDetail();
             $mWaterChequeDtl                    = new WaterChequeDtl();
             $mWaterTran                         = new WaterTran();
@@ -352,7 +352,7 @@ class WaterPaymentController extends Controller
                 $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->firstOrFail();
             }
             # Application Deatils
-            $applicationDetails = $mWaterApplication->fullWaterDetails($transactionDetails->related_id)->first();
+            $applicationDetails = $mWaterApplication->getDetailsByApplicationId($transactionDetails->related_id)->first();
             if (is_null($applicationDetails)) {
                 $applicationDetails = $mWaterApprovalApplicationDetail->getApprovedApplicationById($transactionDetails->related_id)->firstOrFail();
             }
@@ -361,17 +361,17 @@ class WaterPaymentController extends Controller
                 ->first();
 
             # if penalty Charges
-            if ($transactionDetails->penalty_ids) {
-                $penaltyIds = explode(',', $transactionDetails->penalty_ids);
-                $refPenalty = $mWaterPenaltyInstallment->getPenaltyByArrayOfId($penaltyIds);
-                $totalPenaltyAmount = collect($refPenalty)->sum('balance_amount');
+            // if ($transactionDetails->penalty_ids) {
+            //     $penaltyIds = explode(',', $transactionDetails->penalty_ids);
+            //     $refPenalty = $mWaterPenaltyInstallment->getPenaltyByArrayOfId($penaltyIds);
+            //     $totalPenaltyAmount = collect($refPenalty)->sum('balance_amount');
 
-                # check and find for rebate
-                $refRebaterDetails = $mWaterTranFineRebate->getFineRebate($applicationDetails['id'], $mSearchForRebate['4'], $transactionDetails['id'])->first();
-                if (!is_null($refRebaterDetails)) {
-                    $rebateAmount = $refRebaterDetails['amount'];
-                }
-            }
+            //     # check and find for rebate
+            //     $refRebaterDetails = $mWaterTranFineRebate->getFineRebate($applicationDetails['id'], $mSearchForRebate['4'], $transactionDetails['id'])->first();
+            //     if (!is_null($refRebaterDetails)) {
+            //         $rebateAmount = $refRebaterDetails['amount'];
+            //     }
+            // }
 
             # Transaction Date
             $refDate = $transactionDetails->tran_date;
@@ -382,9 +382,9 @@ class WaterPaymentController extends Controller
                 "accountDescription"    => $mAccDescription,
                 "transactionDate"       => $transactionDate,
                 "transactionNo"         => $refTransactionNo,
-                "applicationNo"         => $applicationDetails['consumer_no'],
-                "customerName"          => $applicationDetails['applicant_name'],
-                "customerMobile"        => $applicationDetails['mobile_no'],
+                "applicationNo"         => $applicationDetails['application_no'],
+                "customerName"          => $applicationDetails['applicantname'],
+                "customerMobile"        => $applicationDetails['mobileNo'],
                 "address"               => $applicationDetails['address'],
                 "paidFrom"              => $connectionCharges['charge_category'] ?? $transactionDetails['tran_type'],
                 "holdingNo"             => $applicationDetails['holding_no'],
@@ -410,6 +410,7 @@ class WaterPaymentController extends Controller
                 "penaltyAmount"         => $totalPenaltyAmount ?? 0,
                 "tabize"                => $applicationDetails['tab_size'],
                 "category"              =>$applicationDetails['category'],
+                "guardianName"          =>$applicationDetails ['guardianName'],
             
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
             ];
