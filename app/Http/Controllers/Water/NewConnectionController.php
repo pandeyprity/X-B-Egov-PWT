@@ -2831,6 +2831,7 @@ class NewConnectionController extends Controller
             $mWaterCharges          = new WaterConnectionCharge();
             $mWorkflowTrack         = new WorkflowTrack();
             $mWaterChrges           = new WaterConnectionTypeCharge();
+            $mPropProperty          = new PropProperty();
             $workflowID             = Config::get('workflow-constants.WATER_MASTER_ID');
             $refUserType            = Config::get('waterConstaint.REF_USER_TYPE');
             $refApplyFrom           = Config::get('waterConstaint.APP_APPLY_FROM');
@@ -2844,6 +2845,11 @@ class NewConnectionController extends Controller
                 case (1):
                     $connectionType = "New Connection";                                     // Static
                     break;
+            }
+
+            $mProperty=$mPropProperty->getPropertyId($req->propertyNo);
+            if(!$mProperty){
+                throw new Exception('holding not found');
             }
 
             # get initiater and finisher
