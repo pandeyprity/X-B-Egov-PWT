@@ -2921,7 +2921,7 @@ class Trade implements ITrade
             $application = $this->_DB->table("trade_licences AS license")
                 ->select($select)
                 ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                ->join("zone_masters", "zone_masters.id", "licences.zone_id")
+                ->join("zone_masters", "zone_masters.id", "license.zone_id")
                 ->leftjoin("ulb_ward_masters", function ($join) {
                     $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                 })
@@ -2943,7 +2943,7 @@ class Trade implements ITrade
                 $application = $this->_DB->table("trade_renewals AS license")
                     ->select($select)
                     ->join("ulb_masters", "ulb_masters.id", "license.ulb_id")
-                    ->join("zone_masters", "zone_masters.id", "licences.zone_id")
+                    ->join("zone_masters", "zone_masters.id", "license.zone_id")
                     ->leftjoin("ulb_ward_masters", function ($join) {
                         $join->on("ulb_ward_masters.id", "=", "license.ward_id");
                     })

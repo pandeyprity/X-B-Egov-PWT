@@ -671,7 +671,7 @@ class WaterApplication extends Model
         $saveNewApplication->user_type              = authUser($req)->user_type;
         // $saveNewApplication->area_sqmt              = sqFtToSqMt($req->areaSqft);
         $saveNewApplication->property_no_type       = $req->propertyNoType;
-        $saveNewApplication->property_no            = $req->PropertyNo;
+        $saveNewApplication->property_no            = $req->propertyNo;
         $saveNewApplication->tab_size               = $req->TabSize;
         $saveNewApplication->save();
         return $saveNewApplication;
