@@ -12,8 +12,10 @@ use Exception;
  */
 class GetRefUrl
 {
-    private static $icid = 600587;
-    private static $aesKey = 6000010105805020;
+    // private static $icid = 600587;
+    private static $icid = 136082;
+    // private static $aesKey = 6000010105805020;
+    private static $aesKey = 1300011160805020;
     private static $subMerchantId = 45;
     private static $paymentMode = 9;
     private static $baseUrl = "https://eazypayuat.icicibank.com";

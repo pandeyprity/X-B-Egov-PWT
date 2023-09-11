@@ -59,7 +59,7 @@ class PropDemand extends Model
             "tax1",
             "tax2",
             "tax3",
-            "sp_education_tax",
+            "sp_education_tax as state_education_tax",
             "water_benefit",
             "water_bill",
             "sp_water_cess",
