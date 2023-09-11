@@ -202,4 +202,15 @@ class WaterSecondConsumer extends Model
             ->where('water_second_consumers.status', 4);
     }
     
+    /**
+     * | Get consumer Details By ConsumerId
+     * | @param conasumerId
+     */
+    public function getConsumerDetailById($consumerId)
+    {
+        return WaterSecondConsumer::where('id', $consumerId)
+            ->where('status', 1)
+            ->firstOrFail();
+    }
+    
 }

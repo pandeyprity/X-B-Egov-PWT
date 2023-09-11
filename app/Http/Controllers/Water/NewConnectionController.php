@@ -1627,24 +1627,24 @@ class NewConnectionController extends Controller
 
         try {
             $mWaterApplication  = new WaterApplication();
-            $mWaterApplicant    = new WaterApplicant();
+            // $mWaterApplicant    = new WaterApplicant();
 
             $refWaterApplication = $mWaterApplication->getApplicationById($req->applicationId)->first();                      // Get Saf Details
             if (!$refWaterApplication) {
                 throw new Exception("Application Not Found for this id");
             }
-            $refWaterApplicant = $mWaterApplicant->getOwnerList($req->applicationId)->get();
+            // $refWaterApplicant = $mWaterApplicant->getOwnerList($req->applicationId)->get();
             $documentList = $this->getWaterDocLists($refWaterApplication);
-            $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
+           $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
                 return $this->filterDocument($value, $refWaterApplication)->first();
             });
 
-            $waterOwnerDocs['ownerDocs'] = collect($refWaterApplicant)->map(function ($owner) use ($refWaterApplication) {
-                return $this->getOwnerDocLists($owner, $refWaterApplication);
-            });
-            $waterOwnerDocs;
+            // $waterOwnerDocs['ownerDocs'] = collect($refWaterApplicant)->map(function ($owner) use ($refWaterApplication) {
+            //     return $this->getOwnerDocLists($owner, $refWaterApplication);
+            // });
+            // $waterOwnerDocs;
 
-            $totalDocLists = collect($waterTypeDocs)->merge($waterOwnerDocs);
+            $totalDocLists = collect($waterTypeDocs); //->merge($waterOwnerDocs);
             $totalDocLists['docUploadStatus'] = $refWaterApplication->doc_upload_status;
             $totalDocLists['docVerifyStatus'] = $refWaterApplication->doc_status;
             return responseMsgs(true, "", remove_null($totalDocLists), "010203", "", "", 'POST', "");
