@@ -34,7 +34,7 @@ trait WaterTrait
             'water_applications.application_no',
             'water_applicants.id as owner_id',
             'water_applicants.applicant_name as owner_name',
-            'water_applications.ward_id',
+            // 'water_applications.ward_id',
             'water_connection_through_mstrs.connection_through',
             'water_connection_type_mstrs.connection_type',
             'u.ward_name as ward_no',
