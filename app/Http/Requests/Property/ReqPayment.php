@@ -35,7 +35,7 @@ class ReqPayment extends FormRequest
             $rules['branchName'] = "required";
             $rules['chequeNo'] = "required";
         }
-        $rules['paymentMode'] = "required";
+        $rules['paymentMode'] = "required|In:CASH,CHEQUE,DD,NEFT,ONLINE,NETBANKING";
         $rules['id'] = "required";
 
         return $rules;

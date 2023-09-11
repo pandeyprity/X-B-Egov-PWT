@@ -56,6 +56,16 @@ class PropDemand extends Model
             "fyear",
             "adjust_type",
             "adjust_amt",
+            "tax1",
+            "tax2",
+            "tax3",
+            "sp_education_tax as state_education_tax",
+            "water_benefit",
+            "water_bill",
+            "sp_water_cess",
+            "drain_cess",
+            "light_cess",
+            "major_building",
         )
             ->where('property_id', $propId)
             ->where('paid_status', 0)
