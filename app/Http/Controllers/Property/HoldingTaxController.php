@@ -185,6 +185,7 @@ class HoldingTaxController extends Controller
             $holdingType = $propBasicDtls->holding_type;
             $ownershipType = $propBasicDtls->ownership_type;
             $basicDtls = collect($propBasicDtls)->only([
+                'id',
                 'holding_no',
                 'new_holding_no',
                 'ward_no',

@@ -9,6 +9,7 @@ use Exception;
  * | Created On-02-09-2023 
  * | Author-Anshu Kumar
  * | Status - Closed
+ * | Final Url-https://eazypayuat.icicibank.com/EazyPGVerify?ezpaytranid=2309111661222&amount=&paymentmode=&merchantid=136082&trandate=&pgreferenceno=  // tranid is ref no
  */
 class GetRefUrl
 {
