@@ -252,7 +252,7 @@ class WaterPaymentController extends Controller
 
         try {
             $mWaterTran             = new WaterTran();
-            $mWaterConsumer         = new WaterConsumer();
+            $mWaterConsumer         = new WaterSecondConsumer();
             $mWaterConsumerDemand   = new WaterConsumerDemand();
             $mWaterTranDetail       = new WaterTranDetail();
             $transactions           = array();
@@ -262,13 +262,9 @@ class WaterPaymentController extends Controller
             if (!$waterDtls)
                 throw new Exception("Water Consumer Not Found!");
 
-            # if Consumer in made vie application
-            $applicationId = $waterDtls->apply_connection_id;
-            if (!$applicationId)
-                throw new Exception("This Consumer has not ApplicationId!!");
 
             # if demand transactions exist
-            $connectionTran = $mWaterTran->getTransNo($applicationId, null)->get();                        // Water Connection payment History
+            $connectionTran = $mWaterTran->ConsumerTransaction($request->consumerId, null)->get();                        // Water Connection payment History
             $connectionTran = collect($connectionTran)->sortByDesc('id')->values();
             if (!$connectionTran->first() || is_null($connectionTran))
                 throw new Exception("Water Application's Transaction Details not Found!!");
@@ -329,7 +325,7 @@ class WaterPaymentController extends Controller
 
             $mWaterConnectionCharge             = new WaterConnectionCharge();
             $mWaterPenaltyInstallment           = new WaterPenaltyInstallment();
-            $mWaterApplication                  = new WaterSecondConsumer();
+            $mWaterApplication                  = new WaterApplication();
             $mWaterApprovalApplicationDetail    = new WaterApprovalApplicationDetail();
             $mWaterChequeDtl                    = new WaterChequeDtl();
             $mWaterTran                         = new WaterTran();
@@ -352,7 +348,7 @@ class WaterPaymentController extends Controller
                 $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->firstOrFail();
             }
             # Application Deatils
-            $applicationDetails = $mWaterApplication->fullWaterDetails($transactionDetails->related_id)->first();
+            $applicationDetails = $mWaterApplication->getDetailsByApplicationId($transactionDetails->related_id)->first();
             if (is_null($applicationDetails)) {
                 $applicationDetails = $mWaterApprovalApplicationDetail->getApprovedApplicationById($transactionDetails->related_id)->firstOrFail();
             }
@@ -361,17 +357,17 @@ class WaterPaymentController extends Controller
                 ->first();
 
             # if penalty Charges
-            if ($transactionDetails->penalty_ids) {
-                $penaltyIds = explode(',', $transactionDetails->penalty_ids);
-                $refPenalty = $mWaterPenaltyInstallment->getPenaltyByArrayOfId($penaltyIds);
-                $totalPenaltyAmount = collect($refPenalty)->sum('balance_amount');
+            // if ($transactionDetails->penalty_ids) {
+            //     $penaltyIds = explode(',', $transactionDetails->penalty_ids);
+            //     $refPenalty = $mWaterPenaltyInstallment->getPenaltyByArrayOfId($penaltyIds);
+            //     $totalPenaltyAmount = collect($refPenalty)->sum('balance_amount');
 
-                # check and find for rebate
-                $refRebaterDetails = $mWaterTranFineRebate->getFineRebate($applicationDetails['id'], $mSearchForRebate['4'], $transactionDetails['id'])->first();
-                if (!is_null($refRebaterDetails)) {
-                    $rebateAmount = $refRebaterDetails['amount'];
-                }
-            }
+            //     # check and find for rebate
+            //     $refRebaterDetails = $mWaterTranFineRebate->getFineRebate($applicationDetails['id'], $mSearchForRebate['4'], $transactionDetails['id'])->first();
+            //     if (!is_null($refRebaterDetails)) {
+            //         $rebateAmount = $refRebaterDetails['amount'];
+            //     }
+            // }
 
             # Transaction Date
             $refDate = $transactionDetails->tran_date;
@@ -382,9 +378,9 @@ class WaterPaymentController extends Controller
                 "accountDescription"    => $mAccDescription,
                 "transactionDate"       => $transactionDate,
                 "transactionNo"         => $refTransactionNo,
-                "applicationNo"         => $applicationDetails['consumer_no'],
-                "customerName"          => $applicationDetails['applicant_name'],
-                "customerMobile"        => $applicationDetails['mobile_no'],
+                "applicationNo"         => $applicationDetails['application_no'],
+                "customerName"          => $applicationDetails['applicantname'],
+                "customerMobile"        => $applicationDetails['mobileNo'],
                 "address"               => $applicationDetails['address'],
                 "paidFrom"              => $connectionCharges['charge_category'] ?? $transactionDetails['tran_type'],
                 "holdingNo"             => $applicationDetails['holding_no'],
@@ -410,6 +406,7 @@ class WaterPaymentController extends Controller
                 "penaltyAmount"         => $totalPenaltyAmount ?? 0,
                 "tabize"                => $applicationDetails['tab_size'],
                 "category"              =>$applicationDetails['category'],
+                "guardianName"          =>$applicationDetails ['guardianName'],
             
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
             ];
@@ -1565,7 +1562,7 @@ class WaterPaymentController extends Controller
         try {
             $refTransactionNo       = $req->transactionNo;
             $mWaterConsumerDemand   = new WaterConsumerDemand();
-            $mWaterConsumer         = new WaterConsumer();
+            $mWaterConsumer         = new WaterSecondConsumer();
             $mWaterTranDetail       = new WaterTranDetail();
             $mWaterChequeDtl        = new WaterChequeDtl();
             $mWaterTran             = new WaterTran();
@@ -1588,7 +1585,7 @@ class WaterPaymentController extends Controller
                 $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->first();
             }
             # Application Deatils
-            $consumerDetails = $mWaterConsumer->getRefDetailByConsumerNo("id", $transactionDetails->related_id)->firstOrFail();
+            $consumerDetails = $mWaterConsumer->fullWaterDetails( $transactionDetails->related_id)->firstOrFail();
 
             # consumer Demand Details 
             $detailsOfDemand = $mWaterTranDetail->getTransDemandByIds($transactionDetails->id)->get();
@@ -1598,14 +1595,7 @@ class WaterPaymentController extends Controller
             $consumerDemands = $mWaterConsumerDemand->getDemandCollectively($demandIds)
                 ->orderBy('demand_from')
                 ->get();
-            $taxids = collect($consumerDemands)->pluck('consumer_tax_id')->filter();
-            if (!empty($taxids) || !is_null($taxids)) {
-                $meterReadings = $mWaterConsumerTax->getTaxById($taxids)
-                    ->orderByDesc('id')
-                    ->get();
-                $lastDemand = collect($meterReadings)->first()['initial_reading'];
-                $currentDemand = collect($meterReadings)->first()['final_reading'];
-            }
+           
 
             $fromDate           = collect($consumerDemands)->first()->demand_from;
             $startingDate       = Carbon::createFromFormat('Y-m-d',  $fromDate)->startOfMonth();

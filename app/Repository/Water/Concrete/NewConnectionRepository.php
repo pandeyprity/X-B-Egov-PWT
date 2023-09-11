@@ -684,9 +684,9 @@ class NewConnectionRepository implements iNewConnection
             return responseMsg(false, "Application Data Not found!", $request->applicationId);
         }
 
-        # Ward Name
-        $refApplication = collect($applicationDetails)->first();
-        $wardDetails = $mUlbNewWardmap->getWard($refApplication->ward_id);
+        // # Ward Name
+        // $refApplication = collect($applicationDetails)->first();
+        // $wardDetails = $mUlbNewWardmap->getWard($refApplication->ward_id);
         # owner Details
         $ownerDetails = $ownerObj->ownerByApplication($request)->get();
         $ownerDetail = collect($ownerDetails)->map(function ($value, $key) {
@@ -698,8 +698,8 @@ class NewConnectionRepository implements iNewConnection
         ];
 
         # DataArray
-        $basicDetails = $this->getBasicDetails($applicationDetails, $wardDetails);
-        $propertyDetails = $this->getpropertyDetails($applicationDetails, $wardDetails);
+        $basicDetails = $this->getBasicDetails($applicationDetails);
+        $propertyDetails = $this->getpropertyDetails($applicationDetails);
         $electricDetails = $this->getElectricDetails($applicationDetails);
 
         $firstView = [
@@ -717,7 +717,7 @@ class NewConnectionRepository implements iNewConnection
         $fullDetailsData['fullDetailsData']['dataArray'] = new collection([$firstView, $secondView, $thirdView]);
 
         # CardArray
-        $cardDetails = $this->getCardDetails($applicationDetails, $ownerDetails, $wardDetails);
+        $cardDetails = $this->getCardDetails($applicationDetails, $ownerDetails);
         $cardData = [
             'headerTitle' => 'Water Connection',
             'data' => $cardDetails
@@ -774,11 +774,11 @@ class NewConnectionRepository implements iNewConnection
         | Serial No : 08.01
         | Workinig 
      */
-    public function getBasicDetails($applicationDetails, $wardDetails)
+    public function getBasicDetails($applicationDetails)
     {
         $collectionApplications = collect($applicationDetails)->first();
         return new Collection([
-            ['displayString' => 'Ward No',            'key' => 'WardNo',              'value' => $wardDetails->ward_name],
+    
             ['displayString' => 'Type of Connection', 'key' => 'TypeOfConnection',    'value' => $collectionApplications->connection_type],
             ['displayString' => 'Property Type',      'key' => 'PropertyType',        'value' => $collectionApplications->property_type],
             ['displayString' => 'Connection Through', 'key' => 'ConnectionThrough',   'value' => $collectionApplications->connection_through],
@@ -798,7 +798,7 @@ class NewConnectionRepository implements iNewConnection
         | Serial No : 08.02
         | Workinig 
      */
-    public function getpropertyDetails($applicationDetails, $wardDetails)
+    public function getpropertyDetails($applicationDetails)
     {
         $propertyDetails = array();
         $collectionApplications = collect($applicationDetails)->first();
@@ -811,7 +811,6 @@ class NewConnectionRepository implements iNewConnection
         if (is_null($collectionApplications->saf_no) && is_null($collectionApplications->holding_no)) {
             array_push($propertyDetails, ['displayString' => 'Applied By',    'key' => 'AppliedBy',   'value' => 'Id Proof']);
         }
-        array_push($propertyDetails, ['displayString' => 'Ward No',       'key' => 'WardNo',      'value' => $wardDetails->ward_name]);
         array_push($propertyDetails, ['displayString' => 'Area in Sqft',  'key' => 'AreaInSqft',  'value' => $collectionApplications->area_sqft]);
         array_push($propertyDetails, ['displayString' => 'Address',       'key' => 'Address',     'value' => $collectionApplications->address]);
         array_push($propertyDetails, ['displayString' => 'Landmark',      'key' => 'Landmark',    'value' => $collectionApplications->landmark]);
@@ -869,7 +868,7 @@ class NewConnectionRepository implements iNewConnection
         | Serial No : 08.05
         | Workinig 
      */
-    public function getCardDetails($applicationDetails, $ownerDetails, $wardDetails)
+    public function getCardDetails($applicationDetails, $ownerDetails)
     {
         $ownerName = collect($ownerDetails)->map(function ($value) {
             return $value['owner_name'];
@@ -877,7 +876,7 @@ class NewConnectionRepository implements iNewConnection
         $ownerDetail = $ownerName->implode(',');
         $collectionApplications = collect($applicationDetails)->first();
         return new Collection([
-            ['displayString' => 'Ward No.',             'key' => 'WardNo.',           'value' => $wardDetails->ward_name],
+
             ['displayString' => 'Application No.',      'key' => 'ApplicationNo.',    'value' => $collectionApplications->application_no],
             ['displayString' => 'Owner Name',           'key' => 'OwnerName',         'value' => $ownerDetail],
             ['displayString' => 'Property Type',        'key' => 'PropertyType',      'value' => $collectionApplications->property_type],

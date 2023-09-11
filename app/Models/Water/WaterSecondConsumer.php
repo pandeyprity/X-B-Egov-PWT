@@ -144,9 +144,10 @@ class WaterSecondConsumer extends Model
     {
         return WaterSecondConsumer::select(
             'water_second_consumers.*',
+            'water_second_consumers.id',
             'water_second_consumers.consumer_no',
-            'water_second_connection_charges.amount',
-            'water_second_connection_charges.charge_category',
+            // 'water_second_connection_charges.amount',
+            // 'water_second_connection_charges.charge_category',
             'water_consumer_meters.meter_no',
             'water_consumer_meters.connection_type',
             'water_consumer_meters.initial_reading',
@@ -154,6 +155,7 @@ class WaterSecondConsumer extends Model
             'ulb_masters.ulb_name',
             "water_consumer_owners.applicant_name",
             "water_consumer_owners.guardian_name",
+            'water_consumer_owners.mobile_no',
             "water_consumer_owners.email",
             DB::raw('ulb_ward_masters.ward_name as ward_number') // Alias the column as "ward_number"
         )
@@ -161,7 +163,7 @@ class WaterSecondConsumer extends Model
             ->join('ulb_masters', 'ulb_masters.id', 'water_second_consumers.ulb_id')
             ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
             ->join('water_consumer_meters', 'water_consumer_meters.consumer_id', 'water_second_consumers.id')
-            ->leftjoin('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
+            // ->leftjoin('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.id', $applicationId)
             ->where('water_second_consumers.status', 1);
     }
@@ -200,6 +202,17 @@ class WaterSecondConsumer extends Model
             ->join('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.id', $applicationId)
             ->where('water_second_consumers.status', 4);
+    }
+    
+    /**
+     * | Get consumer Details By ConsumerId
+     * | @param conasumerId
+     */
+    public function getConsumerDetailById($consumerId)
+    {
+        return WaterSecondConsumer::where('id', $consumerId)
+            ->where('status', 1)
+            ->firstOrFail();
     }
     
 }

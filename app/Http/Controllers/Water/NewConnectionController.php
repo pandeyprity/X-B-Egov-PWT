@@ -164,7 +164,6 @@ class NewConnectionController extends Controller
      * | Repositiory Call
         | Serial No :
         | Working
-        | Check the ward 
      */
     public function waterInbox(Request $request)
     {
@@ -174,7 +173,7 @@ class NewConnectionController extends Controller
             $ulbId  = $user->ulb_id;
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
 
-            $occupiedWards = $this->getWardByUserId($userId)->pluck('ward_id');
+            // $occupiedWards = $this->getWardByUserId($userId)->pluck('ward_id');
             $roleId = $this->getRoleIdByUserId($userId)->pluck('wf_role_id');
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
 
@@ -198,7 +197,6 @@ class NewConnectionController extends Controller
      * | Reposotory Call
         | Serial No :
         | Working
-        | Check the ward
      */
     public function waterOutbox(Request $req)
     {
@@ -215,10 +213,10 @@ class NewConnectionController extends Controller
                 return $value->wf_role_id;
             });
 
-            $refWard = $mWfWardUser->getWardsByUserId($userId);
-            $wardId = $refWard->map(function ($value) {
-                return $value->ward_id;
-            });
+            // $refWard = $mWfWardUser->getWardsByUserId($userId);
+            // $wardId = $refWard->map(function ($value) {
+            //     return $value->ward_id;
+            // });
 
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
             $waterList = $this->getWaterApplicatioList($workflowIds, $ulbId)
@@ -250,7 +248,6 @@ class NewConnectionController extends Controller
      * | @return filterWaterList 
         | Serial No : 
         | Use
-        | Check the ward
      */
     public function btcInbox(Request $req)
     {
@@ -273,7 +270,7 @@ class NewConnectionController extends Controller
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
 
             $waterList = $this->getWaterApplicatioList($workflowIds, $ulbId)
-                // ->whereIn('water_applications.ward_id', $wardId)
+                ->whereIn('water_applications.ward_id', $wardId)
                 ->where('parked', true)
                 ->orderByDesc('water_applications.id')
                 ->get();
@@ -291,8 +288,6 @@ class NewConnectionController extends Controller
      * | Water Special Inbox
      * | excalated applications
         | Serial No :
-        | Working
-        | Check the ward 
      */
     public function waterSpecialInbox(Request $request)
     {
@@ -312,7 +307,7 @@ class NewConnectionController extends Controller
 
             $waterData = $this->getWaterApplicatioList($workflowIds, $ulbId)                              // Repository function to get SAF Details
                 ->where('water_applications.is_escalate', 1)
-                // ->whereIn('water_applications.ward_id', $wardId)
+                ->whereIn('water_applications.ward_id', $wardId)
                 ->orderByDesc('water_applications.id')
                 ->get();
             $filterWaterList = collect($waterData)->unique('id')->values();
@@ -1632,7 +1627,7 @@ class NewConnectionController extends Controller
 
         try {
             $mWaterApplication  = new WaterApplication();
-            $mWaterApplicant    = new WaterApplicant();
+            // $mWaterApplicant    = new WaterApplicant();
 
             $refWaterApplication = $mWaterApplication->getApplicationById($req->applicationId)->first();                      // Get Saf Details
             if (!$refWaterApplication) {
@@ -1640,7 +1635,7 @@ class NewConnectionController extends Controller
             }
             // $refWaterApplicant = $mWaterApplicant->getOwnerList($req->applicationId)->get();
             $documentList = $this->getWaterDocLists($refWaterApplication);
-            $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
+           $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
                 return $this->filterDocument($value, $refWaterApplication)->first();
             });
 
@@ -1649,7 +1644,7 @@ class NewConnectionController extends Controller
             // });
             // $waterOwnerDocs;
 
-            $totalDocLists = collect($waterTypeDocs);//->merge($waterOwnerDocs);
+            $totalDocLists = collect($waterTypeDocs); //->merge($waterOwnerDocs);
             $totalDocLists['docUploadStatus'] = $refWaterApplication->doc_upload_status;
             $totalDocLists['docVerifyStatus'] = $refWaterApplication->doc_status;
             return responseMsgs(true, "", remove_null($totalDocLists), "010203", "", "", 'POST', "");
@@ -2069,7 +2064,7 @@ class NewConnectionController extends Controller
         try {
             $applicationId              = $request->applicationId;
             $mWaterConnectionCharge     = new WaterSecondConnectionCharge();
-            $mWaterApplication          = new WaterSecondConsumer();
+            $mWaterApplication          = new WaterApplication();
             $mWaterPenaltyInstallment   = new WaterPenaltyInstallment();
             $mWaterTran                 = new WaterTran();
             $refChargeCatagory          = Config::get("waterConstaint.CHARGE_CATAGORY");
@@ -2836,6 +2831,7 @@ class NewConnectionController extends Controller
             $mWaterCharges          = new WaterConnectionCharge();
             $mWorkflowTrack         = new WorkflowTrack();
             $mWaterChrges           = new WaterConnectionTypeCharge();
+            $mPropProperty          = new PropProperty();
             $workflowID             = Config::get('workflow-constants.WATER_MASTER_ID');
             $refUserType            = Config::get('waterConstaint.REF_USER_TYPE');
             $refApplyFrom           = Config::get('waterConstaint.APP_APPLY_FROM');
@@ -2849,6 +2845,11 @@ class NewConnectionController extends Controller
                 case (1):
                     $connectionType = "New Connection";                                     // Static
                     break;
+            }
+
+            $mProperty=$mPropProperty->getPropertyId($req->propertyNo);
+            if(!$mProperty){
+                throw new Exception('holding not found');
             }
 
             # get initiater and finisher
@@ -2898,7 +2899,7 @@ class NewConnectionController extends Controller
             $applicationNo  = $idGeneration->generate();
             $applicationNo  = str_replace('/', '-', $applicationNo);
 
-            $applicationId = $mWaterApplication->saveWaterApplications($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
+            $applicationId = $mWaterApplication->saveWaterApplications($connectypeId,$req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
             $meta = [
                 'applicationId'     => $applicationId->id,
                 "amount"            => $Charges->amount,
