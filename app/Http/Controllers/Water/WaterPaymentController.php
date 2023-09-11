@@ -262,13 +262,9 @@ class WaterPaymentController extends Controller
             if (!$waterDtls)
                 throw new Exception("Water Consumer Not Found!");
 
-            # if Consumer in made vie application
-            $applicationId = $waterDtls->apply_connection_id;
-            if (!$applicationId)
-                throw new Exception("This Consumer has not ApplicationId!!");
 
             # if demand transactions exist
-            $connectionTran = $mWaterTran->getTransNo($applicationId, null)->get();                        // Water Connection payment History
+            $connectionTran = $mWaterTran->ConsumerTransaction($request->consumerId, null)->get();                        // Water Connection payment History
             $connectionTran = collect($connectionTran)->sortByDesc('id')->values();
             if (!$connectionTran->first() || is_null($connectionTran))
                 throw new Exception("Water Application's Transaction Details not Found!!");
@@ -1566,7 +1562,7 @@ class WaterPaymentController extends Controller
         try {
             $refTransactionNo       = $req->transactionNo;
             $mWaterConsumerDemand   = new WaterConsumerDemand();
-            $mWaterConsumer         = new WaterConsumer();
+            $mWaterConsumer         = new WaterSecondConsumer();
             $mWaterTranDetail       = new WaterTranDetail();
             $mWaterChequeDtl        = new WaterChequeDtl();
             $mWaterTran             = new WaterTran();
@@ -1589,7 +1585,7 @@ class WaterPaymentController extends Controller
                 $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->first();
             }
             # Application Deatils
-            $consumerDetails = $mWaterConsumer->getRefDetailByConsumerNo("id", $transactionDetails->related_id)->firstOrFail();
+            $consumerDetails = $mWaterConsumer->fullWaterDetails( $transactionDetails->related_id)->firstOrFail();
 
             # consumer Demand Details 
             $detailsOfDemand = $mWaterTranDetail->getTransDemandByIds($transactionDetails->id)->get();
@@ -1599,14 +1595,7 @@ class WaterPaymentController extends Controller
             $consumerDemands = $mWaterConsumerDemand->getDemandCollectively($demandIds)
                 ->orderBy('demand_from')
                 ->get();
-            $taxids = collect($consumerDemands)->pluck('consumer_tax_id')->filter();
-            if (!empty($taxids) || !is_null($taxids)) {
-                $meterReadings = $mWaterConsumerTax->getTaxById($taxids)
-                    ->orderByDesc('id')
-                    ->get();
-                $lastDemand = collect($meterReadings)->first()['initial_reading'];
-                $currentDemand = collect($meterReadings)->first()['final_reading'];
-            }
+           
 
             $fromDate           = collect($consumerDemands)->first()->demand_from;
             $startingDate       = Carbon::createFromFormat('Y-m-d',  $fromDate)->startOfMonth();

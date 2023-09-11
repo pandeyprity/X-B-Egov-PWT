@@ -645,11 +645,11 @@ class WaterApplication extends Model
         }
         $mWaterApplication->save();
     }
-    public function saveWaterApplications($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo)
+    public function saveWaterApplications($connectypeId,$req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo)
     {
 
         $saveNewApplication = new WaterApplication();
-        $saveNewApplication->connection_type_id     = $req->connectionTypeId;
+        $saveNewApplication->connection_type_id     = $connectypeId;
         $saveNewApplication->property_type_id       = $req->propertyTypeId;
         $saveNewApplication->owner_type             = $req->ownerType;
         $saveNewApplication->category               = $req->category;

@@ -37,13 +37,13 @@ trait WaterTrait
             // 'water_applications.ward_id',
             'water_connection_through_mstrs.connection_through',
             'water_connection_type_mstrs.connection_type',
-            'u.ward_name as ward_no',
+            // 'u.ward_name as ward_no',
             'water_applications.workflow_id',
             'water_applications.current_role as role_id',
             'water_applications.apply_date',
             'water_applications.parked'
         )
-            ->join('ulb_ward_masters as u', 'u.id', '=', 'water_applications.ward_id')
+            // ->join('ulb_ward_masters as u', 'u.id', '=', 'water_applications.ward_id')
             ->join('water_applicants', 'water_applicants.application_id', '=', 'water_applications.id')
             ->leftjoin('water_connection_through_mstrs', 'water_connection_through_mstrs.id', '=', 'water_applications.connection_through')
             ->leftjoin('water_connection_type_mstrs', 'water_connection_type_mstrs.id', '=', 'water_applications.connection_type_id')

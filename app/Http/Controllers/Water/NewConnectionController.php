@@ -173,13 +173,13 @@ class NewConnectionController extends Controller
             $ulbId  = $user->ulb_id;
             $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
 
-            $occupiedWards = $this->getWardByUserId($userId)->pluck('ward_id');
+            // $occupiedWards = $this->getWardByUserId($userId)->pluck('ward_id');
             $roleId = $this->getRoleIdByUserId($userId)->pluck('wf_role_id');
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
 
             $waterList = $this->getWaterApplicatioList($workflowIds, $ulbId)
                 ->whereIn('water_applications.current_role', $roleId)
-                ->whereIn('water_applications.ward_id', $occupiedWards)
+                // ->whereIn('water_applications.ward_id', $occupiedWards)
                 ->where('water_applications.is_escalate', false)
                 ->where('water_applications.parked', false)
                 ->orderByDesc('water_applications.id')
@@ -213,15 +213,15 @@ class NewConnectionController extends Controller
                 return $value->wf_role_id;
             });
 
-            $refWard = $mWfWardUser->getWardsByUserId($userId);
-            $wardId = $refWard->map(function ($value) {
-                return $value->ward_id;
-            });
+            // $refWard = $mWfWardUser->getWardsByUserId($userId);
+            // $wardId = $refWard->map(function ($value) {
+            //     return $value->ward_id;
+            // });
 
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
             $waterList = $this->getWaterApplicatioList($workflowIds, $ulbId)
                 ->whereNotIn('water_applications.current_role', $roleId)
-                ->whereIn('water_applications.ward_id', $wardId)
+                // ->whereIn('water_applications.ward_id', $wardId)
                 ->orderByDesc('water_applications.id')
                 ->get();
             $filterWaterList = collect($waterList)->unique('id')->values();
@@ -2899,7 +2899,7 @@ class NewConnectionController extends Controller
             $applicationNo  = $idGeneration->generate();
             $applicationNo  = str_replace('/', '-', $applicationNo);
 
-            $applicationId = $mWaterApplication->saveWaterApplications($req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
+            $applicationId = $mWaterApplication->saveWaterApplications($connectypeId,$req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
             $meta = [
                 'applicationId'     => $applicationId->id,
                 "amount"            => $Charges->amount,
