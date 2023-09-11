@@ -252,7 +252,7 @@ class WaterPaymentController extends Controller
 
         try {
             $mWaterTran             = new WaterTran();
-            $mWaterConsumer         = new WaterConsumer();
+            $mWaterConsumer         = new WaterSecondConsumer();
             $mWaterConsumerDemand   = new WaterConsumerDemand();
             $mWaterTranDetail       = new WaterTranDetail();
             $transactions           = array();
