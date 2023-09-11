@@ -1087,6 +1087,7 @@ class NewConnectionController extends Controller
             } else {
                 $this->updateWaterStatus($req, $getWaterDetails);
             }
+
             # if the application is parked and btc 
             if ($getWaterDetails->parked == true) {
                 $mWfActiveDocument->deactivateRejectedDoc($metaReqs);
@@ -1169,7 +1170,7 @@ class NewConnectionController extends Controller
             }
             return true;
         });
-        $checkOwnerDocument = collect($refOwnerDoc)->map(function ($value, $key) {
+        $checkOwnerDocument = collect($refOwnerDoc)->map(function ($value) {
             if ($value['isMadatory'] == 1) {
                 $doc = collect($value['uploadDoc'])->first();
                 if (is_null($doc)) {
@@ -1345,42 +1346,42 @@ class NewConnectionController extends Controller
                 }
                 array_push($requiedDocs, $doc);
             }
-            foreach ($refOwneres as $key => $val) {
-                $docRefList = ["ID_PROOF"];
-                foreach ($docRefList as $key => $refOwnerDoc) {
-                    $doc = (array) null;
-                    $testOwnersDoc[] = (array) null;
-                    $doc["ownerId"] = $val->id;
-                    $doc["ownerName"] = $val->applicant_name;
-                    $doc["docName"]   = $refOwnerDoc;
-                    $refDocName  = str_replace('_', ' ', $refOwnerDoc);
-                    $doc["refDocName"] = ucwords(strtolower($refDocName));
-                    $doc['isMadatory'] = 1;
-                    $ref['docValue'] = $refWaterNewConnection->getDocumentList([$refOwnerDoc]);   #"CONSUMER_PHOTO"
-                    $doc['docVal'] = $docFor = collect($ref['docValue'])->map(function ($value) {
-                        $refDoc = $value['doc_name'];
-                        $refText = str_replace('_', ' ', $refDoc);
-                        $value['dispayName'] = ucwords(strtolower($refText));
-                        return $value;
-                    });
-                    $refdocForId = collect($ref['docValue'])->map(function ($value, $key) {
-                        return $value['doc_name'];
-                    });
-                    $doc['uploadDoc'] = [];
-                    $uploadDoc = $refWfActiveDocument->getOwnerDocByRefIdsDocCode($refApplication->id, $refApplication->workflow_id, $moduleId, $refdocForId, $doc["ownerId"]); # Check Document is Uploaded Of That Type
-                    if (isset($uploadDoc->first()->doc_path)) {
-                        $path = $refWaterNewConnection->readDocumentPath($uploadDoc->first()->doc_path);
-                        $doc["uploadDoc"]["doc_path"] = !empty(trim($uploadDoc->first()->doc_path)) ? $path : null;
-                        $doc["uploadDoc"]["doc_code"] = $uploadDoc->first()->doc_code;
-                        $doc["uploadDoc"]["verify_status"] = $uploadDoc->first()->verify_status;
-                    }
-                    array_push($testOwnersDoc, $doc);
-                }
-            }
-            $ownerDoc = collect($testOwnersDoc)->filter()->values();
+            // foreach ($refOwneres as $key => $val) {
+            //     $docRefList = ["ID_PROOF"];
+            //     foreach ($docRefList as $key => $refOwnerDoc) {
+            //         $doc = (array) null;
+            //         $testOwnersDoc[] = (array) null;
+            //         $doc["ownerId"] = $val->id;
+            //         $doc["ownerName"] = $val->applicant_name;
+            //         $doc["docName"]   = $refOwnerDoc;
+            //         $refDocName  = str_replace('_', ' ', $refOwnerDoc);
+            //         $doc["refDocName"] = ucwords(strtolower($refDocName));
+            //         $doc['isMadatory'] = 1;
+            //         $ref['docValue'] = $refWaterNewConnection->getDocumentList([$refOwnerDoc]);   #"CONSUMER_PHOTO"
+            //         $doc['docVal'] = $docFor = collect($ref['docValue'])->map(function ($value) {
+            //             $refDoc = $value['doc_name'];
+            //             $refText = str_replace('_', ' ', $refDoc);
+            //             $value['dispayName'] = ucwords(strtolower($refText));
+            //             return $value;
+            //         });
+            //         $refdocForId = collect($ref['docValue'])->map(function ($value, $key) {
+            //             return $value['doc_name'];
+            //         });
+            //         $doc['uploadDoc'] = [];
+            //         $uploadDoc = $refWfActiveDocument->getOwnerDocByRefIdsDocCode($refApplication->id, $refApplication->workflow_id, $moduleId, $refdocForId, $doc["ownerId"]); # Check Document is Uploaded Of That Type
+            //         if (isset($uploadDoc->first()->doc_path)) {
+            //             $path = $refWaterNewConnection->readDocumentPath($uploadDoc->first()->doc_path);
+            //             $doc["uploadDoc"]["doc_path"] = !empty(trim($uploadDoc->first()->doc_path)) ? $path : null;
+            //             $doc["uploadDoc"]["doc_code"] = $uploadDoc->first()->doc_code;
+            //             $doc["uploadDoc"]["verify_status"] = $uploadDoc->first()->verify_status;
+            //         }
+            //         array_push($testOwnersDoc, $doc);
+            //     }
+            // }
+            // $ownerDoc = collect($testOwnersDoc)->filter()->values();
 
             $data["documentsList"]  = $requiedDocs;
-            $data["ownersDocList"]  = $ownerDoc;
+            // $data["ownersDocList"]  = $ownerDoc;
             $data['doc_upload_status'] = $refApplication['doc_upload_status'];
             $data['connectionCharges'] = $connectionCharges;
             return responseMsg(true, "Document Uploaded!", $data);
