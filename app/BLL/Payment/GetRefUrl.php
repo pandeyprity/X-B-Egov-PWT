@@ -17,7 +17,7 @@ class GetRefUrl
     private static $subMerchantId = 45;
     private static $paymentMode = 9;
     private static $baseUrl = "https://eazypayuat.icicibank.com";
-    private static $returnUrl = "http://203.129.217.244/citizen";
+    private static $returnUrl = "http://203.129.217.244/property";
     private static $ciphering = "aes-128-ecb";                 // Store the cipher method for encryption
 
     /**
@@ -36,7 +36,7 @@ class GetRefUrl
         $tranAmt = $this->encryptAes(10);
         $paymentMode = $this->encryptAes(self::$paymentMode);
 
-        $plainUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatoryf ields=' . $mandatoryField . "&optional fields=X|X|X" . '&returnurl=' . self::$returnUrl . '&Reference No=' . $refNo
+        $plainUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $mandatoryField . "&optional fields=X|X|X" . '&returnurl=' . self::$returnUrl . '&Reference No=' . $refNo
             . '&submerchantid=' . self::$subMerchantId . '&transaction amount=' . "10" . '&paymode=' . self::$paymentMode;
 
         $encryptUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $eMandatoryField . "&optional fields=$optionalField" . '&returnurl=' . $returnUrl . '&Reference No=' . $eRefNo

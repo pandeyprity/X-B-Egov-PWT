@@ -31,7 +31,6 @@ class GeneratePaymentReceipt
     private $_tranType;
     private $_currentDemand;
     private $_overDueDemand;
-    private $_aggregateDemand;
     private $_mPropPenaltyRebates;
     public array $_GRID;
     private $_trans;
@@ -182,6 +181,7 @@ class GeneratePaymentReceipt
             "chequeNo" => $this->_trans->cheque_no,
             "chequeDate" => ymdToDmyDate($this->_trans->cheque_date),
             "demandAmount" => $this->_trans->demand_amt,
+            "arrearSettled" => $this->_trans->arrear_settled_amt,
             "ulbId" => $this->_propertyDtls->ulb_id,
             "wardNo" => $this->_propertyDtls->ward_no,
             "towards" => $this->_mTowards,
