@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class PaymentReconciliation extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_master';
 
     /**
      * | --------------------------- All Details of Payment Reconciliation ------------------------------- |
