@@ -14,7 +14,7 @@ use Exception;
 class GetRefUrl
 {
     // private static $icid = 600587;
-    private static $icid = 136082;
+    private static $icid = 136082;                                                      // Merchant Id
     // private static $aesKey = 6000010105805020;
     private static $aesKey = 1300011160805020;
     private static $subMerchantId = 45;
@@ -22,6 +22,8 @@ class GetRefUrl
     private static $baseUrl = "https://eazypayuat.icicibank.com";
     private static $returnUrl = "http://203.129.217.244/property";
     private static $ciphering = "aes-128-ecb";                 // Store the cipher method for encryption
+    public $_refNo;
+    public $_refUrl;
 
     /**
      * | Generate Referal Url
@@ -30,6 +32,7 @@ class GetRefUrl
     {
         $todayDate = Carbon::now()->format('d/M/Y');
         $refNo = time() . rand();
+        $this->_refNo = $refNo;
         $mandatoryField = "$refNo|" . self::$subMerchantId . "|10|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
         $eMandatoryField = $this->encryptAes($mandatoryField);
         $optionalField = $this->encryptAes("X|X|X");
@@ -44,6 +47,7 @@ class GetRefUrl
 
         $encryptUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $eMandatoryField . "&optional fields=$optionalField" . '&returnurl=' . $returnUrl . '&Reference No=' . $eRefNo
             . '&submerchantid=' . $subMerchantId . '&transaction amount=' . $tranAmt . '&paymode=' . $paymentMode;
+        $this->_refUrl = $encryptUrl;
         return [
             'plainUrl' => $plainUrl,
             'encryptUrl' => $encryptUrl

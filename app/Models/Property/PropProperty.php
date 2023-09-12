@@ -726,6 +726,7 @@ class PropProperty extends Model
                 'p.prop_address',
                 'p.ulb_id',
                 'o.owner_name',
+                'o.guardian_name',
                 'o.mobile_no',
                 'u.ward_name as ward_no'
             )

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Property;
 
+use App\BLL\Payment\ModuleRefUrl;
 use App\BLL\Property\Akola\GeneratePaymentReceipt;
 use App\BLL\Property\PaymentReceiptHelper;
 use App\BLL\Property\PostRazorPayPenaltyRebate;
@@ -23,6 +24,7 @@ use App\Models\Property\PropAdjustment;
 use App\Models\Property\PropAdvance;
 use App\Models\Property\PropChequeDtl;
 use App\Models\Property\PropDemand;
+use App\Models\Property\PropIcicipayPayment;
 use App\Models\Property\PropOwner;
 use App\Models\Property\PropPenaltyrebate;
 use App\Models\Property\PropProperty;
@@ -197,7 +199,9 @@ class HoldingTaxController extends Controller
                 'is_water_harvesting',
                 'ulb_id',
                 'prop_address',
-                'land_occupation_date'
+                'land_occupation_date',
+                'citizen_id',
+                'user_id'
             ]);
             $basicDtls["holding_type"] = $holdingType;
             $basicDtls["ownership_type"] = $ownershipType;
@@ -211,124 +215,67 @@ class HoldingTaxController extends Controller
     }
 
     /**
-     * | Generate Order ID(3)
+     * | Generate Referal Url
      */
-    public function generateOrderId(Request $req)
+    public function getReferalUrl(Request $req)
     {
-        $req->validate([
-            'propId' => 'required'
-        ]);
+        $validated = Validator::make(
+            $req->all(),
+            ['propId' => 'required|integer']
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+        // Initializations
+        $moduleRefUrl = new ModuleRefUrl;
+        $mPropIciciPayPayments = new PropIcicipayPayment();
         try {
-            $departmentId = 1;
-            $propProperties = new PropProperty();
-            $ipAddress = getClientIpAddress();
-            $mPropRazorPayRequest = new PropRazorpayRequest();
-            $postRazorPayPenaltyRebate = new PostRazorPayPenaltyRebate;
-            $url            = Config::get('razorpay.PAYMENT_GATEWAY_URL');
-            $endPoint       = Config::get('razorpay.PAYMENT_GATEWAY_END_POINT');
-            $authUser      = authUser($req);
-            $demand = $this->getHoldingDues($req);
-            if ($demand->original['status'] == false)
-                throw new Exception($demand->original['message']);
+            $holdingDues = $this->getHoldingDues($req);
 
-            $demandData = $demand->original['data'];
-            if ($demandData)
-                if (!$demandData)
-                    throw new Exception("Demand Not Available");
-            $amount = $demandData['duesList']['payableAmount'];
-            $demands = $demandData['duesList'];
-            $demandDetails = $demandData['demandList'];
-            $propDtls = $propProperties->getPropById($req->propId);
-            $req->request->add([
-                'amount' => $amount,
-                'workflowId' => '0',
-                'departmentId' => $departmentId,
-                'ulbId' => $propDtls->ulb_id,
-                'id' => $req->propId,
-                'ghostUserId' => 0,
-                'auth' => $authUser
+            if ($holdingDues->original['status'] == false)
+                throw new Exception($holdingDues->original['message']);
+
+            $holdingDues = $holdingDues->original['data'];
+            $payableAmount = $holdingDues['payableAmt'];
+            $basicDetails = $holdingDues['basicDetails'];
+
+            $refReq = new Request([
+                'userId' => $basicDetails['citizen_id'] ?? $basicDetails['user_id'],
+                'amount' => $payableAmount,
+                'applicationId' => $req->propId,
+                'moduleId' => 1                             // Property Module Id
             ]);
+
             DB::beginTransaction();
-            $orderDetails = $this->saveGenerateOrderid($req);                                      //<---------- Generate Order ID Trait
-            // $orderDetails = Http::withHeaders([])
-            //     ->post($url . $endPoint, $req->toArray());
-
-            // $orderDetails = collect(json_decode($orderDetails));
-
-            $demands = array_merge($demands->toArray(), [
-                'orderId' => $orderDetails['orderId']
-            ]);
-            // Store Razor pay Request
-            $razorPayRequest = [
-                'order_id' => $demands['orderId'],
-                'prop_id' => $req->id,
-                'from_fyear' => $demands['dueFromFyear'],
-                'from_qtr' => $demands['dueFromQtr'],
-                'to_fyear' => $demands['dueToFyear'],
-                'to_qtr' => $demands['dueToQtr'],
-                'demand_amt' => $demands['totalDues'],
-                'ulb_id' => $propDtls->ulb_id,
-                'ip_address' => $ipAddress,
-                'demand_list' => json_encode($demandDetails, true),
-                'amount' => $amount,
-                'advance_amount' => $demands['advanceAmt']
+            $moduleRefUrl->getReferalUrl($refReq);
+            $refurl = $moduleRefUrl->_refUrl;
+            // Table maintain for particular module 
+            $propIciciReqs = [
+                "req_ref_no" => $moduleRefUrl->_refNo,
+                "prop_id" => $req->propId,
+                "tran_type" => 'Property',
+                "from_fyear" => collect($holdingDues['demandList'])->first()['fyear'],
+                "to_fyear" => collect($holdingDues['demandList'])->last()['fyear'],
+                "demand_amt" => $holdingDues['grandTaxes']['balance'],
+                "ulb_id" => 2,
+                "ip_address" => $req->ipAddress ?? getClientIpAddress(),
+                "demand_list" => json_encode($holdingDues, true),
+                "payable_amount" => $holdingDues['payableAmt'],
+                "arrear_settled" => $holdingDues['arrear']
             ];
-            $storedRazorPayReqs = $mPropRazorPayRequest->store($razorPayRequest);
-            // Store Razor pay penalty Rebates
-            $postRazorPayPenaltyRebate->_propId = $req->id;
-            $postRazorPayPenaltyRebate->_razorPayRequestId = $storedRazorPayReqs['razorPayReqId'];
-            $postRazorPayPenaltyRebate->postRazorPayPenaltyRebates($demands);
+            $mPropIciciPayPayments->create($propIciciReqs);
             DB::commit();
-            return responseMsgs(true, "Order id Generated", remove_null($orderDetails), "011603", "1.0", "", "POST", $req->deviceId ?? "");
+            return responseMsgs(true, "", $refurl);
         } catch (Exception $e) {
             DB::rollBack();
-            return responseMsgs(false, $e->getMessage(), "", "011603", "1.0", "", "POST", $req->deviceId ?? "");
+            return responseMsgs(false, $e->getMessage(), []);
         }
     }
 
-    /**
-     * | Post Payment Penalty Rebates(3.1)
-     */
-    public function postPaymentPenaltyRebate($dueList, $propId = null, $tranId, $clusterId = null)
-    {
-        $mPaymentRebatePanelties = new PropPenaltyrebate();
-        $rebateList = array();
-        $calculatedRebates = $dueList['rebates'];
-        $rebatePenalList = collect(Config::get('PropertyConstaint.REBATE_PENAL_MASTERS'));
-
-        foreach ($calculatedRebates as $item) {
-            $rebate = [
-                'keyString' => $item['keyString'],
-                'value' => $item['rebateAmount'],
-                'isRebate' => true
-            ];
-            array_push($rebateList, $rebate);
-        }
-
-        $headNames = [
-            [
-                'keyString' => $rebatePenalList->where('id', 1)->first()['value'],
-                'value' => $dueList['onePercPenalty'],
-                'isRebate' => false
-            ]
-        ];
-        $headNames = array_merge($headNames, $rebateList);
-
-        collect($headNames)->map(function ($headName) use ($mPaymentRebatePanelties, $propId, $tranId, $clusterId) {
-            if ($headName['value'] > 0) {
-                $reqs = [
-                    'tran_id' => $tranId,
-                    'cluster_id' => $clusterId,
-                    'prop_id' => $propId,
-                    'head_name' => $headName['keyString'],
-                    'amount' => $headName['value'],
-                    'is_rebate' => $headName['isRebate'],
-                    'tran_date' => Carbon::now()->format('Y-m-d')
-                ];
-                $mPaymentRebatePanelties->postRebatePenalty($reqs);
-            }
-        });
-    }
 
     /**
      * | Payment Holding (Case for Online Payment)
