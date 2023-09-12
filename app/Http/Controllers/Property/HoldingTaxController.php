@@ -161,9 +161,9 @@ class HoldingTaxController extends Controller
                     "sewarage_tax" => $item->sum('sewarage_tax'),
                     "tree_tax" => $item->sum('tree_tax'),
                     "professional_tax" => $item->sum('professional_tax'),
-                    "tax1" => $item->sum('professional_tax'),
-                    "tax2" => $item->sum('professional_tax'),
-                    "tax3" => $item->sum('professional_tax'),
+                    "tax1" => $item->sum('tax1'),
+                    "tax2" => $item->sum('tax2'),
+                    "tax3" => $item->sum('tax3'),
                     "state_education_tax" => $item->sum('sp_education_tax'),
                     "water_benefit" => $item->sum('water_benefit'),
                     "water_bill" => $item->sum('water_bill'),
@@ -185,6 +185,7 @@ class HoldingTaxController extends Controller
             $holdingType = $propBasicDtls->holding_type;
             $ownershipType = $propBasicDtls->ownership_type;
             $basicDtls = collect($propBasicDtls)->only([
+                'id',
                 'holding_no',
                 'new_holding_no',
                 'ward_no',
@@ -529,6 +530,7 @@ class HoldingTaxController extends Controller
             // Begining Transactions
             DB::beginTransaction();
             $propDetails->balance = 0;                  // Update Arrear
+            $propDetails->save();
             $req['ulbId'] = $propDetails->ulb_id;
             $propTrans = $mPropTrans->postPropTransactions($req, $demands);
 
