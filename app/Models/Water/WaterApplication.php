@@ -269,7 +269,7 @@ class WaterApplication extends Model
         # object creation
         $mWaterApprovalApplicationDetail = new WaterApprovalApplicationDetail();
         $mWaterSiteInspection = new WaterSiteInspection();
-        $mWaterConsumer = new WaterConsumer();
+        $mWaterConsumer = new WaterSecondConsumer();
         $waterTrack = new WorkflowTrack();
 
         # checking if consumer already exist 

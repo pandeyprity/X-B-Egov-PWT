@@ -168,6 +168,8 @@ class WaterPaymentController extends Controller
             $waterPropertyTypeMstr      = json_decode(Redis::get('water-property-type-mstr'));
             $waterOwnerTypeMstr         = json_decode(Redis::get('water-owner-type-mstr'));
             $waterConsumerChargeMstr    = json_decode(Redis::get('water-consumer-charge-mstr'));
+            $PropertyType               = Config::get('waterConstaint.water_property_type_mstr');
+            
 
             # Ward Masters
             if (!$waterParamPipelineType) {
@@ -198,7 +200,7 @@ class WaterPaymentController extends Controller
                 'water_param_pipeline_type'     => $waterParamPipelineType,
                 'water_connection_type_mstr'    => $waterConnectionTypeMstr,
                 'water_connection_through_mstr' => $waterConnectionThroughMstr,
-                'water_property_type_mstr'      => $waterPropertyTypeMstr,
+                'water_property_type_mstr'      => $PropertyType,
                 'water_owner_type_mstr'         => $waterOwnerTypeMstr,
                 'water_consumer_charge_mstr'    => $waterConsumerChargeMstr
             ];
@@ -452,26 +454,26 @@ class WaterPaymentController extends Controller
             $refRoleDetails = $this->CheckInspectionCondition($request, $waterDetails);
 
             # Get the Applied Connection Charge
-            $applicationCharge = $mWaterConnectionCharge->getWaterchargesById($request->applicationId)
-                ->where('charge_category', '!=', $connectionCatagory['SITE_INSPECTON'])
-                ->firstOrFail();
+            // $applicationCharge = $mWaterConnectionCharge->getWaterchargesById($request->applicationId)
+            //     ->where('charge_category', '!=', $connectionCatagory['SITE_INSPECTON'])
+            //     ->firstOrFail();
 
             $this->begin();
             # Generating Demand for new InspectionData
-            $newConnectionCharges = objToArray($mWaterNewConnection->calWaterConCharge($request));
-            if (!$newConnectionCharges['status']) {
-                throw new Exception(
-                    $newConnectionCharges['errors']
-                );
-            }
-            # Param Value for the new Charges
-            $waterFeeId = $newConnectionCharges['water_fee_mstr_id'];
+            // $newConnectionCharges = objToArray($mWaterNewConnection->calWaterConCharge($request));
+            // if (!$newConnectionCharges['status']) {
+            //     throw new Exception(
+            //         $newConnectionCharges['errors']
+            //     );
+            // }
+            // # Param Value for the new Charges
+            // $waterFeeId = $newConnectionCharges['water_fee_mstr_id'];
 
-            # If the Adjustment Hamper
-            $paymentstatus = $this->adjustmentInConnection($request, $newConnectionCharges, $waterDetails, $applicationCharge);
+            // # If the Adjustment Hamper
+            // $paymentstatus = $this->adjustmentInConnection($request, $newConnectionCharges, $waterDetails, $applicationCharge);
 
             # Store the site inspection details
-            $mWaterSiteInspection->storeInspectionDetails($request, $waterFeeId, $waterDetails, $refRoleDetails, $paymentstatus);
+            $mWaterSiteInspection->storeInspectionDetails($request,  $waterDetails, $refRoleDetails);
             $mWaterSiteInspectionsScheduling->saveInspectionStatus($request);
             $this->commit();
             return responseMsgs(true, "Site Inspection Done!", $request->applicationId, "", "01", "ms", "POST", "");

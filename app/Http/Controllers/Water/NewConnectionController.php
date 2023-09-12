@@ -263,14 +263,14 @@ class NewConnectionController extends Controller
                 return $value->wf_role_id;
             });
 
-            $refWard = $mWfWardUser->getWardsByUserId($userId);
-            $wardId = $refWard->map(function ($value) {
-                return $value->ward_id;
-            });
+            // $refWard = $mWfWardUser->getWardsByUserId($userId);
+            // $wardId = $refWard->map(function ($value) {
+            //     return $value->ward_id;
+            // });
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
 
             $waterList = $this->getWaterApplicatioList($workflowIds, $ulbId)
-                ->whereIn('water_applications.ward_id', $wardId)
+                // ->whereIn('water_applications.ward_id', $wardId)
                 ->where('parked', true)
                 ->orderByDesc('water_applications.id')
                 ->get();
@@ -297,17 +297,17 @@ class NewConnectionController extends Controller
             $userId = authUser($request)->id;
             $ulbId  = authUser($request)->ulb_id;
 
-            $occupiedWard = $mWfWardUser->getWardsByUserId($userId);                        // Get All Occupied Ward By user id using trait
-            $wardId = $occupiedWard->map(function ($item, $key) {                           // Filter All ward_id in an array using laravel collections
-                return $item->ward_id;
-            });
+            // $occupiedWard = $mWfWardUser->getWardsByUserId($userId);                        // Get All Occupied Ward By user id using trait
+            // $wardId = $occupiedWard->map(function ($item, $key) {                           // Filter All ward_id in an array using laravel collections
+            //     return $item->ward_id;
+            // });
 
             $roleId = $this->getRoleIdByUserId($userId)->pluck('wf_role_id');
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
 
             $waterData = $this->getWaterApplicatioList($workflowIds, $ulbId)                              // Repository function to get SAF Details
                 ->where('water_applications.is_escalate', 1)
-                ->whereIn('water_applications.ward_id', $wardId)
+                // ->whereIn('water_applications.ward_id', $wardId)
                 ->orderByDesc('water_applications.id')
                 ->get();
             $filterWaterList = collect($waterData)->unique('id')->values();

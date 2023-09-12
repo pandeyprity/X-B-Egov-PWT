@@ -77,18 +77,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () {
         # new connection for akoal water 
         Route::post('application/apply-new-connection', 'applyWaterNew');
         Route::post('application/holding', 'searchHolding');
+        
 
-
-        # Site Inspection
-        Route::post('admin/search-application', 'searchApplicationByParameter');                        // Admin
-        Route::post('admin/application/save-inspection-date', 'saveInspectionDateTime');                // Workflow/Admin
-        Route::post('admin/application/site-inspection-details', 'getSiteInspectionDetails');           // Workflow/Admin
-        Route::post('admin/application/cancel-inspection-scheduling', 'cancelSiteInspection');          // Workflow/Admin
-        Route::post('admin/application/je-site-details', 'getJeSiteDetails');                           // Workflow/Admin
-        Route::post('admin/application/online-technical-inspection', 'onlineSiteInspection');           // Workflow
-        Route::post('admin/application/technical-inspection-details', 'getTechnicalInsDetails');        // Workflow
-        Route::post('search-holding-saf', 'searchHoldingsaf');
-        Route::post('get-all-details', 'getdetailsbyId');           // akola 
+        
 
     });
 
