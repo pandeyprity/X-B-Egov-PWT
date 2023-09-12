@@ -336,7 +336,8 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
   Route::controller(HoldingTaxController::class)->group(function () {
     Route::post('v1/generate-holding-demand', 'generateHoldingDemand');              // (01) Property/Holding Yearly Holding Tax Generation
     Route::post('get-holding-dues', 'getHoldingDues');                            // (02) Property/ Holding Dues
-    Route::post('generate-prop-orderid', 'generateOrderId');                      // (03) Generate Property Order ID
+    Route::post('v1/get-referal-url', 'getReferalUrl');                            // (03) Generate Referal url
+    // Route::post('generate-prop-orderid', 'generateOrderId');                      // (03) Generate Property Order ID
     Route::post('offline-payment-holding', 'offlinePaymentHolding');              // (04) Payment Holding
     Route::post('prop/get-cluster-holding-due', 'getClusterHoldingDues');         // (11) Property Cluster Dues
     Route::post('prop/cluster-payment', 'clusterPayment');                        // (12) Cluster Payment

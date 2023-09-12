@@ -171,6 +171,7 @@ class GeneratePaymentReceipt
             "transactionTime" => $this->_trans->created_at->format('H:i:s'),
             "applicationNo" => $this->_propertyDtls->application_no,
             "customerName" => $this->_propertyDtls->owner_name,
+            "guardianName" => $this->_propertyDtls->guardian_name,
             "mobileNo" => $this->_propertyDtls->mobile_no,
             "address" => $this->_propertyDtls->prop_address,
             "paidFrom" => $this->_trans->from_fyear,

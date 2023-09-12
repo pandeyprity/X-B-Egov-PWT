@@ -202,7 +202,7 @@ class TradeCitizen implements ITradeCitizen
             return responseMsgs(
                 false,
                 $e->getMessage(),
-                $request->all(),
+                "",
                 $this->_META_DATA["apiId"],
                 $this->_META_DATA["version"],
                 $this->_META_DATA["queryRunTime"],

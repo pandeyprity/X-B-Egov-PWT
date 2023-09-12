@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class RevDailycollectiondetail extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_master';
 
     protected $fillable = [
         "collection_id", "module_id", "demand", "deposit_amount", "cheq_dd_no",
