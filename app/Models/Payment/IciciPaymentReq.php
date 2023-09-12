@@ -10,4 +10,13 @@ class IciciPaymentReq extends Model
     use HasFactory;
     protected $connection = 'pgsql_master';
     protected $guarded = [];
+
+    /**
+     * | find reqRefNo
+     */
+    public function findByReqRefNo($reqRefNo)
+    {
+        return self::where('req_ref_no', $reqRefNo)
+            ->first();
+    }
 }

@@ -17,7 +17,7 @@ class ModuleRefUrl extends GetRefUrl
     // Generation of Referal url for payment for Testing
     public function getReferalUrl(Request $req)
     {
-        $mIciciPaymentReq = new IciciPaymentReq();
+        $mIciciPaymentReq = new IciciPaymentReq();          // We Have to pass transaction amount here which is pending
         $url = $this->generateRefUrl();
         $paymentReq = [
             "user_id" => isEmpty($req->userId) ? null : $req->userId,
