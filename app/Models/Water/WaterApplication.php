@@ -411,21 +411,21 @@ class WaterApplication extends Model
         return  WaterApplication::select(
             'water_applications.*',
             'water_applications.connection_through as connection_through_id',
-            'ulb_ward_masters.ward_name',
+            // 'ulb_ward_masters.ward_name',
             'ulb_masters.ulb_name',
-            'water_connection_type_mstrs.connection_type',
-            'water_property_type_mstrs.property_type',
-            'water_connection_through_mstrs.connection_through',
-            'water_owner_type_mstrs.owner_type AS owner_char_type',
-            'water_param_pipeline_types.pipeline_type'
+            // 'water_connection_type_mstrs.connection_type',
+            // 'water_property_type_mstrs.property_type',
+            // 'water_connection_through_mstrs.connection_through',
+            // 'water_owner_type_mstrs.owner_type AS owner_char_type',
+            // 'water_param_pipeline_types.pipeline_type'
         )
-            ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'water_applications.ward_id')
-            ->join('water_connection_through_mstrs', 'water_connection_through_mstrs.id', '=', 'water_applications.connection_through')
-            ->join('ulb_masters', 'ulb_masters.id', '=', 'water_applications.ulb_id')
-            ->join('water_connection_type_mstrs', 'water_connection_type_mstrs.id', '=', 'water_applications.connection_type_id')
-            ->join('water_property_type_mstrs', 'water_property_type_mstrs.id', '=', 'water_applications.property_type_id')
-            ->join('water_owner_type_mstrs', 'water_owner_type_mstrs.id', '=', 'water_applications.owner_type')
-            ->leftjoin('water_param_pipeline_types', 'water_param_pipeline_types.id', '=', 'water_applications.pipeline_type_id')
+            // ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'water_applications.ward_id')
+            // ->join('water_connection_through_mstrs', 'water_connection_through_mstrs.id', '=', 'water_applications.connection_through')
+            ->leftjoin('ulb_masters', 'ulb_masters.id', '=', 'water_applications.ulb_id')
+            // ->join('water_connection_type_mstrs', 'water_connection_type_mstrs.id', '=', 'water_applications.connection_type_id')
+            // ->leftjoin('water_property_type_mstrs', 'water_property_type_mstrs.id', '=', 'water_applications.property_type_id')
+            // ->join('water_owner_type_mstrs', 'water_owner_type_mstrs.id', '=', 'water_applications.owner_type')
+            // ->leftjoin('water_param_pipeline_types', 'water_param_pipeline_types.id', '=', 'water_applications.pipeline_type_id')
             ->where('water_applications.application_no', 'LIKE', '%' . $applicationNo . '%')
             ->where('water_applications.current_role', $roleId)
             ->where('water_applications.status', 1);

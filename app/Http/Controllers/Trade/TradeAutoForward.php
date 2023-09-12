@@ -23,6 +23,12 @@ class TradeAutoForward extends Controller
 {
     use TradeTrait;
     //
+    protected $_DB;    
+    protected $_DB_MASTER;
+    protected $_DB_NAME;    
+    protected $_NOTICE_DB;
+    protected $_NOTICE_DB_NAME;
+
     protected $_MODLE_ACTIVE_LICESENS;
     protected $_MODLE_WF_TRACK;
     protected $_MODLE_ACTIVE_DOC;
@@ -53,7 +59,14 @@ class TradeAutoForward extends Controller
 
     public function __construct()
     {
-        DB::enableQueryLog();
+        $this->_DB_NAME = "pgsql_trade";
+        $this->_NOTICE_DB = "pgsql_notice";
+        $this->_DB = DB::connection( $this->_DB_NAME );
+        $this->_DB_MASTER = DB::connection("pgsql_master");
+        $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
+        // DB::enableQueryLog();
+        // $this->_DB->enableQueryLog();
+        // $this->_NOTICE_DB->enableQueryLog();
         #class declaration
         $this->_TradeApplication_controler = App::makeWith(TradeApplication::class,["ITrade"=>app(ITrade::class)]);
         $this->_COMMON_FUNCTION         = new CommonFunction();
@@ -80,6 +93,51 @@ class TradeAutoForward extends Controller
         $this->_MODLE_ACTIVE_DOC        = new WfActiveDocument();
         $this->_MODLE_ULB_MSTR          = new UlbMaster();
     }
+
+    public function begin()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        $db3 = $this->_NOTICE_DB->getDatabaseName();
+        $db4 = $this->_DB_MASTER->getDatabaseName();
+        DB::beginTransaction();
+        if($db1!=$db2 )
+            $this->_DB->beginTransaction();
+        if($db1!=$db3 && $db2!=$db3)
+            $this->_NOTICE_DB->beginTransaction();
+        if($db1!=$db4 && $db2!=$db4 && $db3!=$db4) 
+            $this->_DB_MASTER->beginTransaction();
+    }
+
+    public function rollback()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        $db3 = $this->_NOTICE_DB->getDatabaseName();
+        $db4 = $this->_DB_MASTER->getDatabaseName();
+        DB::rollBack();
+        if($db1!=$db2 )
+            $this->_DB->rollBack();
+        if($db1!=$db3 && $db2!=$db3)
+            $this->_NOTICE_DB->rollBack();
+        if($db1!=$db4 && $db2!=$db4 && $db3!=$db4) 
+            $this->_DB_MASTER->rollBack();
+    }
+     
+    public function commit()
+    {
+        $db1 = DB::connection()->getDatabaseName();
+        $db2 = $this->_DB->getDatabaseName();
+        $db3 = $this->_NOTICE_DB->getDatabaseName();
+        $db4 = $this->_DB_MASTER->getDatabaseName();
+        DB::commit();
+        if($db1!=$db2 )        
+            $this->_DB->commit();
+        if($db1!=$db3 && $db2!=$db3)
+            $this->_NOTICE_DB->commit();
+        if($db1!=$db4 && $db2!=$db4 && $db3!=$db4) 
+            $this->_DB_MASTER->commit();
+    }
     /**
      * AutoForwad Code By System
      */
@@ -97,7 +155,7 @@ class TradeAutoForward extends Controller
     {
         try{            
             $fromDay = $this->_TODAYS->subDays(3)->format("Y-m-d");
-            $forwardData = DB::table("active_trade_licences")
+            $forwardData = $this->_DB->table("active_trade_licences")
             ->select(
                 DB::raw("CAST(workflow_tracks.track_date AS  DATE),
                         workflow_tracks.id as workflow_track_id,
@@ -176,7 +234,7 @@ class TradeAutoForward extends Controller
     }
 
     private function assistentForward()
-    {
+    { 
         try{                    
             $allRolse     = $this->_ALL_ROLSE;
             $receiverRole = array_values(objToArray($allRolse->where("id", $this->_RECIVER_ROLE_ID)))[0] ?? [];
@@ -212,8 +270,8 @@ class TradeAutoForward extends Controller
             $metaReqs['receiverRoleId'] = $this->_RECIVER_ROLE_ID;
             $request = new Request($metaReqs);
 
-            if($senderRole["can_verify_document"])         
-            DB::beginTransaction();
+            // if($senderRole["can_verify_document"])         
+            $this->begin();
             $licence->update();   
             if(($senderRole["can_verify_document"]??false) && !$this->assistentDocVeriFy())
             {
@@ -224,13 +282,13 @@ class TradeAutoForward extends Controller
                 throw new Exception();
             }                 
             $track->saveTrack($request);
-            DB::commit();
+            $this->commit();
 
             return true;
         } 
         catch(Exception $e)
         {
-            DB::rollBack();
+            $this->rollBack();
             return false;
         } 
     }
@@ -248,12 +306,12 @@ class TradeAutoForward extends Controller
                     'action_taken_by' => $this->_USER_ID,
                 ];
                 $mWfDocument = $this->_MODLE_ACTIVE_DOC;
-                DB::beginTransaction();
+                $this->begin();
                 $doc->original["data"]->map(function($val)use($mWfDocument,$myRequest){
                     $mWfDocument->docVerifyReject($val["id"], $myRequest);
                     
                 });
-                DB::commit();
+                $this->commit();
             }
             return true;
         }

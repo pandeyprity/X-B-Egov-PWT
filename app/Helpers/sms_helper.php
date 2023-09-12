@@ -471,3 +471,243 @@ if(!function_exists("OTP"))
         }
     }
 }
+
+if(!function_exists("TradeWhatapp"))
+{
+    function TradeWhatapp($data=array(),$sms_for=null)
+    {
+
+        if(strtoupper($sms_for)==strtoupper('New Apply'))
+        {       
+          try
+          {
+              // Your Application {#var#} has been submited successfully. {#var#}
+              $sms=[
+                "conten_type"=>"text",
+                [
+                    "Your Application $data[application_no] has been submited successfully. $data[ulb_name]"
+                ]
+            ];
+              $temp_id = "register_message";
+              return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+          } 
+          catch(Exception $e)
+          {
+            return array("sms_formate"=>"Your Application {#var#} has been submited successfully. {#var#}",
+            "discriuption"=>"1. 2 para required 
+                      2. 1st para array('application_no'=>'','ulb_name'=>'') sizeof 2  
+                      3. 2nd para sms for ",
+            "error"=>$e->getMessage(),
+            'status'=>false);
+          }
+        }
+
+        elseif(strtoupper($sms_for)==strtoupper('Renewal Apply'))
+        {       
+          try
+          {
+              // Your Application {#var#} has been submited successfully for renewal agenst license no. {#var#} . {#var#}
+              $sms=[
+                "conten_type"=>"text",
+                [
+                    "Your Application $data[application_no] has been submited successfully for renewal agenst license no. $data[license_no] . $data[ulb_name]"
+                ]
+            ];
+              $temp_id = "register_message";
+              return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+          } 
+          catch(Exception $e)
+          {
+            return array("sms_formate"=>"Your Application {#var#} has been submited successfully for renewal agenst license no. {#var#} . {#var#}",
+            "discriuption"=>"1. 2 para required 
+                      2. 1st para array('application_no'=>'','license_no'=>'','ulb_name'=>'') sizeof 3  
+                      3. 2nd para sms for ",
+            "error"=>$e->getMessage(),
+            'status'=>false);
+          }
+        }
+
+        elseif(strtoupper($sms_for)==strtoupper('Amendment Apply'))
+        {       
+          try
+          {
+              // Your Application {#var#} has been submited successfully for amendment agenst license no. {#var#} . {#var#}
+              $sms=[
+                "conten_type"=>"text",
+                [
+                    "Your Application $data[application_no] has been submited successfully for amendment agenst license no. $data[license_no] . $data[ulb_name]",
+                ]
+            ];
+              $temp_id = "register_message";
+              return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+          } 
+          catch(Exception $e)
+          {
+            return array("sms_formate"=>"Your Application {#var#} has been submited successfully for amendment agenst license no. {#var#} . {#var#}",
+            "discriuption"=>"1. 2 para required 
+                      2. 1st para array('application_no'=>'','license_no'=>'','ulb_name'=>'') sizeof 3  
+                      3. 2nd para sms for ",
+            "error"=>$e->getMessage(),
+            'status'=>false);
+          }
+        }
+        elseif(strtoupper($sms_for)==strtoupper('Surender Apply'))
+        {       
+          try
+          {
+              // Your Application {#var#} has been submited successfully for surender agenst license no. {#var#} . {#var#}
+              $sms=[
+                "conten_type"=>"text",
+                [
+                    "Your Application $data[application_no] has been submited successfully for surender agenst license no. $data[license_no] . $data[ulb_name]",
+                ]
+            ];
+              $temp_id = "register_message";
+              return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+          } 
+          catch(Exception $e)
+          {
+            return array("sms_formate"=>"Your Application {#var#} has been submited successfully for surender agenst license no. {#var#} . {#var#}",
+            "discriuption"=>"1. 2 para required 
+                      2. 1st para array('application_no'=>'','license_no'=>'','ulb_name'=>'') sizeof 3  
+                      3. 2nd para sms for ",
+            "error"=>$e->getMessage(),
+            'status'=>false);
+          }
+        }
+
+        elseif(strtoupper($sms_for)==strtoupper('Payment done'))
+        {       
+          try
+          {
+              // Payment done with amount {#var#} for Application No {#var#}. {#var#}
+              $sms=[
+                "conten_type"=>"text",
+                [
+                    "Payment done with amount ".$data['ammount']." for Application No ".$data['application_no'].". Reference Number '".$data['ref_no']."'",
+                ]
+            ];
+              $temp_id = "register_message";
+              return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+          } 
+          catch(Exception $e)
+          {
+            return array("sms_formate"=>"Payment done with amount {#var#} for Application No {#var#}. {#var#}",
+            "discriuption"=>"1. 2 para required 
+                      2. 1st para array('ammount'=>'','application_no'=>'','ref_no'=>'') sizeof 3  
+                      3. 2nd para sms for ",
+            "error"=>$e->getMessage(),
+            'status'=>false);
+          }
+        }
+        
+
+        elseif(strtoupper($sms_for)==strtoupper('License expired'))
+        {
+            try
+            { 
+                // Dear Trade Owner, Your Municipal Trade License {#var#} is to be expired on {#var#}. Please renew your license to avoid legal actions. Please ignore if already done. For Details call-{#var#} {#var#}
+                $sms=[
+                    "conten_type"=>"text",
+                    [
+                        "Dear Trade Owner, Your Municipal Trade License ".$data['licence_no']." is to be expired on ".$data['exp_date'].". Please renew your license to avoid legal actions. Please ignore if already done. For Details call-".$data['toll_free_no1'].' '.$data['ulb_name']."",
+                    ]
+                ];
+                $temp_id = "register_message";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Dear Trade Owner, Your Municipal Trade License {#var#} is to be expired on {#var#}. Please renew your license to avoid legal actions. Please ignore if already done. For Details call-{#var#} {#var#}",
+                "discriuption"=>"1. 2 para required 
+                      2. 1st para array('licence_no'=>'','exp_date'=>'','toll_free_no1'=>'','ulb_name'=>'') sizeof 4  
+                      3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+
+        elseif(strtoupper($sms_for)==strtoupper('Application Approved'))
+        {
+            try
+            {
+                // Your Application {#var#} has been approved. Your License no is {#var#}. {#var#}      
+                $sms=[
+                    "conten_type"=>"text",
+                    [
+                        "Your Application $data[application_no] has been approved. Your License no is $data[licence_no]. $data[ulb_name]",
+                    ]
+                ]; 
+                $temp_id = "register_message";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Your Application {#var#} has been approved. Your License no is {#var#}. {#var#}",
+                "discriuption"=>"1. 2 para required 
+                      2. 1st para array('application_no'=>'','licence_no'=>'','ulb_name'=>'') sizeof 3  
+                      3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+
+        elseif(strtoupper($sms_for)==strtoupper('sent back'))
+        {
+            try
+            {
+                // Your Application {#var#} is sent back to you for rectification. Please rectify it and submit it shortly. RANCHI MUNICIPAL CORPORATION               
+                $sms=[
+                    "conten_type"=>"text",
+                    [
+                        "Your Application $data[application_no] is sent back to you for rectification. Please rectify it and submit it shortly. $data[ulb_name]",
+                    ]
+                ]; 
+                $temp_id = "register_message";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Your Application {#var#} is sent back to you for rectification. Please rectify it and submit it shortly. RANCHI MUNICIPAL CORPORATION",
+                "discriuption"=>"1. 2 para required 
+                      2. 1st para array('application_no'=>'','ulb_name'=>'') sizeof 2  
+                      3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+        else
+        {
+            return array('sms'=>'pleas supply two para',
+                          '1'=>'array()',
+                          '2'=>"sms for 
+                          1. New Apply
+                          2. Renewal Apply
+                          3. Amendment Apply
+                          4. Surender Apply
+                          5. Payment done
+                          6. License expired
+                          7. Application Approved
+                          8. sent back",
+                          'status'=>false
+                        );
+        }
+    }
+}
+
+function whattest(object $request)
+{
+    return (Whatsapp_Send(
+        $request->mobileNo,
+        $request->temp_id,                     // Set at env or database and 
+        [
+            "conten_type" => "text",            // Static
+            [
+                $request->applicantName,
+                $request->module,                    // Static
+                $request->applicationNo,
+            ]
+        ]
+    ));
+
+}
