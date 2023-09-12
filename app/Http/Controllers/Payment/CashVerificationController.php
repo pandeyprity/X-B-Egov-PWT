@@ -108,8 +108,8 @@ class CashVerificationController extends Controller
     public function verifiedCashVerificationList(Request $req)
     {
         try {
-            $ulbId =  authUser($request)->ulb_id;
-            $userId =  $req->id;
+            // $ulbId =  authUser($request)->ulb_id;
+            // $userId =  $req->id;
             $date = date('Y-m-d', strtotime($req->date));
             $propertyModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
             $waterModuleId = Config::get('module-constants.WATER_MODULE_ID');
@@ -718,11 +718,11 @@ class CashVerificationController extends Controller
                     if (!$pTempTransaction)
                         throw new Exception("No Transaction Found for this id");
 
-                    $logTrans = $pTempTransaction->replicate();
-                    $logTrans->setTable('log_temp_transactions');
-                    $logTrans->id = $pTempTransaction->id;
-                    $logTrans->save();
-                    $pTempTransaction->delete();
+                    // $logTrans = $pTempTransaction->replicate();
+                    // $logTrans->setTable('log_temp_transactions');
+                    // $logTrans->id = $pTempTransaction->id;
+                    // $logTrans->save();
+                    // $pTempTransaction->delete();
                 }
             }
 
@@ -741,11 +741,11 @@ class CashVerificationController extends Controller
                     if (!$wTempTransaction)
                         throw new Exception("No Transaction Found for this id");
 
-                    $logTrans = $wTempTransaction->replicate();
-                    $logTrans->setTable('log_temp_transactions');
-                    $logTrans->id = $wTempTransaction->id;
-                    $logTrans->save();
-                    $wTempTransaction->delete();
+                    // $logTrans = $wTempTransaction->replicate();
+                    // $logTrans->setTable('log_temp_transactions');
+                    // $logTrans->id = $wTempTransaction->id;
+                    // $logTrans->save();
+                    // $wTempTransaction->delete();
                 }
             }
 
@@ -764,11 +764,11 @@ class CashVerificationController extends Controller
                     if (!$tTempTransaction)
                         throw new Exception("No Transaction Found for this id");
 
-                    $logTrans = $tTempTransaction->replicate();
-                    $logTrans->setTable('log_temp_transactions');
-                    $logTrans->id = $tTempTransaction->id;
-                    $logTrans->save();
-                    $tTempTransaction->delete();
+                    // $logTrans = $tTempTransaction->replicate();
+                    // $logTrans->setTable('log_temp_transactions');
+                    // $logTrans->id = $tTempTransaction->id;
+                    // $logTrans->save();
+                    // $tTempTransaction->delete();
                 }
             }
             DB::commit();

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class RevDailycollection extends Model
 {
     use HasFactory;
+    protected $connection = 'pgsql_master';
 
     protected $fillable = ["tran_no", "user_id", "deposit_date", "ulb_id", "demand_date", "tc_id"];
 
