@@ -194,6 +194,7 @@ class TradeAutoForward extends Controller
             ->where("active_trade_licences.payment_status",1)
             ->where("active_trade_licences.document_upload_status",1)
             ->where("active_trade_licences.current_role",$roleDtl["id"]) 
+            // ->where("active_trade_licences.id",24)
             ->where(DB::raw("CAST(workflow_tracks.track_date AS  DATE)"),"<=",$fromDay)
             ->get();
             $forwardData->map(function($val) use($roleDtl){
@@ -262,8 +263,8 @@ class TradeAutoForward extends Controller
             $metaReqs['user_id'] = $this->_USER_ID;
             $metaReqs['ulb_id'] = $this->_ULB_ID;
             $metaReqs['trackDate'] = $lastworkflowtrack && $lastworkflowtrack->forward_date ? ($lastworkflowtrack->forward_date . " " . $lastworkflowtrack->forward_time) : Carbon::now()->format('Y-m-d H:i:s');
-            $metaReqs['forwardDate'] = $this->_TODAYS->format('Y-m-d');
-            $metaReqs['forwardTime'] = $this->_TODAYS->format('H:i:s');
+            $metaReqs['forwardDate'] = Carbon::now()->format('Y-m-d');
+            $metaReqs['forwardTime'] = Carbon::now()->format('H:i:s');
             $metaReqs['verificationStatus'] = 1;
             $metaReqs['comment'] = ($senderRole["is_finisher"]??false)?"Auto Aproved":"Auto Forward";
             $metaReqs['senderRoleId'] = $this->_SENDER_ROLE_ID;
@@ -283,7 +284,9 @@ class TradeAutoForward extends Controller
             }                 
             $track->saveTrack($request);
             $this->commit();
-
+            // $this->rollBack();
+            // print_var($licence->toArray());print_var($request->all());print_var($lastworkflowtrack->toArray());
+            // print_var($this->_DB->getQueryLog());
             return true;
         } 
         catch(Exception $e)
