@@ -2390,8 +2390,10 @@ class WaterPaymentController extends Controller
             $mWaterApplication = new WaterApplication();
             $userType = "Citizen";                                              // static
 
-            $applicationData = $mWaterApplication->getAppplicationByUserId($citizenId, $userType)
-                ->get();
+            $applicationData = $mWaterApplication->getAppplicationByUserId($citizenId, $userType)->get();
+            if (!collect($applicationData)->first()) {
+                throw new Exception("data Not found!");
+            }
             return responseMsgs(true, "List of transactions", remove_null($applicationData), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), [], "", "03", responseTime(), $request->getMethod(), $request->deviceId);
