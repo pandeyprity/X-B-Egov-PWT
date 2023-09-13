@@ -2130,7 +2130,7 @@ class WaterPaymentController extends Controller
 
 
     /**
-     * | Offline Paymet for Water Consumer request FOR AKOLA
+     * | Offline Paymet for Water application request FOR AKOLA
         | Serial No :
         | Under Con
      */
