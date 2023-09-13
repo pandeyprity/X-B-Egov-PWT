@@ -197,12 +197,8 @@ class WaterTran extends Model
      * | Get Transaction Details for current Date
      * | And for current login user
      */
-    public function tranDetailByDate()
+    public function tranDetailByDate($currentDate, $userType, $rfTransMode)
     {
-        $currentDate = Carbon::now()->format('Y-m-d');
-        $userType = auth()->user()->user_type;
-        $rfTransMode = Config::get("payment-constants.PAYMENT_OFFLINE_MODE.5");
-
         return WaterTran::where('tran_date', $currentDate)
             ->where('user_type', $userType)
             ->where('payment_mode', '!=', $rfTransMode)
