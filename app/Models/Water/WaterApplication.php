@@ -645,7 +645,7 @@ class WaterApplication extends Model
         }
         $mWaterApplication->save();
     }
-    public function saveWaterApplications($connectypeId,$req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo)
+    public function saveWaterApplications($connectypeId, $req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo)
     {
 
         $saveNewApplication = new WaterApplication();
@@ -675,18 +675,27 @@ class WaterApplication extends Model
         $saveNewApplication->tab_size               = $req->TabSize;
         $saveNewApplication->save();
         return $saveNewApplication;
+    }
 
-    
-}
+    public function fullWaterDetail($applicationId)
+    {
+        return WaterApplication::select(
+            'water_applications.*',
+            'water_connection_charges.amount',
+            "water_connection_charges.charge_category"
 
-public function fullWaterDetail($applicationId){
-    return WaterApplication::select(
-        'water_applications.*',
-        'water_connection_charges.amount',
-        "water_connection_charges.charge_category"
+        )
+            ->join('water_connection_charges', 'water_connection_charges.application_id', 'water_applications.id')
+            ->where('water_applications.id', $applicationId);
+    }
 
-    )
-    ->join('water_connection_charges','water_connection_charges.application_id','water_applications.id')
-    ->where('water_applications.id',$applicationId);
-}
+    /**
+     * | get water application details 
+     */
+    public function getAppplicationByUserId($citizenId, $userType)
+    {
+        return WaterApplication::where('user_id', $citizenId)
+            ->where('user_type', $userType)
+            ->orderByDesc('id');
+    }
 }
