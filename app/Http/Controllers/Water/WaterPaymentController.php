@@ -2188,7 +2188,7 @@ class WaterPaymentController extends Controller
             $waterTrans = $mWaterTran->waterTransaction($request, $wardId);
 
             # Save the Details for the Cheque,DD,neft
-            if (in_array($request['paymentMode'], $offlinePaymentModes)) {
+            if (in_array(strtoupper($request['paymentMode']), $offlinePaymentModes)) {
                 $request->merge([
                     'chequeDate'    => $request['chequeDate'],
                     'tranId'        => $waterTrans['id'],
