@@ -180,12 +180,12 @@ class WaterApplication extends Controller
             $mWfWorkflowRoleMaps    = new WfWorkflowrolemap();
 
             $workflow = $mWfWorkflow->getulbWorkflowId($wfMstId, $ulbId);
-            $metaRequest = new Request([
+            $request->merge([
                 'workflowId'    => $workflow->id,
                 'ulbId'         => $ulbId,
                 'moduleId'      => $moduleId
             ]);
-            $roleDetails = $this->getRole($metaRequest);
+            $roleDetails = $this->getRole($request);
             if (!collect($roleDetails)->first()) {
                 $returnData['canView'] = $canView;
                 return responseMsgs(false, "Access Denied! No Role", $returnData, "", "01", ".ms", "POST", "");
@@ -193,7 +193,7 @@ class WaterApplication extends Controller
             $roleId = $roleDetails['wf_role_id'];
             $occupiedWards = $this->getWardByUserId($user->id)->pluck('ward_id');
 
-            $dateWiseData = $WorkflowTrack->getWfDashbordData($metaRequest)->get();
+            $dateWiseData = $WorkflowTrack->getWfDashbordData($request)->get();
             $applicationCount = $mWaterWaterApplication->getApplicationByRole($roleId)
                 ->whereIn('ward_id', $occupiedWards)
                 ->where('ulb_id', $ulbId)
