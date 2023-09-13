@@ -169,7 +169,7 @@ class WaterPaymentController extends Controller
             $waterOwnerTypeMstr         = json_decode(Redis::get('water-owner-type-mstr'));
             $waterConsumerChargeMstr    = json_decode(Redis::get('water-consumer-charge-mstr'));
             $PropertyType               = Config::get('waterConstaint.water_property_type_mstr');
-            
+
 
             # Ward Masters
             if (!$waterParamPipelineType) {
@@ -347,7 +347,7 @@ class WaterPaymentController extends Controller
             }
             #  Data not equal to Cash
             if (!in_array($transactionDetails['payment_mode'], [$mPaymentModes['1'], $mPaymentModes['5']])) {
-                $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->firstOrFail();
+                $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->firstorfail();
             }
             # Application Deatils
             $applicationDetails = $mWaterApplication->getDetailsByApplicationId($transactionDetails->related_id)->first();
@@ -407,9 +407,9 @@ class WaterPaymentController extends Controller
                 "totalPaidAmount"       => $transactionDetails->amount,
                 "penaltyAmount"         => $totalPenaltyAmount ?? 0,
                 "tabize"                => $applicationDetails['tab_size'],
-                "category"              =>$applicationDetails['category'],
-                "guardianName"          =>$applicationDetails ['guardianName'],
-            
+                "category"              => $applicationDetails['category'],
+                "guardianName"          => $applicationDetails['guardianName'],
+
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
             ];
             return responseMsgs(true, "Payment Receipt", remove_null($returnValues), "", "1.0", "", "POST", $req->deviceId ?? "");
@@ -454,9 +454,9 @@ class WaterPaymentController extends Controller
             $refRoleDetails = $this->CheckInspectionCondition($request, $waterDetails);
 
             # Get the Applied Connection Charge
-            // $applicationCharge = $mWaterConnectionCharge->getWaterchargesById($request->applicationId)
-            //     ->where('charge_category', '!=', $connectionCatagory['SITE_INSPECTON'])
-            //     ->firstOrFail();
+            $applicationCharge = $mWaterConnectionCharge->getWaterchargesById($request->applicationId)
+                ->where('charge_category', '!=', $connectionCatagory['SITE_INSPECTON'])
+                ->firstOrFail();
 
             $this->begin();
             # Generating Demand for new InspectionData
@@ -1587,7 +1587,7 @@ class WaterPaymentController extends Controller
                 $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->first();
             }
             # Application Deatils
-            $consumerDetails = $mWaterConsumer->fullWaterDetails( $transactionDetails->related_id)->firstOrFail();
+            $consumerDetails = $mWaterConsumer->fullWaterDetails($transactionDetails->related_id)->firstOrFail();
 
             # consumer Demand Details 
             $detailsOfDemand = $mWaterTranDetail->getTransDemandByIds($transactionDetails->id)->get();
@@ -1597,7 +1597,7 @@ class WaterPaymentController extends Controller
             $consumerDemands = $mWaterConsumerDemand->getDemandCollectively($demandIds)
                 ->orderBy('demand_from')
                 ->get();
-           
+
 
             $fromDate           = collect($consumerDemands)->first()->demand_from;
             $startingDate       = Carbon::createFromFormat('Y-m-d',  $fromDate)->startOfMonth();
@@ -2242,34 +2242,44 @@ class WaterPaymentController extends Controller
             if ($req->chargeCategory == "Demand Collection") {
                 $chequeReqs = [
                     'user_id'           => $req['userId'],
-                    'consumer_req_id'   => $req['id'],
+                    'consumer_id'       => $req['id'],
                     'transaction_id'    => $req['tranId'],
                     'cheque_date'       => $req['chequeDate'],
                     'bank_name'         => $req['bankName'],
                     'branch_name'       => $req['branchName'],
                     'cheque_no'         => $req['chequeNo']
                 ];
-                $mPropChequeDtl->postChequeDtl($chequeReqs);
+            } else {
+                $chequeReqs = [
+                    'user_id'           => $req['userId'],
+                    'application_id'    => $req['id'],
+                    'transaction_id'    => $req['tranId'],
+                    'cheque_date'       => $req['chequeDate'],
+                    'bank_name'         => $req['bankName'],
+                    'branch_name'       => $req['branchName'],
+                    'cheque_no'         => $req['chequeNo']
+                ];
             }
-
-            $tranReqs = [
-                'transaction_id'    => $req['tranId'],
-                'application_id'    => $req['id'],
-                'module_id'         => $moduleId,
-                'workflow_id'       => $req['workflowId'],
-                'transaction_no'    => $req['tranNo'],
-                'application_no'    => $req['applicationNo'],
-                'amount'            => $req['amount'],
-                'payment_mode'      => strtoupper($req['paymentMode']),
-                'cheque_dd_no'      => $req['chequeNo'],
-                'bank_name'         => $req['bankName'],
-                'tran_date'         => $req['todayDate'],
-                'user_id'           => $req['userId'],
-                'ulb_id'            => $req['ulbId'],
-                'ward_no'           => $req['ward_no']
-            ];
-            $mTempTransaction->tempTransaction($tranReqs);
+            $mPropChequeDtl->postChequeDtl($chequeReqs);
         }
+
+        $tranReqs = [
+            'transaction_id'    => $req['tranId'],
+            'application_id'    => $req['id'],
+            'module_id'         => $moduleId,
+            'workflow_id'       => $req['workflowId'],
+            'transaction_no'    => $req['tranNo'],
+            'application_no'    => $req['applicationNo'],
+            'amount'            => $req['amount'],
+            'payment_mode'      => strtoupper($req['paymentMode']),
+            'cheque_dd_no'      => $req['chequeNo'],
+            'bank_name'         => $req['bankName'],
+            'tran_date'         => $req['todayDate'],
+            'user_id'           => $req['userId'],
+            'ulb_id'            => $req['ulbId'],
+            'ward_no'           => $req['ward_no']
+        ];
+        $mTempTransaction->tempTransaction($tranReqs);
     }
 
     /**
@@ -2302,15 +2312,15 @@ class WaterPaymentController extends Controller
             ];
             $mWaterApplication->updateOnlyPaymentstatus($activeConRequest->id, $refReq);
         }
-         # saving Details in application table if payment is in JSK
-            if ($activeConRequest->user_type == $userType['1'] && $activeConRequest->doc_upload_status == true) {
-                # write code for track table
-                $mWaterApplication->sendApplicationToRole($request['id'], $refRole['DA']);                // Save current role as Da
-            } else {
-                # write code for track table
-                $mWaterApplication->sendApplicationToRole($request['id'], $refRole['BO']);                // Save current role as Bo
-            }
-        
+        # saving Details in application table if payment is in JSK
+        if ($activeConRequest->user_type == $userType['1'] && $activeConRequest->doc_upload_status == true) {
+            # write code for track table
+            $mWaterApplication->sendApplicationToRole($request['id'], $refRole['DA']);                // Save current role as Da
+        } else {
+            # write code for track table
+            $mWaterApplication->sendApplicationToRole($request['id'], $refRole['BO']);                // Save current role as Bo
+        }
+
         $charges->save();                                                   // Save Demand
         $waterTranDetail->saveDefaultTrans(
             $charges->amount,
