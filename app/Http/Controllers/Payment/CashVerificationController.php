@@ -199,11 +199,14 @@ class CashVerificationController extends Controller
     public function verifiedTcCollectionDtl(Request $request)
     {
         try {
-            $request->validate([
-                // "date" => "required|date",
-                // "userId" => "required|numeric",
-                "tranNo" => "required"
-            ]);
+            $validated = Validator::make(
+                $request->all(),
+                ['tranNo' => 'required|string']
+            );
+            if ($validated->fails()) {
+                return validationError($validated);
+            }
+
             $userId =  $request->userId;
             $ulbId =  authUser($request)->ulb_id;
             $date = date('Y-m-d', strtotime($request->date));
