@@ -1057,9 +1057,10 @@ class NewConnectionController extends Controller
                 'docCode'       => $req->docCode,
                 'ownerDtlId'    => $req->ownerId,
                 'docCategory'   => $req->docCategory,
-                'auth'          => $user
+                'auth'          => $req->auth
             ];
 
+            # Check the diff in user and citizen
             if ($user->user_type == "Citizen") {                                                // Static
                 $isCitizen = true;
                 $this->checkParamForDocUpload($isCitizen, $getWaterDetails, $user);
@@ -1180,7 +1181,7 @@ class NewConnectionController extends Controller
         //     }
         //     return true;
         // });
-        return $checkDocument;//->merge($checkOwnerDocument);
+        return $checkDocument; //->merge($checkOwnerDocument);
     }
 
 
@@ -1636,7 +1637,7 @@ class NewConnectionController extends Controller
             }
             // $refWaterApplicant = $mWaterApplicant->getOwnerList($req->applicationId)->get();
             $documentList = $this->getWaterDocLists($refWaterApplication);
-           $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
+            $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
                 return $this->filterDocument($value, $refWaterApplication)->first();
             });
 
@@ -2848,8 +2849,8 @@ class NewConnectionController extends Controller
                     break;
             }
 
-            $mProperty=$mPropProperty->getPropertyId($req->propertyNo);
-            if(!$mProperty){
+            $mProperty = $mPropProperty->getPropertyId($req->propertyNo);
+            if (!$mProperty) {
                 throw new Exception('holding not found');
             }
 
@@ -2900,7 +2901,7 @@ class NewConnectionController extends Controller
             $applicationNo  = $idGeneration->generate();
             $applicationNo  = str_replace('/', '-', $applicationNo);
 
-            $applicationId = $mWaterApplication->saveWaterApplications($connectypeId,$req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
+            $applicationId = $mWaterApplication->saveWaterApplications($connectypeId, $req, $ulbWorkflowId, $initiatorRoleId, $finisherRoleId, $ulbId, $applicationNo);
             $meta = [
                 'applicationId'     => $applicationId->id,
                 "amount"            => $Charges->amount,
