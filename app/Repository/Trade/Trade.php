@@ -2904,6 +2904,9 @@ class Trade implements ITrade
                 "owner.owner_name",
                 "owner.guardian_name",
                 "owner.mobile",
+                "owner_additionl.additionl_owner_name",
+                "owner_additionl.additionl_guardian_name",
+                "owner_additionl.additionl_mobile",
                 DB::raw("ulb_ward_masters.ward_name AS ward_no, 
                         ulb_masters.id as ulb_id, ulb_masters.ulb_name,ulb_masters.ulb_type,
                         ulb_masters.logo as ulb_logo,
@@ -2932,13 +2935,34 @@ class Trade implements ITrade
                 ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
                                             STRING_AGG(guardian_name,',') as guardian_name,
                                             STRING_AGG(mobile_no::text,',') as mobile,
+                                            temp_id, id as licensee_id
+                                        FROM trade_owners 
+                                        WHERE temp_id = $id
+                                            AND is_active =TRUE
+                                        GROUP BY temp_id,id
+                                        ORDER BY id ASC
+                                        limit 1
+                                        ) owner"), function ($join) {
+                    $join->on("owner.temp_id", "=", "license.id");
+                })
+                ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as additionl_owner_name,
+                                            STRING_AGG(guardian_name,',') as additionl_guardian_name,
+                                            STRING_AGG(mobile_no::text,',') as additionl_mobile,
                                             temp_id
                                         FROM trade_owners 
                                         WHERE temp_id = $id
                                             AND is_active =TRUE
+                                            AND id NOT IN(
+                                                SELECT id
+                                                FROM trade_owners 
+                                                WHERE temp_id = $id
+                                                    AND is_active =TRUE
+                                                ORDER BY id ASC
+                                                limit 1
+                                            )
                                         GROUP BY temp_id
-                                        ) owner"), function ($join) {
-                    $join->on("owner.temp_id", "=", "license.id");
+                                        ) owner_additionl"), function ($join) {
+                    $join->on("owner_additionl.temp_id", "=", "license.id");
                 })
                 ->where('license.id', $id)
                 ->first();
@@ -2954,14 +2978,35 @@ class Trade implements ITrade
                     ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as owner_name,
                                             STRING_AGG(guardian_name,',') as guardian_name,
                                             STRING_AGG(mobile_no::text,',') as mobile,
+                                            temp_id , id as licensee_id
+                                        FROM trade_owners 
+                                        WHERE temp_id = $id
+                                            AND is_active =TRUE
+                                        GROUP BY temp_id,id
+                                        ORDER BY id ASC
+                                        limit 1
+                                        ) owner"), function ($join) {
+                        $join->on("owner.temp_id", "=", "license.id");
+                    })
+                    ->leftjoin(DB::raw("(SELECT STRING_AGG(owner_name,',') as additionl_owner_name,
+                                            STRING_AGG(guardian_name,',') as additionl_guardian_name,
+                                            STRING_AGG(mobile_no::text,',') as additionl_mobile,
                                             temp_id
                                         FROM trade_owners 
                                         WHERE temp_id = $id
                                             AND is_active =TRUE
+                                            AND id NOT IN(
+                                                SELECT id
+                                                FROM trade_owners 
+                                                WHERE temp_id = $id
+                                                    AND is_active =TRUE
+                                                ORDER BY id ASC
+                                                limit 1
+                                            )
                                         GROUP BY temp_id
-                                        ) owner"), function ($join) {
-                        $join->on("owner.temp_id", "=", "license.id");
-                    })
+                                        ) owner_additionl"), function ($join) {
+                    $join->on("owner_additionl.temp_id", "=", "license.id");
+                })
                     ->where('license.id', $id)
                     ->first();
                 if (!$application) 
@@ -2969,6 +3014,10 @@ class Trade implements ITrade
                     throw new Exception("Application Not Found");
                 }
             }
+            if (!$application) {
+                throw new Exception("Data Not Faound");
+            }
+            $oldLicense = TradeRenewal::find($application->trade_id);
             if ($application->pending_status != 5) 
             {
                 throw new Exception("Application Not Approved");
@@ -2991,8 +3040,64 @@ class Trade implements ITrade
             {
                 $this->temCalValidity($application);
             }
+            $application->old_license_no = $oldLicense->license_no??"";
+            $application->old_license_date = $oldLicense?Carbon::parse($oldLicense->license_date)->format("d-m-Y"):"";
             $application->ulb_logo = $application->ulb_logo ? ($this->_DOC_URL."/".$application->ulb_logo):"";
-            $data["application"] = $application;
+            
+            $transaction = TradeTransaction::select(
+                    "tran_no",
+                    "tran_type",
+                    "payment_mode",
+                    "paid_amount",
+                    "penalty",
+                    "trade_transactions.id",
+                    "trade_cheque_dtls.cheque_no",
+                    "trade_cheque_dtls.bank_name",
+                    "trade_cheque_dtls.branch_name",
+                    DB::raw("TO_CHAR(cast(tran_date as date), 'DD-MM-YYYY') AS tran_date,
+                            TO_CHAR(cast(cheque_date as date), 'DD-MM-YYYY') AS cheque_date
+                            ")
+                )
+                ->leftjoin("trade_cheque_dtls", "trade_cheque_dtls.tran_id", "trade_transactions.id")
+                // ->where("trade_transactions.id", $transectionId)
+                ->where("trade_transactions.temp_id", $application->id)
+                ->whereIn("trade_transactions.status", [1, 2])
+                ->orderBy("trade_transactions.id","DESC")
+                ->first();
+            
+            if(!$application->licence_for_years || !$application->valid_from || !$application->valid_upto)
+            {
+                $this->temCalValidity($application);
+            }
+            $penalty = TradeFineRebete::select("type", "amount")
+                ->where('tran_id', $transaction->id??0)
+                ->where("status", 1)
+                ->orderBy("id")
+                ->get();
+            $pen = 0;
+            $delay_fee = 0;
+            $denial_fee = 0;
+            foreach ($penalty as $val) 
+            {
+                if (strtoupper($val->type) == strtoupper("Delay Apply License")) 
+                {
+                    $delay_fee = $val->amount;
+                } 
+                elseif (strtoupper($val->type) == strtoupper("Denial Apply")) 
+                {
+                    $denial_fee = $val->amount;
+                }
+                $pen += $val->amount;
+            }
+            $transaction->rate = number_format(($transaction->paid_amount - $pen), 2);
+            $transaction->delay_fee = number_format($delay_fee, 2);
+            $transaction->denial_fee = number_format($denial_fee, 2);
+            $transaction->paid_amount_in_words = getIndianCurrency($transaction->paid_amount);
+            $data = [
+                "application" => $application,
+                "transaction" => $transaction,
+                "penalty"    => $penalty ,
+            ];
             $data = remove_null($data);
             return  responseMsg(true, "", $data);
         } catch (Exception $e) {
