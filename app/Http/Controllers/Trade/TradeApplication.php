@@ -1104,7 +1104,7 @@ class TradeApplication extends Controller
             }
             if (in_array($req->docName, explode(",", $applicationDocName)) && (empty($applicationDocCode) || !(in_array($req->docCode, explode(",", $applicationCode))))) {
                 throw new Exception("Invalid Application Doc Code Pass");
-            }return([$ownerDocNames,"dfjkdlfj",$ownerIds,$ownerDoc]);
+            }
             if (in_array($req->docName, explode(",", $ownerDocNames)) && (!(in_array($req->ownerId, explode(",", $ownerIds))))) {
                 throw new Exception("Invalid ownerId Pass");
             }
