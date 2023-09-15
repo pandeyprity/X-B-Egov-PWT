@@ -1376,7 +1376,6 @@ class Trade implements ITrade
                 $mItemName = trim($mItemName, ',');
                 $mCods = trim($mCods, ',');
             }
-            $tbl = $refApplication->tbl == "active_trade_licences" ? "active_" : ($refApplication->tbl == "rejected_trade_licences" ? "rejected_" : "");
             $refApplication->items      = $mItemName;
             $refApplication->items_code = $mCods;
             $refOwnerDtl                = $this->getAllOwnereDtlByLId($id);

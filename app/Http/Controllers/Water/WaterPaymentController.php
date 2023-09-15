@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Water;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Water\reqConsumerReqPayment;
 use App\Http\Requests\Water\reqDemandPayment;
+use App\Models\Water\WaterApplicant;
 use App\Http\Requests\Water\ReqWaterPayment;
 use App\Http\Requests\Water\siteAdjustment;
 use App\MicroServices\IdGeneration;
+use  App\Http\Requests\water\reqeustFileWater;
 use App\Models\Payment\TempTransaction;
 use App\Models\Payment\WebhookPaymentData;
 use App\Models\Water\WaterAdjustment;
@@ -442,9 +444,12 @@ class WaterPaymentController extends Controller
     public function saveSitedetails(siteAdjustment $request)
     {
         try {
+            $changes                =$request['ownerDetails'];
+            $applicationId          =$request->applicationId;
             $mWaterSiteInspection   = new WaterSiteInspection();
             $mWaterNewConnection    = new WaterNewConnection();
             $mWaterConnectionCharge = new WaterConnectionCharge();
+            $mWaterApplicants       = new WaterApplicant();
             $mWaterSiteInspectionsScheduling = new WaterSiteInspectionsScheduling();
 
             $connectionCatagory = Config::get('waterConstaint.CHARGE_CATAGORY');
@@ -459,19 +464,13 @@ class WaterPaymentController extends Controller
                 ->firstOrFail();
 
             $this->begin();
-            # Generating Demand for new InspectionData
-            // $newConnectionCharges = objToArray($mWaterNewConnection->calWaterConCharge($request));
-            // if (!$newConnectionCharges['status']) {
-            //     throw new Exception(
-            //         $newConnectionCharges['errors']
-            //     );
-            // }
-            // # Param Value for the new Charges
-            // $waterFeeId = $newConnectionCharges['water_fee_mstr_id'];
-
-            // # If the Adjustment Hamper
-            // $paymentstatus = $this->adjustmentInConnection($request, $newConnectionCharges, $waterDetails, $applicationCharge);
-
+            #if applicants details changes then store the
+            if (collect($changes)->isEmpty()) {
+                $mWaterApplicants->saveWaterApplicant($changes,$applicationId);
+            }
+            if(collect($changes)->isNotEmpty()){
+                $mWaterApplicants->saveWaterApplicant($changes,$applicationId);
+            }
             # Store the site inspection details
             $mWaterSiteInspection->storeInspectionDetails($request,  $waterDetails, $refRoleDetails);
             $mWaterSiteInspectionsScheduling->saveInspectionStatus($request);

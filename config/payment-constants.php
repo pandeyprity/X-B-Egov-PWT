@@ -57,5 +57,11 @@ return [
         "NEFT"      => "Neft",
         "ONLINE"    => "Online"
     ],
-    "TRAN_PARAM_ID" => 37
+    "TRAN_PARAM_ID" => 37,
+
+    "PAYMENT_STATUS" => [
+        "PENDING"   => 0,
+        "APPROVED"  => 1,
+        "REJECT"    => 2
+    ]
 ];

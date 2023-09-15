@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Water\newApplyRules;
 use  App\Models\water\WaterSecondConnectionCharge;
 use App\Http\Requests\Water\reqSiteVerification;
+use  App\Http\Requests\water\reqeustFileWater;
 use App\MicroServices\IdGenerator\PrefixIdGenerator;
 use App\MicroServices\DocUpload;
 use App\Http\Requests\water\newWaterRequest;
@@ -1288,6 +1289,7 @@ class NewConnectionController extends Controller
         if ($validated->fails())
             return validationError($validated);
         try {
+            $user                   = authUser($request);
             $refApplication         = (array)null;
             $refOwneres             = (array)null;
             $requiedDocs            = (array)null;
@@ -1296,11 +1298,11 @@ class NewConnectionController extends Controller
             $refWaterNewConnection  = new WaterNewConnection();
             $refWfActiveDocument    = new WfActiveDocument();
             $mWaterConnectionCharge = new WaterConnectionCharge();
-            $mWaterSecondConsumer   = new WaterSecondConsumer();
+            $mWaterSecondConsumer   = new WaterApplication();   // Application 
             $moduleId               = Config::get('module-constants.WATER_MODULE_ID');
 
             $connectionId = $request->applicationId;
-            $refApplication = $mWaterSecondConsumer->getConsumerDetailsById($connectionId)->first();
+            $refApplication = $mWaterSecondConsumer->getApplicationById($connectionId)->first();
             if (!$refApplication) {
                 throw new Exception("Application Not Found!");
             }
@@ -1312,7 +1314,7 @@ class NewConnectionController extends Controller
             $connectionCharges['applicationNo'] = $refApplication->application_no;
             $connectionCharges['applicationId'] = $refApplication->id;
 
-            $requiedDocType = $refWaterNewConnection->getDocumentTypeList($refApplication);  # get All Related Document Type List
+            $requiedDocType = $refWaterNewConnection->getDocumentTypeList($refApplication,$user);  # get All Related Document Type List
             $refOwneres = $refWaterNewConnection->getOwnereDtlByLId($refApplication->id);    # get Owneres List
             $ownerList = collect($refOwneres)->map(function ($value) {
                 $return['applicant_name'] = $value['applicant_name'];
@@ -1636,7 +1638,7 @@ class NewConnectionController extends Controller
                 throw new Exception("Application Not Found for this id");
             }
             // $refWaterApplicant = $mWaterApplicant->getOwnerList($req->applicationId)->get();
-            $documentList = $this->getWaterDocLists($refWaterApplication);
+            $documentList = $this->getWaterDocLists($refWaterApplication,$req);
             $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
                 return $this->filterDocument($value, $refWaterApplication)->first();
             });
@@ -1738,14 +1740,24 @@ class NewConnectionController extends Controller
      * | 01.01
         | Serial No :  
      */
-    public function getWaterDocLists($application)
-    {
-        $mRefReqDocs    = new RefRequiredDocument();
-        $moduleId       = Config::get('module-constants.WATER_MODULE_ID');
+    public function getWaterDocLists($application,$req)
+{
+    $user           = authUser($req);
+    $mRefReqDocs    = new RefRequiredDocument();
+    $moduleId       = Config::get('module-constants.WATER_MODULE_ID');
+    $refUserType    = Config::get('waterConstaint.REF_USER_TYPE');
 
-        $type = ["FORM_SCAN_COPY", "STAMP"];
-        return $mRefReqDocs->getCollectiveDocByCode($moduleId, $type);
+    $type = ["FORM_SCAN_COPY", "STAMP", "ID_PROOF"];
+
+    // Check if user_type is not equal to 1
+    if ($user->user_type == $refUserType['1']) {
+        // Modify $type array for user_type not equal to 1
+        $type = ["STAMP", "ID_PROOF"];
     }
+
+    return $mRefReqDocs->getCollectiveDocByCode($moduleId, $type);
+}
+
 
 
     /**
@@ -2065,7 +2077,6 @@ class NewConnectionController extends Controller
             return validationError($validated);
         try {
             $applicationId              = $request->applicationId;
-            $mWaterConnectionCharge     = new WaterSecondConnectionCharge();
             $mWaterApplication          = new WaterApplication();
             $mWaterPenaltyInstallment   = new WaterPenaltyInstallment();
             $mWaterTran                 = new WaterTran();
@@ -2823,7 +2834,7 @@ class NewConnectionController extends Controller
         try {
             $user           = authUser($req);
             $ulbId          = $req->ulbId;
-            $owner          = $req->onwerDetails;
+            $owner          = $req['onwerDetails'];
             $connectypeId   = $req->connectionTypeId ?? 1;
 
             $ulbWorkflowObj         = new WfWorkflow();

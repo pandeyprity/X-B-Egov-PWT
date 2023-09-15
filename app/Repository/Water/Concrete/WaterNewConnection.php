@@ -764,7 +764,7 @@ class WaterNewConnection implements IWaterNewConnection
             // {
             //     throw new Exception("Documernt Already Verifed.....");
             // }
-            $requiedDocType = $this->getDocumentTypeList($refApplication);  # get All Related Document Type List
+            $requiedDocType = $this->getDocumentTypeList($refApplication, $refUser);  # get All Related Document Type List
             $refOwneres = $this->getOwnereDtlByLId($refApplication->id);    # get Owneres List
             foreach ($requiedDocType as $val) {
                 $doc = (array) null;
@@ -1251,15 +1251,20 @@ class WaterNewConnection implements IWaterNewConnection
         }
     }
 
-    public function getDocumentTypeList($application)
+    public function getDocumentTypeList($application, $user)
     {
-        $return = (array)null;
-        $type   = ["ADDRESS_PROOF", "HOLDING_PROOF"];
+        $refUserType = Config::get('waterConstaint.REF_USER_TYPE');
+        $type = ["FORM_SCAN_COPY", "STAMP", "ID_PROOF"];
+        // Check if user_type is not equal to 1
+        if ($user->user_type == $refUserType['1']) {
+            // Modify $type array for user_type not equal to 1
+            $type = ["STAMP", "ID_PROOF"];
+        }
 
         $doc = WaterParamDocumentType::select(
             "doc_for",
             DB::raw("CASE WHEN doc_for ='OTHER' THEN 0 
-                                                ELSE 1 END AS is_mandatory")
+            ELSE 1 END AS is_mandatory")
         )
             ->whereIn("doc_for", $type)
             ->where("status", 1)

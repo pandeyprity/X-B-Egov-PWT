@@ -232,7 +232,7 @@ class WaterConsumer extends Controller
             }
             $this->checkDemandGeneration($request, $consumerDetails);                                       // unfinished function
             $returnData = new WaterMonthelyCall($request->consumerId, $request->demandUpto, $request->finalRading); #WaterSecondConsumer::get();
-            $calculatedDemand = $returnData->parentFunction($request);
+           return $calculatedDemand = $returnData->parentFunction($request);
             if ($calculatedDemand['status'] == false) {
                 throw new Exception($calculatedDemand['errors']);
             }

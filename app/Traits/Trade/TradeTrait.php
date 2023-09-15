@@ -104,6 +104,7 @@ trait TradeTrait
     {
         $owners = collect($ownerDetails)->implode('owner_name', ','); 
         $data = new Collection([
+            ['displayString' => 'Zone No', 'key' => 'zoneNo', 'value' => $req->zone_name],
             ['displayString' => 'Ward No', 'key' => 'wardNo', 'value' => $req->ward_no],
             ['displayString' => 'Holding No', 'key' => 'holdingNo', 'value' => $req->holding_no],
             ['displayString' => 'Owner Name', 'key' => 'ownerName', 'value' => $owners],

@@ -8,11 +8,19 @@ use App\Models\Payment\IciciPaymentReq;
 use App\Models\Payment\IciciPaymentResponse;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
+    private $_paymentStatus;
+
+    public function __construct()
+    {
+        $this->_paymentStatus = Config::get('payment-constants.PAYMENT_STATUS');
+    }
+
     // Generation of Referal url for payment for Testing
     public function getReferalUrl(Request $req)
     {
@@ -77,6 +85,66 @@ class PaymentController extends Controller
         } catch (Exception $e) {
             DB::connection('pgsql_master')->rollBack();
             return responseMsgs(false, $e->getMessage(), []);
+        }
+    }
+
+    /**
+     * | Get data by reference no 
+     */
+    public function getPaymentDataByRefNo(Request $req)
+    {
+        $getPayemntDetails  = new GetRefUrl;
+        $mIciciPaymentReq   = new IciciPaymentReq();
+        $mIciciPaymentRes   = new IciciPaymentResponse();
+        try {
+            $user               = authUser($req);
+            $resRefNo           = $req->referencNo;
+            $confPaymentStatus  = $this->_paymentStatus;
+            $paymentReqData     = $mIciciPaymentReq->findByReqRefNo($resRefNo);
+            if (!$paymentReqData) {
+                throw new Exception("Payment request of $resRefNo not found!");
+            }
+
+            $paymentJsonData = $this->filterReqReqData($req);
+            # Get the payment req for refNo
+            switch ($paymentReqData->payment_status) {
+                case ($confPaymentStatus['PENDING']):
+                    $PaymentHistory = $getPayemntDetails->getPaymentStatusByUrl($resRefNo);
+                    break;
+                default:
+
+                    break;
+            }
+
+
+            DB::connection('pgsql_master')->commit();
+            return responseMsgs(true, "Payment Received Successfully", []);
+        } catch (Exception $e) {
+            DB::connection('pgsql_master')->rollBack();
+            return responseMsgs(false, $e->getMessage(), []);
+        }
+    }
+
+    /**
+     * | filter the string data into json
+     */
+    public function filterReqReqData($req)
+    {
+        $string         = "status=NotInitiated&ezpaytranid=NA&amount=NA&trandate=NA&pgreferenceno=null&sdt=&BA=null&PF=null&TAX=null&PaymentMode=null";
+        $keyValuePairs  = explode('&', $string);
+        $data           = [];
+
+        foreach ($keyValuePairs as $pair) {
+            list($key, $value) = explode('=', $pair);
+            $value = ($value === 'null') ? null : $value;
+            $data[$key] = $value;
+        }
+
+        $jsonData = json_encode($data);
+        if ($jsonData === false) {
+            throw new Exception("JSON encoding failed!");
+        } else {
+            return $jsonData;
         }
     }
 }
