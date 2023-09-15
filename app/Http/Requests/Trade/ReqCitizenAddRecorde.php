@@ -6,8 +6,8 @@ use App\Repository\Common\CommonFunction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 
-class ReqCitizenAddRecorde extends TradeRequest
-{
+class ReqCitizenAddRecorde extends ReqAddRecorde
+{ #TradeRequest
     public function __construct()
     {
         parent::__construct();
@@ -30,8 +30,9 @@ class ReqCitizenAddRecorde extends TradeRequest
         $mOwnerName         = $this->_REX_OWNER_NAME;
         $mMobileNo          = $this->_REX_MOBILE_NO;
 
-        $rules = [];
-        $rules["ulbId"]="required|digits_between:1,92";
+        $rules = parent::rules();
+        $rules["ulbId"] = "required|digits_between:1,92";
+        return $rules;
         $rules["applicationType"]=$this->_REX_APPLICATION_TYPE;
         if(!in_array($mApplicationTypeId, [1]))
         {

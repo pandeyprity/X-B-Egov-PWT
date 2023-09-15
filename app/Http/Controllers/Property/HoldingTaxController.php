@@ -239,6 +239,8 @@ class HoldingTaxController extends Controller
             if ($holdingDues->original['status'] == false)
                 throw new Exception($holdingDues->original['message']);
 
+            if ($holdingDues->original['data']['paymentStatus'])
+                    throw new Exception("Payment Already Done");
             $holdingDues = $holdingDues->original['data'];
             $payableAmount = $holdingDues['payableAmt'];
             $basicDetails = $holdingDues['basicDetails'];
@@ -251,6 +253,7 @@ class HoldingTaxController extends Controller
             ]);
 
             DB::beginTransaction();
+            DB::connection('pgsql_master')->beginTransaction();
             $moduleRefUrl->getReferalUrl($refReq);
             $refurl = $moduleRefUrl->_refUrl;
             // Table maintain for particular module 
@@ -269,9 +272,11 @@ class HoldingTaxController extends Controller
             ];
             $mPropIciciPayPayments->create($propIciciReqs);
             DB::commit();
+            DB::connection('pgsql_master')->commit();
             return responseMsgs(true, "", $refurl);
         } catch (Exception $e) {
             DB::rollBack();
+            DB::connection('pgsql_master')->rollBack();
             return responseMsgs(false, $e->getMessage(), []);
         }
     }

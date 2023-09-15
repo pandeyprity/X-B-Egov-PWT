@@ -107,6 +107,8 @@ Route::group(['middleware' => ['json.response', "auth_maker"]], function () {
 
         Route::post('notice/citizen-details', "getDenialDetails");                 #id = c3 
 
+        Route::post('application/send-to-officer', 'sendToLevel');
+
         Route::post('application/pay-razorpay-charge', 'handeRazorPay');           #id = c4
 
         Route::post('application/conform-razorpay-tran', 'conformRazorPayTran');   #id = c5

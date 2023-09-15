@@ -115,13 +115,13 @@ class CashVerificationController extends Controller
             $waterModuleId = Config::get('module-constants.WATER_MODULE_ID');
             $tradeModuleId = Config::get('module-constants.TRADE_MODULE_ID');
 
-            $revDailycollection =  RevDailycollection::select('users.id', 'name', 'deposit_amount', 'module_id', 'tran_no')
+            $revDailycollection =  RevDailycollection::select('users.id', 'collection_id', 'name', 'deposit_amount', 'module_id', 'tran_no')
                 ->join('rev_dailycollectiondetails as rdc', 'rdc.collection_id', 'rev_dailycollections.id')
                 ->join('users', 'users.id', 'rev_dailycollections.tc_id')
-                ->groupBy('users.id', 'name', 'rdc.deposit_amount', 'module_id', 'tran_no')
+                ->groupBy('users.id', 'collection_id', 'name', 'rdc.deposit_amount', 'module_id', 'tran_no')
                 ->where('deposit_date', $date)
                 ->get();
-            $collection = collect($revDailycollection->groupBy("id")->all());
+            $collection = collect($revDailycollection->groupBy("collection_id")->all());
 
             $data = $collection->map(function ($val) use ($date, $propertyModuleId, $waterModuleId, $tradeModuleId) {
                 $total =  $val->sum('deposit_amount');
@@ -148,98 +148,6 @@ class CashVerificationController extends Controller
             return responseMsgs(false, $e->getMessage(), "", "010201", "1.0", "", "POST", $req->deviceId ?? "");
         }
     }
-
-
-
-    /**
-     * | Verified Cash Verification List
-     */
-
-    // public function verifiedCashVerificationList(Request $req)
-    // {
-    //     $ulbId =  authUser()->ulb_id;
-    //     $userId =  $req->id;
-    //     $date = date('Y-m-d', strtotime($req->date));
-
-    //     DB::enableQueryLog();
-    //     $propTraDtl = PropTransaction::select(
-    //         'users.id',
-    //         'users.user_name',
-    //         DB::raw("sum(prop_transactions.amount) as amount,'property' as module,
-    //         sum(case when prop_transactions.verify_status = 1 then prop_transactions.amount  end ) as verified_amount,
-    //         string_agg((case when prop_transactions.verify_status = 1 then 1  end)::text,',') As verify_status
-    //         "),
-    //     )
-    //         ->join('users', 'users.id', 'prop_transactions.user_id')
-    //         ->where('tran_date', $date)
-    //         ->where('prop_transactions.status', '<>', 0)
-    //         ->where('payment_mode', '!=', 'ONLINE')
-    //         ->groupBy(["users.id", "users.user_name"]);
-
-    //     $tradeDtl  = TradeTransaction::select(
-    //         'users.id',
-    //         'users.user_name',
-    //         DB::raw("sum(trade_transactions.paid_amount) as amount,'trade' as module , 
-    //         sum(case when trade_transactions.is_verified is true  then trade_transactions.paid_amount end ) as verified_amount,
-    //         string_agg((case when trade_transactions.is_verified is true then 1  end)::text,',') As verify_status
-    //         "),
-    //     )
-    //         ->join('users', 'users.id', 'trade_transactions.emp_dtl_id')
-    //         ->where('tran_date', $date)
-    //         ->where('trade_transactions.status', '<>', 0)
-    //         ->where('payment_mode', '!=', 'ONLINE')
-    //         ->groupBy(["users.id", "users.user_name"]);
-
-    //     $waterDtl = WaterTran::select(
-    //         'users.id',
-    //         'users.user_name',
-    //         DB::raw("sum(water_trans.amount) as amount,'water' as module,
-    //         sum(case when water_trans.verify_status =1  then water_trans.amount  end ) as verified_amount,
-    //         string_agg((case when water_trans.verify_status =1 then 1 end)::text,',') As verify_status
-    //         "),
-    //     )
-    //         ->join('users', 'users.id', 'water_trans.emp_dtl_id')
-    //         ->where('tran_date', $date)
-    //         ->where('water_trans.status', '<>', 0)
-    //         ->where('payment_mode', '!=', 'ONLINE')
-    //         ->groupBy(["users.id", "users.user_name"]);
-    //     if ($userId) {
-    //         $propTraDtl = $propTraDtl->where('user_id', $userId);
-    //         $tradeDtl = $tradeDtl->where('emp_dtl_id', $userId);
-    //         $waterDtl = $waterDtl->where('emp_dtl_id', $userId);
-    //     }
-    //     $propTraDtl1 = $propTraDtl;
-    //     $collection = $propTraDtl1
-    //         ->union($tradeDtl)
-    //         ->union($waterDtl)
-    //         ->get();
-    //     $collection = collect($collection->groupBy("id")->all());
-    //     // dd($collection);
-    //     $data = $collection->map(function ($val) use ($date) {
-    //         $total =  $val->sum('amount');
-    //         $verified_amount =  $val->sum('verified_amount');
-    //         $prop = $val->where("module", "property")->sum('amount');
-    //         $trad = $val->where("module", "trade")->sum('amount');
-    //         $water = $val->where("module", "water")->sum('amount');
-    //         $is_verified = in_array(0, (objToArray(collect(explode(',', ($val->implode("verify_status", ',')))))));
-    //         return [
-
-    //             "id" => $val[0]['id'],
-    //             "user_name" => $val[0]['user_name'],
-    //             "property" => $prop,
-    //             "water" => $water,
-    //             "trade" => $trad,
-    //             "total" => $total,
-    //             // "is_verified" => $is_verified,
-    //             "date" => $date,
-    //             "verified_amount" => $verified_amount,
-    //         ];
-    //     });
-    //     $data = (array_values(objtoarray($data)));
-
-    //     return responseMsgs(true, "Verified List cash Verification", $data, "010201", "1.0", "", "POST", $req->deviceId ?? "");
-    // }
-
 
     /**
      * | Tc Collection Dtl
@@ -291,10 +199,14 @@ class CashVerificationController extends Controller
     public function verifiedTcCollectionDtl(Request $request)
     {
         try {
-            $request->validate([
-                "date" => "required|date",
-                "userId" => "required|numeric",
-            ]);
+            $validated = Validator::make(
+                $request->all(),
+                ['tranNo' => 'required|string']
+            );
+            if ($validated->fails()) {
+                return validationError($validated);
+            }
+
             $userId =  $request->userId;
             $ulbId =  authUser($request)->ulb_id;
             $date = date('Y-m-d', strtotime($request->date));
@@ -304,8 +216,9 @@ class CashVerificationController extends Controller
 
             $mRevDailycollection = new RevDailycollection();
             $details = $mRevDailycollection->collectionDetails($ulbId)
-                ->where('deposit_date', $date)
-                ->where('tc_id', $userId)
+                // ->where('deposit_date', $date)
+                // ->where('tc_id', $userId)
+                ->where('tran_no', $request->tranNo)
                 ->get();
 
             if ($details->isEmpty())
@@ -336,343 +249,6 @@ class CashVerificationController extends Controller
     }
 
     /**
-     * | Verified tc collection
-     * | Serial : 4
-     */
-    // public function verifiedTcCollectionDtl(Request $request)
-    // {
-    //     $request->validate([
-    //         "date" => "required|date",
-    //         "userId" => "required|numeric",
-
-    //     ]);
-
-    //     $userId = $request->userId;
-    //     $date = date('Y-m-d', strtotime($request->date));
-
-    //     $sql =   "WITH 
-    //         prop_transactions AS 
-    //     (
-    //         SELECT prop_transactions.id, saf_no AS application_no,tran_no,
-    //         payment_mode,amount,verify_status,verified_by,verify_date,ward_name,tran_date,
-    //                 prop_active_safs.ward_mstr_id AS ward_id , owner_name,'activ_saf' AS tbl
-    //             FROM prop_transactions
-    //             inner join prop_active_safs on prop_active_safs.id = prop_transactions.saf_id
-    //             inner join ulb_ward_masters on ulb_ward_masters.id = prop_active_safs.ward_mstr_id
-    //             LEFT JOIN (
-    //                 SELECT prop_active_safs_owners.saf_id,string_agg(owner_name,',') AS owner_name
-    //                 FROM prop_active_safs_owners
-    //                 JOIN prop_transactions ON prop_transactions.saf_id = prop_active_safs_owners.saf_id
-    //                 WHERE prop_active_safs_owners.status = 1
-    //                     AND prop_transactions.status = 1
-    //                     AND prop_transactions.tran_date = '" . $date . "'
-    //                     AND payment_mode != 'netbanking'
-    //                     AND prop_transactions.payment_mode != 'ONLINE'
-    //                 GROUP BY prop_active_safs_owners.saf_id
-    //             ) owners ON owners.saf_id = prop_active_safs.id
-    //             WHERE prop_transactions.status = 1 
-    //                 AND prop_transactions.tran_date = '" . $date . "'
-    //                 AND prop_transactions.payment_mode != 'ONLINE'
-    //                 AND payment_mode != 'netbanking'
-    //                 AND prop_transactions.user_id = $userId
-    //         union
-    //             (
-    //                 SELECT prop_transactions.id, saf_no AS application_no,tran_no,
-    //                 payment_mode,amount,verify_status,verified_by,verify_date,ward_name,tran_date,
-    //                     prop_rejected_safs.ward_mstr_id AS ward_id , owner_name,'rejected_saf' AS tbl
-    //                 FROM prop_transactions
-    //                 inner join prop_rejected_safs on prop_rejected_safs.id = prop_transactions.saf_id
-    //                 inner join ulb_ward_masters on ulb_ward_masters.id = prop_rejected_safs.ward_mstr_id
-    //                 LEFT JOIN (
-    //                     SELECT prop_rejected_safs_owners.saf_id,string_agg(owner_name,',') AS owner_name
-    //                     FROM prop_rejected_safs_owners
-    //                     JOIN prop_transactions ON prop_transactions.saf_id = prop_rejected_safs_owners.saf_id
-    //                     WHERE prop_rejected_safs_owners.status = 1
-    //                         AND prop_transactions.status = 1
-    //                         AND prop_transactions.tran_date = '2023-02-01'
-    //                         AND payment_mode != 'netbanking'
-    //                         AND prop_transactions.payment_mode != 'ONLINE'
-    //                     GROUP BY prop_rejected_safs_owners.saf_id
-    //                 ) owners ON owners.saf_id = prop_rejected_safs.id
-    //                 WHERE prop_transactions.status = 1 
-    //                     AND prop_transactions.tran_date = '" . $date . "'
-    //                     AND prop_transactions.payment_mode != 'ONLINE'
-    //                     AND payment_mode != 'netbanking'
-    //                     AND prop_transactions.user_id = $userId
-    //             )
-    //         union
-    //             (
-    //                 SELECT prop_transactions.id, saf_no AS application_no,
-    //                 tran_no,payment_mode,amount,verify_status,verified_by,verify_date,ward_name,tran_date,
-    //                     prop_safs.ward_mstr_id AS ward_id , owner_name,'prop_saf' AS tbl
-    //                 FROM prop_transactions
-    //                 inner join prop_safs on prop_safs.id = prop_transactions.saf_id
-    //                 inner join ulb_ward_masters on ulb_ward_masters.id = prop_safs.ward_mstr_id
-    //                 LEFT JOIN (
-    //                     SELECT prop_safs_owners.saf_id,string_agg(owner_name,',') AS owner_name
-    //                     FROM prop_safs_owners
-    //                     JOIN prop_transactions ON prop_transactions.saf_id = prop_safs_owners.saf_id
-    //                     WHERE prop_safs_owners.status = 1
-    //                         AND prop_transactions.status = 1
-    //                         AND prop_transactions.tran_date = '" . $date . "'
-    //                         AND payment_mode != 'netbanking'
-    //                         AND prop_transactions.payment_mode != 'ONLINE'
-    //                     GROUP BY prop_safs_owners.saf_id
-    //                 ) owners ON owners.saf_id = prop_safs.id
-    //                 WHERE prop_transactions.status = 1 
-    //                     AND prop_transactions.tran_date = '" . $date . "'
-    //                     AND prop_transactions.payment_mode != 'ONLINE'
-    //                     AND payment_mode != 'netbanking'
-    //                     AND prop_transactions.user_id = $userId
-    //             )
-    //         union
-    //             (
-    //                 SELECT prop_transactions.id, holding_no AS application_no,tran_no,
-    //                 payment_mode,amount,verify_status,verified_by,verify_date,ward_name,tran_date,
-    //                     prop_properties.ward_mstr_id AS ward_id , owner_name,'prop_properties' AS tbl
-    //                 FROM prop_transactions
-    //                 inner join prop_properties on prop_properties.id = prop_transactions.property_id
-    //                 inner join ulb_ward_masters on ulb_ward_masters.id = prop_properties.ward_mstr_id
-    //                 LEFT JOIN (
-    //                     SELECT prop_owners.property_id,string_agg(owner_name,',') AS owner_name
-    //                     FROM prop_owners
-    //                     JOIN prop_transactions ON prop_transactions.property_id = prop_owners.property_id
-    //                     WHERE prop_owners.status = 1
-    //                         AND prop_transactions.status = 1
-    //                         AND prop_transactions.tran_date = '" . $date . "'
-    //                         AND prop_transactions.payment_mode != 'ONLINE'
-    //                         AND payment_mode != 'netbanking'
-    //                     GROUP BY prop_owners.property_id
-    //                 ) owners ON owners.property_id = prop_properties.id
-    //                 WHERE prop_transactions.status = 1 
-    //                     AND prop_transactions.tran_date = '" . $date . "'
-    //                     AND prop_transactions.payment_mode != 'ONLINE'
-    //                     AND payment_mode != 'netbanking'
-    //                     AND prop_transactions.user_id = $userId
-    //             )
-    //     )select * from  prop_transactions;";
-
-    //     // trade
-    //     $trade =   "WITH 
-    //         trade_transaction AS 
-    //     (
-    //         SELECT trade_transactions.id,tran_no,
-    //             payment_mode,paid_amount as amount,is_verified as verify_status,verify_by as verified_by,verify_date,ward_name,application_no,
-    //             tran_type,tran_date,owner_name,'active_trade_licences' AS tbl
-    //         FROM trade_transactions
-    //         inner join active_trade_licences on active_trade_licences.id = trade_transactions.temp_id
-    //         inner join ulb_ward_masters on ulb_ward_masters.id = trade_transactions.ward_id
-    //         LEFT JOIN (
-    //             SELECT active_trade_owners.temp_id,string_agg(owner_name,',') AS owner_name
-    //             FROM active_trade_owners
-    //             JOIN trade_transactions ON trade_transactions.temp_id = active_trade_owners.temp_id
-    //             WHERE active_trade_owners.is_active = true
-    //                 AND trade_transactions.status = 1
-    //                 AND trade_transactions.is_verified = true
-    //                 AND trade_transactions.tran_date = '" . $date . "'
-    //                 AND payment_mode != 'netbanking'
-    //                 AND trade_transactions.payment_mode != 'ONLINE'
-    //             GROUP BY active_trade_owners.temp_id
-    //         ) owners ON owners.temp_id = active_trade_licences.id
-    //         WHERE trade_transactions.status = 1 
-    //             AND trade_transactions.tran_date = '" . $date . "'
-    //             AND trade_transactions.payment_mode != 'ONLINE'
-    //             AND payment_mode != 'netbanking'
-    //             AND trade_transactions.is_verified = true
-    //             AND emp_dtl_id = $userId
-    //     union
-    //         (
-    //         SELECT trade_transactions.id,tran_no,
-    //             payment_mode,paid_amount as amount,is_verified as verify_status,verify_by as verified_by,verify_date,ward_name,application_no,
-    //             tran_type,tran_date,owner_name,'trade_licences' AS tbl
-    //         FROM trade_transactions
-    //         inner join trade_licences on trade_licences.id = trade_transactions.temp_id
-    //         inner join ulb_ward_masters on ulb_ward_masters.id = trade_transactions.ward_id
-    //         LEFT JOIN (
-    //             SELECT trade_owners.temp_id,string_agg(owner_name,',') AS owner_name
-    //             FROM trade_owners
-    //             JOIN trade_transactions ON trade_transactions.temp_id = trade_owners.temp_id
-    //             WHERE trade_owners.is_active = true
-    //                 AND trade_transactions.status = 1
-    //                 AND trade_transactions.is_verified = true
-    //                 AND trade_transactions.tran_date = '" . $date . "'
-    //                 AND payment_mode != 'netbanking'
-    //                 AND trade_transactions.payment_mode != 'ONLINE'
-    //             GROUP BY trade_owners.temp_id
-    //         ) owners ON owners.temp_id = trade_licences.id
-    //         WHERE trade_transactions.status = 1 
-    //             AND trade_transactions.tran_date = '" . $date . "'
-    //             AND trade_transactions.payment_mode != 'ONLINE'
-    //             AND payment_mode != 'netbanking'
-    //             AND trade_transactions.is_verified = true
-    //             AND emp_dtl_id = $userId
-    //         )
-    //     union
-    //         (
-    //         SELECT trade_transactions.id,tran_no,
-    //             payment_mode,paid_amount as amount,is_verified as verify_status,verify_by as verified_by,verify_date,ward_name,application_no,
-    //             tran_type,tran_date,owner_name,'rejected_trade_licences' AS tbl
-    //         FROM trade_transactions
-    //         inner join rejected_trade_licences on rejected_trade_licences.id = trade_transactions.temp_id
-    //         inner join ulb_ward_masters on ulb_ward_masters.id = trade_transactions.ward_id
-    //         LEFT JOIN (
-    //             SELECT rejected_trade_owners.temp_id,string_agg(owner_name,',') AS owner_name
-    //             FROM rejected_trade_owners
-    //             JOIN trade_transactions ON trade_transactions.temp_id = rejected_trade_owners.temp_id
-    //             WHERE rejected_trade_owners.is_active = true
-    //                 AND trade_transactions.status = 1
-    //                 AND trade_transactions.is_verified = true
-    //                 AND trade_transactions.tran_date = '" . $date . "'
-    //                 AND payment_mode != 'netbanking'
-    //                 AND trade_transactions.payment_mode != 'ONLINE'
-    //             GROUP BY rejected_trade_owners.temp_id
-    //         ) owners ON owners.temp_id = rejected_trade_licences.id
-    //         WHERE trade_transactions.status = 1 
-    //             AND trade_transactions.tran_date = '" . $date . "'
-    //             AND trade_transactions.payment_mode != 'ONLINE'
-    //             AND payment_mode != 'netbanking'
-    //             AND trade_transactions.is_verified = true
-    //             AND emp_dtl_id = $userId
-    //         )
-    //     )select * from  trade_transaction;";
-
-    //     //water
-    //     $water =   "WITH 
-    //         water_transaction AS 
-    //     (
-    //         SELECT water_trans.id,tran_no,
-    //         payment_mode,amount,verify_status,verified_by,verified_date as verify_date,ward_name,tran_date,application_no,tran_type,
-    //                 owner_name,'water_active' AS tbl
-    //             FROM water_trans
-    //             inner join water_applications on water_applications.id = water_trans.related_id
-    //             inner join ulb_ward_masters on ulb_ward_masters.id = water_trans.ward_id
-    //             LEFT JOIN (
-    //                 SELECT water_applicants.application_id,string_agg(applicant_name,',') AS owner_name
-    //                 FROM water_applicants
-    //                 JOIN water_trans ON water_trans.related_id = water_applicants.application_id
-    //                 WHERE water_applicants.status = true
-    //                     AND water_trans.status = 1
-    //                     AND water_trans.verify_status = 1
-    //                     AND water_trans.tran_date = '" . $date . "'
-    //                     AND payment_mode != 'netbanking'
-    //                     AND water_trans.payment_mode != 'Online'
-    //                 GROUP BY water_applicants.application_id
-    //             ) owners ON owners.application_id = water_applications.id
-    //             WHERE water_trans.status = 1 
-    //         		AND water_trans.tran_date = '" . $date . "'
-    //                 AND water_trans.payment_mode != 'Online'
-    //                 AND payment_mode != 'netbanking'
-    //                 AND water_trans.verify_status = 1
-    //                 AND emp_dtl_id = $userId
-
-    //     union
-    //         (
-    //         SELECT water_trans.id,tran_no,
-    //         payment_mode,amount,verify_status,verified_by,verified_date as verify_date,ward_name,tran_date,application_no,tran_type,
-    //                 owner_name,'water_approved' AS tbl
-    //             FROM water_trans
-    //             inner join water_approval_application_details on water_approval_application_details.id = water_trans.related_id
-    //             inner join ulb_ward_masters on ulb_ward_masters.id = water_trans.ward_id
-    //             LEFT JOIN (
-    //                 SELECT water_approval_applicants.application_id,string_agg(applicant_name,',') AS owner_name
-    //                 FROM water_approval_applicants
-    //                 JOIN water_trans ON water_trans.related_id = water_approval_applicants.application_id
-    //                 WHERE water_approval_applicants.status = true
-    //                     AND water_trans.status = 1
-    //                     AND water_trans.verify_status = 1
-    //                     AND water_trans.tran_date = '" . $date . "'
-    //                     AND payment_mode != 'netbanking'
-    //                     AND water_trans.payment_mode != 'Online'
-    //                 GROUP BY water_approval_applicants.application_id
-    //             ) owners ON owners.application_id = water_approval_application_details.id
-    //             WHERE water_trans.status = 1 
-    //         		AND water_trans.tran_date = '" . $date . "'
-    //                 AND water_trans.payment_mode != 'Online'
-    //                 AND payment_mode != 'netbanking'
-    //                 AND water_trans.verify_status = 1
-    //                 AND emp_dtl_id = $userId
-    //         )
-    //     union
-    //         (
-    //         SELECT water_trans.id,tran_no,
-    //         payment_mode,amount,verify_status,verified_by,verified_date as verify_date,ward_name,tran_date,application_no,tran_type,
-    //                 owner_name,'water_rejected' AS tbl
-    //             FROM water_trans
-    //             inner join water_rejection_application_details on water_rejection_application_details.id = water_trans.related_id
-    //             inner join ulb_ward_masters on ulb_ward_masters.id = water_trans.ward_id
-    //             LEFT JOIN (
-    //                 SELECT water_rejection_applicants.application_id,string_agg(applicant_name,',') AS owner_name
-    //                 FROM water_rejection_applicants
-    //                 JOIN water_trans ON water_trans.related_id = water_rejection_applicants.application_id
-    //                 WHERE water_rejection_applicants.status = true
-    //                     AND water_trans.status = 1
-    //                     AND water_trans.verify_status = 1
-    //                     AND water_trans.tran_date = '" . $date . "'
-    //                     AND payment_mode != 'netbanking'
-    //                     AND water_trans.payment_mode != 'Online'
-    //                 GROUP BY water_rejection_applicants.application_id
-    //             ) owners ON owners.application_id = water_rejection_application_details.id
-    //             WHERE water_trans.status = 1 
-    //         		AND water_trans.tran_date = '" . $date . "'
-    //                 AND water_trans.payment_mode != 'Online'
-    //                 AND payment_mode != 'netbanking'
-    //                 AND water_trans.verify_status = 1
-    //                 AND emp_dtl_id = $userId
-    //         )
-
-    //     union
-    //         (
-
-    //         SELECT water_trans.id,tran_no,
-    //         payment_mode,amount,verify_status,verified_by,verified_date as verify_date,ward_name,tran_date,consumer_no,tran_type,
-    //                 owner_name,'water_consumer' AS tbl
-    //             FROM water_trans
-    //             inner join water_consumers on water_consumers.id = water_trans.related_id
-    //             inner join ulb_ward_masters on ulb_ward_masters.id = water_trans.ward_id
-    //             LEFT JOIN (
-    //                 SELECT water_consumer_owners.consumer_id,string_agg(applicant_name,',') AS owner_name
-    //                 FROM water_consumer_owners
-    //                 JOIN water_trans ON water_trans.related_id = water_consumer_owners.consumer_id
-    //                 WHERE water_consumer_owners.status = true
-    //                     AND water_trans.status = 1
-    //                     AND water_trans.verify_status = 1
-    //                     AND water_trans.tran_date = '" . $date . "'
-    //                     AND payment_mode != 'netbanking'
-    //                     AND water_trans.payment_mode != 'Online'
-    //                 GROUP BY water_consumer_owners.consumer_id
-    //             ) owners ON owners.consumer_id = water_consumers.id
-    //             WHERE water_trans.status = 1 
-    //         		AND water_trans.tran_date = '" . $date . "'
-    //                 AND water_trans.payment_mode != 'Online'
-    //                 AND payment_mode != 'netbanking'
-    //                 AND water_trans.verify_status = 1
-    //                 AND emp_dtl_id = $userId
-    //         )
-    //     )select * from  water_transaction;";
-
-    //     $data['property'] =  DB::select($sql);
-    //     $data['trade'] =  DB::select($trade);
-    //     return $data['water'] =  DB::select($water);
-
-    //     $total['property'] =  collect($data['property'])->map(function ($value) {
-    //         return $value->amount;
-    //     })->sum();
-
-    //     $total['trade'] =  collect($data['trade'])->map(function ($value) {
-    //         return $value->amount;
-    //     })->sum();
-
-    //     $total['water'] =  collect($data['water'])->map(function ($value) {
-    //         return $value->amount;
-    //     })->sum();
-
-    //     $data['totalAmount'] = collect($total)->sum();
-    //     $data['date'] = $date;
-
-    //     return responseMsgs(true, "TC Collection", $data, "010201", "1.0", "", "POST", $request->deviceId ?? "");
-    // }
-
-    /**
      * | For Verification of cash
      * | serial : 5
      */
@@ -689,24 +265,32 @@ class CashVerificationController extends Controller
             $cashParamId = Config::get('PropertyConstaint.CASH_VERIFICATION_PARAM_ID');
 
             DB::beginTransaction();
+            DB::connection('pgsql_master')->beginTransaction();
+            DB::connection('pgsql_water')->beginTransaction();
+            DB::connection('pgsql_trade')->beginTransaction();
             $idGeneration = new PrefixIdGenerator($cashParamId, $ulbId);
             $tranNo = $idGeneration->generate();
 
-            $mReqs = new Request([
-                "tran_no" => $tranNo,
-                "user_id" => $userId,
-                "demand_date" => Carbon::now(),  //   <- to be changed
-                "deposit_date" => Carbon::now(),
-                "ulb_id" => $ulbId,
-                "tc_id" => 1,                    //   <- to be changed
-            ]);
-            $collectionId =  $mRevDailycollection->store($mReqs);
-
             if ($property) {
-                foreach ($property as $propertyDtl) {
-                    $pTempTransaction = TempTransaction::find($propertyDtl['id']);
-                    $tran_no =  $propertyDtl['tran_no'];
-                    PropTransaction::where('tran_no', $tran_no)
+                $tempTranDtl = TempTransaction::find($property[0]);
+                $tranDate = $tempTranDtl['tran_date'];
+                $tcId = $tempTranDtl['user_id'];
+                $mReqs = new Request([
+                    "tran_no" => $tranNo,
+                    "user_id" => $userId,
+                    "demand_date" => $tranDate,
+                    "deposit_date" => Carbon::now(),
+                    "ulb_id" => $ulbId,
+                    "tc_id" => $tcId,
+                ]);
+                $collectionId =  $mRevDailycollection->store($mReqs);
+
+                foreach ($property as $item) {
+
+                    $tempDtl = TempTransaction::find($item);
+                    $tranId =  $tempDtl->transaction_id;
+
+                    PropTransaction::where('id', $tranId)
                         ->update(
                             [
                                 'verify_status' => 1,
@@ -714,22 +298,38 @@ class CashVerificationController extends Controller
                                 'verified_by' => $userId
                             ]
                         );
-                    $this->dailyCollectionDtl($propertyDtl, $collectionId);
-                    if (!$pTempTransaction)
+                    $this->dailyCollectionDtl($tempDtl, $collectionId);
+                    if (!$tempDtl)
                         throw new Exception("No Transaction Found for this id");
 
-                    // $logTrans = $pTempTransaction->replicate();
-                    // $logTrans->setTable('log_temp_transactions');
-                    // $logTrans->id = $pTempTransaction->id;
-                    // $logTrans->save();
-                    // $pTempTransaction->delete();
+                    $logTrans = $tempDtl->replicate();
+                    $logTrans->setTable('log_temp_transactions');
+                    $logTrans->id = $tempDtl->id;
+                    $logTrans->save();
+                    $tempDtl->delete();
                 }
             }
 
             if ($water) {
-                foreach ($water as $waterDtl) {
-                    $wTempTransaction = TempTransaction::find($waterDtl['id']);
-                    WaterTran::where('tran_no', $waterDtl['tran_no'])
+                $tempTranDtl = TempTransaction::find($water[0]);
+                $tranDate = $tempTranDtl['tran_date'];
+                $tcId = $tempTranDtl['user_id'];
+                $mReqs = new Request([
+                    "tran_no" => $tranNo,
+                    "user_id" => $userId,
+                    "demand_date" => $tranDate,
+                    "deposit_date" => Carbon::now(),
+                    "ulb_id" => $ulbId,
+                    "tc_id" => $tcId,
+                ]);
+                $collectionId =  $mRevDailycollection->store($mReqs);
+
+                foreach ($water as $item) {
+
+                    $tempDtl = TempTransaction::find($item);
+                    $tranId =  $tempDtl->transaction_id;
+
+                    WaterTran::where('id', $tranId)
                         ->update(
                             [
                                 'verify_status' => 1,
@@ -737,22 +337,38 @@ class CashVerificationController extends Controller
                                 'verified_by' => $userId
                             ]
                         );
-                    $this->dailyCollectionDtl($waterDtl, $collectionId);
-                    if (!$wTempTransaction)
+                    $this->dailyCollectionDtl($tempDtl, $collectionId);
+                    if (!$tempDtl)
                         throw new Exception("No Transaction Found for this id");
 
-                    // $logTrans = $wTempTransaction->replicate();
-                    // $logTrans->setTable('log_temp_transactions');
-                    // $logTrans->id = $wTempTransaction->id;
-                    // $logTrans->save();
-                    // $wTempTransaction->delete();
+                    $logTrans = $tempDtl->replicate();
+                    $logTrans->setTable('log_temp_transactions');
+                    $logTrans->id = $tempDtl->id;
+                    $logTrans->save();
+                    $tempDtl->delete();
                 }
             }
 
             if ($trade) {
-                foreach ($trade as $tradeDtl) {
-                    $tTempTransaction = TempTransaction::find($tradeDtl['id']);
-                    TradeTransaction::where('tran_no', $tradeDtl['tran_no'])
+                $tempTranDtl = TempTransaction::find($trade[0]);
+                $tranDate = $tempTranDtl['tran_date'];
+                $tcId = $tempTranDtl['user_id'];
+                $mReqs = new Request([
+                    "tran_no" => $tranNo,
+                    "user_id" => $userId,
+                    "demand_date" => $tranDate,
+                    "deposit_date" => Carbon::now(),
+                    "ulb_id" => $ulbId,
+                    "tc_id" => $tcId,
+                ]);
+                $collectionId =  $mRevDailycollection->store($mReqs);
+
+                foreach ($trade as $item) {
+
+                    $tempDtl = TempTransaction::find($item);
+                    $tranId =  $tempDtl->transaction_id;
+
+                    TradeTransaction::where('id', $tranId)
                         ->update(
                             [
                                 'is_verified' => 1,
@@ -760,21 +376,27 @@ class CashVerificationController extends Controller
                                 'verify_by' => $userId
                             ]
                         );
-                    $this->dailyCollectionDtl($tradeDtl, $collectionId);
-                    if (!$tTempTransaction)
+                    $this->dailyCollectionDtl($tempDtl, $collectionId);
+                    if (!$tempDtl)
                         throw new Exception("No Transaction Found for this id");
 
-                    // $logTrans = $tTempTransaction->replicate();
-                    // $logTrans->setTable('log_temp_transactions');
-                    // $logTrans->id = $tTempTransaction->id;
-                    // $logTrans->save();
-                    // $tTempTransaction->delete();
+                    $logTrans = $tempDtl->replicate();
+                    $logTrans->setTable('log_temp_transactions');
+                    $logTrans->id = $tempDtl->id;
+                    $logTrans->save();
+                    $tempDtl->delete();
                 }
             }
             DB::commit();
+            DB::connection('pgsql_master')->commit();
+            DB::connection('pgsql_water')->commit();
+            DB::connection('pgsql_trade')->commit();
             return responseMsgs(true, "Cash Verified", '', "010201", "1.0", "", "POST", $request->deviceId ?? "");
         } catch (Exception $e) {
             DB::rollBack();
+            DB::connection('pgsql_master')->rollBack();
+            DB::connection('pgsql_water')->rollBack();
+            DB::connection('pgsql_trade')->rollBack();
             return responseMsgs(false, $e->getMessage(), "", "010201", "1.0", "", "POST", $request->deviceId ?? "");
         }
     }
@@ -859,6 +481,7 @@ class CashVerificationController extends Controller
             'id' => 'required|numeric',
             'moduleId' => 'required|numeric',
             'chequeNo' => 'required',
+            'bankName' => 'required',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -876,36 +499,57 @@ class CashVerificationController extends Controller
             $tranId = $tranDtl->transaction_id;
 
             DB::beginTransaction();
+            DB::connection('pgsql_master')->beginTransaction();
+            DB::connection('pgsql_water')->beginTransaction();
+            DB::connection('pgsql_trade')->beginTransaction();
             $tranDtl
                 ->update(
-                    ['cheque_dd_no' => $request->chequeNo]
+                    [
+                        'cheque_dd_no' => $request->chequeNo,
+                        'bank_name' => $request->bankName,
+                    ]
                 );
 
             if ($request->moduleId == $propertyModuleId) {
                 PropChequeDtl::where('transaction_id', $tranId)
                     ->update(
-                        ['cheque_no' => $request->chequeNo]
+                        [
+                            'cheque_no' => $request->chequeNo,
+                            'bank_name' => $request->bankName,
+                        ]
                     );
             }
 
             if ($request->moduleId == $waterModuleId) {
                 WaterChequeDtl::where('transaction_id', $tranId)
                     ->update(
-                        ['cheque_no' => $request->chequeNo]
+                        [
+                            'cheque_no' => $request->chequeNo,
+                            'bank_name' => $request->bankName
+                        ]
                     );
             }
 
             if ($request->moduleId == $tradeModuleId) {
                 TradeChequeDtl::where('tran_id', $tranId)
                     ->update(
-                        ['cheque_no' => $request->chequeNo]
+                        [
+                            'cheque_no' => $request->chequeNo,
+                            'bank_name' => $request->bankName
+                        ]
                     );
             }
 
             DB::commit();
+            DB::connection('pgsql_master')->commit();
+            DB::connection('pgsql_water')->commit();
+            DB::connection('pgsql_trade')->commit();
             return responseMsgs(true, "Edit Successful", "", "010201", "1.0", responseTime(), "POST", $request->deviceId ?? "");
         } catch (Exception $e) {
             DB::rollBack();
+            DB::connection('pgsql_master')->rollBack();
+            DB::connection('pgsql_water')->rollBack();
+            DB::connection('pgsql_trade')->rollBack();
             return responseMsgs(false, $e->getMessage(), "", "010201", "1.0", responseTime(), "POST", $request->deviceId ?? "");
         }
     }

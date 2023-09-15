@@ -272,7 +272,7 @@ trait TradeTrait
             ];
             $filteredDocs['documents']= $this->filterDocument($documentList, $refApplication, $refOwners['id']); 
                                                // function(1.2)
-            $OwnerImage = ((($filteredDocs['documents']->where("docName","Owner Image")->first())["uploadedDoc"])??[]);
+            $OwnerImage = ((($filteredDocs['documents']->where("docName","PHOTO WITH A DEPICTION OF THE SHOP")->first())["uploadedDoc"])??[]);
             $filteredDocs['ownerDetails']["uploadedDoc"]= $OwnerImage["docPath"]??null;
             $filteredDocs['ownerDetails']["verifyStatus"]= $OwnerImage["verifyStatus"]??null;
 

@@ -79,4 +79,5 @@ Route::controller(RazorpayPaymentController::class)->group(function () {
 Route::controller(PaymentController::class)->group(function () {
     Route::post('v1/get-referal-url', 'getReferalUrl');
     Route::post('v1/eazypayuat/get-webhook-data', 'getWebhookData');
+    Route::post('v1/eazypayuat/get-payment-status','getPaymentDataByRefNo');
 });

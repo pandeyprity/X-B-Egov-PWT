@@ -21,7 +21,7 @@ Route::post('/apply-new-connection', function () {
     dd('Welcome to simple Water route file');
 });
 
-Route::group(['middleware' => ['json.response']], function () { //'auth_maker'
+Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //'auth_maker'
     /**
      * | Created On-08-10-2022 
      * | Updated by-Sam kerketta
@@ -77,10 +77,6 @@ Route::group(['middleware' => ['json.response']], function () { //'auth_maker'
         # new connection for akoal water 
         Route::post('application/apply-new-connection', 'applyWaterNew');
         Route::post('application/holding', 'searchHolding');
-        
-
-        
-
     });
 
     /**

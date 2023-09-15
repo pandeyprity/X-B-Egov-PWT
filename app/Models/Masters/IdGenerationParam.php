@@ -9,6 +9,8 @@ class IdGenerationParam extends Model
 {
     use HasFactory;
 
+    protected $connection = 'pgsql_master';
+
     /**
      * | Find IdGeneration by id
      */
