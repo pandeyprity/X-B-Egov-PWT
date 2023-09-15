@@ -17,6 +17,7 @@ use App\Models\Trade\TradeRenewal;
 use App\Models\Trade\TradeTransaction;
 use App\Models\UlbMaster;
 use App\Models\UlbWardMaster;
+use App\Models\WorkflowTrack;
 use App\Repository\Common\CommonFunction;
 use App\Repository\Notice\Notice;
 use App\Repository\Trade\ITradeCitizen;
@@ -693,6 +694,79 @@ class TradeCitizenController extends Controller
                 $e->getMessage(),
                 "",
             );
+        }
+    }
+
+    public function sendToLevel(Request $request)
+    {        
+        try{
+            $refUser        = Auth()->user();
+            $refUserId      = $refUser->id ;
+            $refUlbId       = $refUser->ulb_id ?? 0;
+            $rules = [
+                'applicationId'    => 'required|digits_between:1,9223372036854775807'
+            ];
+            $validator = Validator::make($request->all(), $rules,);
+            if ($validator->fails()) {
+                return responseMsg(false, $validator->errors(), "");
+            }
+            $refLecenceData = ActiveTradeLicence::find($request->applicationId);
+            if(!$refLecenceData)
+            {
+                throw new Exception("Data Not Found!!!");
+            }
+            $refWorkflowId  = $this->_WF_MASTER_Id;
+            if(!$refUlbId)
+            {
+                $refUlbId = $refLecenceData->ulb_id;
+            }
+            $request->merge(["ulb_id"=>$refUlbId]);
+
+            if(!$this->_REPOSITORY_TRADE->checkWorckFlowForwardBackord($request))
+            {
+                throw new Exception("All Document Are Not Uploded");
+            }
+            
+            $refWorkflows   = $this->_COMMON_FUNCTION->iniatorFinisher($refUserId, $refUlbId, $refWorkflowId);
+            $allRolse     = collect($this->_COMMON_FUNCTION->getAllRoles($refUserId, $refUlbId, $refWorkflowId, 0, true));
+
+            $track = new WorkflowTrack();
+
+            $metaReqs['moduleId'] = $this->_MODULE_ID;
+            $metaReqs['workflowId'] = $refLecenceData->workflow_id;
+            $metaReqs['refTableDotId'] = $this->_REF_TABLE;
+            $metaReqs['refTableIdValue'] = $request->applicationId;
+            $metaReqs['citizenId'] = $refUserId;
+            $metaReqs['ulb_id'] = $refUlbId;
+            $metaReqs['trackDate'] = Carbon::now()->format('Y-m-d H:i:s');
+            $metaReqs['forwardDate'] = Carbon::now()->format('Y-m-d');
+            $metaReqs['forwardTime'] = Carbon::now()->format('H:i:s');
+            $metaReqs['senderRoleId'] = $refWorkflows['initiator']['id'];
+            $metaReqs["receiverRoleId"] = $refWorkflows['initiator']['forward_role_id'];
+            $metaReqs['verificationStatus'] = $this->_TRADE_CONSTAINT["VERIFICATION-STATUS"]["VERIFY"] ;
+            $request->merge($metaReqs);
+
+            $receiverRole = array_values(objToArray($allRolse->where("id", $request->receiverRoleId)))[0] ?? [];
+            $sms ="";
+            $this->begin();
+            if ($refLecenceData->pending_status == 0 ) 
+            {
+                $refLecenceData->current_role = $refWorkflows['initiator']['forward_role_id'];
+                $refLecenceData->document_upload_status = 1;
+                $refLecenceData->pending_status  = 1;
+                
+                
+                
+                
+                $track->saveTrack($request);
+                $sms ="Application Forwarded To ".($receiverRole["role_name"] ?? "");
+                // $tem =  $this->_REPOSITORY_TRADE->insertWorkflowTrack($args);
+            }
+            $this->commit();
+            return responseMsg(true,$sms,"",);
+        }catch (Exception $e) {
+            $this->rollback();
+            return responseMsg(false,$e->getMessage(),"",);
         }
     }
     # Serial No : 27
