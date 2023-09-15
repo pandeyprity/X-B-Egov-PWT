@@ -531,7 +531,7 @@ class ReportController extends Controller
         $perPage = $request->perPage ?? 5;
 
         if ($request->user == 'tc') {
-            $userId = authUser()->id;
+            $userId = authUser($request)->id;
             $request->merge(["userId" => $userId]);
         }
 
