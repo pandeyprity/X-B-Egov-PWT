@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Trade;
 
 use App\EloquentModels\Common\ModelWard;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Trade\ApplicationId;
 use App\Http\Requests\Trade\CitizenApplication;
 use App\Http\Requests\Trade\ReqCitizenAddRecorde;
 use App\Models\Trade\ActiveTradeLicence;
@@ -697,19 +698,12 @@ class TradeCitizenController extends Controller
         }
     }
 
-    public function sendToLevel(Request $request)
+    public function sendToLevel(ApplicationId $request)
     {        
         try{
             $refUser        = Auth()->user();
             $refUserId      = $refUser->id ;
             $refUlbId       = $refUser->ulb_id ?? 0;
-            $rules = [
-                'applicationId'    => 'required|digits_between:1,9223372036854775807'
-            ];
-            $validator = Validator::make($request->all(), $rules,);
-            if ($validator->fails()) {
-                return responseMsg(false, $validator->errors(), "");
-            }
             $refLecenceData = ActiveTradeLicence::find($request->applicationId);
             if(!$refLecenceData)
             {
@@ -729,7 +723,7 @@ class TradeCitizenController extends Controller
             
             $refWorkflows   = $this->_COMMON_FUNCTION->iniatorFinisher($refUserId, $refUlbId, $refWorkflowId);
             $allRolse     = collect($this->_COMMON_FUNCTION->getAllRoles($refUserId, $refUlbId, $refWorkflowId, 0, true));
-
+            
             $track = new WorkflowTrack();
 
             $metaReqs['moduleId'] = $this->_MODULE_ID;
@@ -745,7 +739,7 @@ class TradeCitizenController extends Controller
             $metaReqs["receiverRoleId"] = $refWorkflows['initiator']['forward_role_id'];
             $metaReqs['verificationStatus'] = $this->_TRADE_CONSTAINT["VERIFICATION-STATUS"]["VERIFY"] ;
             $request->merge($metaReqs);
-
+            
             $receiverRole = array_values(objToArray($allRolse->where("id", $request->receiverRoleId)))[0] ?? [];
             $sms ="";
             $this->begin();
