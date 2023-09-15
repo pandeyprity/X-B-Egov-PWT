@@ -73,8 +73,8 @@ class TradeCitizenController extends Controller
         $this->_DB_MASTER = DB::connection("pgsql_master");
         $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
         DB::enableQueryLog();
-        $this->_DB->enableQueryLog();
-        $this->_NOTICE_DB->enableQueryLog();
+        // $this->_DB->enableQueryLog();
+        // $this->_NOTICE_DB->enableQueryLog();
 
         $this->_REPOSITORY = $TradeRepository;
         $this->_MODEL_WARD = new ModelWard();
@@ -350,12 +350,18 @@ class TradeCitizenController extends Controller
             $refWorkflowId      = $this->_WF_MASTER_Id;
             $mNoticeDate        = null;
             #------------------------End Declaration-----------------------
-            $refLecenceData = $this->_REPOSITORY_TRADE->getActiveLicenseById($request->licenceId);
+            $refLecenceData = $this->_REPOSITORY_TRADE->getAllLicenceById($request->licenceId);
+            if(!$request->licenseFor)
+            {
+                $request->merge(["licenseFor"=>$$refLecenceData->licence_for_years??1]);
+            }
             if (!$refLecenceData) {
                 throw new Exception("Licence Data Not Found !!!!!");
             } elseif ($refLecenceData->application_type_id == 4) {
                 throw new Exception("Surender Application Not Pay Anny Amount");
-            } elseif (in_array($refLecenceData->payment_status, [1, 2])) {
+            } elseif ($refLecenceData->pending_status!=5) {
+                throw new Exception("Application Not Approved Please Wait For Approval");
+            }elseif (in_array($refLecenceData->payment_status, [1, 2])) {
                 throw new Exception("Payment Already Done Of This Application");
             }
             if ($refLecenceData->tobacco_status == 1 && $request->licenseFor > 1) 
@@ -387,6 +393,7 @@ class TradeCitizenController extends Controller
             $args['licenseFor']          = $refLecenceData->licence_for_years;
             $args['nature_of_business']  = $refLecenceData->nature_of_bussiness;
             $args['noticeDate']          = $mNoticeDate;
+            $args['curdate']             = $refLecenceData->application_date;
             // $chargeData = $this->_REPOSITORY_TRADE->cltCharge($args);
             $chargeData = $this->_REPOSITORY_TRADE->AkolaCltCharge($args);
             if ($chargeData['response'] == false || $chargeData['total_charge'] == 0) {
@@ -491,7 +498,7 @@ class TradeCitizenController extends Controller
             if (!$RazorPayRequest) {
                 throw new Exception("Data Not Found");
             }
-            $refLecenceData = ActiveTradeLicence::find($args["id"]);
+            $refLecenceData = TradeLicence::find($args["id"]);
             $licenceId = $args["id"];
             $refLevelData = $this->_REPOSITORY_TRADE->getWorkflowTrack($licenceId);
             if (!$refLecenceData) {
@@ -513,7 +520,8 @@ class TradeCitizenController extends Controller
 
             #-----------End valication-------------------
 
-            #-------------Calculation-----------------------------                
+            #-------------Calculation-----------------------------   
+            $args['curdate']             = $refLecenceData->application_date;             
             $args['areaSqft']            = (float)$refLecenceData->area_in_sqft;
             $args['application_type_id'] = $refLecenceData->application_type_id;
             $args['firmEstdDate'] = !empty(trim($refLecenceData->valid_from)) ? $refLecenceData->valid_from : $refLecenceData->apply_date;
@@ -586,20 +594,20 @@ class TradeCitizenController extends Controller
                 $TradeFineRebet2->save();
             }
             $request = new Request(["applicationId"=>$licenceId]);
-            if ($mPaymentStatus == 1 && $this->_REPOSITORY_TRADE->checkWorckFlowForwardBackord($request) && $refLecenceData->pending_status == 0 ) {
-                $refLecenceData->current_role = $refWorkflows['initiator']['forward_id'];
-                $refLecenceData->document_upload_status = 1;
-                $refLecenceData->pending_status  = 1;
-                $args["sender_role_id"] = $refWorkflows['initiator']['id'];
-                $args["receiver_role_id"] = $refWorkflows['initiator']['forward_id'];
-                $args["citizen_id"] = $refUserId;;
-                $args["ref_table_dot_id"] = "active_trade_licences";
-                $args["ref_table_id_value"] = $licenceId;
-                $args["workflow_id"] = $refWorkflowId;
-                $args["module_id"] = $this->_MODULE_ID;
+            // if ($mPaymentStatus == 1 && $this->_REPOSITORY_TRADE->checkWorckFlowForwardBackord($request) && $refLecenceData->pending_status == 0 ) {
+            //     $refLecenceData->current_role = $refWorkflows['initiator']['forward_id'];
+            //     $refLecenceData->document_upload_status = 1;
+            //     $refLecenceData->pending_status  = 1;
+            //     $args["sender_role_id"] = $refWorkflows['initiator']['id'];
+            //     $args["receiver_role_id"] = $refWorkflows['initiator']['forward_id'];
+            //     $args["citizen_id"] = $refUserId;;
+            //     $args["ref_table_dot_id"] = "active_trade_licences";
+            //     $args["ref_table_id_value"] = $licenceId;
+            //     $args["workflow_id"] = $refWorkflowId;
+            //     $args["module_id"] = $this->_MODULE_ID;
 
-                $tem =  $this->_REPOSITORY_TRADE->insertWorkflowTrack($args);
-            }
+            //     $tem =  $this->_REPOSITORY_TRADE->insertWorkflowTrack($args);
+            // }
             if(!$refLecenceData->provisional_license_no)
             {
                 $provNo = $this->_REPOSITORY_TRADE->createProvisinalNo($mShortUlbName, $mWardNo, $licenceId);
@@ -653,7 +661,8 @@ class TradeCitizenController extends Controller
             if (!$TradeRazorPayResponse) {
                 throw new Exception("Not Transection Found...");
             }
-            $application = ActiveTradeLicence::find($TradeRazorPayResponse->temp_id);
+            // $application = ActiveTradeLicence::find($TradeRazorPayResponse->temp_id);
+            $application = $this->_REPOSITORY_TRADE->getAllLicenceById($TradeRazorPayResponse->temp_id);
             $transection = TradeTransaction::select("*")
                 ->where("temp_id", $TradeRazorPayResponse->temp_id)
                 ->where("response_id", $TradeRazorPayResponse->id)

@@ -25,6 +25,7 @@ class ReqPaybleAmount extends TradeRequest
         $rules["licenseFor"]        = "required|int";
         $rules["natureOfBusiness"]  = "required|array";
         $rules["natureOfBusiness.*.id"] = "required|digits_between:1,9223372036854775807";
+        $rules["licenceId"]         = "nullable|digits_between:1,9223372036854775807";
         if(isset($this->noticeDate) && $this->noticeDate)
         {
             $rules["noticeDate"] = "date";

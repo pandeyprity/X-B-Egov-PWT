@@ -21,11 +21,7 @@ class ReqAddRecorde extends TradeRequest
         $mFramNameRegex     = $this->_REX_ALPHA_NUM_OPS_DOT_MIN_COM_AND_SPACE_SL;
         $mOwnerName         = $this->_REX_OWNER_NAME;
         $mMobileNo          = $this->_REX_MOBILE_NO;
-        // $mAlphaSpace = '/^[a-zA-Z ]+$/i';
-        // $mAlphaNumhyphen = '/^[a-zA-Z0-9- ]+$/i';
-        // $mNumDot = '/^\d+(?:\.\d+)+$/i';
-        // $mDateFormatYYYMMDD = '/^([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))+$/i';
-        // $mDateFormatYYYMM = '/^([12]\d{3}-(0[1-9]|1[0-2]))+$/i';
+        
 
         $rules["applicationType"] = $this->_REX_APPLICATION_TYPE;
 
@@ -70,21 +66,21 @@ class ReqAddRecorde extends TradeRequest
                 $rules["initialBusinessDetails.noticeDate"] = "required|date";
             }
             $rules["licenseDetails.licenseFor"] = "required|int";
-            if ($mApplicationTypeId != 4 && strtoupper($mUserType) != $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
-                $rules["licenseDetails.totalCharge"] = "required|numeric";
-            }
+            // if ($mApplicationTypeId != 4 && strtoupper($mUserType) != $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
+            //     $rules["licenseDetails.totalCharge"] = "required|numeric";
+            // }
             if (isset($this->firmDetails["tocStatus"]) && $this->firmDetails["tocStatus"]) {
                 $rules["licenseDetails.licenseFor"] = "required|int|max:1";
             }
-            if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"])) {
-                $rules["licenseDetails.paymentMode"] = "required|alpha";
-                if (isset($this->licenseDetails['paymentMode']) && $this->licenseDetails['paymentMode'] != "CASH") {
-                    $rules["licenseDetails.chequeNo"] = "required";
-                    $rules["licenseDetails.chequeDate"] = "required|date|date_format:Y-m-d|after_or_equal:$mNowdate";
-                    $rules["licenseDetails.bankName"] = "required|regex:$mRegex";
-                    $rules["licenseDetails.branchName"] = "required|regex:$mRegex";
-                }
-            }
+            // if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"])) {
+            //     $rules["licenseDetails.paymentMode"] = "required|alpha";
+            //     if (isset($this->licenseDetails['paymentMode']) && $this->licenseDetails['paymentMode'] != "CASH") {
+            //         $rules["licenseDetails.chequeNo"] = "required";
+            //         $rules["licenseDetails.chequeDate"] = "required|date|date_format:Y-m-d|after_or_equal:$mNowdate";
+            //         $rules["licenseDetails.bankName"] = "required|regex:$mRegex";
+            //         $rules["licenseDetails.branchName"] = "required|regex:$mRegex";
+            //     }
+            // }
 
             $rules["ownerDetails"] = "required|array";
             $rules["ownerDetails.*.businessOwnerName"] = "required|regex:$mOwnerName";
@@ -102,18 +98,7 @@ class ReqAddRecorde extends TradeRequest
                     $rules["licenseDetails.licenseFor"] = "required|int|max:1";
                 }
             }
-            if ($mApplicationTypeId != 4 && strtoupper($mUserType) != $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
-                $rules["licenseDetails.totalCharge"] = "required|numeric";
-            }
-            if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"]) && $mApplicationTypeId == 2) {
-                $rules["licenseDetails.paymentMode"] = "required|alpha";
-                if (isset($this->licenseDetails['paymentMode']) && $this->licenseDetails['paymentMode'] != "CASH") {
-                    $rules["licenseDetails.chequeNo"] = "required";
-                    $rules["licenseDetails.chequeDate"] = "required|date|date_format:Y-m-d|after_or_equal:$mNowdate";
-                    $rules["licenseDetails.bankName"] = "required|regex:$mRegex";
-                    $rules["licenseDetails.branchName"] = "required|regex:$mRegex";
-                }
-            }
+            
         } 
         elseif (in_array($mApplicationTypeId, [3])) # 3- Amendment
         {
@@ -126,18 +111,18 @@ class ReqAddRecorde extends TradeRequest
             if (isset($this->initialBusinessDetails['firmType']) && $this->initialBusinessDetails['firmType'] == 5) {
                 $rules["initialBusinessDetails.otherFirmType"] = "required|regex:$mRegex";
             }
-            if ($mApplicationTypeId != 4 && strtoupper($mUserType) != $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
-                $rules["licenseDetails.totalCharge"] = "required|numeric";
-            }
-            if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"])) {
-                $rules["licenseDetails.paymentMode"] = "required|alpha";
-                if (isset($this->licenseDetails['paymentMode']) && $this->licenseDetails['paymentMode'] != "CASH") {
-                    $rules["licenseDetails.chequeNo"] = "required";
-                    $rules["licenseDetails.chequeDate"] = "required|date|date_format:Y-m-d|after_or_equal:$mNowdate";
-                    $rules["licenseDetails.bankName"] = "required|regex:$mRegex";
-                    $rules["licenseDetails.branchName"] = "required|regex:$mRegex";
-                }
-            }
+            // if ($mApplicationTypeId != 4 && strtoupper($mUserType) != $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
+            //     $rules["licenseDetails.totalCharge"] = "required|numeric";
+            // }
+            // if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"])) {
+            //     $rules["licenseDetails.paymentMode"] = "required|alpha";
+            //     if (isset($this->licenseDetails['paymentMode']) && $this->licenseDetails['paymentMode'] != "CASH") {
+            //         $rules["licenseDetails.chequeNo"] = "required";
+            //         $rules["licenseDetails.chequeDate"] = "required|date|date_format:Y-m-d|after_or_equal:$mNowdate";
+            //         $rules["licenseDetails.bankName"] = "required|regex:$mRegex";
+            //         $rules["licenseDetails.branchName"] = "required|regex:$mRegex";
+            //     }
+            // }
             $rules["ownerDetails"] = "array";
             if ($this->ownerDetails) {
                 $rules["ownerDetails.*.businessOwnerName"] = "required|regex:$mOwnerName";
@@ -146,6 +131,19 @@ class ReqAddRecorde extends TradeRequest
                 $rules["ownerDetails.*.email"] = "email|nullable";
             }
         }
+
+        if ($mApplicationTypeId != 4 && strtoupper($mUserType) != $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""]) {
+            // $rules["licenseDetails.totalCharge"] = "required|numeric";
+        }
+        // if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"]) && $mApplicationTypeId != 4) {
+        //     $rules["licenseDetails.paymentMode"] = "required|alpha";
+        //     if (isset($this->licenseDetails['paymentMode']) && $this->licenseDetails['paymentMode'] != "CASH") {
+        //         $rules["licenseDetails.chequeNo"] = "required";
+        //         $rules["licenseDetails.chequeDate"] = "required|date|date_format:Y-m-d|after_or_equal:$mNowdate";
+        //         $rules["licenseDetails.bankName"] = "required|regex:$mRegex";
+        //         $rules["licenseDetails.branchName"] = "required|regex:$mRegex";
+        //     }
+        // }
         return $rules;
     }
 }
