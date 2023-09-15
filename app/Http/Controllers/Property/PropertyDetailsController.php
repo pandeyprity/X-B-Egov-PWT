@@ -469,14 +469,6 @@ class PropertyDetailsController extends Controller
             if ($userType != 'Citizen')
                 $data = $data->where('prop_properties.ulb_id', $ulbId);
 
-            if ($isLegacy == true) {
-                $paginator = $data->where('new_holding_no', null)
-                    ->where('latitude', null)
-                    ->where('longitude', null)
-                    ->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude')
-                    ->paginate($perPage);
-                // $data = (array_values(objtoarray($data)));
-            }
             if ($isLegacy == false) {
                 if ($key == 'ptn') {
                     $paginator =
@@ -484,7 +476,7 @@ class PropertyDetailsController extends Controller
                         ->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude')
                         ->paginate($perPage);
                 } else {
-                    $paginator = $data->where('new_holding_no', '!=', null)
+                    $paginator = $data->where('holding_no', '!=', null)
                         ->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude')
                         ->paginate($perPage);
                 }
