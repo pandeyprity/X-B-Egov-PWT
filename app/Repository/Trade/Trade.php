@@ -846,7 +846,6 @@ class Trade implements ITrade
             $args['noticeDate']          = $mNoticeDate;            
             $chargeData = $this->AkolaCltCharge($args);
             // $chargeData = $this->cltCharge($args);
-            return([$args,$chargeData]);
             if ($chargeData['response'] == false || $chargeData['total_charge'] != $request->totalCharge) 
             {
                 throw new Exception("Payble Amount Missmatch!!!");
