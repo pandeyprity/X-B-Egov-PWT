@@ -131,7 +131,7 @@ class ReportController extends Controller
         );
         $request->request->add(["metaData" => ["pr4.2.2", 1.1, null, $request->getMethod(), null,]]);
 
-        $refUser        = Auth()->user();
+        $refUser        = authUser($request);
         $refUserId      = $refUser->id;
         $ulbId          = $refUser->ulb_id;
         $safWorkFlow = Config::get('workflow-constants.SAF_WORKFLOW_ID');
@@ -288,7 +288,7 @@ class ReportController extends Controller
     {
         $mPropDemand = new PropDemand();
         $wardMstrId = $request->wardMstrId;
-        $ulbId = authUser()->ulb_id;
+        $ulbId = authUser($request)->ulb_id;
         $currentMonth = Carbon::now()->month;
         $currentYear = Carbon::now()->year;
         $start = Carbon::createFromDate($request->year, 4, 1);
@@ -531,7 +531,7 @@ class ReportController extends Controller
         $perPage = $request->perPage ?? 5;
 
         if ($request->user == 'tc') {
-            $userId = authUser()->id;
+            $userId = authUser($request)->id;
             $request->merge(["userId" => $userId]);
         }
 
