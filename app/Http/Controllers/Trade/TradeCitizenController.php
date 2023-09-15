@@ -754,13 +754,8 @@ class TradeCitizenController extends Controller
                 $refLecenceData->current_role = $refWorkflows['initiator']['forward_role_id'];
                 $refLecenceData->document_upload_status = 1;
                 $refLecenceData->pending_status  = 1;
-                
-                
-                
-                
-                $track->saveTrack($request);
+                $refLecenceData->update(); 
                 $sms ="Application Forwarded To ".($receiverRole["role_name"] ?? "");
-                // $tem =  $this->_REPOSITORY_TRADE->insertWorkflowTrack($args);
             }
             $this->commit();
             return responseMsg(true,$sms,"",);
