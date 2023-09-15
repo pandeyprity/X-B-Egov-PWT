@@ -41,6 +41,13 @@ class siteAdjustment extends FormRequest
         $rules['category']          = 'required|in:APL,BPL';
         $rules['tsMap']             = 'required|int|in:0,1';
         $rules['applicationId']     = 'required|';
+
+        if (isset($this->owners) && $this->owners) {
+            $rules["owners.*.ownerName"]    = "nullable";
+            $rules["owners.*.mobileNo"]     = "nullable|digits:10|regex:/[0-9]{10}/";
+            $rules['guardianName']          = 'nullable';
+            $rules["owners.*.email"]        = "nullable|email";
+        }
         return $rules;
     }
 
