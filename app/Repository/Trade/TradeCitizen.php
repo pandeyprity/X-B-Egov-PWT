@@ -74,8 +74,8 @@ class TradeCitizen implements ITradeCitizen
         $this->_DB_MASTER = DB::connection("pgsql_master");
         $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
         DB::enableQueryLog();
-        $this->_DB->enableQueryLog();
-        $this->_NOTICE_DB->enableQueryLog();
+        // $this->_DB->enableQueryLog();
+        // $this->_NOTICE_DB->enableQueryLog();
 
         $this->_NOTICE = new Notice();
         $this->_MODEL_WARD = new ModelWard();
@@ -243,7 +243,7 @@ class TradeCitizen implements ITradeCitizen
             if (!$RazorPayRequest) {
                 throw new Exception("Data Not Found");
             }
-            $refLecenceData = ActiveTradeLicence::find($args["id"]);
+            $refLecenceData = TradeLicence::find($args["id"]);
             $licenceId = $args["id"];
             $refLevelData = $this->_REPOSITORY_TRADE->getWorkflowTrack($licenceId); //TradeLevelPending::getLevelData($licenceId);
             if (!$refLecenceData) {
@@ -265,7 +265,8 @@ class TradeCitizen implements ITradeCitizen
 
             #-----------End valication-------------------
 
-            #-------------Calculation-----------------------------                
+            #-------------Calculation-----------------------------  
+            $args['curdate']             = $refLecenceData->application_date;             
             $args['areaSqft']            = (float)$refLecenceData->area_in_sqft;
             $args['application_type_id'] = $refLecenceData->application_type_id;
             $args['firmEstdDate'] = !empty(trim($refLecenceData->valid_from)) ? $refLecenceData->valid_from : $refLecenceData->apply_date;
@@ -337,25 +338,25 @@ class TradeCitizen implements ITradeCitizen
                 $TradeFineRebet2->save();
             }
             $request = new Request(["applicationId"=>$licenceId,"ulb_id"=>$refUlbId,"user_id"=>$refUserId]);
-            if ($mPaymentStatus == 1 && $this->_REPOSITORY_TRADE->checkWorckFlowForwardBackord($request) && $refLecenceData->pending_status == 0 ) {
-                $refLecenceData->current_role = $refWorkflows['initiator']['forward_role_id'];
-                $refLecenceData->document_upload_status = 1;
-                $refLecenceData->pending_status  = 1;
-                $metaReqs['applicationId'] = $licenceId;
-                $metaReqs['senderRoleId'] = $refWorkflows['initiator']['id'];
-                $metaReqs['receiverRoleId'] = $refWorkflows['initiator']['forward_role_id'];
-                $metaReqs['comment'] = "";
-                $metaReqs['moduleId'] = $this->_MODULE_ID;
-                $metaReqs['workflowId'] = $refLecenceData->workflow_id;
-                $metaReqs['refTableDotId'] = 'active_trade_licences';
-                $metaReqs['refTableIdValue'] = $licenceId;
-                $metaReqs['user_id'] = $refUserId;
-                $metaReqs['ulb_id'] = $refUlbId;
-                $myrequest = new request($metaReqs);
+            // if ($mPaymentStatus == 1 && $this->_REPOSITORY_TRADE->checkWorckFlowForwardBackord($request) && $refLecenceData->pending_status == 0 ) {
+            //     $refLecenceData->current_role = $refWorkflows['initiator']['forward_role_id'];
+            //     $refLecenceData->document_upload_status = 1;
+            //     $refLecenceData->pending_status  = 1;
+            //     $metaReqs['applicationId'] = $licenceId;
+            //     $metaReqs['senderRoleId'] = $refWorkflows['initiator']['id'];
+            //     $metaReqs['receiverRoleId'] = $refWorkflows['initiator']['forward_role_id'];
+            //     $metaReqs['comment'] = "";
+            //     $metaReqs['moduleId'] = $this->_MODULE_ID;
+            //     $metaReqs['workflowId'] = $refLecenceData->workflow_id;
+            //     $metaReqs['refTableDotId'] = 'active_trade_licences';
+            //     $metaReqs['refTableIdValue'] = $licenceId;
+            //     $metaReqs['user_id'] = $refUserId;
+            //     $metaReqs['ulb_id'] = $refUlbId;
+            //     $myrequest = new request($metaReqs);
 
-                $track = new WorkflowTrack();
-                $tem = $track->saveTrack($myrequest);
-            }
+            //     $track = new WorkflowTrack();
+            //     $tem = $track->saveTrack($myrequest);
+            // }
 
             $provNo = $this->_REPOSITORY_TRADE->createProvisinalNo($mShortUlbName, $mWardNo, $licenceId);
             $refLecenceData->provisional_license_no = $provNo;

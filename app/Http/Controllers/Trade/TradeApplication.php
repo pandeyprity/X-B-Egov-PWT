@@ -85,8 +85,8 @@ class TradeApplication extends Controller
         $this->_DB_MASTER = DB::connection("pgsql_master");
         $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
         DB::enableQueryLog();
-        $this->_DB->enableQueryLog();
-        $this->_NOTICE_DB->enableQueryLog();
+        // $this->_DB->enableQueryLog();
+        // $this->_NOTICE_DB->enableQueryLog();
 
         $this->_REPOSITORY = $TradeRepository;
         $this->_MODEL_WARD = new ModelWard();
@@ -237,6 +237,9 @@ class TradeApplication extends Controller
                 }
                 if ($refOldLicece->pending_status != 5) {
                     throw new Exception("Application not approved Please Track  " . $refOldLicece->application_no);
+                }
+                if ($refOldLicece->payment_status != 1) {
+                    throw new Exception("Application payment not clear Please pay application charge first " . $refOldLicece->application_no);
                 }
                 $refOldOwneres = TradeOwner::owneresByLId($request->licenseId);
                 $mnaturOfBusiness = $this->_MODEL_AkolaTradeParamItemType->itemsById($refOldLicece->nature_of_bussiness);
@@ -718,9 +721,9 @@ class TradeApplication extends Controller
             $receiverRole = array_values(objToArray($allRolse->where("id", $request->receiverRoleId)))[0] ?? [];
             $senderRole   = array_values(objToArray($allRolse->where("id", $request->senderRoleId)))[0] ?? [];
             
-            if ($licence->payment_status != 1 && ($role->serial_no  < $receiverRole["serial_no"] ?? 0)) {
-                throw new Exception("Payment Not Clear");
-            }
+            // if ($licence->payment_status != 1 && ($role->serial_no  < $receiverRole["serial_no"] ?? 0)) {
+            //     throw new Exception("Payment Not Clear");
+            // }
             if ((!$role->is_finisher ?? 0) && $request->action == 'backward' && $receiverRole["id"] == $initFinish['initiator']['id']) {
                 $request->merge(["currentRoleId" => $request->senderRoleId]);
                 return $this->backToCitizen($request);
@@ -1101,7 +1104,7 @@ class TradeApplication extends Controller
             }
             if (in_array($req->docName, explode(",", $applicationDocName)) && (empty($applicationDocCode) || !(in_array($req->docCode, explode(",", $applicationCode))))) {
                 throw new Exception("Invalid Application Doc Code Pass");
-            }
+            }return([$ownerDocNames,"dfjkdlfj",$ownerIds,$ownerDoc]);
             if (in_array($req->docName, explode(",", $ownerDocNames)) && (!(in_array($req->ownerId, explode(",", $ownerIds))))) {
                 throw new Exception("Invalid ownerId Pass");
             }
