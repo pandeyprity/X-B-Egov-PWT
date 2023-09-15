@@ -67,6 +67,8 @@ return [
         "SRLP"              =>  "SRLP",
         "TAX SUPERITENDENT"  =>  "TS",
         "TS"                =>  "TS",
+        "DEPUTY MUNICIPAL COMMISSIONER"=>"DMC",
+        "DMC"               => "DMC",
 
     ],
     

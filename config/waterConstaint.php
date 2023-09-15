@@ -189,13 +189,29 @@ return [
                 "25"
             ],
             "PROPERTY_TYPE"=>[
-                "RESIDENTIAL"=>1,
-                "COMMERCIAL"=>2
-            ],
+              'id'=>1,
+              'name'=>'Residential',
+              [
+                 'id'=>2,
+                 'name'=>'Commercial'
+              ]
+        ],
             "CATEGORY"=>[
                 "SLUM",
                 "GENERAL"
             ],
-        ]
+        ],
+        'water_property_type_mstr' => [
+            [
+                'id' => 1,
+                'property_type' => 'Residential',
+            ],
+            [
+                'id' => 2,
+                'property_type' => 'Commercial',
+            ],
+           
+        ],
+        
      
     ];

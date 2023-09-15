@@ -13,6 +13,7 @@ use App\Models\WorkflowTrack;
 use App\Repository\Water\Interfaces\iNewConnection;
 use App\Repository\Water\Interfaces\IWaterNewConnection;
 use App\Traits\Workflow\Workflow;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -80,14 +81,17 @@ class WaterApplication extends Controller
             $mWfWorkflow        = new WfWorkflow();
             $refConnectionType  = Config::get("waterConstaint.CONNECTION_TYPE");
             $wfMstId            = Config::get("workflow-constants.WATER_MASTER_ID");
+            $rfTransMode        = Config::get("payment-constants.PAYMENT_OFFLINE_MODE.5");
+            $currentDate        = Carbon::now()->format('Y-m-d');
+            $userType           = $user->user_type;
 
             $applicationDetails = $mWaterApplication->getJskAppliedApplications($request)->get();
-            $transactionDetails = $mWaterTran->tranDetailByDate();
+            $transactionDetails = $mWaterTran->tranDetailByDate($currentDate, $userType, $rfTransMode);
             $workflow = $mWfWorkflow->getulbWorkflowId($wfMstId, $user->ulb_id);
-            $metaRequest = new Request([
+            $request->merge([
                 'workflowId'    => $workflow->id,
             ]);
-            $roleDetails = $this->getRole($metaRequest);
+            $roleDetails = $this->getRole($request);
             if (!collect($roleDetails)->first()) {
                 $returnData['canView'] = $canView ?? false;
                 return responseMsgs(false, "Daccess Denied! No Role ", $returnData, "", "01", ".ms", "POST", "");
@@ -176,12 +180,12 @@ class WaterApplication extends Controller
             $mWfWorkflowRoleMaps    = new WfWorkflowrolemap();
 
             $workflow = $mWfWorkflow->getulbWorkflowId($wfMstId, $ulbId);
-            $metaRequest = new Request([
+            $request->merge([
                 'workflowId'    => $workflow->id,
                 'ulbId'         => $ulbId,
                 'moduleId'      => $moduleId
             ]);
-            $roleDetails = $this->getRole($metaRequest);
+            $roleDetails = $this->getRole($request);
             if (!collect($roleDetails)->first()) {
                 $returnData['canView'] = $canView;
                 return responseMsgs(false, "Access Denied! No Role", $returnData, "", "01", ".ms", "POST", "");
@@ -189,7 +193,7 @@ class WaterApplication extends Controller
             $roleId = $roleDetails['wf_role_id'];
             $occupiedWards = $this->getWardByUserId($user->id)->pluck('ward_id');
 
-            $dateWiseData = $WorkflowTrack->getWfDashbordData($metaRequest)->get();
+            $dateWiseData = $WorkflowTrack->getWfDashbordData($request)->get();
             $applicationCount = $mWaterWaterApplication->getApplicationByRole($roleId)
                 ->whereIn('ward_id', $occupiedWards)
                 ->where('ulb_id', $ulbId)

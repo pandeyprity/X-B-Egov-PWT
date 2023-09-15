@@ -406,8 +406,8 @@ class PropertyDetailsController extends Controller
             switch ($key) {
                 case ("holdingNo"):
                     $data = $mPropProperty->searchProperty($ulbId)
-                        ->where('prop_properties.holding_no', 'LIKE', '%' . $parameter . '%')
-                        ->orWhere('prop_properties.new_holding_no', 'LIKE', '%' . $parameter . '%');
+                        ->where('prop_properties.holding_no',  $parameter)
+                        ->orWhere('prop_properties.new_holding_no',  $parameter);
                     break;
 
                 case ("ptn"):

@@ -4,6 +4,7 @@ namespace App\Models\Water;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class WaterSecondConsumer extends Model
@@ -214,5 +215,56 @@ class WaterSecondConsumer extends Model
             ->where('status', 1)
             ->firstOrFail();
     }
+    /**
+     * | Get water consumer according to apply connection id 
+     */
+    public function getConsumerByAppId($applicationId)
+    {
+        return WaterSecondConsumer::where('apply_connection_id', $applicationId)
+            ->where('status', 1)
+            ->orderByDesc('id')
+            ->first();
+    }
+    /**
+     * | Save the approved application to water Consumer
+     * | @param consumerDetails
+     * | @return
+     */
+    public function saveWaterConsumer($consumerDetails, $consumerNo)
+    {
+        $mWaterConsumer = new WaterSecondConsumer();
+        $mWaterConsumer->apply_connection_id         = $consumerDetails['id'];
+        $mWaterConsumer->connection_type_id          = $consumerDetails['connection_type_id'];
+        $mWaterConsumer->connection_through_id       = $consumerDetails['connection_through'];
+        $mWaterConsumer->pipeline_type_id            = $consumerDetails['pipeline_type_id'];
+        $mWaterConsumer->property_type_id            = $consumerDetails['property_type_id'];
+        $mWaterConsumer->prop_dtl_id                 = $consumerDetails['prop_id'];
+        $mWaterConsumer->holding_no                  = $consumerDetails['holding_no'];
+        $mWaterConsumer->saf_dtl_id                  = $consumerDetails['saf_id'];
+        $mWaterConsumer->saf_no                      = $consumerDetails['saf_no'];
+        $mWaterConsumer->category                    = $consumerDetails['category'];
+        $mWaterConsumer->ward_mstr_id                = $consumerDetails['ward_id'];
+        $mWaterConsumer->consumer_no                 = $consumerNo;
+        $mWaterConsumer->address                     = $consumerDetails['address'];
+        $mWaterConsumer->apply_from                  = $consumerDetails['apply_from'];
+        $mWaterConsumer->k_no                        = $consumerDetails['elec_k_no'];
+        $mWaterConsumer->bind_book_no                = $consumerDetails['elec_bind_book_no'];
+        $mWaterConsumer->account_no                  = $consumerDetails['elec_account_no'];
+        $mWaterConsumer->electric_category_type      = $consumerDetails['elec_category'];
+        $mWaterConsumer->ulb_id                      = $consumerDetails['ulb_id'];
+        $mWaterConsumer->area_sqft                   = $consumerDetails['area_sqft'];
+        $mWaterConsumer->owner_type_id               = $consumerDetails['owner_type'];
+        $mWaterConsumer->application_apply_date      = $consumerDetails['apply_date'];
+        $mWaterConsumer->user_id                     = $consumerDetails['user_id'];
+        $mWaterConsumer->pin                         = $consumerDetails['pin'];
+        $mWaterConsumer->user_type                   = $consumerDetails['user_type'];
+        $mWaterConsumer->area_sqmt                   = $consumerDetails['area_sqft'];
+        $mWaterConsumer->rent_amount                 = $consumerDetails['rent_amount']??null;
+        $mWaterConsumer->approve_date                = Carbon::now();
+        $mWaterConsumer->save();
+        return $mWaterConsumer->id;
+    }
+
+
     
 }
