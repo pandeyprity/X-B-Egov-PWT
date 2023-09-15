@@ -118,8 +118,8 @@ class Trade implements ITrade
         $this->_DB_MASTER = DB::connection("pgsql_master");
         $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
         DB::enableQueryLog();
-        $this->_DB->enableQueryLog();
-        $this->_NOTICE_DB->enableQueryLog();
+        // $this->_DB->enableQueryLog();
+        // $this->_NOTICE_DB->enableQueryLog();
 
         $this->_MODEL_WARD = new ModelWard();
         $this->_COMMON_FUNCTION = new CommonFunction();
@@ -331,6 +331,9 @@ class Trade implements ITrade
                     if (in_array($mApplicationTypeId, [3, 4]) && $refOldLicece->valid_upto < Carbon::now()->format('Y-m-d')) {
                         throw new Exception("Application was Expired.You Can't Apply " . $request->applicationType . ". Please Renew First.");
                     }
+                    if ($refOldLicece->payment_status != 1) {
+                        throw new Exception("Application payment not clear Please pay application charge first " . $refOldLicece->application_no);
+                    }
 
                     $mnaturOfBusiness = $refOldLicece->nature_of_bussiness;
                     $wardId = $refOldLicece->ward_mstr_id;
@@ -449,26 +452,26 @@ class Trade implements ITrade
                 }
                 if (in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"]) && $mApplicationTypeId != 4) 
                 {
-                    $myRequest = new \Illuminate\Http\Request();
-                    $myRequest->setMethod('POST');
-                    $myRequest->request->add(['paymentMode' => $request->licenseDetails['paymentMode']]);
-                    $myRequest->request->add(['licenceId'   => $licence->id]);
-                    $myRequest->request->add(['licenseFor' => $licence->licence_for_years]);
-                    $myRequest->request->add(['totalCharge' => $request->licenseDetails["totalCharge"]]);
-                    if ($request->licenseDetails['paymentMode'] != "CASH") 
-                    {
-                        $myRequest->request->add(['chequeNo' => $request->licenseDetails["chequeNo"]]);
-                        $myRequest->request->add(['chequeDate' => $request->licenseDetails["chequeDate"]]);
-                        $myRequest->request->add(['bankName' => $request->licenseDetails["bankName"]]);
-                        $myRequest->request->add(['branchName' => $request->licenseDetails["branchName"]]);
-                    }
-                    $temp = $this->paymentCounter($myRequest);
-                    if (!$temp->original["status"]) 
-                    {
-                        throw new Exception($temp->original["message"]);
-                    }
-                    $res['transactionId']   = $temp->original["data"]["transactionId"];
-                    $res['paymentReceipt']   = $temp->original["data"]["paymentReceipt"];
+                    // $myRequest = new \Illuminate\Http\Request();
+                    // $myRequest->setMethod('POST');
+                    // $myRequest->request->add(['paymentMode' => $request->licenseDetails['paymentMode']]);
+                    // $myRequest->request->add(['licenceId'   => $licence->id]);
+                    // $myRequest->request->add(['licenseFor' => $licence->licence_for_years]);
+                    // $myRequest->request->add(['totalCharge' => $request->licenseDetails["totalCharge"]]);
+                    // if ($request->licenseDetails['paymentMode'] != "CASH") 
+                    // {
+                    //     $myRequest->request->add(['chequeNo' => $request->licenseDetails["chequeNo"]]);
+                    //     $myRequest->request->add(['chequeDate' => $request->licenseDetails["chequeDate"]]);
+                    //     $myRequest->request->add(['bankName' => $request->licenseDetails["bankName"]]);
+                    //     $myRequest->request->add(['branchName' => $request->licenseDetails["branchName"]]);
+                    // }
+                    // $temp = $this->paymentCounter($myRequest);
+                    // if (!$temp->original["status"]) 
+                    // {
+                    //     throw new Exception($temp->original["message"]);
+                    // }
+                    // $res['transactionId']   = $temp->original["data"]["transactionId"];
+                    // $res['paymentReceipt']   = $temp->original["data"]["paymentReceipt"];
                 } 
                 elseif ($refNoticeDetails) 
                 {
@@ -787,21 +790,35 @@ class Trade implements ITrade
             if (!in_array($mUserType, $this->_TRADE_CONSTAINT["CANE-CUTE-PAYMENT"])) {
                 throw new Exception("You Are Not Authorized For Payment Cut");
             }
-            $refLecenceData = ActiveTradeLicence::find($request->licenceId);
+            // $refLecenceData = ActiveTradeLicence::find($request->licenceId);
+            $refLecenceData = TradeLicence::find($request->licenceId);
             $licenceId = $request->licenceId;
-            $refLevelData = $this->getWorkflowTrack($licenceId); //TradeLevelPending::getLevelData($licenceId);
+            
+            // $refLevelData = $this->getWorkflowTrack($licenceId); //TradeLevelPending::getLevelData($licenceId);
             if (!$refLecenceData) {
+                $refLecenceData = ActiveTradeLicence::find($request->licenceId);
+                if($refLecenceData->payment_status !=5)
+                {
+                    throw new Exception("Application Not Approved Pleas Wait For Aproval!!!");
+                }
                 throw new Exception("Licence Data Not Found !!!!!");
             } elseif ($refLecenceData->application_type_id == 4) {
                 throw new Exception("Surender Application Not Pay Anny Amount");
             } elseif (in_array($refLecenceData->payment_status, [1, 2])) {
                 throw new Exception("Payment Already Done Of This Application");
             }
+            if(!$request->licenseFor)
+            {
+                $request->merge(["licenseFor"=>$refLecenceData->licence_for_years]);
+            }
             if (!$refLecenceData->holding_no && $request->licenseFor > 1) {
                 throw new Exception("Without Holding Map You Can Not Take Licence More Than One Year");
             }
             if ($refLecenceData->tobacco_status == 1 && $request->licenseFor > 1) {
                 throw new Exception("Tobaco Application Not Take Licence More Than One Year");
+            }
+            if ($refLecenceData->licence_for_years < $request->licenseFor) {
+                throw new Exception("After Application Approved you can not increaces the priode");
             }
             if ($refLecenceData->denial_id && $refNoticeDetails = $this->_NOTICE->getNoticDtlById($refLecenceData->denial_id)) {
                 $refDenialId = $refNoticeDetails->id;
@@ -819,6 +836,7 @@ class Trade implements ITrade
             $args['areaSqft']            = (float)$refLecenceData->area_in_sqft;
             $args['application_type_id'] = $refLecenceData->application_type_id;
             $args['firmEstdDate'] = !empty(trim($refLecenceData->valid_from)) ? $refLecenceData->valid_from : $refLecenceData->apply_date;
+            $args['curdate'] = Carbon::parse($refLecenceData->application_date)->format("Y-m-d");
             if ($refLecenceData->application_type_id == 1) {
                 $args['firmEstdDate'] = $refLecenceData->establishment_date;
             }
@@ -828,7 +846,7 @@ class Trade implements ITrade
             $args['noticeDate']          = $mNoticeDate;            
             $chargeData = $this->AkolaCltCharge($args);
             // $chargeData = $this->cltCharge($args);
-            // dd($args,$chargeData);
+            return([$args,$chargeData]);
             if ($chargeData['response'] == false || $chargeData['total_charge'] != $request->totalCharge) 
             {
                 throw new Exception("Payble Amount Missmatch!!!");
@@ -892,19 +910,19 @@ class Trade implements ITrade
                 $tradeChq->save();
                 $mPaymentStatus = 2;
             }
-            if ($mPaymentStatus == 1 && $refLecenceData->document_upload_status == 1 && $refLecenceData->pending_status == 0 && !$refLevelData) {
-                $refLecenceData->current_role = $refWorkflows['initiator']['forward_id'];
-                $refLecenceData->pending_status  = 2;
-                $args["sender_role_id"] = $refWorkflows['initiator']['id'];
-                $args["receiver_role_id"] = $refWorkflows['initiator']['forward_id'];
-                $args["citizen_id"] = $refUserId;;
-                $args["ref_table_dot_id"] = "active_trade_licences";
-                $args["ref_table_id_value"] = $licenceId;
-                $args["workflow_id"] = $refLecenceData->workflow_id??"";//$refWorkflowId;
-                $args["module_id"] = $this->_MODULE_ID;
+            // if ($mPaymentStatus == 1 && $refLecenceData->document_upload_status == 1 && $refLecenceData->pending_status == 0 && !$refLevelData) {
+            //     $refLecenceData->current_role = $refWorkflows['initiator']['forward_id'];
+            //     $refLecenceData->pending_status  = 2;
+            //     $args["sender_role_id"] = $refWorkflows['initiator']['id'];
+            //     $args["receiver_role_id"] = $refWorkflows['initiator']['forward_id'];
+            //     $args["citizen_id"] = $refUserId;;
+            //     $args["ref_table_dot_id"] = "active_trade_licences";
+            //     $args["ref_table_id_value"] = $licenceId;
+            //     $args["workflow_id"] = $refLecenceData->workflow_id??"";//$refWorkflowId;
+            //     $args["module_id"] = $this->_MODULE_ID;
 
-                $tem =  $this->insertWorkflowTrack($args);
-            }
+            //     $tem =  $this->insertWorkflowTrack($args);
+            // }
 
             if (!$refLecenceData->provisional_license_no) {
                 $provNo = $this->createProvisinalNo($mShortUlbName, $mWardNo, $licenceId);
@@ -919,8 +937,7 @@ class Trade implements ITrade
             if ($refNoticeDetails) {
                 $refLecenceData->denial_id = $refDenialId;
                 $refLecenceData->update();
-                $this->_NOTICE->noticeClose($refLecenceData->denial_id);
-                // $this->updateStatusFine($refDenialId, $chargeData['notice_amount'], $licenceId, 1); //update status and fineAmount                     
+                $this->_NOTICE->noticeClose($refLecenceData->denial_id);                   
             }
             $this->postTempTransection($Tradetransaction, $refLecenceData, $mWardNo);
             $this->commit();
@@ -1359,7 +1376,6 @@ class Trade implements ITrade
                 $mItemName = trim($mItemName, ',');
                 $mCods = trim($mCods, ',');
             }
-            $tbl = $refApplication->tbl == "active_trade_licences" ? "active_" : ($refApplication->tbl == "rejected_trade_licences" ? "rejected_" : "");
             $refApplication->items      = $mItemName;
             $refApplication->items_code = $mCods;
             $refOwnerDtl                = $this->getAllOwnereDtlByLId($id);
@@ -1497,6 +1513,7 @@ class Trade implements ITrade
     {
         try {
             $mNoticeDate = null;
+            $data['curdate']        = Carbon::now()->format('Y-m-d');
             $data['application_type_id'] = $this->_TRADE_CONSTAINT["APPLICATION-TYPE"][$request->applicationType];
             if (!$data['application_type_id']) {
                 throw new Exception("Invalide Application Type");
@@ -1507,15 +1524,15 @@ class Trade implements ITrade
 
             $mNatureOfBussiness = implode(',', $mNatureOfBussiness);
             if (
-                $request->licenceId && ($refLecenceData = ActiveTradeLicence::find($request->licenceId))
+                $request->licenceId && ($refLecenceData = TradeLicence::find($request->licenceId))
                 && ($refNoticeDetails = $this->_NOTICE->getNoticDtlById($refLecenceData->denial_id))
             ) {
                 $refDenialId = $refNoticeDetails->id;
+                $data['curdate']        = Carbon::parse($refLecenceData->application_date)->format('Y-m-d');
                 $mNoticeDate = date("Y-m-d", strtotime($refNoticeDetails['notice_date'])); //notice date 
             }
 
-            $data["areaSqft"]       = $request->areaSqft;
-            $data['curdate']        = Carbon::now()->format('Y-m-d');
+            $data["areaSqft"]       = $request->areaSqft;            
             $data["firmEstdDate"]   = $request->firmEstdDate;
             $data["tobacco_status"] = $request->tocStatus;
             $data['noticeDate']     = $request->noticeDate ? $request->noticeDate : $mNoticeDate;
@@ -2081,7 +2098,7 @@ class Trade implements ITrade
 
             $license = $this->WorkFlowMetaList()
                         ->where("active_trade_licences.is_parked", FALSE)
-                        ->where("active_trade_licences.payment_status", 1)
+                        // ->where("active_trade_licences.payment_status", 1)
                         ->where("active_trade_licences.current_role", $mRoleId)
                         ->where("active_trade_licences.ulb_id", $refUlbId);
             if (trim($request->key)) 
@@ -2901,6 +2918,7 @@ class Trade implements ITrade
                 "license.brief_firm_desc",
                 "license.premises_owner_name",
                 "license.pending_status",
+                "license.payment_status",
                 "owner.owner_name",
                 "owner.guardian_name",
                 "owner.mobile",
@@ -3016,6 +3034,14 @@ class Trade implements ITrade
             }
             if (!$application) {
                 throw new Exception("Data Not Faound");
+            }
+            if($application->payment_status==2)
+            {
+                throw new Exception("Payment Not Clear From Accontend");
+            }
+            if($application->payment_status!=1)
+            {
+                throw new Exception("Payment Not Done");
             }
             $oldLicense = TradeRenewal::find($application->trade_id);
             if ($application->pending_status != 5) 
@@ -3934,7 +3960,7 @@ class Trade implements ITrade
             $application = TradeRenewal::find($licenceId);
         }
         $status = "";
-        if ($application->pending_status == 5) {
+        if ($application->pending_status == 5 && $application->payment_status==1) {
             $status = "License Created Successfully";
             if($application->application_type_id == 4)
             {
@@ -3943,7 +3969,15 @@ class Trade implements ITrade
             if ($application->valid_upto < Carbon::now()->format("Y-m-d")) {
                 $status = "License Expired On " . $application->valid_upto;
             }
-        } elseif ($application->is_parked) {
+        } 
+        elseif ($application->pending_status == 5 && $application->payment_status!=1) {
+            $status = "Application is Approved But Payment Not Clear";
+            if($application->application_type_id == 4)
+            {
+                $status = "License Surrenderd Successfully";
+            }
+        }
+        elseif ($application->is_parked) {
             $rols  = WfRole::find($application->current_role);
             $status = "Application back to citizen by " . ($rols->role_name??"");
         } elseif ($application->pending_status != 0 && (($application->current_role != $application->finisher_role) || ($application->current_role == $application->finisher_role))) {

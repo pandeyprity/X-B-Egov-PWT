@@ -8,5 +8,5 @@
  */
 
 return [
-    "RESIDENTIAL_USAGE_TYPE" => 11
+    "RESIDENTIAL_USAGE_TYPE" => 45
 ];

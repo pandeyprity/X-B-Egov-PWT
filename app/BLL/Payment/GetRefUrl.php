@@ -4,6 +4,7 @@ namespace App\BLL\Payment;
 
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Http;
 
 /**
  * | Created On-02-09-2023 
@@ -21,7 +22,7 @@ class GetRefUrl
     private static $paymentMode = 9;
     private static $baseUrl = "https://eazypayuat.icicibank.com";
     private static $returnUrl = "http://203.129.217.244/property";
-    private static $ciphering = "aes-128-ecb";                 // Store the cipher method for encryption
+    private static $ciphering = "aes-128-ecb";                                          // Store the cipher method for encryption
     public $_refNo;
     public $_refUrl;
 
@@ -70,4 +71,23 @@ class GetRefUrl
         $ciphertext = openssl_encrypt($string, $cipher, $key, $options = 0, "");
         return $ciphertext;
     }
+
+
+    
+    /**
+     * | Get the Payment Status and data 
+     */
+    public function getPaymentStatusByUrl()
+    {
+        # calling the http request for Payment request
+        // https://eazypayuat.icicibank.com/EazyPGVerify?ezpaytranid=2309111661222
+        // // &amount=
+        // // &paymentmode=
+        // // &merchantid=136082
+        // // &trandate=
+        // // &pgreferenceno=16945076411108222585
+
+        // // Http::->post("$petApi->end_point", $transfer);
+    }
+
 }

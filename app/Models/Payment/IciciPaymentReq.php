@@ -19,4 +19,13 @@ class IciciPaymentReq extends Model
         return self::where('req_ref_no', $reqRefNo)
             ->first();
     }
+
+    /**
+     * | Find with help of Refe No 
+     */
+    public function getByReqRefNo($reqRefNo)
+    {
+        return self::where('req_ref_no', $reqRefNo);
+    }
+    
 }
