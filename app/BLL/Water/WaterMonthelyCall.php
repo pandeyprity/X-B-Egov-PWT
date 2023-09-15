@@ -64,8 +64,8 @@ class WaterMonthelyCall
     {
         $this->readParamsForCall();                 // 1
         $this->monthelyDemandCall();                // 2
-        $this->generateDemand();                    // 3
-        return $this->_tax;
+        return $this->generateDemand();                    // 3
+         $this->_tax;
     }
 
     /**
@@ -159,19 +159,19 @@ class WaterMonthelyCall
                 $monthsArray[] = $currentDate->format('Y-m-01');
                 $currentDate->addMonth();
             }
-
             # calculate 
             if ($monthsDifference > 0) {
-                $monthelyUnitConsumed = ($this->_unitConsumed - $this->_consumerLastMeterReding->initial_reading) / $monthsDifference;
+               $monthelyUnitConsumed = ($this->_unitConsumed - $this->_consumerLastMeterReding->initial_reading) / $monthsDifference;
             } else {
                 $monthelyUnitConsumed = ($this->_unitConsumed - $this->_consumerLastMeterReding->initial_reading);
             }
 
+        
             # demand generation
-            $returnData = collect($monthsArray)->map(function ($values, $key)
+            return $returnData = collect($monthsArray)->map(function ($values, $key)
             use ($monthelyUnitConsumed, $monthsDifference) {
 
-                $lastDateOfMonth = Carbon::parse($values . '-01')->endOfMonth();
+                $lastDateOfMonth = Carbon::parse($values)->endOfMonth();
                 $amount = $this->_consumerFeeUnits->unit_fee * ($monthelyUnitConsumed - 10);                                // Static
                 if ($amount < 0) {
                     $amount = 0;
@@ -181,7 +181,7 @@ class WaterMonthelyCall
                     "amount"                => $amount,
                     "current_meter_reading" => $this->_unitConsumed,
                     "unit_amount"           => 1,                                           // Statisc
-                    "demand_from"           => $values . "-01",                              // Static
+                    "demand_from"           => $values,                              // Static
                     "demand_upto"           => $lastDateOfMonth->format('Y-m-d'),
                     "connection_type"       => $this->_meterStatus,
                 ];
