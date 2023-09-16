@@ -139,6 +139,7 @@ class HoldingTaxController extends Controller
             $mPropProperty = new PropProperty();
             $demand = array();
             $revCalculateByAmt = new RevCalculateByAmt;
+            $demandList = collect();
             // Get Property Details
             $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
             $arrear = $propBasicDtls->balance;
@@ -157,6 +158,9 @@ class HoldingTaxController extends Controller
                 $revCalculateByAmt->calculateRev($arrear);
                 $demandList = $demandList->merge([$revCalculateByAmt->_GRID]);
             }
+
+            if (isset($req->isArrear) && $req->isArrear)                            // If Citizen wants to pay only arrear from Payment function
+                $demandList = $demandList->where('is_arrear', true)->values();
 
             $paymentStatus = $demandList->isEmpty() ? 1 : 0;
 
@@ -189,6 +193,7 @@ class HoldingTaxController extends Controller
             $demand['paymentStatus'] = $paymentStatus;
             $demand['demandList'] = $demandList;
             $demand['grandTaxes'] = $grandTaxes;
+            $demand['currentDemand'] = $demandList->where('fyear', getFY())->first()['balance'] ?? 0;
             $demand['arrear'] = $arrear;
             $demand['payableAmt'] = round($grandTaxes['balance']);
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
@@ -429,6 +434,17 @@ class HoldingTaxController extends Controller
      */
     public function offlinePaymentHolding(ReqPayment $req)
     {
+        $validated = Validator::make(
+            $req->all(),
+            ['isArrear' => 'required|bool']
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ], 401);
+        }
         try {
             $offlinePaymentModes = Config::get('payment-constants.PAYMENT_MODE_OFFLINE');
             $todayDate = Carbon::now();
@@ -446,8 +462,9 @@ class HoldingTaxController extends Controller
 
             $tranNo = $idGeneration->generateTransactionNo($propDetails->ulb_id);
 
-            $propCalReq = new Request([
-                'propId' => $req['id']
+            $propCalReq = new Request([                                                 // Request from payment
+                'propId' => $req['id'],
+                'isArrear' => $req['isArrear']
             ]);
 
             $propCalculation = $this->getHoldingDues($propCalReq);
@@ -498,14 +515,15 @@ class HoldingTaxController extends Controller
             foreach ($demands as $demand) {
                 $demand = (object)$demand->toArray();
                 if (isset($demand->id)) {                     // if id exist on demand
+                    // 🔴🔴🔴🔴🔴🔴🔴 If isArrear is true then disable this condition (Pending)
                     $tblDemand = $mPropDemand->findOrFail($demand->id);
                     $tblDemand->paid_status = 1;           // Paid Status Updation
                     $tblDemand->balance = 0;
                     $tblDemand->save();
                 }
 
-                if (!isset($demand->id) && isset($demand->is_arrear) && $demand->is_arrear == true) {
-                    //🔴🔴 New Entry
+                if (isset($demand->is_arrear) && $demand->is_arrear == true) {             // Only for arrear payment
+                    //🔴🔴 New Entry            
                     $demandReq = [
                         "property_id" => $req['id'],
                         "general_tax" => $demand->general_tax,
