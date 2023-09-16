@@ -19,6 +19,7 @@ use Illuminate\Foundation\Auth\User;
 use App\Http\Requests\Trade\ReqInbox;
 use Illuminate\Support\Facades\Config;
 use App\EloquentModels\Common\ModelWard;
+use App\Http\Requests\Trade\ApplicationId;
 use App\Models\Trade\ActiveTradeLicence;
 use App\Models\Trade\TradeParamFirmType;
 use App\Models\Trade\TradeParamItemType;
@@ -332,7 +333,7 @@ class TradeApplication extends Controller
         return $this->_REPOSITORY->updateBasicDtl($request);
     }
 
-    public function getDocList(Request $request)
+    public function getDocList(ApplicationId $request)
     {
         $tradC = $this->_CONTROLLER_TRADE;
         $response =  $tradC->getLicenseDocLists($request);
