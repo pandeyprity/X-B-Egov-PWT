@@ -8,5 +8,7 @@
  */
 
 return [
-    "RESIDENTIAL_USAGE_TYPE" => 45
+    "RESIDENTIAL_USAGE_TYPE" => 45,
+    "ARREAR_TILL_FYEAR" => "2022-2023",
+    "ULB_TOTAL_TAXES" => 44
 ];

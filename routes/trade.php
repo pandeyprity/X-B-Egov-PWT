@@ -68,6 +68,7 @@ Route::group(['middleware' => ['json.response', "auth_maker"]], function () {
         Route::post('application/inbox', 'inbox');
 
         Route::post('application/outbox', 'outbox');
+        Route::post('application/pyment-pending', 'approvedButNotPayment');
 
         Route::post('application/post-next', 'postNextLevel');
 
