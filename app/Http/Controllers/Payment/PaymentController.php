@@ -6,11 +6,16 @@ use App\BLL\Payment\GetRefUrl;
 use App\Http\Controllers\Controller;
 use App\Models\Payment\IciciPaymentReq;
 use App\Models\Payment\IciciPaymentResponse;
+use App\Models\Payment\PinelabPaymentReq;
+use App\Models\Payment\PinelabPaymentResponse;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use ReflectionFunctionAbstract;
 
 class PaymentController extends Controller
 {
@@ -145,6 +150,72 @@ class PaymentController extends Controller
             throw new Exception("JSON encoding failed!");
         } else {
             return $jsonData;
+        }
+    }
+
+    /**
+     * | Save Pine lab Request
+     */
+    public function initiatePayment(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            "workflowId"    => "required|int",
+            "amount"        => "required|numeric",
+            "moduleId"      => "required|int",
+            "applicationId" => "required|int",
+        ]);
+        if ($validator->fails())
+            return validationError($validator);
+
+        try {
+            $mPinelabPaymentReq =  new PinelabPaymentReq();
+            $user = authUser($req);
+            $mReqs = [
+                "ref_no"        => Str::random(10),
+                "user_id"        => $user->id,
+                "workflow_id"    => $req->workflowId,
+                "amount"         => $req->amount,
+                "module_id"      => $req->moduleId,
+                "ulb_id"         => $user->ulb_id,
+                "application_id" => $req->applicationId,
+            ];
+            $data = $mPinelabPaymentReq->store($mReqs);
+
+            return responseMsgs(true, "Data Saved", $data, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
+        }
+    }
+
+    /**
+     * | Save Pine lab Response
+     incomplete
+     */
+    public function savePinelabResponse(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            "transactionNo" => "required"
+        ]);
+        if ($validator->fails())
+            return validationError($validator);
+
+        try {
+            $mPinelabPaymentResponse = new PinelabPaymentResponse();
+            $user = authUser($req);
+            $mReqs = [
+                "payment_req_id"       => $user->payment_req_id,
+                "rejection_reason"     => $req->rejection_reason,
+                "rejection_source"     => $req->rejection_source,
+                "rejection_step"       => $req->rejection_step,
+                "rejection_code"       => $req->rejection_code,
+                "description"          => $user->description,
+                "rejection_suspecious" => $user->rejection_suspecious,
+            ];
+            $data = $mPinelabPaymentResponse->store($mReqs);
+
+            return responseMsgs(true, "Data Saved", $data, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         }
     }
 }

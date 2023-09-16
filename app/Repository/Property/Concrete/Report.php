@@ -854,7 +854,7 @@ class Report implements IReport
                             string_agg(wf_ward_users.ward_id::text,',') as ward_ids
                             from wf_roleusermaps 
                             join wf_roles on wf_roles.id = wf_roleusermaps.wf_role_id
-                                AND wf_roles.status =1
+                                AND wf_roles.is_suspended = false
                             join users on users.id = wf_roleusermaps.user_id
                             left join wf_ward_users on wf_ward_users.user_id = wf_roleusermaps.user_id and wf_ward_users.is_suspended = false
                             where wf_roleusermaps.wf_role_id =$roleId
@@ -2050,60 +2050,60 @@ class Report implements IReport
                     SELECT prop_properties.ward_mstr_id,
                     COUNT
                         (DISTINCT (
-                            CASE WHEN prop_demands.due_date BETWEEN  '$fromDate' AND '$uptoDate'  then prop_demands.property_id
+                            CASE WHEN prop_demands.fyear BETWEEN  '$fromYear' AND '$toYear'  then prop_demands.property_id
                             END)
                         ) as current_demand_hh,
                         SUM(
-                                CASE WHEN prop_demands.due_date BETWEEN '$fromDate' AND '$uptoDate' then prop_demands.amount
+                                CASE WHEN prop_demands.fyear BETWEEN '$fromYear' AND '$toYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_demand,
                         COUNT
                             (DISTINCT (
-                                CASE WHEN prop_demands.due_date<'$fromDate' then prop_demands.property_id
+                                CASE WHEN prop_demands.fyear<'$fromYear' then prop_demands.property_id
                                 END)
                             ) as arrear_demand_hh,
                         SUM(
-                            CASE WHEN prop_demands.due_date<'$fromDate' then prop_demands.amount
+                            CASE WHEN prop_demands.fyear<'$fromYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_demand,
-                    SUM(prop_demands.amount - prop_demands.adjust_amt) AS total_demand
+                    SUM(total_tax) AS total_demand
                     FROM prop_demands
                     JOIN prop_properties ON prop_properties.id = prop_demands.property_id
                     WHERE prop_demands.status =1 
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
-                        AND prop_demands.due_date<='$uptoDate'
+                        AND prop_demands.fyear<='$toYear'
                     GROUP BY prop_properties.ward_mstr_id
                 )demands ON demands.ward_mstr_id = ulb_ward_masters.id
                 LEFT JOIN (
                     SELECT prop_properties.ward_mstr_id,
                     COUNT
                         (DISTINCT (
-                            CASE WHEN prop_demands.due_date BETWEEN  '$fromDate' AND '$uptoDate'  then prop_demands.property_id
+                            CASE WHEN prop_demands.fyear BETWEEN  '$fromYear' AND '$toYear'  then prop_demands.property_id
                             END)
                         ) as current_collection_hh,
 
                         COUNT(DISTINCT(prop_properties.id)) AS collection_from_no_of_hh,
                         SUM(
-                                CASE WHEN prop_demands.due_date BETWEEN '$fromDate' AND '$uptoDate' then prop_demands.amount
+                                CASE WHEN prop_demands.fyear BETWEEN '$fromYear' AND '$toYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_collection,
 
                         COUNT
                             (DISTINCT (
-                                CASE WHEN prop_demands.due_date<'$fromDate' then prop_demands.property_id
+                                CASE WHEN prop_demands.fyear<'$fromYear' then prop_demands.property_id
                                 END)
                             ) as arrear_collection_hh,
 
                         SUM(
-                            CASE when prop_demands.due_date <'$fromDate' then prop_demands.amount
+                            CASE when prop_demands.fyear <'$fromYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_collection,
-                    SUM(prop_demands.amount - prop_demands.adjust_amt) AS total_collection
+                    SUM(total_tax) AS total_collection
                     FROM prop_demands
                     JOIN prop_properties ON prop_properties.id = prop_demands.property_id
                     JOIN prop_tran_dtls ON prop_tran_dtls.prop_demand_id = prop_demands.id 
@@ -2114,12 +2114,12 @@ class Report implements IReport
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
                         AND prop_transactions.tran_date  BETWEEN '$fromDate' AND '$uptoDate'
-                        AND prop_demands.due_date<='$uptoDate'
+                        AND prop_demands.fyear<='$uptoDate'
                     GROUP BY prop_properties.ward_mstr_id
                 )collection ON collection.ward_mstr_id = ulb_ward_masters.id
                 LEFT JOIN ( 
                     SELECT prop_properties.ward_mstr_id,
-                    SUM(prop_demands.amount - prop_demands.adjust_amt) AS total_prev_collection
+                    SUM(total_tax) AS total_prev_collection
                     FROM prop_demands
                     JOIN prop_properties ON prop_properties.id = prop_demands.property_id
                     JOIN prop_tran_dtls ON prop_tran_dtls.prop_demand_id = prop_demands.id 
@@ -2203,10 +2203,10 @@ class Report implements IReport
             $data['total_current_collection_hh'] = round(collect($dcb)->sum('current_collection_hh'), 0);
             $data['total_arrear_balance_hh'] = round(collect($dcb)->sum('arrear_balance_hh'));
             $data['total_current_balance_hh'] = round(collect($dcb)->sum('current_balance_hh'));
-            $data['total_current_eff'] = round(($data['total_current_collection_hh'] / $data['total_current_demand']) * 100);
-            $data['total_arrear_hh_eff'] = round(($data['total_arrear_collection_hh'] /  $data['total_arrear_demand_hh']) * 100);
-            $data['total_current_hh_eff'] = round(($data['total_current_collection_hh']) / ($data['total_current_demand_hh']) * 100);
-            $data['total_arrear_eff'] = round(($data['total_arrear_collection']) / ($data['total_arrear_demand']) * 100);
+            // $data['total_current_eff'] = round(($data['total_current_collection_hh'] / $data['total_current_demand']) * 100);
+            // $data['total_arrear_hh_eff'] = round(($data['total_arrear_collection_hh'] /  $data['total_arrear_demand_hh']) * 100);
+            // $data['total_current_hh_eff'] = round(($data['total_current_collection_hh']) / ($data['total_current_demand_hh']) * 100);
+            // $data['total_arrear_eff'] = round(($data['total_arrear_collection']) / ($data['total_arrear_demand']) * 100);
             $data['total_eff'] = round((($data['total_arrear_collection'] + $data['total_current_collection']) / ($data['total_arrear_demand'] + $data['total_current_demand'])) * 100);
             $data['dcb'] = $dcb;
 
@@ -2671,10 +2671,10 @@ class Report implements IReport
             $wardMstrId = $request->wardMstrId;
         }
         try {
-            $sql = "SELECT prop_demands.property_id,prop_demands.ward_mstr_id,holding_no,new_holding_no,
-                        owner_name,mobile_no,prop_address,ward_name,
-                        SUM (amount) AS total_demand,
-                        SUM(CASE WHEN paid_status =0 THEN amount ELSE 0 END )AS balance_amount
+            $sql = "SELECT prop_demands.property_id,holding_no,new_holding_no,
+                        owner_name,mobile_no,prop_address,
+                        SUM (total_tax) AS total_demand,
+                        SUM(CASE WHEN paid_status =0 THEN total_tax ELSE 0 END )AS balance_amount
                     FROM prop_demands 
                     JOIN (
                         SELECT property_id,
@@ -2686,14 +2686,14 @@ class Report implements IReport
                         ) AS o ON o.property_id = prop_demands.property_id
             
                     JOIN prop_properties on prop_properties.id = prop_demands.property_id
-                    JOIN ulb_ward_masters ON ulb_ward_masters.id = prop_properties.ward_mstr_id
+                    -- JOIN ulb_ward_masters ON ulb_ward_masters.id = prop_properties.ward_mstr_id
                     WHERE prop_demands.status =1 
-                    " . ($wardMstrId ? " AND prop_demands.ward_mstr_id = $wardMstrId" : "") . "
+                    -- " . ($wardMstrId ? " AND prop_demands.ward_mstr_id = $wardMstrId" : "") . "
                     AND fyear > '2016-2017'
                     AND paid_status = 0
                     AND prop_demands.ulb_id = $ulbId
                     GROUP BY prop_demands.property_id,holding_no,new_holding_no,owner_name,mobile_no,
-                             prop_address,prop_demands.ward_mstr_id,ward_name
+                             prop_address
                     order by prop_demands.property_id desc
             limit $limit offset $offset";
 
@@ -2761,10 +2761,10 @@ class Report implements IReport
                 $wardMstrId = $request->wardMstrId;
             }
 
-            $sql = "SELECT prop_demands.property_id,new_holding_no,new_holding_no,pt_no,prop_address,ward_name,owner_name,mobile_no,
-                        SUM (amount) AS total_demand,
-                        SUM(CASE WHEN paid_status =0 THEN amount ELSE 0 END )AS balance_amount,
-                        SUM(CASE WHEN paid_status =1 THEN amount ELSE 0 END )AS paid_amount
+            $sql = "SELECT prop_demands.property_id,new_holding_no,new_holding_no,pt_no,prop_address,owner_name,mobile_no,
+                        SUM (total_tax) AS total_demand,
+                        SUM(CASE WHEN paid_status =0 THEN total_tax ELSE 0 END )AS balance_amount,
+                        SUM(CASE WHEN paid_status =1 THEN total_tax ELSE 0 END )AS paid_amount
                     FROM prop_demands
                     JOIN (
                         SELECT property_id,
@@ -2784,12 +2784,12 @@ class Report implements IReport
                             GROUP BY property_id 
                             ) AS o ON o.property_id = prop_demands.property_id 
                             join prop_properties on prop_properties.id=prop_demands.property_id 
-                            join ulb_ward_masters on ulb_ward_masters.id = prop_demands.ward_mstr_id
+                            -- join ulb_ward_masters on ulb_ward_masters.id = prop_demands.ward_mstr_id
                         WHERE prop_demands.status =1 
-                        " . ($wardMstrId ? " AND prop_demands.ward_mstr_id = $wardMstrId" : "") . "
+                        -- " . ($wardMstrId ? " AND prop_demands.ward_mstr_id = $wardMstrId" : "") . "
                         AND fyear = '$currentFinancialYear' 
                         AND paid_status = 0
-                        GROUP BY prop_demands.property_id,new_holding_no,new_holding_no,pt_no,prop_address,ward_name,owner_name,mobile_no
+                        GROUP BY prop_demands.property_id,new_holding_no,new_holding_no,pt_no,prop_address,owner_name,mobile_no
                     limit $limit offset $offset";
 
             $sql2 = "SELECT count(distinct prop_demands.property_id) as total
@@ -2812,9 +2812,9 @@ class Report implements IReport
                             GROUP BY property_id 
                             ) AS o ON o.property_id = prop_demands.property_id 
                             join prop_properties on prop_properties.id=prop_demands.property_id 
-                            join ulb_ward_masters on ulb_ward_masters.id = prop_demands.ward_mstr_id
+                            -- join ulb_ward_masters on ulb_ward_masters.id = prop_demands.ward_mstr_id
                         WHERE prop_demands.status =1 
-                        " . ($wardMstrId ? " AND prop_demands.ward_mstr_id = $wardMstrId" : "") . "
+                        -- " . ($wardMstrId ? " AND prop_demands.ward_mstr_id = $wardMstrId" : "") . "
                         AND fyear = '$currentFinancialYear' 
                         AND paid_status = 0";
 
@@ -2854,9 +2854,9 @@ class Report implements IReport
 
         $sql1 = "SELECT     
                     '$currentFyear' as fyear,    
-                    SUM (amount-adjust_amt) AS totalDemand,
-                    SUM(CASE WHEN paid_status =1 THEN amount ELSE 0 END )AS totalCollection,
-                    sum (amount-adjust_amt - CASE WHEN paid_status =1 THEN amount ELSE 0 END) as totalBalance
+                    SUM (total_tax) AS totalDemand,
+                    SUM(CASE WHEN paid_status =1 THEN total_tax ELSE 0 END )AS totalCollection,
+                    sum (total_tax - CASE WHEN paid_status =1 THEN total_tax ELSE 0 END) as totalBalance
                 FROM prop_demands 
                 WHERE prop_demands.status =1 
                 AND  fyear = '$currentFyear'
@@ -2864,9 +2864,9 @@ class Report implements IReport
 
         $sql2 = "SELECT     
                     '$previousFinancialYear' as fyear,    
-                    SUM (amount-adjust_amt) AS totalDemand,
-                    SUM(CASE WHEN paid_status =1 THEN amount ELSE 0 END )AS totalCollection,
-                    sum (amount-adjust_amt - CASE WHEN paid_status =1 THEN amount ELSE 0 END) as totalBalance
+                    SUM (total_tax) AS totalDemand,
+                    SUM(CASE WHEN paid_status =1 THEN total_tax ELSE 0 END )AS totalCollection,
+                    sum (total_tax - CASE WHEN paid_status =1 THEN total_tax ELSE 0 END) as totalBalance
                 FROM prop_demands 
                 WHERE prop_demands.status =1 
                 AND fyear = '$previousFinancialYear'
@@ -2874,9 +2874,9 @@ class Report implements IReport
 
         $sql3 = "SELECT     
                     '$prePreviousFinancialYear' as fyear,    
-                    SUM (amount-adjust_amt) AS totalDemand,
-                    SUM(CASE WHEN paid_status =1 THEN amount ELSE 0 END )AS totalCollection,
-                    sum (amount-adjust_amt - CASE WHEN paid_status =1 THEN amount ELSE 0 END) as totalBalance
+                    SUM (total_tax) AS totalDemand,
+                    SUM(CASE WHEN paid_status =1 THEN total_tax ELSE 0 END )AS totalCollection,
+                    sum (total_tax - CASE WHEN paid_status =1 THEN total_tax ELSE 0 END) as totalBalance
                 FROM prop_demands 
                 WHERE prop_demands.status =1 
                 AND  fyear = '$prePreviousFinancialYear'
