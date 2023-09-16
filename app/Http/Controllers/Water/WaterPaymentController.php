@@ -695,7 +695,7 @@ class WaterPaymentController extends Controller
             if (!$user->ulb_id) {
                 throw new Exception("Ulb Not Found!");
             }
-            $finalCharges = $this->preOfflinePaymentParams($request, $startingDate, $endDate);
+          $finalCharges = $this->preOfflinePaymentParams($request, $startingDate, $endDate);
 
             $this->begin();
             $tranNo = $midGeneration->generateTransactionNo($user->ulb_id);
@@ -764,7 +764,7 @@ class WaterPaymentController extends Controller
         $mWaterConsumerDemand   = new WaterConsumerDemand();
         $mWaterSecondConsumer   = new WaterSecondConsumer();
         $consumerId             = $request->consumerId;
-        $refAmount              = $request->amount;
+        $refAmount              = round($request->amount);
 
         if ($startingDate > $endDate) {
             throw new Exception("demandFrom Date should not be grater than demandUpto date!");
@@ -787,6 +787,7 @@ class WaterPaymentController extends Controller
         # calculation Part
         $refadvanceAmount = $this->checkAdvance($request);
         $totalPaymentAmount = (collect($allCharges)->sum('balance_amount')) - $refadvanceAmount['advanceAmount'];
+        $totalPaymentAmount = round($totalPaymentAmount);
         if ($totalPaymentAmount != $refAmount) {
             throw new Exception("amount Not Matched!");
         }
@@ -894,6 +895,7 @@ class WaterPaymentController extends Controller
             $refadvanceAmount = $this->checkAdvance($request);
             $advanceAmount = $refadvanceAmount['advanceAmount'];
             $totalPaymentAmount  = collect($collectiveCharges)->pluck('balance_amount')->sum();
+            $roundedTotalDemand = round($totalPaymentAmount);
             $actualCallAmount = $totalPaymentAmount - $advanceAmount;
             if ($actualCallAmount < 0) {
                 $totalPayAmount = 0;                                                                // Static
@@ -904,9 +906,9 @@ class WaterPaymentController extends Controller
             }
 
             $returnData = [
-                'totalPayAmount'        => $totalPayAmount,
+                'totalPayAmount'        => $roundedTotalDemand,
                 'totalPenalty'          => collect($collectiveCharges)->pluck('penalty')->sum(),
-                'totalDemand'           => collect($collectiveCharges)->pluck('amount')->sum(),
+                'totalDemand'           => $roundedTotalDemand,
                 'totalAdvance'          => $advanceAmount,
                 'totalRebate'           => 0,                                                       // Static
                 'remaningAdvanceAmount' => $renmaningAmount

@@ -58,4 +58,12 @@ class WaterConsumerInitialMeter extends Model
         $mWaterConsumerInitialMeter->save();
         return $mWaterConsumerInitialMeter;
 }
+/**
+     * | Get the Meter Reading and the meter details by consumer no
+     */
+    public function getmeterReadingAndDetail($consumerId)
+    {
+        return WaterConsumerInitialMeter::where('status', 1)
+            ->where('consumer_id', $consumerId);
+    }
 }

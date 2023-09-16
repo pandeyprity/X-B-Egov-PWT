@@ -16,16 +16,46 @@ class WaterConsumerMeter extends Model
     /**
      * | Get Meter reading using the ConsumerId
      * | @param consumerId
+        | Recheck 
      */
     public function getMeterDetailsByConsumerId($consumerId)
     {
         return WaterConsumerMeter::select(
-            '*',
             DB::raw("concat(relative_path,'/',meter_doc) as doc_path"),
+            'water_consumer_meters.*',
         )
-            ->where('consumer_id', $consumerId)
-            ->where('status', 1)
-            ->orderByDesc('id');
+            ->where('water_consumer_meters.consumer_id', $consumerId)
+            ->where('water_consumer_meters.status', 1)
+            ->orderByDesc('water_consumer_meters.id');
+    }
+
+    /**
+     * | Get Meter reading using the ConsumerId
+     * | @param consumerId
+     */
+    public function getMeterDetailsByConsumerIdV2($consumerId)
+    {
+        return WaterConsumerMeter::select(
+            'subquery.initial_reading as ref_initial_reading',
+            DB::raw("concat(relative_path,'/',meter_doc) as doc_path"),
+            'water_consumer_meters.*',
+        )
+            ->leftjoinSub(
+                DB::connection('pgsql_water')
+                    ->table('water_consumer_initial_meters')
+                    ->select('*')
+                    ->where('consumer_id', '=', $consumerId)
+                    ->orderBy('id', 'desc')
+                    ->skip(1)
+                    ->take(1),
+                'subquery',
+                function ($join) {
+                    $join->on('subquery.consumer_id', '=', 'water_consumer_meters.consumer_id');
+                }
+            )
+            ->where('water_consumer_meters.consumer_id', $consumerId)
+            ->where('water_consumer_meters.status', 1)
+            ->orderByDesc('water_consumer_meters.id');
     }
 
     /**
@@ -86,18 +116,17 @@ class WaterConsumerMeter extends Model
      * save meter details for akola 
      */
 
-     public function saveInitialMeter($refrequest,$meta){
+    public function saveInitialMeter($refrequest, $meta)
+    {
         $mWaterConsumerMeter = new WaterConsumerMeter();
-        $mWaterConsumerMeter->consumer_id          =$refrequest['consumerId'];
-        $mWaterConsumerMeter->final_meter_reading  =$refrequest['InitialMeter'];
-        $mWaterConsumerMeter->initial_reading      =$refrequest['InitialMeter'];
-        $mWaterConsumerMeter->connection_type      =$refrequest['connectionType'];
-        $mWaterConsumerMeter->meter_no             =$meta['meterNo'];
+        $mWaterConsumerMeter->consumer_id          = $refrequest['consumerId'];
+        $mWaterConsumerMeter->final_meter_reading  = $refrequest['InitialMeter'];
+        $mWaterConsumerMeter->initial_reading      = $refrequest['InitialMeter'];
+        $mWaterConsumerMeter->connection_type      = $refrequest['connectionType'];
+        $mWaterConsumerMeter->meter_no             = $meta['meterNo'];
 
 
         $mWaterConsumerMeter->save();
         return $mWaterConsumerMeter;
-
-     }
-   
+    }
 }

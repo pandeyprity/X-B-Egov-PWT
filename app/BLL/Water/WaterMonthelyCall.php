@@ -64,8 +64,8 @@ class WaterMonthelyCall
     {
         $this->readParamsForCall();                 // 1
         $this->monthelyDemandCall();                // 2
-        return $this->generateDemand();                    // 3
-         $this->_tax;
+         $this->generateDemand();                    // 3
+        return $this->_tax;
     }
 
     /**
@@ -168,7 +168,7 @@ class WaterMonthelyCall
 
         
             # demand generation
-            return $returnData = collect($monthsArray)->map(function ($values, $key)
+             $returnData = collect($monthsArray)->map(function ($values, $key)
             use ($monthelyUnitConsumed, $monthsDifference) {
 
                 $lastDateOfMonth = Carbon::parse($values)->endOfMonth();
