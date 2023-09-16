@@ -437,6 +437,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('search-transaction', 'searchTransaction');
     Route::post('cheque-dtl-by-id', 'chequeDtlById');
     Route::post('cheque-clearance', 'chequeClearance');
+    Route::post('search-transaction-no', 'searchTransactionNo');
   });
 
 

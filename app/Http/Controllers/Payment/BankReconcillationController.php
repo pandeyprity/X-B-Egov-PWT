@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Payment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment\PaymentReconciliation;
+use App\Models\Payment\TempTransaction;
 use App\Models\Property\PropActiveSaf;
 use App\Models\Property\PropChequeDtl;
 use App\Models\Property\PropDemand;
@@ -233,6 +234,9 @@ class BankReconcillationController extends Controller
             }
 
             DB::beginTransaction();
+            DB::connection('pgsql_master')->beginTransaction();
+            DB::connection('pgsql_water')->beginTransaction();
+            DB::connection('pgsql_trade')->beginTransaction();
 
             if ($moduleId == $propertyModuleId) {
                 $mChequeDtl =  PropChequeDtl::find($request->chequeId);
@@ -282,7 +286,7 @@ class BankReconcillationController extends Controller
                                 ->update(
                                     [
                                         'paid_status' => $applicationPaymentStatus,
-                                        'balance' => $safDemandDtl->amount - $safDemandDtl->adjust_amount,
+                                        'balance' => $safDemandDtl->total_tax - $safDemandDtl->adjust_amt,
                                     ]
                                 );
                         }
@@ -293,7 +297,7 @@ class BankReconcillationController extends Controller
                                 ->update(
                                     [
                                         'paid_status' => $applicationPaymentStatus,
-                                        'balance' => $propDemandDtl->amount - $propDemandDtl->adjust_amt,
+                                        'balance' => $propDemandDtl->total_tax - $propDemandDtl->adjust_amt,
                                     ]
                                 );
                         }
@@ -469,10 +473,38 @@ class BankReconcillationController extends Controller
                 $mPaymentReconciliation->addReconcilation($request);
             }
             DB::commit();
+            DB::connection('pgsql_master')->commit();
+            DB::connection('pgsql_water')->commit();
+            DB::connection('pgsql_trade')->commit();
             return responseMsg(true, "Data Updated!", '');
         } catch (Exception $error) {
             DB::rollBack();
+            DB::connection('pgsql_master')->rollBack();
+            DB::connection('pgsql_water')->rollBack();
+            DB::connection('pgsql_trade')->rollBack();
             return responseMsg(false, "ERROR!", $error->getMessage());
+        }
+    }
+
+    /**
+     * | 
+     */
+    public function searchTransactionNo(Request $req)
+    {
+        try {
+            $validator = Validator::make($req->all(), [
+                "transactionNo" => "required"
+            ]);
+            if ($validator->fails())
+                return validationError($validator);
+
+            $transactionDtl = TempTransaction::where('transaction_no', $req->transactionNo)
+                ->join('module_masters', 'module_masters.id', 'temp_transactions.module_id')
+                ->get();
+
+            return responseMsgs(true, "Transaction No is", $transactionDtl, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         }
     }
 }
