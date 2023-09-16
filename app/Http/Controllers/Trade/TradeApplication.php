@@ -575,6 +575,10 @@ class TradeApplication extends Controller
         return $this->_REPOSITORY->outbox($request);
     }
 
+    public function approvedButNotPayment(ReqInbox $request)
+    {
+        return $this->_REPOSITORY->approvedButNotPayment($request);
+    }
 
     # Serial No
     public function backToCitizen(Request $req)

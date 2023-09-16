@@ -118,7 +118,7 @@ class Trade implements ITrade
         $this->_DB_MASTER = DB::connection("pgsql_master");
         $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
         DB::enableQueryLog();
-        // $this->_DB->enableQueryLog();
+        $this->_DB->enableQueryLog();
         // $this->_NOTICE_DB->enableQueryLog();
 
         $this->_MODEL_WARD = new ModelWard();
@@ -2378,6 +2378,150 @@ class Trade implements ITrade
             ]; 
             return responseMsg(true, "", remove_null($list));
         } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+    public function approvedButNotPayment(Request $request)
+    {
+        try{
+            $refUser        = Auth()->user();
+            $refUserId      = $refUser->id;
+            $refUlbId       = $refUser->ulb_id;            
+            $refWorkflowId = $this->_WF_MASTER_Id;
+            $mUserType = $this->_COMMON_FUNCTION->userType($refWorkflowId);
+            $ward_permission = $this->_COMMON_FUNCTION->WardPermission($refUlbId);
+            $role = $this->_COMMON_FUNCTION->getUserRoll($refUserId, $refUlbId, $refWorkflowId);
+            if (!$role) {
+                throw new Exception("You Are Not Authorized");
+            }
+
+            if ($role->is_initiator || in_array(strtoupper($mUserType), $this->_TRADE_CONSTAINT["CANE-NO-HAVE-WARD"])) {
+
+                $ward_permission = $this->_MODEL_WARD->getAllWard($refUlbId)->map(function ($val) {
+                    $val->ward_no = $val->ward_name;
+                    return $val;
+                });
+                $ward_permission = objToArray($ward_permission);
+            }
+            $role_id = $role->role_id;
+
+            $mWardIds = array_map(function ($val) {
+                return $val['id'];
+            }, $ward_permission);
+
+            $select = [
+                "licences.id",
+                "licences.application_no",
+                "licences.provisional_license_no",
+                "licences.license_no",
+                "licences.document_upload_status",
+                "licences.payment_status",
+                "licences.firm_name",
+                "licences.apply_from",
+                "licences.workflow_id",
+                "owner.owner_name",
+                "owner.guardian_name",
+                "owner.mobile_no",
+                "owner.email_id",
+                "licences.application_type_id",
+                "trade_param_application_types.application_type",
+                "trade_param_firm_types.firm_type",
+                "licences.firm_type_id",
+                DB::raw("TO_CHAR(CAST(licences.application_date AS DATE), 'DD-MM-YYYY') as application_date"),
+            ];
+            $ApprovedLicence  = TradeLicence::from("trade_licences as licences")
+                    ->JOIN("trade_param_application_types", "trade_param_application_types.id", "licences.application_type_id")
+                    ->join(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
+                                                STRING_AGG(guardian_name,',') AS guardian_name,
+                                                STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
+                                                STRING_AGG(email_id,',') AS email_id,
+                                                temp_id
+                                            FROM trade_owners 
+                                            WHERE is_active = TRUE
+                                            GROUP BY temp_id
+                                            )owner"), function ($join) {
+                        $join->on("owner.temp_id", "licences.id");
+                    })
+                    ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", "licences.firm_type_id")
+                    ->select($select)
+                    ->where("licences.pending_status",5)
+                    ->where("licences.payment_status",0)
+                    ->where("licences.ulb_id", $refUlbId);
+            $ActiveLicence  = ActiveTradeLicence::from("trade_licences as licences")
+                    ->JOIN("trade_param_application_types", "trade_param_application_types.id", "licences.application_type_id")
+                    ->join(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
+                                                STRING_AGG(guardian_name,',') AS guardian_name,
+                                                STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
+                                                STRING_AGG(email_id,',') AS email_id,
+                                                temp_id
+                                            FROM active_trade_owners 
+                                            WHERE is_active = TRUE
+                                            GROUP BY temp_id
+                                            )owner"), function ($join) {
+                        $join->on("owner.temp_id", "licences.id");
+                    })
+                    ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", "licences.firm_type_id")
+                    ->select($select)
+                    ->where("licences.pending_status",5)
+                    ->where("licences.payment_status",0)
+                    ->where("licences.ulb_id", $refUlbId);
+
+            if (trim($request->key)) {
+                $key = trim($request->key);
+                $ApprovedLicence = $ApprovedLicence->where(function ($query) use ($key) {
+                    $query->orwhere('licences.holding_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('licences.application_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere("licences.license_no", 'ILIKE', '%' . $key . '%')
+                        ->orwhere("licences.provisional_license_no", 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.owner_name', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.guardian_name', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.mobile_no', 'ILIKE', '%' . $key . '%');
+                });
+                $ActiveLicence = $ApprovedLicence->where(function ($query) use ($key) {
+                    $query->orwhere('licences.holding_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('licences.application_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere("licences.license_no", 'ILIKE', '%' . $key . '%')
+                        ->orwhere("licences.provisional_license_no", 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.owner_name', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.guardian_name', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.mobile_no', 'ILIKE', '%' . $key . '%');
+                });
+            }
+
+            if ($request->wardNo && $request->wardNo != "ALL") {
+                $mWardIds = [$request->wardNo];
+            }
+            $ApprovedLicence = $ApprovedLicence->whereIn('licences.ward_id', $mWardIds)
+                ->orderBy("licences.license_date","ASC");
+            $ActiveLicence = $ActiveLicence->whereIn('licences.ward_id', $mWardIds)
+                ->orderBy("licences.license_date","ASC");
+            if ($request->formDate && $request->toDate) {
+                $ApprovedLicence = $ApprovedLicence->whereBetween('licences.license_date', [$request->formDate, $request->toDate]);
+                $ActiveLicence = $ApprovedLicence->whereBetween('licences.license_date', [$request->formDate, $request->toDate]);
+            }
+
+            $license = $ApprovedLicence->union($ActiveLicence);
+            if($request->all)
+            {
+                $license= $license->get();
+                return responseMsg(true, "", $license);
+            } 
+            $perPage = $request->perPage ? $request->perPage :  10;
+            $page = $request->page && $request->page > 0 ? $request->page : 1;
+
+            $paginator = $license->paginate($perPage);
+            $list = [
+                "current_page" => $paginator->currentPage(),
+                "last_page" => $paginator->lastPage(),
+                "data" => $paginator->items(),
+                "total" => $paginator->total(),
+            ]; 
+            return responseMsg(true, "", remove_null($list)); 
+            
+        }
+        catch(Exception $e)
+        {
             return responseMsg(false, $e->getMessage(), "");
         }
     }

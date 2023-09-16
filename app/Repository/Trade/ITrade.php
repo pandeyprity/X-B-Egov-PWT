@@ -35,7 +35,7 @@ interface ITrade
     public function btcInbox(Request $request);
     public function inbox(Request $request);
     public function outbox(Request $request);
-
+    public function approvedButNotPayment(Request $request);
     public function addIndependentComment(Request $request);
     public function readIndipendentComment(Request $request);
     public function provisionalCertificate($id);
