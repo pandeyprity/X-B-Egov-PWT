@@ -123,7 +123,7 @@ class HoldingTaxController extends Controller
     }
 
     /**
-     * | Get Holding Dues(2)
+     * | Get Holding Dues( 2) 
      */
     public function getHoldingDues(Request $req)
     {
@@ -240,7 +240,7 @@ class HoldingTaxController extends Controller
                 throw new Exception($holdingDues->original['message']);
 
             if ($holdingDues->original['data']['paymentStatus'])
-                    throw new Exception("Payment Already Done");
+                throw new Exception("Payment Already Done");
             $holdingDues = $holdingDues->original['data'];
             $payableAmount = $holdingDues['payableAmt'];
             $basicDetails = $holdingDues['basicDetails'];
