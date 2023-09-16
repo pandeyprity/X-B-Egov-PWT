@@ -434,17 +434,17 @@ class HoldingTaxController extends Controller
      */
     public function offlinePaymentHolding(ReqPayment $req)
     {
-        $validated = Validator::make(
-            $req->all(),
-            ['isArrear' => 'required|bool']
-        );
-        if ($validated->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'validation error',
-                'errors' => $validated->errors()
-            ], 401);
-        }
+        // $validated = Validator::make(
+        //     $req->all(),
+        //     ['isArrear' => 'required|bool']
+        // );
+        // if ($validated->fails()) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'validation error',
+        //         'errors' => $validated->errors()
+        //     ], 401);
+        // }
         try {
             $offlinePaymentModes = Config::get('payment-constants.PAYMENT_MODE_OFFLINE');
             $todayDate = Carbon::now();
@@ -464,7 +464,7 @@ class HoldingTaxController extends Controller
 
             $propCalReq = new Request([                                                 // Request from payment
                 'propId' => $req['id'],
-                'isArrear' => $req['isArrear']
+                'isArrear' => $req['isArrear'] ?? null
             ]);
 
             $propCalculation = $this->getHoldingDues($propCalReq);
