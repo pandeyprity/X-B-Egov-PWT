@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Property;
 
 use App\BLL\Payment\ModuleRefUrl;
 use App\BLL\Property\Akola\GeneratePaymentReceipt;
+use App\BLL\Property\Akola\RevCalculateByAmt;
 use App\BLL\Property\PaymentReceiptHelper;
 use App\BLL\Property\PostRazorPayPenaltyRebate;
 use App\BLL\Property\YearlyDemandGeneration;
@@ -15,11 +16,6 @@ use App\MicroServices\DocUpload;
 use App\MicroServices\IdGeneration;
 use App\Models\Cluster\Cluster;
 use App\Models\Payment\TempTransaction;
-use App\Models\Payment\WebhookPaymentData;
-use App\Models\Property\MPropBuildingRentalrate;
-use App\Models\Property\MPropMultiFactor;
-use App\Models\Property\MPropRoadType;
-use App\Models\Property\PaymentPropPenaltyrebate;
 use App\Models\Property\PropAdjustment;
 use App\Models\Property\PropAdvance;
 use App\Models\Property\PropChequeDtl;
@@ -45,7 +41,6 @@ use App\Traits\Property\SafDetailsTrait;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -143,38 +138,51 @@ class HoldingTaxController extends Controller
             $mPropDemand = new PropDemand();
             $mPropProperty = new PropProperty();
             $demand = array();
+            $revCalculateByAmt = new RevCalculateByAmt;
+            // Get Property Details
+            $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
+            $arrear = $propBasicDtls->balance;
+
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
 
-            $paymentStatus = $demandList->isEmpty() ? 1 : 0;
-            // Get Property Details
-            $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
+            $stateTaxDtls = [                                       // For Calculation Ref of State tax perc 
+                'alv' => $demandList->last()->alv ?? 0,
+                'state_education_tax' => $demandList->last()->state_education_tax ?? 0,
+                'professional_tax' => $demandList->last()->professional_tax ?? 0
+            ];
 
-            $arrear = $propBasicDtls->balance;
+            if ($arrear > 0) {                                      // Reverse Calculation
+                $revCalculateByAmt->_stateTaxDtls = $stateTaxDtls;
+                $revCalculateByAmt->calculateRev($arrear);
+                $demandList = $demandList->merge([$revCalculateByAmt->_GRID]);
+            }
+
+            $paymentStatus = $demandList->isEmpty() ? 1 : 0;
 
             $grandTaxes = $demandList->pipe(function ($item) {
                 return [
-                    "general_tax" => $item->sum('general_tax'),
-                    "road_tax" => $item->sum('road_tax'),
-                    "firefighting_tax" => $item->sum('firefighting_tax'),
-                    "education_tax" => $item->sum('education_tax'),
-                    "water_tax" => $item->sum('water_tax'),
-                    "cleanliness_tax" => $item->sum('cleanliness_tax'),
-                    "sewarage_tax" => $item->sum('sewarage_tax'),
-                    "tree_tax" => $item->sum('tree_tax'),
-                    "professional_tax" => $item->sum('professional_tax'),
-                    "tax1" => $item->sum('tax1'),
-                    "tax2" => $item->sum('tax2'),
-                    "tax3" => $item->sum('tax3'),
-                    "state_education_tax" => $item->sum('sp_education_tax'),
-                    "water_benefit" => $item->sum('water_benefit'),
-                    "water_bill" => $item->sum('water_bill'),
-                    "sp_water_cess" => $item->sum('sp_water_cess'),
-                    "drain_cess" => $item->sum('drain_cess'),
-                    "light_cess" => $item->sum('light_cess'),
-                    "major_building" => $item->sum('major_building'),
-                    "total_tax" => $item->sum('total_tax'),
-                    "balance" => $item->sum('balance'),
+                    "general_tax" => roundFigure($item->sum('general_tax')),
+                    "road_tax" => roundFigure($item->sum('road_tax')),
+                    "firefighting_tax" => roundFigure($item->sum('firefighting_tax')),
+                    "education_tax" => roundFigure($item->sum('education_tax')),
+                    "water_tax" => roundFigure($item->sum('water_tax')),
+                    "cleanliness_tax" => roundFigure($item->sum('cleanliness_tax')),
+                    "sewarage_tax" => roundFigure($item->sum('sewarage_tax')),
+                    "tree_tax" => roundFigure($item->sum('tree_tax')),
+                    "professional_tax" => roundFigure($item->sum('professional_tax')),
+                    "tax1" => roundFigure($item->sum('tax1')),
+                    "tax2" => roundFigure($item->sum('tax2')),
+                    "tax3" => roundFigure($item->sum('tax3')),
+                    "state_education_tax" => roundFigure($item->sum('sp_education_tax')),
+                    "water_benefit" => roundFigure($item->sum('water_benefit')),
+                    "water_bill" => roundFigure($item->sum('water_bill')),
+                    "sp_water_cess" => roundFigure($item->sum('sp_water_cess')),
+                    "drain_cess" => roundFigure($item->sum('drain_cess')),
+                    "light_cess" => roundFigure($item->sum('light_cess')),
+                    "major_building" => roundFigure($item->sum('major_building')),
+                    "total_tax" => roundFigure($item->sum('total_tax')),
+                    "balance" => roundFigure($item->sum('balance')),
                 ];
             });
 
@@ -182,7 +190,7 @@ class HoldingTaxController extends Controller
             $demand['demandList'] = $demandList;
             $demand['grandTaxes'] = $grandTaxes;
             $demand['arrear'] = $arrear;
-            $demand['payableAmt'] = $grandTaxes['balance'] + $arrear;
+            $demand['payableAmt'] = round($grandTaxes['balance']);
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
             $holdingType = $propBasicDtls->holding_type;
             $ownershipType = $propBasicDtls->ownership_type;
@@ -489,10 +497,38 @@ class HoldingTaxController extends Controller
             // Updation of payment status in demand table
             foreach ($demands as $demand) {
                 $demand = (object)$demand->toArray();
-                $tblDemand = $mPropDemand->findOrFail($demand->id);
-                $tblDemand->paid_status = 1;           // Paid Status Updation
-                $tblDemand->balance = 0;
-                $tblDemand->save();
+                if (isset($demand->id)) {                     // if id exist on demand
+                    $tblDemand = $mPropDemand->findOrFail($demand->id);
+                    $tblDemand->paid_status = 1;           // Paid Status Updation
+                    $tblDemand->balance = 0;
+                    $tblDemand->save();
+                }
+
+                if (!isset($demand->id) && isset($demand->is_arrear) && $demand->is_arrear == true) {
+                    //🔴🔴 New Entry
+                    $demandReq = [
+                        "property_id" => $req['id'],
+                        "general_tax" => $demand->general_tax,
+                        "road_tax" => $demand->road_tax,
+                        "firefighting_tax" => $demand->firefighting_tax,
+                        "education_tax" => $demand->education_tax,
+                        "water_tax" => $demand->water_tax,
+                        "cleanliness_tax" => $demand->cleanliness_tax,
+                        "sewarage_tax" => $demand->sewarage_tax,
+                        "tree_tax" => $demand->tree_tax,
+                        "professional_tax" => $demand->professional_tax,
+                        "sp_education_tax" => $demand->state_education_tax,
+                        "total_tax" => $demand->total_tax,
+                        "balance" => $demand->balance,
+                        "paid_status" => 1,
+                        "fyear" => $demand->fyear,
+                        "adjust_amt" => $demand->adjustAmt ?? 0,
+                        "user_id" => $userId,
+                        "ulb_id" => $propDetails->ulb_id,
+                        "is_arrear" => true
+                    ];
+                    $demand = $mPropDemand->create($demandReq);
+                }
 
                 // ✅✅✅✅✅ Tran details insertion
                 $tranDtlReq = [
