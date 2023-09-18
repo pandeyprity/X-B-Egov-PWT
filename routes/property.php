@@ -475,6 +475,16 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('reports/property/holding-wise-fine-rebate', 'PropFineRebate');             //done
     Route::post('reports/property/deactivated-list', 'PropDeactedList');                    //done
   });
+
+  /**
+   * | This controller is designed to get the module related details 
+   * | Created By : Sam kerketta
+   * | Creadet On : 
+   */
+  Route::controller(PropertyController::class)->group(function () {
+    Route::post('get-user-transaction-details', 'getUserPropTransactions');
+    Route::post('get-user-active-applications','getActiveApplications');
+  });
 });
 
 
@@ -566,6 +576,7 @@ Route::controller(ReferenceController::class)->group(function () {
 Route::controller(PropertyController::class)->group(function () {
   Route::post('getpropLatLong', 'getpropLatLong');                             // 01
   Route::post('upload-document', 'uploadDocument');                             // 01
+  Route::post('');
 });
 
 /**

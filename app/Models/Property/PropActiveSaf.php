@@ -983,4 +983,12 @@ class  PropActiveSaf extends Model
                 'category_id'
             )->first();
     }
+
+
+    // Get the active saf details 
+    public function getSafDetailsByCitizenId($citizenId)
+    {
+        return PropActiveSaf::where('citizen_id', $citizenId)
+            ->where('status', 1);
+    }
 }

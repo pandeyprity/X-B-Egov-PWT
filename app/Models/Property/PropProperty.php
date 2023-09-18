@@ -750,4 +750,13 @@ class PropProperty extends Model
         }
         return $propDetails;
     }
+
+    // Get property detials according to citizen id
+    public function getPropDetailsByCitizenId($citizenId)
+    {
+        return PropProperty::
+        // where('citizen_id', $citizenId)
+           where('prop_properties.status', 1)
+            ->orderByDesc('id');
+    }
 }
