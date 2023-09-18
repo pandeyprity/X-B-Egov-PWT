@@ -2166,7 +2166,7 @@ class WaterConsumer extends Controller
         $validated = Validator::make(
             $request->all(),
             [
-                'demandId' => 'required',
+                'consumerId' => 'required',
             ]
         );
 
@@ -2176,22 +2176,32 @@ class WaterConsumer extends Controller
         try {
             $mWaterDemands              = new WaterConsumerDemand();
             $mWaterConsumerInitialMeter = new WaterConsumerInitialMeter();
-            $NowDate             = Carbon::now()->format('Y-m-d');
-            $bilDueDate          = Carbon::now()->addDays(15)->format('Y-m-d');
-            $demandDetails = $mWaterDemands->getDemandBydemandIds($request->demandId); // get demands detai
+            $NowDate                    = Carbon::now()->format('Y-m-d');
+            $bilDueDate                 = Carbon::now()->addDays(15)->format('Y-m-d');
+            $ConsumerId                 = $request->consumerId;
+            $demandDetails              = $mWaterDemands->getDemandBydemandIds($ConsumerId); // get demands detai
             if (!$demandDetails) {
                 throw new Exception('demands not found ');
             }
-           return $meta = [
-                'consumerId'=>$demandDetails->consumer_id
-            ];
-           return $ConsumerInitial=$mWaterConsumerInitialMeter->calculateUnitsConsumed($meta['consumerId']);
-            $$demands =  [
-                'billDate' => $NowDate,
-                'bilDueDate' => $bilDueDate
+            $allDemandGenerated = $mWaterDemands->getConsumerDemand($ConsumerId);           // get all demands of consumer generated 
+            # sum of amount
+            $sumAmount = collect($allDemandGenerated)->sum('amount');                  
+            $roundedSumAmount = round($sumAmount);
+            $ConsumerInitial = $mWaterConsumerInitialMeter->calculateUnitsConsumed($ConsumerId);  # unit consumed
+            $finalReading = $ConsumerInitial->first()->initial_reading;
+            $initialReading = $ConsumerInitial->last()->initial_reading ?? 0;
+            $demands =  [
+                'billDate'          => $NowDate,
+                'bilDueDate'        => $bilDueDate,
+                'unitConsumed'      => ($finalReading - $initialReading),
+                'initialReading'    => (int)$initialReading,
+                'finalReading'      => (int)$finalReading,
+                'initialDate'       => "",
+                'amount'            =>  $roundedSumAmount,
+                "meterImg"          => ""
             ];
             $returnValues = collect($demandDetails)->merge($demands);
-            return responseMsgs(true, "Consumer Details!", $returnValues, "", "01", ".ms", "POST", $request->deviceId);
+            return responseMsgs(true, "Consumer Details!", remove_null($returnValues), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
         }
