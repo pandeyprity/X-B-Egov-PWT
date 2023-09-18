@@ -444,8 +444,8 @@ class WaterPaymentController extends Controller
     public function saveSitedetails(siteAdjustment $request)
     {
         try {
-            $changes                =$request['ownerDetails'];
-            $applicationId          =$request->applicationId;
+            $changes                = $request['ownerDetails'];
+            $applicationId          = $request->applicationId;
             $mWaterSiteInspection   = new WaterSiteInspection();
             $mWaterNewConnection    = new WaterNewConnection();
             $mWaterConnectionCharge = new WaterConnectionCharge();
@@ -466,10 +466,10 @@ class WaterPaymentController extends Controller
             $this->begin();
             #if applicants details changes then store the
             if (collect($changes)->isEmpty()) {
-                $mWaterApplicants->saveWaterApplicant($changes,$applicationId);
+                $mWaterApplicants->saveWaterApplicant($changes, $applicationId);
             }
-            if(collect($changes)->isNotEmpty()){
-                $mWaterApplicants->saveWaterApplicant($changes,$applicationId);
+            if (collect($changes)->isNotEmpty()) {
+                $mWaterApplicants->saveWaterApplicant($changes, $applicationId);
             }
             # Store the site inspection details
             $mWaterSiteInspection->storeInspectionDetails($request,  $waterDetails, $refRoleDetails);
@@ -695,7 +695,7 @@ class WaterPaymentController extends Controller
             if (!$user->ulb_id) {
                 throw new Exception("Ulb Not Found!");
             }
-          $finalCharges = $this->preOfflinePaymentParams($request, $startingDate, $endDate);
+            $finalCharges = $this->preOfflinePaymentParams($request, $startingDate, $endDate);
 
             $this->begin();
             $tranNo = $midGeneration->generateTransactionNo($user->ulb_id);
@@ -2342,14 +2342,14 @@ class WaterPaymentController extends Controller
         $validated = Validator::make(
             $request->all(),
             [
-                'userId' => 'required'
+                'citizenId' => 'required'
             ]
         );
         if ($validated->fails())
             return validationError($validated);
         try {
             $pages = $request->pages ?? 10;
-            $citizenId = $request->userId;
+            $citizenId = $request->citizenId;
             $mWaterTran = new WaterTran();
             $transactionDetails = $mWaterTran->getTransByCitizenId($citizenId)
                 ->select(
@@ -2360,7 +2360,7 @@ class WaterPaymentController extends Controller
                     END AS tran_type_id
                 '),
                     "water_trans.*"
-                )->paginate($pages);
+                )->limit($pages)->get();
             return responseMsgs(true, "List of transactions", remove_null($transactionDetails), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), [], "", "03", ".ms", "POST", $request->deviceId);
