@@ -178,6 +178,8 @@ class PaymentController extends Controller
                 "module_id"      => $req->moduleId,
                 "ulb_id"         => $user->ulb_id,
                 "application_id" => $req->applicationId,
+                "method_id" => $req->method_id,
+                "TransactionType" => $req->TransactionType,
             ];
             $data = $mPinelabPaymentReq->store($mReqs);
 
@@ -207,7 +209,7 @@ class PaymentController extends Controller
                 "rejection_reason"     => $req->rejection_reason,
                 "rejection_source"     => $req->rejection_source,
                 "rejection_step"       => $req->rejection_step,
-                "rejection_code"       => $req->rejection_code,
+                "response_code"       => $req->response_code,
                 "description"          => $user->description,
                 "rejection_suspecious" => $user->rejection_suspecious,
             ];
