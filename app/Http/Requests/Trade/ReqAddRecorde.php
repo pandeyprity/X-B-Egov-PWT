@@ -18,7 +18,7 @@ class ReqAddRecorde extends TradeRequest
         $mNowdate           = $this->_CURRENT_DATE;
         $mTimstamp          = $this->_CURRENT_DATE_TIME;
         $mRegex             = $this->_REX_ALPHA_NUM_DOT_SPACE;
-        $mFramNameRegex     = $this->_REX_ALPHA_NUM_OPS_DOT_MIN_COM_AND_SPACE_SL;
+        $mFramNameRegex     = $this->_REX_ALPHA_NUM_OPS_DOT_MIN_COM_AND_SPACE_SL;#
         $mOwnerName         = $this->_REX_OWNER_NAME;
         $mMobileNo          = $this->_REX_MOBILE_NO;
         
@@ -143,7 +143,7 @@ class ReqAddRecorde extends TradeRequest
         //         $rules["licenseDetails.bankName"] = "required|regex:$mRegex";
         //         $rules["licenseDetails.branchName"] = "required|regex:$mRegex";
         //     }
-        // }
+        // } 
         return $rules;
     }
 }

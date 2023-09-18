@@ -35,6 +35,7 @@ class TradeRequest extends FormRequest
     protected $_REX_OWNER_NAME;
     protected $_REX_MOBILE_NO;
     protected $_APPLYCATION_TYPE ;
+    protected $_ENG_MARATHI;
 
     public function __construct()
     {
@@ -60,6 +61,7 @@ class TradeRequest extends FormRequest
         $this->_REX_NUM_DOT                                 = "/^\d+(?:\.\d+)+$/i";
         $this->_REX_OWNER_NAME                              = "/^([a-zA-Z0-9]+)(\s[a-zA-Z0-9\.\,\']+)*$/i";
         $this->_REX_MOBILE_NO                               = "/[0-9]{10}/";
+        $this->_ENG_MARATHI                                 = "/^[\p{Devanagari}]+$/u"; #"/^[A-Za-z0-9\x{0900}-\x{097F}\.|\-\/ ]+/gmi";
 
         $this->_APPLYCATION_TYPE = flipConstants($this->_TRADE_CONSTAINT["APPLICATION-TYPE"]);
         if($this->_APPLYCATION_TYPE)

@@ -2100,6 +2100,39 @@ class Trade implements ITrade
                         // ->where("active_trade_licences.payment_status", 1)
                         ->where("active_trade_licences.current_role", $mRoleId)
                         ->where("active_trade_licences.ulb_id", $refUlbId);
+            if($request->applicationType)
+            {
+                $mApplicationTypeId = $this->_TRADE_CONSTAINT["APPLICATION-TYPE"][$request->applicationType]??0;
+                $license = $license->where('active_trade_licences.application_type_id',$mApplicationTypeId );
+            }
+            if($request->todayReceived)
+            {
+                $metaRequest = new Request([
+                    'workflowId'    => $this->_WF_MASTER_Id,
+                    'ulbId'         => $refUlbId,
+                    'moduleId'      => $this->_MODULE_ID
+                ]);
+                $track = new WorkflowTrack();
+                $dateWiseData = $track->getWfDashbordData($metaRequest)->get();                
+                
+                $appId = (collect($dateWiseData)->where('receiver_role_id', $mRole->role_id)->unique("ref_table_id_value"))->pluck("ref_table_id_value");
+                if($appId->isEmpty())
+                {
+                    $appId->push(0);
+                }                                                            
+                
+                if($mRole->is_initiator==true)
+                {
+                    $license = $license->where(function($query)use($appId){
+                        $query->orWhere('active_trade_licences.application_date',Carbon::now()->format('Y-m-d'))
+                            ->orWhereIn('active_trade_licences.id',$appId );
+                    });
+
+                }
+                else{
+                    $license = $license->whereIn('active_trade_licences.id',$appId );
+                }
+            }
             if (trim($request->key)) 
             {
                 $key = trim($request->key);
@@ -2183,6 +2216,30 @@ class Trade implements ITrade
                 ->where("active_trade_licences.is_parked", FALSE)
                 ->where("active_trade_licences.current_role", "<>", $role_id)
                 ->where("active_trade_licences.ulb_id", $ulb_id);
+
+            if($request->applicationType)
+            {
+                $mApplicationTypeId = $this->_TRADE_CONSTAINT["APPLICATION-TYPE"][$request->applicationType]??0;
+                $license = $license->where('active_trade_licences.application_type_id',$mApplicationTypeId );
+            }
+            if($request->todayForward)
+            {
+                $metaRequest = new Request([
+                    'workflowId'    => $this->_WF_MASTER_Id,
+                    'ulbId'         => $ulb_id,
+                    'moduleId'      => $this->_MODULE_ID
+                ]);
+                $track = new WorkflowTrack();
+                $dateWiseData = $track->getWfDashbordData($metaRequest)->get();                
+                
+                $appId = (collect($dateWiseData)->where('sender_role_id', $role->role_id)->unique("ref_table_id_value"))->pluck("ref_table_id_value");
+                if($appId->isEmpty())
+                {
+                    $appId->push(0);
+                }                                                            
+                
+                $license = $license->whereIn('active_trade_licences.id',$appId );
+            }
 
             if (trim($request->key)) {
                 $key = trim($request->key);
