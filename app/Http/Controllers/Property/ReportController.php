@@ -579,4 +579,13 @@ class ReportController extends Controller
     {
         return $this->Repository->rebateNpenalty($request);
     }
+
+
+    /**
+     * | Admin Dashboard Report
+     */
+    public function adminDashReport()
+    {
+        return $this->Repository->adminDashReport();
+    }
 }

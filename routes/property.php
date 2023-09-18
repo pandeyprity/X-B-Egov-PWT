@@ -473,6 +473,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('reports/property/ward-wise-dcb', 'PropWardWiseDCB');                       //done
     Route::post('reports/property/holding-wise-fine-rebate', 'PropFineRebate');             //done
     Route::post('reports/property/deactivated-list', 'PropDeactedList');                    //done
+    Route::post('reports/property/admin-dashboard', 'adminDashReport');          // Admin dashboard report for akola
   });
 });
 
