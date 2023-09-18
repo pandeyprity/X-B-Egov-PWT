@@ -92,7 +92,7 @@ class PropertyController extends Controller
             'ptNo' => 'required_without:holdingNo|numeric',
         ]);
         try {
-            $userId = authUser()->id;
+            $userId = authUser($req)->id;
             $activeCitizen = ActiveCitizen::findOrFail($userId);
 
             $propDtl = app(Pipeline::class)
@@ -137,7 +137,7 @@ class PropertyController extends Controller
             'ulbId' => 'required|numeric'
         ]);
         try {
-            $citizenId = authUser()->id;
+            $citizenId = authUser($req)->id;
             $ulbId = $req->ulbId;
             $type = $req->type;
             $mPropSafs = new PropSaf();
@@ -394,5 +394,73 @@ class PropertyController extends Controller
     {
         $path = (config('app.url') . "/" . $path);
         return $path;
+    }
+
+
+    /**
+     * | Get porperty transaction by user id 
+     * | List the transaction detial of all transaction by the user
+        | Serial No :
+        | Under Con 
+     */
+    public function getUserPropTransactions(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "citizenId" => "required|int"
+            ]
+        );
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+        try {
+            $transactionDetails = array();
+            $citizenId          = $request->citizenId;
+            $mPropProperty      = new PropProperty();
+            $mPropActiveSaf     = new PropActiveSaf();
+            $propTransaction    = new PropTransaction();
+
+            $refPropertyIds = $mPropProperty->getPropDetailsByCitizenId($citizenId)->selectRaw('id')->get();
+            $refSafIds = $mPropActiveSaf->getSafDetailsByCitizenId($citizenId)->selectRaw('id')->get();
+
+            if ($refPropertyIds->first()) {
+                $safIds = ($refSafIds->pluck('id'))->toArray();
+                $safTranDetails = $propTransaction->getPropTransBySafIdV2($safIds)->get();
+            }
+            if ($refSafIds->first()) {
+                $propertyIds = ($refPropertyIds->pluck('id'))->toArray();
+                $proptranDetails = $propTransaction->getPropTransByPropIdV2($propertyIds)->get();
+            }
+            $transactionDetails = [
+                "propTransaction" => $proptranDetails ?? [],
+                "safTransaction" => $safTranDetails ?? []
+            ];
+            return responseMsgs(true, "Transactions History", remove_null($transactionDetails), "", "1.0", responseTime(), "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", "1.0", responseTime(), "POST", $request->deviceId);
+        }
+    }
+
+    /**
+     * | Get application detials according to citizen id
+        | Serial no :
+        | Under Con
+     */
+    public function getActiveApplications(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "citizenId" => "required|int"
+            ]
+        );
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+        try {
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", "1.0", responseTime(), "POST", $request->deviceId);
+        }
     }
 }
