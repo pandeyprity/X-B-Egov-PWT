@@ -624,6 +624,8 @@ class Trade implements ITrade
     {
         $refOwner->owner_name      = $owners['businessOwnerName'];
         $refOwner->guardian_name   = $owners['guardianName'] ?? null;
+        $refOwner->owner_name_marathi      = $owners['ownerNameMarathi']??null;
+        $refOwner->guardian_name_marathi   = $owners['guardianNameMarathi'] ?? null;
         $refOwner->address         = $owners['address'] ?? null;
         $refOwner->mobile_no          = $owners['mobileNo'];
         $refOwner->city            = $owners['city'] ?? null;
@@ -637,6 +639,9 @@ class Trade implements ITrade
     {
         $refOwner->owner_name      = $owners->owner_name;
         $refOwner->guardian_name   = $owners->guardian_name;
+        $refOwner->owner_name_marathi      = $owners->owner_name_marathi;
+        $refOwner->guardian_name_marathi   =  $owners->guardian_name_marathi ;
+
         $refOwner->address         = $owners->address;
         $refOwner->mobile_no          = $owners->mobile;
         $refOwner->city            = $owners->city;

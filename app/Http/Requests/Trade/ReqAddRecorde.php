@@ -35,7 +35,7 @@ class ReqAddRecorde extends TradeRequest
         if (in_array($mApplicationTypeId, [1])) 
         {
             $rules["firmDetails.areaSqft"] = "required|numeric";
-            $rules["firmDetails.businessAddress"] = "required|regex:$mFramNameRegex";
+            $rules["firmDetails.businessAddress"] = "required";#|regex:$mFramNameRegex
             $rules["firmDetails.businessDescription"] = "required|regex:$mFramNameRegex";
             $rules["firmDetails.firmEstdDate"] = "required|date";
             $rules["firmDetails.firmName"] = "required|regex:$mFramNameRegex";
@@ -85,6 +85,10 @@ class ReqAddRecorde extends TradeRequest
             $rules["ownerDetails"] = "required|array";
             $rules["ownerDetails.*.businessOwnerName"] = "required|regex:$mOwnerName";
             $rules["ownerDetails.*.guardianName"] = "nullable|regex:$mOwnerName";
+
+            $rules["ownerDetails.*.ownerNameMarathi"] = "required";
+            $rules["ownerDetails.*.guardianNameMarathi"] = "nullable";
+
             $rules["ownerDetails.*.mobileNo"] = "required|digits:10|regex:$mMobileNo";
             $rules["ownerDetails.*.email"] = "email|nullable";
         } 
@@ -127,6 +131,8 @@ class ReqAddRecorde extends TradeRequest
             if ($this->ownerDetails) {
                 $rules["ownerDetails.*.businessOwnerName"] = "required|regex:$mOwnerName";
                 $rules["ownerDetails.*.guardianName"] = "nullable|regex:$mOwnerName";
+                $rules["ownerDetails.*.ownerNameMarathi"] = "required";
+                $rules["ownerDetails.*.guardianNameMarathi"] = "nullable";
                 $rules["ownerDetails.*.mobileNo"] = "required|digits:10|regex:$mMobileNo";
                 $rules["ownerDetails.*.email"] = "email|nullable";
             }
