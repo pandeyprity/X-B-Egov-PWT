@@ -421,7 +421,7 @@ class PropertyController extends Controller
             $mPropActiveSaf     = new PropActiveSaf();
             $propTransaction    = new PropTransaction();
 
-            $refPropertyIds = $mPropProperty->getPropDetailsByCitizenId($citizenId)->selectRaw('id')->limit(10)->get();
+            $refPropertyIds = $mPropProperty->getPropDetailsByCitizenId($citizenId)->selectRaw('id')->get();
             $refSafIds = $mPropActiveSaf->getSafDetailsByCitizenId($citizenId)->selectRaw('id')->get();
 
             if ($refPropertyIds->first()) {
@@ -458,11 +458,8 @@ class PropertyController extends Controller
         if ($validated->fails()) {
             return validationError($validated);
         }
-        try{
-
-        }
-        catch(Exception $e)
-        {
+        try {
+        } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", "1.0", responseTime(), "POST", $request->deviceId);
         }
     }

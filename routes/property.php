@@ -483,7 +483,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
    */
   Route::controller(PropertyController::class)->group(function () {
     Route::post('get-user-transaction-details', 'getUserPropTransactions');
-    Route::post('get-user-active-applications','getActiveApplications');
+    Route::post('get-user-active-applications', 'getActiveApplications');
   });
 });
 
