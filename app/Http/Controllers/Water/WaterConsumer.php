@@ -370,7 +370,7 @@ class WaterConsumer extends Controller
             }
             $diffMonth = $startDate->diffInMonths($today);
             if ($diffMonth < 4) {
-                throw new Exception("there should be a difference of month!");
+                throw new Exception("there should be a difference of 4  month!");
             }
         }
 
@@ -2185,7 +2185,7 @@ class WaterConsumer extends Controller
            return $meta = [
                 'consumerId'=>$demandDetails->consumer_id
             ];
-            $ConsumerInitial=$mWaterConsumerInitialMeter->getmeterReadingAndDetail($meta['consumerId']);
+           return $ConsumerInitial=$mWaterConsumerInitialMeter->calculateUnitsConsumed($meta['consumerId']);
             $$demands =  [
                 'billDate' => $NowDate,
                 'bilDueDate' => $bilDueDate
