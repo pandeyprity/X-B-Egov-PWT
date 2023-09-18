@@ -498,12 +498,92 @@ class BankReconcillationController extends Controller
             if ($validator->fails())
                 return validationError($validator);
 
-            $transactionDtl = TempTransaction::where('transaction_no', $req->transactionNo)
+            $transactionDtl = TempTransaction::select(
+                'temp_transactions.*',
+                'module_name',
+                DB::raw("'1'as status")
+            )
                 ->join('module_masters', 'module_masters.id', 'temp_transactions.module_id')
+                ->where('transaction_no', $req->transactionNo)
                 ->get();
 
             return responseMsgs(true, "Transaction No is", $transactionDtl, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
+        }
+    }
+
+    /**
+     * | 
+     */
+    public function deactivateTransaction(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            "id" => "required",
+            "applicationId" => "required"
+
+        ]);
+        if ($validator->fails())
+            return validationError($validator);
+        try {
+            $propertyModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
+            $waterModuleId = Config::get('module-constants.WATER_MODULE_ID');
+            $tradeModuleId = Config::get('module-constants.TRADE_MODULE_ID');
+            $tranDtl = TempTransaction::find($req->id);
+            if (!$tranDtl)
+                throw new Exception("No Transaction Found");
+
+            DB::beginTransaction();
+            DB::connection('pgsql_master')->beginTransaction();
+            DB::connection('pgsql_water')->beginTransaction();
+            DB::connection('pgsql_trade')->beginTransaction();
+
+            #_For Property Transaction Deactivation
+            if ($tranDtl->module_id == $propertyModuleId) {
+                $propTrans = PropTransaction::find($tranDtl->transaction_id);
+                if (!$propTrans)
+                    throw new Exception("Property Transaction Not Available");
+                $propTrans->status = 0;
+                $propTrans->save();
+
+                $propTranDtl = PropTranDtl::where('tran_id', $tranDtl->transaction_id)->first();
+                $propTranDtl->status = 0;
+                $propTranDtl->save();
+
+                if ($propTrans->payment_mode == in_array($propTrans->payment_mode, ['CHEQUE', 'DD'])) {
+                    $propChequeDtl = PropChequeDtl::where('transaction_id', $tranDtl->transaction_id)->first();
+                    $propChequeDtl->status = 0;
+                    $propChequeDtl->save();
+                }
+
+                $propDemandDtl =  PropDemand::where('id', $propTranDtl->prop_demand_id)->first();
+                PropDemand::where('property_id', $propTranDtl->prop_demand_id)
+                    ->update([
+                        'paid_status' => 0,
+                        'balance' => $propDemandDtl->total_tax - $propDemandDtl->adjust_amt,
+                    ]);
+            }
+
+            #_For Water Transaction Deactivation
+            if ($tranDtl->module_id == $waterModuleId) {
+            }
+
+            #_For Trade Transaction Deactivation
+            if ($tranDtl->module_id == $tradeModuleId) {
+            }
+
+            $tranDtl->delete();
+
+            DB::commit();
+            DB::connection('pgsql_master')->commit();
+            DB::connection('pgsql_water')->commit();
+            DB::connection('pgsql_trade')->commit();
+            return responseMsgs(true, "Transaction Deactivated", "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
+        } catch (Exception $e) {
+            DB::rollBack();
+            DB::connection('pgsql_master')->rollBack();
+            DB::connection('pgsql_water')->rollBack();
+            DB::connection('pgsql_trade')->rollBack();
             return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         }
     }
