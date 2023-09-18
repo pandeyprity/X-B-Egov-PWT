@@ -107,6 +107,22 @@ class PropTransaction extends Model
             ->first();
     }
 
+    // Get Property Transaction by SAF Ids
+    public function getPropTransBySafIdV2($safIds)
+    {
+        return $this->getPropTransTrait()
+            ->whereIn('prop_transactions.saf_id', $safIds)
+            ->orderByDesc('prop_transactions.id');
+    }
+
+    // Get Property Transaction by Property ID
+    public function getPropTransByPropIdV2($propIds)
+    {
+        return $this->getPropTransTrait()
+            ->whereIn('prop_transactions.property_id', $propIds)
+            ->orderByDesc('prop_transactions.id');
+    }
+
     // Save Property Transactions
     public function store($req)
     {

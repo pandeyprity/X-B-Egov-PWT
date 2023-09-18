@@ -16,4 +16,12 @@ class PinelabPaymentReq extends Model
         $data =  PinelabPaymentReq::create($req);
         return $data;
     }
+
+    /**
+     * |
+     */
+    public function getPaymentRecord($req)
+    {
+        return PinelabPaymentReq::where('ref_no', $req->refNo)->first();
+    }
 }

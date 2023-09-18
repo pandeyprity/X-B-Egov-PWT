@@ -15,8 +15,11 @@ class ReqInbox extends TradeRequest
      */
     # gk ggl
     public function rules()
-    {
+    {        
         return [
+            "applicationType"=>"nullable|string|in:".$this->_APPLYCATION_TYPE,
+            "todayReceived"=>"nullable|bool",
+            "todayForward"=>"nullable|bool",
             "key"       =>  "nullable|string",
             "wardNo"    =>  "nullable|digits_between:1,9223372036854775807",
             "formDate"  =>  "nullable|date|date_format:Y-m-d",

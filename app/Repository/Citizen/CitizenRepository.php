@@ -80,7 +80,7 @@ class CitizenRepository implements iCitizenRepository
     public function getAllAppliedApplications($req)
     {
         try {
-            $userId = authUser($req)->id;
+            $userId = authUser($req)->id ?? $req->userId;
             $applications = array();
 
             if ($req->getMethod() == 'GET') {                                                       // For All Applications
@@ -94,8 +94,6 @@ class CitizenRepository implements iCitizenRepository
                 $applications['Trade'] = $this->appliedTradeApplications($userId);
                 $applications['CareTaker'] = $this->getCaretakerProperty($userId);
                 $applications['Holding'] = $this->getProperties($userId, $applications['CareTaker']);
-
-                $applications['totalPetRegistrations'] = $this->getPetRegistrations($userId);
             }
 
             if ($req->getMethod() == 'POST') {                                                      // Get Applications By Module
@@ -341,7 +339,8 @@ class CitizenRepository implements iCitizenRepository
         $propertiesByCitizen = $mActiveCitizenCareTaker->getTaggedPropsByCitizenId($userId);
         $propIds =  ($propertiesByCitizen->pluck('property_id'));
         if ($propIds->isEmpty())
-            throw new Exception('No Caretaker');
+            return $data;
+        // throw new Exception('No Caretaker');
 
         foreach ($propIds as $propId) {
             if (!$propId)
