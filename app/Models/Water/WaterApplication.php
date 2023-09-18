@@ -694,8 +694,21 @@ class WaterApplication extends Model
      */
     public function getAppplicationByUserId($citizenId, $userType)
     {
-        return WaterApplication::where('user_id', $citizenId)
-            ->where('user_type', $userType)
-            ->orderByDesc('id');
+        return  WaterApplication::select(
+            'water_applications.*',
+            DB::raw("string_agg(water_applicants.applicant_name,',') as applicantName"),
+            DB::raw("string_agg(water_applicants.mobile_no::VARCHAR,',') as mobileNo"),
+            DB::raw("string_agg(water_applicants.guardian_name,',') as guardianName"),
+            'water_applicants.email'
+        )
+            ->join('water_applicants', 'water_applicants.application_id', '=', 'water_applications.id')
+            ->where('water_applications.user_type', $userType)
+            ->where('water_applications.user_id', $citizenId)
+            ->where('water_applications.status', true)
+            ->groupBy(
+                'water_applications.id',
+                'water_applicants.application_id',
+                'water_applicants.email'
+            );
     }
 }

@@ -266,7 +266,6 @@ class WaterPaymentController extends Controller
             if (!$waterDtls)
                 throw new Exception("Water Consumer Not Found!");
 
-
             # if demand transactions exist
             $connectionTran = $mWaterTran->ConsumerTransaction($request->consumerId, null)->get();                        // Water Connection payment History
             $connectionTran = collect($connectionTran)->sortByDesc('id')->values();
@@ -277,10 +276,14 @@ class WaterPaymentController extends Controller
             $waterTrans = $mWaterTran->ConsumerTransaction($request->consumerId)->get();         // Water Consumer Payment History
             $waterTrans = collect($waterTrans)->map(function ($value) use ($mWaterConsumerDemand, $mWaterTranDetail) {
                 $demandId = $mWaterTranDetail->getDetailByTranId($value['id']);
-                $value['demand'] = $mWaterConsumerDemand->getDemandBydemandId($demandId['demand_id']);
+                if ($demandId->first()) {
+                    $demandIds = ($demandId->pluck('demand_id'))->toArray();
+                    $value['demand'] = $mWaterConsumerDemand->getDemandBydemandId($demandIds)->get();
+                    return $value;
+                }
+                $value['demand'] = [];
                 return $value;
-            })->sortByDesc('id')->values();
-
+            })->filter()->values();
             $transactions['Consumer'] = $waterTrans;
             $transactions['connection'] = $connectionTran;
 
@@ -444,8 +447,8 @@ class WaterPaymentController extends Controller
     public function saveSitedetails(siteAdjustment $request)
     {
         try {
-            $changes                =$request['ownerDetails'];
-            $applicationId          =$request->applicationId;
+            $changes                = $request['ownerDetails'];
+            $applicationId          = $request->applicationId;
             $mWaterSiteInspection   = new WaterSiteInspection();
             $mWaterNewConnection    = new WaterNewConnection();
             $mWaterConnectionCharge = new WaterConnectionCharge();
@@ -466,10 +469,10 @@ class WaterPaymentController extends Controller
             $this->begin();
             #if applicants details changes then store the
             if (collect($changes)->isEmpty()) {
-                $mWaterApplicants->saveWaterApplicant($changes,$applicationId);
+                $mWaterApplicants->saveWaterApplicant($changes, $applicationId);
             }
-            if(collect($changes)->isNotEmpty()){
-                $mWaterApplicants->saveWaterApplicant($changes,$applicationId);
+            if (collect($changes)->isNotEmpty()) {
+                $mWaterApplicants->saveWaterApplicant($changes, $applicationId);
             }
             # Store the site inspection details
             $mWaterSiteInspection->storeInspectionDetails($request,  $waterDetails, $refRoleDetails);
@@ -682,12 +685,21 @@ class WaterPaymentController extends Controller
             $mWaterAdjustment           = new WaterAdjustment();
             $mwaterTran                 = new waterTran();
             $mWaterConsumerCollection   = new WaterConsumerCollection();
+            $mWaterConsumerDemand       = new WaterConsumerDemand();
 
             $offlinePaymentModes    = Config::get('payment-constants.VERIFICATION_PAYMENT_MODE');
             $adjustmentFor          = Config::get("waterConstaint.ADVANCE_FOR");
-
-            $todayDate      = Carbon::now();
-            $startingDate   = Carbon::createFromFormat('Y-m-d',  $request->demandFrom)->startOfMonth();
+            $todayDate              = Carbon::now();
+            $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
+            if (!$refDemand) {
+                throw new Exception('demand not found!');
+            }
+            if ($refDemand->last()) {
+                $lastDemand = $refDemand->last();
+                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from'])->startOfMonth();
+            } else {
+                $startingDate = null;
+            }
             $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
@@ -764,7 +776,7 @@ class WaterPaymentController extends Controller
         $mWaterConsumerDemand   = new WaterConsumerDemand();
         $mWaterSecondConsumer   = new WaterSecondConsumer();
         $consumerId             = $request->consumerId;
-        $refAmount              = $request->amount;
+        $refAmount              = round($request->amount);
 
         if ($startingDate > $endDate) {
             throw new Exception("demandFrom Date should not be grater than demandUpto date!");
@@ -787,6 +799,7 @@ class WaterPaymentController extends Controller
         # calculation Part
         $refadvanceAmount = $this->checkAdvance($request);
         $totalPaymentAmount = (collect($allCharges)->sum('balance_amount')) - $refadvanceAmount['advanceAmount'];
+        $totalPaymentAmount = round($totalPaymentAmount);
         if ($totalPaymentAmount != $refAmount) {
             throw new Exception("amount Not Matched!");
         }
@@ -875,14 +888,23 @@ class WaterPaymentController extends Controller
             $request->all(),
             [
                 'consumerId' => 'required',
-                'demandFrom' => 'required|date|date_format:Y-m-d',
                 'demandUpto' => 'required|date|date_format:Y-m-d',
             ]
         );
         if ($validated->fails())
             return validationError($validated);
         try {
-            $startingDate   = Carbon::createFromFormat('Y-m-d',  $request->demandFrom)->startOfMonth();
+            $mWaterConsumerDemand     = new WaterConsumerDemand();
+            $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
+            if (!$refDemand) {
+                throw new Exception('demand not found!');
+            }
+            if ($refDemand->last()) {
+                $lastDemand = $refDemand->last();
+                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from'])->startOfMonth();
+            } else {
+                $startingDate = null;
+            }
             $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
@@ -894,6 +916,7 @@ class WaterPaymentController extends Controller
             $refadvanceAmount = $this->checkAdvance($request);
             $advanceAmount = $refadvanceAmount['advanceAmount'];
             $totalPaymentAmount  = collect($collectiveCharges)->pluck('balance_amount')->sum();
+            $roundedTotalDemand = round($totalPaymentAmount);
             $actualCallAmount = $totalPaymentAmount - $advanceAmount;
             if ($actualCallAmount < 0) {
                 $totalPayAmount = 0;                                                                // Static
@@ -904,9 +927,9 @@ class WaterPaymentController extends Controller
             }
 
             $returnData = [
-                'totalPayAmount'        => $totalPayAmount,
+                'totalPayAmount'        => $roundedTotalDemand,
                 'totalPenalty'          => collect($collectiveCharges)->pluck('penalty')->sum(),
-                'totalDemand'           => collect($collectiveCharges)->pluck('amount')->sum(),
+                'totalDemand'           => $roundedTotalDemand,
                 'totalAdvance'          => $advanceAmount,
                 'totalRebate'           => 0,                                                       // Static
                 'remaningAdvanceAmount' => $renmaningAmount
@@ -1593,8 +1616,9 @@ class WaterPaymentController extends Controller
 
             # Connection Charges
             $demandIds = collect($detailsOfDemand)->pluck('demand_id');
+
             $consumerDemands = $mWaterConsumerDemand->getDemandCollectively($demandIds)
-                ->orderBy('demand_from')
+                ->orderByDesc('id')
                 ->get();
 
 
@@ -2340,14 +2364,14 @@ class WaterPaymentController extends Controller
         $validated = Validator::make(
             $request->all(),
             [
-                'userId' => 'required'
+                'citizenId' => 'required'
             ]
         );
         if ($validated->fails())
             return validationError($validated);
         try {
             $pages = $request->pages ?? 10;
-            $citizenId = $request->userId;
+            $citizenId = $request->citizenId;
             $mWaterTran = new WaterTran();
             $transactionDetails = $mWaterTran->getTransByCitizenId($citizenId)
                 ->select(
@@ -2358,7 +2382,7 @@ class WaterPaymentController extends Controller
                     END AS tran_type_id
                 '),
                     "water_trans.*"
-                )->paginate($pages);
+                )->limit($pages)->get();
             return responseMsgs(true, "List of transactions", remove_null($transactionDetails), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), [], "", "03", ".ms", "POST", $request->deviceId);

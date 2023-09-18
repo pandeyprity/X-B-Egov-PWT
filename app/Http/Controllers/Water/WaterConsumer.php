@@ -157,7 +157,8 @@ class WaterConsumer extends Controller
                 $consumerDemand['totalPenalty'] = round($totalPenalty, 2);
 
                 # meter Details 
-                $refMeterData = $mWaterConsumerMeter->getMeterDetailsByConsumerId($refConsumerId)->first();
+                $refMeterData = $mWaterConsumerMeter->getMeterDetailsByConsumerIdV2($refConsumerId)->first();
+                $refMeterData->ref_initial_reading = (float)($refMeterData->ref_initial_reading);
                 switch ($refMeterData['connection_type']) {
                     case (1):
                         $connectionName = $refConnectionName['1'];
@@ -167,17 +168,18 @@ class WaterConsumer extends Controller
                         break;
                 }
                 if ($checkParam['demand_from'] == null && $checkParam['paid_status'] == 0 && $checkParam['demand_upto'] == null) {
-                        // return('last demand is not available');
-        
-                        $checkParam['demand_from'] =   $checkParam['generation_date'];
-                        $checkParam['demand_upto'] =   $mNowDate;
-                }
-        
-                $refMeterData['connectionName'] = $connectionName;
-                $consumerDemand['meterDetails'] = $refMeterData;
-                
+                    // return('last demand is not available');
 
-                return responseMsgs(true, "List of Consumer Demand!", $consumerDemand, "", "01", "ms", "POST", "");
+                    $checkParam['demand_from'] =   $checkParam['generation_date'];
+                    $checkParam['demand_upto'] =   $mNowDate;
+                }
+
+                $refMeterData['connectionName'] = $connectionName;
+                $refMeterData['ConnectionTypeName'] = $connectionName;
+                $consumerDemand['meterDetails'] = $refMeterData;
+
+
+                return responseMsgs(true, "List of Consumer Demand!", remove_null($consumerDemand), "", "01", "ms", "POST", "");
             }
             throw new Exception("There is no demand!");
         } catch (Exception $e) {
@@ -232,7 +234,7 @@ class WaterConsumer extends Controller
             }
             $this->checkDemandGeneration($request, $consumerDetails);                                       // unfinished function
             $returnData = new WaterMonthelyCall($request->consumerId, $request->demandUpto, $request->finalRading); #WaterSecondConsumer::get();
-           return $calculatedDemand = $returnData->parentFunction($request);
+            $calculatedDemand = $returnData->parentFunction($request);
             if ($calculatedDemand['status'] == false) {
                 throw new Exception($calculatedDemand['errors']);
             }
@@ -255,7 +257,6 @@ class WaterConsumer extends Controller
                         $meterDetails = $mWaterConsumerMeter->saveMeterReading($request);
                         $mWaterConsumerInitialMeter->saveConsumerReading($request, $meterDetails, $userDetails);
                         $demandIds = $this->savingDemand($calculatedDemand, $request, $consumerDetails, $demandDetails['charge_type'], $refMeterConnectionType, $userDetails);
-
                         # save the chages doc
                         $documentPath = $this->saveDocument($request, $meterRefImageName);
                         collect($demandIds)->map(function ($value)
@@ -300,7 +301,7 @@ class WaterConsumer extends Controller
         $returnDemandIds = collect($generatedDemand)->map(function ($firstValue)
         use ($mWaterConsumerDemand, $consumerDetails, $request, $mWaterConsumerTax, $demandType, $refMeterConnectionType, $userDetails) {
             $taxId = $mWaterConsumerTax->saveConsumerTax($firstValue, $consumerDetails, $userDetails);
-            $refDemandIds = array();
+            // $refDemandIds = array();
             # User for meter details entry
             $meterDetails = [
                 "charge_type"       => $firstValue['charge_type'],
@@ -340,7 +341,7 @@ class WaterConsumer extends Controller
             }
             return $refDemandIds;
         });
-        return $returnDemandIds;
+        return $returnDemandIds->first();
     }
 
     /**
@@ -368,8 +369,8 @@ class WaterConsumer extends Controller
                 throw new Exception("demand should be generated generate in next month!");
             }
             $diffMonth = $startDate->diffInMonths($today);
-            if ($diffMonth < 1) {
-                throw new Exception("there should be a difference of month!");
+            if ($diffMonth < 4) {
+                throw new Exception("there should be a difference of 4  month!");
             }
         }
 
@@ -2052,7 +2053,7 @@ class WaterConsumer extends Controller
             return responseMsg(false, $e->getMessage(), "");
         }
     }
-       /***
+    /***
      * get deactivation Doc list 
      */
     public function getdeactivationList(Request $req)
@@ -2080,10 +2081,10 @@ class WaterConsumer extends Controller
             return responseMsgs(false, $e->getMessage(), "", "010203", "1.0", "", 'POST', "");
         }
     }
-/**
- * 
- */
-    
+    /**
+     * 
+     */
+
     public function getdiactivationDocLists()
     {
         $mRefReqDocs    = new RefRequiredDocument();
@@ -2157,6 +2158,52 @@ class WaterConsumer extends Controller
         return $filteredDocs;
     }
 
-    
+    /**\
+     * function for demands details 
+     */
+    public function getConsumerDemands(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'consumerId' => 'required',
+            ]
+        );
 
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+        try {
+            $mWaterDemands              = new WaterConsumerDemand();
+            $mWaterConsumerInitialMeter = new WaterConsumerInitialMeter();
+            $NowDate                    = Carbon::now()->format('Y-m-d');
+            $bilDueDate                 = Carbon::now()->addDays(15)->format('Y-m-d');
+            $ConsumerId                 = $request->consumerId;
+            $demandDetails              = $mWaterDemands->getDemandBydemandIds($ConsumerId); // get demands detai
+            if (!$demandDetails) {
+                throw new Exception('demands not found ');
+            }
+            $allDemandGenerated = $mWaterDemands->getConsumerDemand($ConsumerId);           // get all demands of consumer generated 
+            # sum of amount
+            $sumAmount = collect($allDemandGenerated)->sum('amount');                  
+            $roundedSumAmount = round($sumAmount);
+            $ConsumerInitial = $mWaterConsumerInitialMeter->calculateUnitsConsumed($ConsumerId);  # unit consumed
+            $finalReading = $ConsumerInitial->first()->initial_reading;
+            $initialReading = $ConsumerInitial->last()->initial_reading ?? 0;
+            $demands =  [
+                'billDate'          => $NowDate,
+                'bilDueDate'        => $bilDueDate,
+                'unitConsumed'      => ($finalReading - $initialReading),
+                'initialReading'    => (int)$initialReading,
+                'finalReading'      => (int)$finalReading,
+                'initialDate'       => "",
+                'amount'            =>  $roundedSumAmount,
+                "meterImg"          => ""
+            ];
+            $returnValues = collect($demandDetails)->merge($demands);
+            return responseMsgs(true, "Consumer Details!", remove_null($returnValues), "", "01", ".ms", "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
 }

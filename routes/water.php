@@ -145,6 +145,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('application/get-details', 'consumerDetails');
         Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
         Route::post('consumer/get-master-data', 'getMasterData');
+        Route::post('consumer/get-consumer-demand', 'getConsumerDemands');
+
+
     });
 
 

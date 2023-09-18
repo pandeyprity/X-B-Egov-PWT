@@ -44,7 +44,7 @@ class reqDemandPayment extends FormRequest
         $rules['consumerId']        = 'required';
         $rules['amount']            = 'required';
         $rules['demandUpto']        = 'required|date_format:Y-m-d|';
-        $rules['demandFrom']        = 'required|date_format:Y-m-d|';
+        // $rules['demandFrom']        = 'required|date_format:Y-m-d|';
         $rules['paymentMode']       = 'required|';
         $rules['remarks']           = 'required|';
         return $rules;

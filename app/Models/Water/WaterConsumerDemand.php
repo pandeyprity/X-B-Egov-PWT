@@ -20,10 +20,29 @@ class WaterConsumerDemand extends Model
      */
     public function getDemandBydemandId($demandId)
     {
-        return WaterConsumerDemand::where('id', $demandId)
-            ->where('paid_status', 1)
-            ->first();
+        return WaterConsumerDemand::whereIn('id', $demandId)
+            ->where('paid_status', 1);
     }
+    /**
+     * | Get  Consumer Demand
+     * | @param ConsumerId
+     */
+    public function getDemandBydemandIds($consumerId)
+{
+    return WaterConsumerDemand::select(
+        'water_consumer_demands.*',
+        'water_second_consumers.*',
+        'water_consumer_owners.applicant_name',
+        'water_consumer_initial_meters.initial_reading'
+    )
+    ->join('water_consumer_owners','water_consumer_owners.consumer_id','water_consumer_demands.consumer_id')
+    ->leftjoin('water_consumer_initial_meters','water_consumer_initial_meters.consumer_id','water_consumer_demands.consumer_id')
+    ->join('water_second_consumers', 'water_second_consumers.id', '=', 'water_consumer_demands.consumer_id')
+    ->where('water_consumer_demands.paid_status',0)
+    ->orderByDesc('water_consumer_demands.id')
+    ->where('water_consumer_demands.consumer_id', $consumerId)
+    ->first();
+}
 
 
     /**

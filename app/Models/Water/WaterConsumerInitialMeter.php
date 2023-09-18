@@ -50,12 +50,24 @@ class WaterConsumerInitialMeter extends Model
     /**
      * |
      */
-    
-     public function saveConsumerReadings($refrequest){
+
+    public function saveConsumerReadings($refrequest)
+    {
         $mWaterConsumerInitialMeter  = new WaterConsumerInitialMeter();
-        $mWaterConsumerInitialMeter->consumer_id      =$refrequest['consumerId'];
-        $mWaterConsumerInitialMeter->initial_reading  =$refrequest['InitialMeter'];
+        $mWaterConsumerInitialMeter->consumer_id      = $refrequest['consumerId'];
+        $mWaterConsumerInitialMeter->initial_reading  = $refrequest['InitialMeter'];
         $mWaterConsumerInitialMeter->save();
         return $mWaterConsumerInitialMeter;
-}
+    }
+    /**
+     * | Get the Meter Reading and the meter details by consumer no
+     */
+    public function calculateUnitsConsumed($consumerId)
+    {
+        return WaterConsumerInitialMeter::select('*')
+            ->where('consumer_id', $consumerId)
+            ->orderByDesc('id')
+            ->limit(2)
+            ->get();
+    }
 }
