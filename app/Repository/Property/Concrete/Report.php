@@ -3249,42 +3249,95 @@ class Report implements IReport
     {
         try {
             $currentFyear = getFY();
-            $query = "select * from 
-                    -- Transaction Queries
-                   (
-                       SELECT 
-                            SUM(amount) as today_collections,
-                            SUM(CASE WHEN payment_mode = 'NEFT' THEN amount ELSE 0 END) AS neft_collection,
-                            SUM(CASE WHEN payment_mode = 'QR' THEN amount ELSE 0 END) AS qr_collection,
-                            SUM(CASE WHEN payment_mode = 'CASH' THEN amount ELSE 0 END) AS cash_collection,
-                            SUM(CASE WHEN payment_mode = 'DD' THEN amount ELSE 0 END) AS dd_collection,
-                            SUM(CASE WHEN payment_mode = 'ONLINE' THEN amount ELSE 0 END) AS online_collection,
-                            SUM(CASE WHEN payment_mode = 'CARD' THEN amount ELSE 0 END) AS card_collection,
-                            SUM(CASE WHEN payment_mode = 'CHEQUE' THEN amount ELSE 0 END) AS chque_collection,
-                            SUM(CASE WHEN payment_mode = 'RTGS' THEN amount ELSE 0 END) AS rtgs_collection
-                            FROM prop_transactions
-                       WHERE tran_date=CURRENT_DATE
-                   ) AS tc,
-                   -- Property Demands Queries
-                   (
-                       SELECT cd.*,
-                              ar.*
-                        FROM
-                           (
-                            SELECT SUM(balance) AS current_demand
-                            FROM prop_demands
-                            WHERE fyear='$currentFyear' and paid_status=0
-                           ) as cd,
-                           (
-                            SELECT  COALESCE(SUM(COALESCE(balance, 0)),0) AS arrear_demand
-                            FROM prop_demands
-                            WHERE fyear<'$currentFyear' and paid_status=0
-                           ) as ar
-                       
-                   ) as current_arrear_demands";
+            $query = "SELECT * FROM
+                                -- Transaction Queries
+                            (
+                                SELECT 
+                                        SUM(amount) as today_collections,
+                                        SUM(CASE WHEN payment_mode = 'NEFT' THEN amount ELSE 0 END) AS neft_collection,
+                                        SUM(CASE WHEN payment_mode = 'QR' THEN amount ELSE 0 END) AS qr_collection,
+                                        SUM(CASE WHEN payment_mode = 'CASH' THEN amount ELSE 0 END) AS cash_collection,
+                                        SUM(CASE WHEN payment_mode = 'DD' THEN amount ELSE 0 END) AS dd_collection,
+                                        SUM(CASE WHEN payment_mode = 'ONLINE' THEN amount ELSE 0 END) AS online_collection,
+                                        SUM(CASE WHEN payment_mode = 'CARD' THEN amount ELSE 0 END) AS card_collection,
+                                        SUM(CASE WHEN payment_mode = 'CHEQUE' THEN amount ELSE 0 END) AS chque_collection,
+                                        SUM(CASE WHEN payment_mode = 'RTGS' THEN amount ELSE 0 END) AS rtgs_collection
+                                        FROM prop_transactions
+                                WHERE tran_date=CURRENT_DATE and status=1
+                            ) AS tc,
+                            -- Property Demands Queries
+                            (
+                                SELECT cd.*,
+                                        ar.*
+                                    FROM
+                                    (
+                                        SELECT SUM(balance) AS current_demand
+                                        FROM prop_demands
+                                        WHERE fyear='$currentFyear' and paid_status=0 and status=1
+                                    ) as cd,
+                                    (
+                                        SELECT  COALESCE(SUM(COALESCE(balance, 0)),0) AS arrear_demand
+                                        FROM prop_demands
+                                        WHERE fyear<'$currentFyear' and paid_status=0 and status=1
+                                    ) as ar
+                            
+                            ) as current_arrear_demands,
+                            (
+                                SELECT 
+                                SUM(CASE WHEN p.zone_mstr_id = 1 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone1_demand,
+                                SUM(CASE WHEN p.zone_mstr_id = 2 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone2_demand,
+                                SUM(CASE WHEN p.zone_mstr_id = 3 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone3_demand,
+                                SUM(CASE WHEN p.zone_mstr_id = 4 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone4_demand
+                            
+                                FROM prop_demands as d
+                                join prop_properties as p on p.id=d.property_id
+                                where fyear='$currentFyear' and d.status=1 and p.status=1
+                            ) as zone_wise_demands,
+                            (
+                                SELECT 
+                                SUM(CASE WHEN p.zone_mstr_id = 1 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone1_collection,
+                                SUM(CASE WHEN p.zone_mstr_id = 2 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone2_collection,
+                                SUM(CASE WHEN p.zone_mstr_id = 3 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone3_collection,
+                                SUM(CASE WHEN p.zone_mstr_id = 4 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone4_collection
+                            
+                                FROM prop_demands as d
+                                join prop_properties as p on p.id=d.property_id
+                                where fyear='$currentFyear' and d.paid_status=1 and p.status=1 and d.status=1
+                            ) as zone_wise_collection,
+                            (SELECT 
+                                SUM(CASE WHEN p.zone_mstr_id = 1 THEN COALESCE(d.balance,0) ELSE 0 END) AS zone1_balance,
+                                SUM(CASE WHEN p.zone_mstr_id = 2 THEN COALESCE(d.balance,0) ELSE 0 END) AS zone2_balance,
+                                SUM(CASE WHEN p.zone_mstr_id = 3 THEN COALESCE(d.balance,0) ELSE 0 END) AS zone3_balance,
+                                SUM(CASE WHEN p.zone_mstr_id = 4 THEN COALESCE(d.balance,0) ELSE 0 END) AS zone4_balance
+                            
+                                FROM prop_demands as d
+                                join prop_properties as p on p.id=d.property_id
+                                where fyear='$currentFyear' and paid_status=0 and p.status=1 and d.status=1
+                            ) as zone_wise_balance,
+                            (
+                            SELECT 
+                            SUM(CASE WHEN p.zone_mstr_id = 1 THEN COALESCE(t.amount,0) ELSE 0 END) as zone1_today_collection,
+                            SUM(CASE WHEN p.zone_mstr_id = 2 THEN COALESCE(t.amount,0) ELSE 0 END) as zone2_today_collection,
+                            SUM(CASE WHEN p.zone_mstr_id = 3 THEN COALESCE(t.amount,0) ELSE 0 END) as zone3_today_collection,
+                            SUM(CASE WHEN p.zone_mstr_id = 4 THEN COALESCE(t.amount,0) ELSE 0 END) as zone4_today_collection
+                            FROM prop_transactions AS t
+                            JOIN (
+                                SELECT id, zone_mstr_id
+                                FROM prop_properties
+                                    UNION ALL
+                                SELECT id, zone_mstr_id
+                                FROM prop_safs
+                            ) AS p
+                            ON (
+                                (t.tran_type = 'Property' AND t.property_id = p.id) OR
+                                (t.tran_type <> 'Property' AND t.saf_id = p.id)
+                            )
+                            WHERE t.tran_date = CURRENT_DATE AND t.status = 1
+                        ) as zonewise_today_collection
+                        ";
 
             $report = DB::select($query);
-            return responseMsgs(true, "Admin Dashboard Reports", $report);
+            return responseMsgs(true, "Admin Dashboard Reports", collect($report)->first());
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), []);
         }
