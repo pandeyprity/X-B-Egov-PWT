@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Property;
 
 use App\BLL\Payment\ModuleRefUrl;
 use App\BLL\Property\Akola\GeneratePaymentReceipt;
+use App\BLL\Property\Akola\PostPropPayment;
 use App\BLL\Property\Akola\RevCalculateByAmt;
 use App\BLL\Property\PaymentReceiptHelper;
 use App\BLL\Property\PostRazorPayPenaltyRebate;
@@ -164,34 +165,14 @@ class HoldingTaxController extends Controller
 
             $paymentStatus = $demandList->isEmpty() ? 1 : 0;
 
-            $grandTaxes = $demandList->pipe(function ($item) {
-                return [
-                    "general_tax" => roundFigure($item->sum('general_tax')),
-                    "road_tax" => roundFigure($item->sum('road_tax')),
-                    "firefighting_tax" => roundFigure($item->sum('firefighting_tax')),
-                    "education_tax" => roundFigure($item->sum('education_tax')),
-                    "water_tax" => roundFigure($item->sum('water_tax')),
-                    "cleanliness_tax" => roundFigure($item->sum('cleanliness_tax')),
-                    "sewarage_tax" => roundFigure($item->sum('sewarage_tax')),
-                    "tree_tax" => roundFigure($item->sum('tree_tax')),
-                    "professional_tax" => roundFigure($item->sum('professional_tax')),
-                    "tax1" => roundFigure($item->sum('tax1')),
-                    "tax2" => roundFigure($item->sum('tax2')),
-                    "tax3" => roundFigure($item->sum('tax3')),
-                    "state_education_tax" => roundFigure($item->sum('sp_education_tax')),
-                    "water_benefit" => roundFigure($item->sum('water_benefit')),
-                    "water_bill" => roundFigure($item->sum('water_bill')),
-                    "sp_water_cess" => roundFigure($item->sum('sp_water_cess')),
-                    "drain_cess" => roundFigure($item->sum('drain_cess')),
-                    "light_cess" => roundFigure($item->sum('light_cess')),
-                    "major_building" => roundFigure($item->sum('major_building')),
-                    "total_tax" => roundFigure($item->sum('total_tax')),
-                    "balance" => roundFigure($item->sum('balance')),
-                ];
-            });
+            $grandTaxes = $this->sumTaxHelper($demandList);
 
             $demand['paymentStatus'] = $paymentStatus;
             $demand['demandList'] = $demandList;
+            $currentDemandList = collect($demandList)->where('fyear', getFY())->values();
+            $demand['currentDemandList'] = $this->sumTaxHelper($currentDemandList);
+            $overDueDemandList = collect($demandList)->where('fyear', '!=', getFY())->values();
+            $demand['overdueDemandList'] =  $this->sumTaxHelper($overDueDemandList);
             $demand['grandTaxes'] = $grandTaxes;
             $demand['currentDemand'] = $demandList->where('fyear', getFY())->first()['balance'] ?? 0;
             $demand['arrear'] = $arrear;
@@ -216,6 +197,8 @@ class HoldingTaxController extends Controller
                 'citizen_id',
                 'user_id'
             ]);
+            $basicDtls['moduleId'] = 1;
+            $basicDtls['workflowId'] = 0;
             $basicDtls["holding_type"] = $holdingType;
             $basicDtls["ownership_type"] = $ownershipType;
 
@@ -225,6 +208,38 @@ class HoldingTaxController extends Controller
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), ['basicDetails' => $basicDtls ?? []], "011602", "1.0", "", "POST", $req->deviceId ?? "");
         }
+    }
+
+    /**
+     * | Sum Tax Helper(Branch function of get holding dues 2.1)
+     */
+    public function sumTaxHelper($demandList)
+    {
+        return $demandList->pipe(function ($item) {
+            return [
+                "general_tax" => roundFigure($item->sum('general_tax')),
+                "road_tax" => roundFigure($item->sum('road_tax')),
+                "firefighting_tax" => roundFigure($item->sum('firefighting_tax')),
+                "education_tax" => roundFigure($item->sum('education_tax')),
+                "water_tax" => roundFigure($item->sum('water_tax')),
+                "cleanliness_tax" => roundFigure($item->sum('cleanliness_tax')),
+                "sewarage_tax" => roundFigure($item->sum('sewarage_tax')),
+                "tree_tax" => roundFigure($item->sum('tree_tax')),
+                "professional_tax" => roundFigure($item->sum('professional_tax')),
+                "tax1" => roundFigure($item->sum('tax1')),
+                "tax2" => roundFigure($item->sum('tax2')),
+                "tax3" => roundFigure($item->sum('tax3')),
+                "state_education_tax" => roundFigure($item->sum('sp_education_tax')),
+                "water_benefit" => roundFigure($item->sum('water_benefit')),
+                "water_bill" => roundFigure($item->sum('water_bill')),
+                "sp_water_cess" => roundFigure($item->sum('sp_water_cess')),
+                "drain_cess" => roundFigure($item->sum('drain_cess')),
+                "light_cess" => roundFigure($item->sum('light_cess')),
+                "major_building" => roundFigure($item->sum('major_building')),
+                "total_tax" => roundFigure($item->sum('total_tax')),
+                "balance" => roundFigure($item->sum('balance')),
+            ];
+        });
     }
 
     /**
@@ -434,139 +449,33 @@ class HoldingTaxController extends Controller
      */
     public function offlinePaymentHolding(ReqPayment $req)
     {
-        // $validated = Validator::make(
-        //     $req->all(),
-        //     ['isArrear' => 'required|bool']
-        // );
-        // if ($validated->fails()) {
-        //     return response()->json([
-        //         'status' => false,
-        //         'message' => 'validation error',
-        //         'errors' => $validated->errors()
-        //     ], 401);
-        // }
+        $validated = Validator::make(
+            $req->all(),
+            ['isArrear' => 'required|bool']
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ], 401);
+        }
+        $postPropPayment = new PostPropPayment($req);
+        $propCalReq = new Request([                                                 // Request from payment
+            'propId' => $req['id'],
+            'isArrear' => $req['isArrear'] ?? null
+        ]);
+
         try {
-            $offlinePaymentModes = Config::get('payment-constants.PAYMENT_MODE_OFFLINE');
-            $todayDate = Carbon::now();
-            $userId = authUser($req)->id;
-            $mPropDemand = new PropDemand();
-            $idGeneration = new IdGeneration;
-            $mPropTrans = new PropTransaction();
-            $propId = $req['id'];
-            $verifyPaymentModes = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
-            $propDetails = PropProperty::find($propId);
-            $mPropTranDtl = new PropTranDtl();
-
-            if (collect($propDetails)->isEmpty())
-                throw new Exception("Property Details Not Available for this id");
-
-            $tranNo = $idGeneration->generateTransactionNo($propDetails->ulb_id);
-
-            $propCalReq = new Request([                                                 // Request from payment
-                'propId' => $req['id'],
-                'isArrear' => $req['isArrear'] ?? null
-            ]);
-
-            $propCalculation = $this->getHoldingDues($propCalReq);
-
+            $propCalculation = $this->getHoldingDues($propCalReq);                    // Calculation of Holding
             if ($propCalculation->original['status'] == false)
                 throw new Exception($propCalculation->original['message']);
 
-            $demands = $propCalculation->original['data']['demandList'];
-
-            // 🔺🔺 Arrears and Settlements is on under process
-            $arrear = $propCalculation->original['data']['arrear'];
-
-            if (isset($arrear) && $arrear > 0)
-                $arrear = $arrear;
-            else
-                $arrear = 0;
-
-            $payableAmount = $propCalculation->original['data']['payableAmt'];
-            if ($demands->isEmpty())
-                throw new Exception("No Dues For this Property");
-
-            // Property Transactions
-            $tranBy = authUser($req)->user_type;
-            $req->merge([
-                'userId' => $userId,
-                'todayDate' => $todayDate->format('Y-m-d'),
-                'tranNo' => $tranNo,
-                'amount' => $payableAmount,                                                                         // Payable Amount with Arrear
-                'demandAmt' => $propCalculation->original['data']['grandTaxes']['balance'],                         // Demandable Amount
-                'tranBy' => $tranBy,
-                'arrearSettledAmt' => $arrear
-            ]);
-
-            if (in_array($req['paymentMode'], $verifyPaymentModes)) {
-                $req->merge([
-                    'verifyStatus' => 2
-                ]);
-            }
-
-            // Begining Transactions
-            DB::beginTransaction();
-            $propDetails->balance = 0;                  // Update Arrear
-            $propDetails->save();
-            $req['ulbId'] = $propDetails->ulb_id;
-            $propTrans = $mPropTrans->postPropTransactions($req, $demands);
-
-            // Updation of payment status in demand table
-            foreach ($demands as $demand) {
-                $demand = (object)$demand->toArray();
-                if (isset($demand->id)) {                     // if id exist on demand
-                    // 🔴🔴🔴🔴🔴🔴🔴 If isArrear is true then disable this condition (Pending)
-                    $tblDemand = $mPropDemand->findOrFail($demand->id);
-                    $tblDemand->paid_status = 1;           // Paid Status Updation
-                    $tblDemand->balance = 0;
-                    $tblDemand->save();
-                }
-
-                if (isset($demand->is_arrear) && $demand->is_arrear == true) {             // Only for arrear payment
-                    //🔴🔴 New Entry            
-                    $demandReq = [
-                        "property_id" => $req['id'],
-                        "general_tax" => $demand->general_tax,
-                        "road_tax" => $demand->road_tax,
-                        "firefighting_tax" => $demand->firefighting_tax,
-                        "education_tax" => $demand->education_tax,
-                        "water_tax" => $demand->water_tax,
-                        "cleanliness_tax" => $demand->cleanliness_tax,
-                        "sewarage_tax" => $demand->sewarage_tax,
-                        "tree_tax" => $demand->tree_tax,
-                        "professional_tax" => $demand->professional_tax,
-                        "sp_education_tax" => $demand->state_education_tax,
-                        "total_tax" => $demand->total_tax,
-                        "balance" => $demand->balance,
-                        "paid_status" => 1,
-                        "fyear" => $demand->fyear,
-                        "adjust_amt" => $demand->adjustAmt ?? 0,
-                        "user_id" => $userId,
-                        "ulb_id" => $propDetails->ulb_id,
-                        "is_arrear" => true
-                    ];
-                    $demand = $mPropDemand->create($demandReq);
-                }
-
-                // ✅✅✅✅✅ Tran details insertion
-                $tranDtlReq = [
-                    "tran_id" => $propTrans['id'],
-                    "prop_demand_id" => $demand->id,
-                    "total_demand" => $demand->balance,
-                    "ulb_id" => $req['ulbId'],
-                ];
-                $mPropTranDtl->create($tranDtlReq);
-            }
-            // Cheque Entry
-            if (in_array($req['paymentMode'], $offlinePaymentModes)) {
-                $req->merge([
-                    'chequeDate' => $req['chequeDate'],
-                    'tranId' => $propTrans['id']
-                ]);
-                $this->postOtherPaymentModes($req);
-            }
+            $postPropPayment->_propCalculation = $propCalculation;
+            // Transaction is beginning in Prop Payment Class
+            $postPropPayment->postPayment();
             DB::commit();
-            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $tranNo], "011604", "1.0", "", "POST", $req->deviceId);
+            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo], "011604", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
             return responseMsgs(false, $e->getMessage(), "", "011604", "1.0", "", "POST", $req->deviceId ?? "");

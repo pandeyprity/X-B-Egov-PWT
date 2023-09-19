@@ -62,13 +62,12 @@ class WaterConsumerInitialMeter extends Model
     /**
      * | Get the Meter Reading and the meter details by consumer no
      */
-
     public function calculateUnitsConsumed($consumerId)
     {
-        return WaterConsumerInitialMeter::select(
-            'water_consumer_initial_meters.*'
-        )
-        
-        ->get();
+        return WaterConsumerInitialMeter::select('*')
+            ->where('consumer_id', $consumerId)
+            ->orderByDesc('id')
+            ->limit(2)
+            ->get();
     }
 }

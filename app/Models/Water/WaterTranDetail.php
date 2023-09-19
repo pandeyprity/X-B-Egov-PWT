@@ -20,7 +20,8 @@ class WaterTranDetail extends Model
     {
         return WaterTranDetail::where('tran_id', $tranId)
             ->where('status', true)
-            ->firstorFail();
+            ->orderByDesc('id')
+            ->get();
     }
 
     /**

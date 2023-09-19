@@ -1841,18 +1841,18 @@ class NewConnectionController extends Controller
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
-                case ("holdingNo"):                                                                         // Static
+                case ("propertyNo"):                                                                             // Static
                     $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
-                case ("safNo"):                                                                             // Static
-                    $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
-                    $checkVal = collect($waterReturnDetails)->last();
-                    if (!$checkVal || $checkVal == 0)
-                        throw new Exception("Data according to " . $key . " not Found!");
-                    break;
+                    case ("meterNo"):                                                                        // Static
+                        $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
+                        $checkVal = collect($waterReturnDetails)->last();
+                        if (!$checkVal || $checkVal == 0)
+                            throw new Exception("Data according to " . $key . " not Found!");
+                        break;
                 default:
                     throw new Exception("Data provided in filterBy is not valid!");
             }

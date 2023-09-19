@@ -266,7 +266,6 @@ class WaterPaymentController extends Controller
             if (!$waterDtls)
                 throw new Exception("Water Consumer Not Found!");
 
-
             # if demand transactions exist
             $connectionTran = $mWaterTran->ConsumerTransaction($request->consumerId, null)->get();                        // Water Connection payment History
             $connectionTran = collect($connectionTran)->sortByDesc('id')->values();
@@ -277,10 +276,14 @@ class WaterPaymentController extends Controller
             $waterTrans = $mWaterTran->ConsumerTransaction($request->consumerId)->get();         // Water Consumer Payment History
             $waterTrans = collect($waterTrans)->map(function ($value) use ($mWaterConsumerDemand, $mWaterTranDetail) {
                 $demandId = $mWaterTranDetail->getDetailByTranId($value['id']);
-                $value['demand'] = $mWaterConsumerDemand->getDemandBydemandId($demandId['demand_id']);
+                if ($demandId->first()) {
+                    $demandIds = ($demandId->pluck('demand_id'))->toArray();
+                    $value['demand'] = $mWaterConsumerDemand->getDemandBydemandId($demandIds)->get();
+                    return $value;
+                }
+                $value['demand'] = [];
                 return $value;
-            })->sortByDesc('id')->values();
-
+            })->filter()->values();
             $transactions['Consumer'] = $waterTrans;
             $transactions['connection'] = $connectionTran;
 
@@ -682,12 +685,21 @@ class WaterPaymentController extends Controller
             $mWaterAdjustment           = new WaterAdjustment();
             $mwaterTran                 = new waterTran();
             $mWaterConsumerCollection   = new WaterConsumerCollection();
+            $mWaterConsumerDemand       = new WaterConsumerDemand();
 
             $offlinePaymentModes    = Config::get('payment-constants.VERIFICATION_PAYMENT_MODE');
             $adjustmentFor          = Config::get("waterConstaint.ADVANCE_FOR");
-
-            $todayDate      = Carbon::now();
-            $startingDate   = Carbon::createFromFormat('Y-m-d',  $request->demandFrom)->startOfMonth();
+            $todayDate              = Carbon::now();
+            $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
+            if (!$refDemand) {
+                throw new Exception('demand not found!');
+            }
+            if ($refDemand->last()) {
+                $lastDemand = $refDemand->last();
+                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from'])->startOfMonth();
+            } else {
+                $startingDate = null;
+            }
             $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
@@ -876,14 +888,23 @@ class WaterPaymentController extends Controller
             $request->all(),
             [
                 'consumerId' => 'required',
-                'demandFrom' => 'required|date|date_format:Y-m-d',
                 'demandUpto' => 'required|date|date_format:Y-m-d',
             ]
         );
         if ($validated->fails())
             return validationError($validated);
         try {
-            $startingDate   = Carbon::createFromFormat('Y-m-d',  $request->demandFrom)->startOfMonth();
+            $mWaterConsumerDemand     = new WaterConsumerDemand();
+            $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
+            if (!$refDemand) {
+                throw new Exception('demand not found!');
+            }
+            if ($refDemand->last()) {
+                $lastDemand = $refDemand->last();
+                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from'])->startOfMonth();
+            } else {
+                $startingDate = null;
+            }
             $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
@@ -1595,8 +1616,9 @@ class WaterPaymentController extends Controller
 
             # Connection Charges
             $demandIds = collect($detailsOfDemand)->pluck('demand_id');
+
             $consumerDemands = $mWaterConsumerDemand->getDemandCollectively($demandIds)
-                ->orderBy('demand_from')
+                ->orderByDesc('id')
                 ->get();
 
 
