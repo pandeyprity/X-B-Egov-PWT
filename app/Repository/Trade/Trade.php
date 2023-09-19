@@ -3352,7 +3352,7 @@ class Trade implements ITrade
             }
 
             $rules["comment"] = "required|min:10|regex:$mRegex";
-            $rules["applicationId"] = "required||digits_between:1,9223372036854775807";
+            $rules["applicationId"] = "required|digits_between:1,9223372036854775807";
             $validator = Validator::make($request->all(), $rules,);
 
             if ($validator->fails()) 
@@ -3372,6 +3372,7 @@ class Trade implements ITrade
             $metaReqs['refTableDotId'] = 'active_trade_licences';
             $metaReqs['refTableIdValue'] = $refLicense->id;
             $metaReqs['senderRoleId'] = $role_id;
+            $metaReqs['trackDate'] = Carbon::now()->format('Y-m-d H:i:s');
             if($this->_COMMON_FUNCTION->checkUsersWithtocken())
             {
                 $metaReqs['user_id'] = $userId;
@@ -3381,7 +3382,7 @@ class Trade implements ITrade
                 $metaReqs['citizenId'] = $userId;
             }
             $metaReqs['ulb_id'] = $refLicense->ulb_id;
-            $request->request->add($metaReqs);
+            $request->merge($metaReqs);
 
             $track = new WorkflowTrack();
             $track->saveTrack($request);
