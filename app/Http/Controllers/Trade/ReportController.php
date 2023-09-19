@@ -364,7 +364,7 @@ class ReportController extends Controller
                 throw new Exception("No Anny Role Found In This Ulb");
             } 
             $tcList = DB::table("users")
-                    ->select(DB::raw("users.id,users.user_name, wf_roles.role_name"))
+                    ->select(DB::raw("users.id,users.user_name, users.name, wf_roles.role_name"))
                     ->JOIN("wf_roleusermaps","wf_roleusermaps.user_id","=","users.id")
                     ->JOIN("wf_roles","wf_roles.id","wf_roleusermaps.wf_role_id")
                     ->WHERE("wf_roleusermaps.is_suspended",FALSE)
