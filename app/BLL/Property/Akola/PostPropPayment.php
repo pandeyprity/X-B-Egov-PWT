@@ -2,7 +2,7 @@
 
 namespace App\BLL\Property\Akola;
 
-use App\MicroServices\DocUpload;
+use App\MicroServices\DocumentUpload;
 use App\MicroServices\IdGeneration;
 use App\Models\Payment\TempTransaction;
 use App\Models\Property\PropChequeDtl;
@@ -12,7 +12,6 @@ use App\Models\Property\PropTranDtl;
 use App\Models\Property\PropTransaction;
 use Carbon\Carbon;
 use Exception;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
@@ -31,6 +30,7 @@ class PostPropPayment
     private $_userId;
     private $_mPropDemand;
     private $_mPropTrans;
+    private $_propTransaction;
     private $_propId;
     private $_verifyPaymentModes;
     private $_mPropTranDtl;
@@ -124,6 +124,7 @@ class PostPropPayment
 
         $this->_REQ['ulbId'] = $this->_propDetails->ulb_id;
         $propTrans = $this->_mPropTrans->postPropTransactions($this->_REQ, $this->_demands);
+        $this->_propTransaction = $propTrans;
 
         // Updation of payment status in demand table
         foreach ($this->_demands as $demand) {
@@ -192,11 +193,11 @@ class PostPropPayment
         $mTempTransaction = new TempTransaction();
         if ($this->_REQ['paymentMode'] != $cash) {
 
-            // $this->chequeDocUpload();                   // Cheque document upload
+            $this->chequeDocUpload();                   // Cheque document upload
 
             $mPropChequeDtl = new PropChequeDtl();
             $chequeReqs = [
-                'user_id' => $this->_REQ['this->_userId'],
+                'user_id' => $this->_REQ['userId'],
                 'prop_id' => $this->_REQ['id'],
                 'transaction_id' => $this->_REQ['tranId'],
                 'cheque_date' => $this->_REQ['chequeDate'],
@@ -231,16 +232,12 @@ class PostPropPayment
     public function chequeDocUpload()
     {
         if ($this->_REQ['paymentMode'] == 'CHEQUE') {
-            $docUpload = new DocUpload;
-            $relativePath = Config::get('PropertyConstaint.SAF_RELATIVE_PATH');
-            $propModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
-
-            // Derivative Assignments
-            $refImageName = 'CHEQUE';
-            $refImageName = $this->_REQ . '-' . $refImageName;
-            $document = $this->_REQ->document;
-            if (isset($document)) {
-                $imageName = $docUpload->upload($refImageName, $document, $relativePath);
+            $documentUpload = new DocumentUpload;
+            if (isset($this->_REQ['document'])) {
+                $uploadResponse = $documentUpload->uploadV2($this->_REQ);                                    // Upload Document
+                if (json_decode($uploadResponse)->status == false)
+                    throw new Exception(json_decode($uploadResponse)->message);
+                $this->_mPropTrans->updateChequeDocInfo($this->_REQ['tranId'], $uploadResponse['data']);     // Cheque dd document upload refernece no update
             }
         }
     }

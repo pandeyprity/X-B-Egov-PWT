@@ -165,34 +165,14 @@ class HoldingTaxController extends Controller
 
             $paymentStatus = $demandList->isEmpty() ? 1 : 0;
 
-            $grandTaxes = $demandList->pipe(function ($item) {
-                return [
-                    "general_tax" => roundFigure($item->sum('general_tax')),
-                    "road_tax" => roundFigure($item->sum('road_tax')),
-                    "firefighting_tax" => roundFigure($item->sum('firefighting_tax')),
-                    "education_tax" => roundFigure($item->sum('education_tax')),
-                    "water_tax" => roundFigure($item->sum('water_tax')),
-                    "cleanliness_tax" => roundFigure($item->sum('cleanliness_tax')),
-                    "sewarage_tax" => roundFigure($item->sum('sewarage_tax')),
-                    "tree_tax" => roundFigure($item->sum('tree_tax')),
-                    "professional_tax" => roundFigure($item->sum('professional_tax')),
-                    "tax1" => roundFigure($item->sum('tax1')),
-                    "tax2" => roundFigure($item->sum('tax2')),
-                    "tax3" => roundFigure($item->sum('tax3')),
-                    "state_education_tax" => roundFigure($item->sum('sp_education_tax')),
-                    "water_benefit" => roundFigure($item->sum('water_benefit')),
-                    "water_bill" => roundFigure($item->sum('water_bill')),
-                    "sp_water_cess" => roundFigure($item->sum('sp_water_cess')),
-                    "drain_cess" => roundFigure($item->sum('drain_cess')),
-                    "light_cess" => roundFigure($item->sum('light_cess')),
-                    "major_building" => roundFigure($item->sum('major_building')),
-                    "total_tax" => roundFigure($item->sum('total_tax')),
-                    "balance" => roundFigure($item->sum('balance')),
-                ];
-            });
+            $grandTaxes = $this->sumTaxHelper($demandList);
 
             $demand['paymentStatus'] = $paymentStatus;
             $demand['demandList'] = $demandList;
+            $currentDemandList = collect($demandList)->where('fyear', getFY())->values();
+            $demand['currentDemandList'] = $this->sumTaxHelper($currentDemandList);
+            $overDueDemandList = collect($demandList)->where('fyear', '!=', getFY())->values();
+            $demand['overdueDemandList'] =  $this->sumTaxHelper($overDueDemandList);
             $demand['grandTaxes'] = $grandTaxes;
             $demand['currentDemand'] = $demandList->where('fyear', getFY())->first()['balance'] ?? 0;
             $demand['arrear'] = $arrear;
@@ -228,6 +208,38 @@ class HoldingTaxController extends Controller
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), ['basicDetails' => $basicDtls ?? []], "011602", "1.0", "", "POST", $req->deviceId ?? "");
         }
+    }
+
+    /**
+     * | Sum Tax Helper(Branch function of get holding dues 2.1)
+     */
+    public function sumTaxHelper($demandList)
+    {
+        return $demandList->pipe(function ($item) {
+            return [
+                "general_tax" => roundFigure($item->sum('general_tax')),
+                "road_tax" => roundFigure($item->sum('road_tax')),
+                "firefighting_tax" => roundFigure($item->sum('firefighting_tax')),
+                "education_tax" => roundFigure($item->sum('education_tax')),
+                "water_tax" => roundFigure($item->sum('water_tax')),
+                "cleanliness_tax" => roundFigure($item->sum('cleanliness_tax')),
+                "sewarage_tax" => roundFigure($item->sum('sewarage_tax')),
+                "tree_tax" => roundFigure($item->sum('tree_tax')),
+                "professional_tax" => roundFigure($item->sum('professional_tax')),
+                "tax1" => roundFigure($item->sum('tax1')),
+                "tax2" => roundFigure($item->sum('tax2')),
+                "tax3" => roundFigure($item->sum('tax3')),
+                "state_education_tax" => roundFigure($item->sum('sp_education_tax')),
+                "water_benefit" => roundFigure($item->sum('water_benefit')),
+                "water_bill" => roundFigure($item->sum('water_bill')),
+                "sp_water_cess" => roundFigure($item->sum('sp_water_cess')),
+                "drain_cess" => roundFigure($item->sum('drain_cess')),
+                "light_cess" => roundFigure($item->sum('light_cess')),
+                "major_building" => roundFigure($item->sum('major_building')),
+                "total_tax" => roundFigure($item->sum('total_tax')),
+                "balance" => roundFigure($item->sum('balance')),
+            ];
+        });
     }
 
     /**
@@ -463,7 +475,6 @@ class HoldingTaxController extends Controller
             // Transaction is beginning in Prop Payment Class
             $postPropPayment->postPayment();
             DB::commit();
-
             return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo], "011604", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();

@@ -2,6 +2,7 @@
 
 namespace App\BLL\Property\Akola;
 
+use Exception;
 use Illuminate\Support\Facades\Config;
 
 /**
@@ -65,6 +66,8 @@ class RevCalculateByAmt
      */
     public function calculateTotalTaxPerc()
     {
+        if ($this->_stateTaxDtls['alv'] == 0)
+            throw new Exception("The given ALV is 0 cant able to calculate");
         $this->_stateTaxPerc = roundFigure(($this->_stateTaxDtls['state_education_tax'] / $this->_stateTaxDtls['alv']) * 100);
         $this->_professionalTaxPerc = ($this->_stateTaxDtls['professional_tax'] / $this->_stateTaxDtls['alv']) * 100;
         $totalPerc = $this->_ulbTotalTaxes + $this->_stateTaxPerc + $this->_professionalTaxPerc;
