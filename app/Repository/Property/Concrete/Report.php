@@ -3241,4 +3241,52 @@ class Report implements IReport
 
         return responseMsgs(true, "", $data, "", "", "", "post", $request->deviceId);
     }
+
+    /**
+     * | Admin Dashboard Report for akola
+     */
+    public function adminDashReport()
+    {
+        try {
+            $currentFyear = getFY();
+            $query = "select * from 
+                    -- Transaction Queries
+                   (
+                       SELECT 
+                            SUM(amount) as today_collections,
+                            SUM(CASE WHEN payment_mode = 'NEFT' THEN amount ELSE 0 END) AS neft_collection,
+                            SUM(CASE WHEN payment_mode = 'QR' THEN amount ELSE 0 END) AS qr_collection,
+                            SUM(CASE WHEN payment_mode = 'CASH' THEN amount ELSE 0 END) AS cash_collection,
+                            SUM(CASE WHEN payment_mode = 'DD' THEN amount ELSE 0 END) AS dd_collection,
+                            SUM(CASE WHEN payment_mode = 'ONLINE' THEN amount ELSE 0 END) AS online_collection,
+                            SUM(CASE WHEN payment_mode = 'CARD' THEN amount ELSE 0 END) AS card_collection,
+                            SUM(CASE WHEN payment_mode = 'CHEQUE' THEN amount ELSE 0 END) AS chque_collection,
+                            SUM(CASE WHEN payment_mode = 'RTGS' THEN amount ELSE 0 END) AS rtgs_collection
+                            FROM prop_transactions
+                       WHERE tran_date=CURRENT_DATE
+                   ) AS tc,
+                   -- Property Demands Queries
+                   (
+                       SELECT cd.*,
+                              ar.*
+                        FROM
+                           (
+                            SELECT SUM(balance) AS current_demand
+                            FROM prop_demands
+                            WHERE fyear='$currentFyear' and paid_status=0
+                           ) as cd,
+                           (
+                            SELECT  COALESCE(SUM(COALESCE(balance, 0)),0) AS arrear_demand
+                            FROM prop_demands
+                            WHERE fyear<'$currentFyear' and paid_status=0
+                           ) as ar
+                       
+                   ) as current_arrear_demands";
+
+            $report = DB::select($query);
+            return responseMsgs(true, "Admin Dashboard Reports", $report);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), []);
+        }
+    }
 }

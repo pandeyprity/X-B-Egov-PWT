@@ -360,4 +360,15 @@ class PropTransaction extends Model
             'id' => $stored->id
         ];
     }
+
+    /**
+     * | Update Cheque Document Information
+     */
+    public function updateChequeDocInfo($tranId, array $cheDocDtls)
+    {
+        self::find($tranId)->update([
+            'cheque_doc_refno' => $cheDocDtls['ReferenceNo'],
+            'cheque_doc_uniqueid' => $cheDocDtls['uniqueId']
+        ]);
+    }
 }

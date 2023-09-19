@@ -9,6 +9,7 @@ return [
     "AUTH_URL" => 'http://192.168.0.95:8005/',
     "PAYMENT_URL" => 'http://203.129.217.246:8004/',
     "BASE_URL" => 'http://203.129.217.246:8000/',
+    "DMS_URL" => env('DMS_URL'),
     // "PAYMENT_URL" => 'http://203.129.217.246:8000/',
     "AADHAR_RELATIVE_NAME" => "AADHAR",
     "TRADE_RELATIVE_NAME" => "TRADE",
