@@ -300,10 +300,10 @@ class PaymentController extends Controller
                         //     $objWater = new WaterNewConnection();
                         //     $objWater->razorPayResponse($moduleData);
                         //     break;
-                        // case ('3'):                                             //<------------------ (TRADE)
-                        //     $objTrade = new TradeCitizen();
-                        //     $objTrade->razorPayResponse($moduleData);
-                        //     break;
+                    case ('3'):                                             //<------------------ (TRADE)
+                        $objTrade = new TradeCitizen();
+                        $objTrade->pinelabResponse($moduleData);
+                        break;
                 }
             }
 
