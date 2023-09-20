@@ -293,9 +293,6 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
    * | Property Document Operation
      | Serial No : 13
    */
-  Route::controller(DocumentOperationController::class)->group(function () {
-    Route::post('get-all-documents', 'getAllDocuments');
-  });
 
   /**
    * | poperty related type details form ref
