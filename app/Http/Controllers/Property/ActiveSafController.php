@@ -1344,7 +1344,6 @@ class ActiveSafController extends Controller
                 'famNo' => $famNo,
                 'famId' => $famId
             ];
-
             DB::commit();
             DB::connection('pgsql_master')->commit();
             return responseMsgs(true, $msg, $responseFields, "010110", "1.0", responseTime(), "POST", $req->deviceId);
