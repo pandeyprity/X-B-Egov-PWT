@@ -42,7 +42,7 @@ class SafApprovalBll
     private $_ownerDetails;
     private $_floorDetails;
     private $_toBeProperties;
-    private $_replicatedPropId;
+    public $_replicatedPropId;
     private $_mPropSafVerifications;
     private $_mPropSafVerificationDtls;
     private $_verifiedPropDetails;
