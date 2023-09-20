@@ -206,7 +206,7 @@ class PaymentController extends Controller
 
     /**
      * | Save Pine lab Response
-     incomplete
+
      */
     public function savePinelabResponse(Request $req)
     {
@@ -217,7 +217,7 @@ class PaymentController extends Controller
             $propertyModuleId        = Config::get('module-constants.PROPERTY_MODULE_ID');
             $user                    = authUser($req);
             $pinelabData             = $req->pinelabResponseBody;
-            $detail                  = $req->pinelabResponseBody['Detail'];
+            $detail                  = (object)$req->pinelabResponseBody['Detail'];
             Storage::disk('public')->put($req->billRefNo . '.json', json_encode($req->all()));
 
             $actualTransactionNo = 'TRAN' . rand(00000, 99999) . rand(00000, 99999);
@@ -238,16 +238,16 @@ class PaymentController extends Controller
             }
 
             # data transfer to the respective module's database 
-            $transfer = [
+            $moduleData = [
                 'id'                => $req->applicationId,
                 'amount'            => $req->amount,
                 'workflowId'        => $req->workflowId ?? 0,
                 'userId'            => $user->id,
                 'ulbId'             => $user->ulb_id,
-                'departmentId'      => $moduleId,         // Module Id
-                'gatewayType'       => "Pinelab",         // Pinelab Id
+                'departmentId'      => $moduleId,         #_Module Id
+                'gatewayType'       => "Pinelab",         #_Pinelab Id
                 'transactionNo'     => $actualTransactionNo,
-                'transactionDate'   => $detail->TransactionDate,
+                'TransactionDate'   => $detail->TransactionDate,
                 'HostResponse'      => $detail->HostResponse,
                 'CardEntryMode'     => $detail->CardEntryMode,
                 'ExpiryDate'        => $detail->ExpiryDate,
@@ -278,37 +278,34 @@ class PaymentController extends Controller
             ];
 
 
-            // if ($pinelabData['Response']['ResponseCode'] == 00) {
-            //     $paymentData->payment_status = 1;
-            //     $paymentData->save();
+            if ($pinelabData['Response']['ResponseCode'] == 00) {
+                $paymentData->payment_status = 1;
+                $paymentData->save();
 
-
-            # calling function for the modules
-            switch ($paymentData->module_id) {
-                case ('1'):
-                    $refpropertyType = $paymentData->workflow_id;
-                    if ($refpropertyType == 0) {
-                        $objHoldingTaxController = new HoldingTaxController($this->_safRepo);
-                        $transfer = new ReqPayment($transfer);
-                        $objHoldingTaxController->paymentHolding($transfer);
-                    } else {                                            //<------------------ (SAF PAYMENT)
-                        $obj = new ActiveSafController($this->_safRepo);
-                        $transfer = new ReqPayment($transfer);
-                        $obj->paymentSaf($transfer);
-                    }
-                    break;
-                    // case ('2'):                                             //<------------------ (Water)
-                    //     $objWater = new WaterNewConnection();
-                    //     $objWater->razorPayResponse($transfer);
-                    //     break;
-                    // case ('3'):                                             //<------------------ (TRADE)
-                    //     $objTrade = new TradeCitizen();
-                    //     $objTrade->razorPayResponse($transfer);
-                    //     break;
+                # calling function for the modules
+                switch ($paymentData->module_id) {
+                    case ('1'):
+                        $refpropertyType = $paymentData->workflow_id;
+                        if ($refpropertyType == 0) {
+                            $objHoldingTaxController = new HoldingTaxController($this->_safRepo);
+                            $moduleData = new ReqPayment($moduleData);
+                            $objHoldingTaxController->paymentHolding($moduleData);
+                        } else {                                            //<------------------ (SAF PAYMENT)
+                            $obj = new ActiveSafController($this->_safRepo);
+                            $moduleData = new ReqPayment($moduleData);
+                            $obj->paymentSaf($moduleData);
+                        }
+                        break;
+                        // case ('2'):                                             //<------------------ (Water)
+                        //     $objWater = new WaterNewConnection();
+                        //     $objWater->razorPayResponse($moduleData);
+                        //     break;
+                        // case ('3'):                                             //<------------------ (TRADE)
+                        //     $objTrade = new TradeCitizen();
+                        //     $objTrade->razorPayResponse($moduleData);
+                        //     break;
+                }
             }
-            // }
-
-
 
             return responseMsgs(true, "Data Saved", $data, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         } catch (Exception $e) {
