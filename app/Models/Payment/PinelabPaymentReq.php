@@ -22,6 +22,9 @@ class PinelabPaymentReq extends Model
      */
     public function getPaymentRecord($req)
     {
-        return PinelabPaymentReq::where('ref_no', $req->refNo)->first();
+        return PinelabPaymentReq::where('ref_no', $req->billRefNo)
+            ->where('application_id', $req->applicationId)
+            ->where('amount', $req->amount)
+            ->first();
     }
 }
