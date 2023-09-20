@@ -2050,21 +2050,21 @@ class Report implements IReport
                     SELECT prop_properties.ward_mstr_id,
                     COUNT
                         (DISTINCT (
-                            CASE WHEN prop_demands.fyear BETWEEN  '$fromYear' AND '$toYear'  then prop_demands.property_id
+                            CASE WHEN prop_demands.fyear  = '$fiYear'  then prop_demands.property_id
                             END)
                         ) as current_demand_hh,
                         SUM(
-                                CASE WHEN prop_demands.fyear BETWEEN '$fromYear' AND '$toYear' then prop_demands.total_tax
+                                CASE WHEN prop_demands.fyear = '$fiYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_demand,
                         COUNT
                             (DISTINCT (
-                                CASE WHEN prop_demands.fyear<'$fromYear' then prop_demands.property_id
+                                CASE WHEN prop_demands.fyear<'$fiYear' then prop_demands.property_id
                                 END)
                             ) as arrear_demand_hh,
                         SUM(
-                            CASE WHEN prop_demands.fyear<'$fromYear' then prop_demands.total_tax
+                            CASE WHEN prop_demands.fyear<'$fiYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_demand,
@@ -2074,32 +2074,32 @@ class Report implements IReport
                     WHERE prop_demands.status =1 
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
-                        AND prop_demands.fyear<='$toYear'
+                        AND prop_demands.fyear<='$fiYear'
                     GROUP BY prop_properties.ward_mstr_id
                 )demands ON demands.ward_mstr_id = ulb_ward_masters.id
                 LEFT JOIN (
                     SELECT prop_properties.ward_mstr_id,
                     COUNT
                         (DISTINCT (
-                            CASE WHEN prop_demands.fyear BETWEEN  '$fromYear' AND '$toYear'  then prop_demands.property_id
+                            CASE WHEN prop_demands.fyear  = '$fiYear'  then prop_demands.property_id
                             END)
                         ) as current_collection_hh,
 
                         COUNT(DISTINCT(prop_properties.id)) AS collection_from_no_of_hh,
                         SUM(
-                                CASE WHEN prop_demands.fyear BETWEEN '$fromYear' AND '$toYear' then prop_demands.total_tax
+                                CASE WHEN prop_demands.fyear  = '$fiYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_collection,
 
                         COUNT
                             (DISTINCT (
-                                CASE WHEN prop_demands.fyear<'$fromYear' then prop_demands.property_id
+                                CASE WHEN prop_demands.fyear< '$fiYear' then prop_demands.property_id
                                 END)
                             ) as arrear_collection_hh,
 
                         SUM(
-                            CASE when prop_demands.fyear <'$fromYear' then prop_demands.total_tax
+                            CASE when prop_demands.fyear <'$fiYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_collection,
@@ -2114,7 +2114,7 @@ class Report implements IReport
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
                         AND prop_transactions.tran_date  BETWEEN '$fromDate' AND '$uptoDate'
-                        AND prop_demands.fyear<='$uptoDate'
+                        AND prop_demands.fyear<='$fiYear'
                     GROUP BY prop_properties.ward_mstr_id
                 )collection ON collection.ward_mstr_id = ulb_ward_masters.id
                 LEFT JOIN ( 
