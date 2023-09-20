@@ -176,76 +176,82 @@ class ActiveSafControllerV2 extends Controller
             $propTax = new PropTax();
             $mPropProperty = new PropProperty();
             $mUlbMaster = new UlbMaster();
+            $mPropSafMemoDtl = new PropSafMemoDtl();
+            $famDtls = array();
 
-            $details = $mPropSafMemoDtl->getMemoDtlsByMemoId($req->memoId);
-            if (collect($details)->isEmpty())
-                $details = $mPropSafMemoDtl->getPropMemoDtlsByMemoId($req->memoId);
+            $details = $mPropSafMemoDtl::find($req->memoId);
+            $saf = PropSaf::find($details->saf_id);
+            $famDtls = [
+                'fam' => $details,
+                'paid_status' => $saf->payment_status
+            ];
+            // if (collect($details)->isEmpty())
+            //     $details = $mPropSafMemoDtl->getPropMemoDtlsByMemoId($req->memoId);
 
-            if (collect($details)->isEmpty())
-                throw new Exception("Memo Details Not Available");
-            $properties = $mPropProperty::find($details[0]->prop_id);
-            $details = collect($details)->first();
-            $taxTable = collect($details)->only(['holding_tax', 'water_tax', 'latrine_tax', 'education_cess', 'health_cess', 'rwh_penalty']);
-            $details->taxTable = $this->generateTaxTable($taxTable);
-            // Fam Receipt
-            if ($details->memo_type == 'FAM') {
-                $propId = $details->prop_id;
-                $safId = $details->saf_id;
+            // if (collect($details)->isEmpty())
+            //     throw new Exception("Memo Details Not Available");
+            // $details = collect($details)->first();
+            // $taxTable = collect($details)->only(['holding_tax', 'water_tax', 'latrine_tax', 'education_cess', 'health_cess', 'rwh_penalty']);
+            // $details->taxTable = $this->generateTaxTable($taxTable);
+            // // Fam Receipt
+            // if ($details->memo_type == 'FAM') {
+            //     $propId = $details->prop_id;
+            //     $safId = $details->saf_id;
 
-                $safTaxes = $propSafTax->getSafTaxesBySafId($safId);
-                if ($safTaxes->isEmpty())
-                    throw new Exception("Saf Taxes Not Available");
-                $propTaxes = $propTax->getPropTaxesByPropId($propId);
-                if ($propTaxes->isEmpty())
-                    throw new Exception("Prop Taxes Not Available");
-                $holdingTaxes = $propTaxes->map(function ($propTax) use ($safTaxes) {
-                    $ulbTax = $propTax;
-                    $selfAssessTaxes = $safTaxes->where('fyear', $propTax->fyear)     // Holding Tax Amount without penalty
-                        ->where('qtr', $propTax->qtr)
-                        ->first();
-                    if (is_null($selfAssessTaxes))
-                        $selfAssessQuaterlyTax = 0;
-                    else
-                        $selfAssessQuaterlyTax = $selfAssessTaxes->quarterly_tax * 4;
+            //     $safTaxes = $propSafTax->getSafTaxesBySafId($safId);
+            //     if ($safTaxes->isEmpty())
+            //         throw new Exception("Saf Taxes Not Available");
+            //     $propTaxes = $propTax->getPropTaxesByPropId($propId);
+            //     if ($propTaxes->isEmpty())
+            //         throw new Exception("Prop Taxes Not Available");
+            //     $holdingTaxes = $propTaxes->map(function ($propTax) use ($safTaxes) {
+            //         $ulbTax = $propTax;
+            //         $selfAssessTaxes = $safTaxes->where('fyear', $propTax->fyear)     // Holding Tax Amount without penalty
+            //             ->where('qtr', $propTax->qtr)
+            //             ->first();
+            //         if (is_null($selfAssessTaxes))
+            //             $selfAssessQuaterlyTax = 0;
+            //         else
+            //             $selfAssessQuaterlyTax = $selfAssessTaxes->quarterly_tax * 4;
 
-                    $ulbVerifiedQuarterlyTaxes = $ulbTax->quarterly_tax * 4;
+            //         $ulbVerifiedQuarterlyTaxes = $ulbTax->quarterly_tax * 4;
 
-                    $diffAmt = $ulbVerifiedQuarterlyTaxes - $selfAssessQuaterlyTax;
-                    if (substr($ulbTax->fyear, 5) >= 2023 && $ulbTax->qtr >= 1)
-                        $particulars = "Holding Tax @ 0.075% or 0.15% or 0.2%";         // Ruleset1
-                    elseif (substr($ulbTax->fyear, 5) >= 2017 && $ulbTax->qtr >= 1)
-                        $particulars = "Holding Tax @ 2%";                              // Ruleset2
-                    else
-                        $particulars = "Holding Tax @ 43.75% or 38.75%";                // Ruleset3
+            //         $diffAmt = $ulbVerifiedQuarterlyTaxes - $selfAssessQuaterlyTax;
+            //         if (substr($ulbTax->fyear, 5) >= 2023 && $ulbTax->qtr >= 1)
+            //             $particulars = "Holding Tax @ 0.075% or 0.15% or 0.2%";         // Ruleset1
+            //         elseif (substr($ulbTax->fyear, 5) >= 2017 && $ulbTax->qtr >= 1)
+            //             $particulars = "Holding Tax @ 2%";                              // Ruleset2
+            //         else
+            //             $particulars = "Holding Tax @ 43.75% or 38.75%";                // Ruleset3
 
-                    $response = [
-                        'Particulars' => $particulars,
-                        'quarterFinancialYear' => 'Quarter' . $ulbTax->qtr . '/' . $ulbTax->fyear,
-                        'basedOnSelfAssess' => roundFigure($selfAssessQuaterlyTax),
-                        'basedOnUlbCalc' => roundFigure($ulbVerifiedQuarterlyTaxes),
-                        'diffAmt' => roundFigure($diffAmt)
-                    ];
-                    return $response;
-                });
+            //         $response = [
+            //             'Particulars' => $particulars,
+            //             'quarterFinancialYear' => 'Quarter' . $ulbTax->qtr . '/' . $ulbTax->fyear,
+            //             'basedOnSelfAssess' => roundFigure($selfAssessQuaterlyTax),
+            //             'basedOnUlbCalc' => roundFigure($ulbVerifiedQuarterlyTaxes),
+            //             'diffAmt' => roundFigure($diffAmt)
+            //         ];
+            //         return $response;
+            //     });
 
-                $holdingTaxes = $holdingTaxes->values();
-                $total = collect([
-                    'Particulars' => 'Total Amount',
-                    'quarterFinancialYear' => "",
-                    'basedOnSelfAssess' => roundFigure($holdingTaxes->sum('basedOnSelfAssess')),
-                    'basedOnUlbCalc' => roundFigure($holdingTaxes->sum('basedOnUlbCalc')),
-                    'diffAmt' => roundFigure($holdingTaxes->sum('diffAmt')),
-                ]);
-                $details->from_qtr = $safTaxes->first()->qtr;
-                $details->from_fyear = $safTaxes->first()->fyear;
-                $details->arv = $safTaxes->first()->arv;
-                $details->quarterly_tax = $safTaxes->first()->quarterly_tax;
-                $details->rule = substr($details->from_fyear, 5) >= 2023 ? "Capital Value Rule, property tax" : "Annual Rent Value Rule, annual rent value";
-                $details->taxTable = $holdingTaxes->merge([$total])->values();
-            }
-            // Get Ulb Details
-            $details->ulbDetails = $mUlbMaster->getUlbDetails($properties->ulb_id ?? 2);
-            return responseMsgs(true, "", remove_null($details), "011803", 1.0, responseTime(), "POST", $req->deviceId);
+            //     $holdingTaxes = $holdingTaxes->values();
+            //     $total = collect([
+            //         'Particulars' => 'Total Amount',
+            //         'quarterFinancialYear' => "",
+            //         'basedOnSelfAssess' => roundFigure($holdingTaxes->sum('basedOnSelfAssess')),
+            //         'basedOnUlbCalc' => roundFigure($holdingTaxes->sum('basedOnUlbCalc')),
+            //         'diffAmt' => roundFigure($holdingTaxes->sum('diffAmt')),
+            //     ]);
+            //     $details->from_qtr = $safTaxes->first()->qtr;
+            //     $details->from_fyear = $safTaxes->first()->fyear;
+            //     $details->arv = $safTaxes->first()->arv;
+            //     $details->quarterly_tax = $safTaxes->first()->quarterly_tax;
+            //     $details->rule = substr($details->from_fyear, 5) >= 2023 ? "Capital Value Rule, property tax" : "Annual Rent Value Rule, annual rent value";
+            //     $details->taxTable = $holdingTaxes->merge([$total])->values();
+            // }
+            // // Get Ulb Details
+            // $details->ulbDetails = $mUlbMaster->getUlbDetails($properties->ulb_id ?? 2);
+            return responseMsgs(true, "", remove_null($famDtls), "011803", 1.0, responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "011803", 1.0, responseTime(), "POST", $req->deviceId);
         }
