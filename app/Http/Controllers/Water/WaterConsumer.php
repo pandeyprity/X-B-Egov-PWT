@@ -2025,11 +2025,12 @@ class WaterConsumer extends Controller
     }
 
     /**
-     * get listed drtails
-        | Add route 
+     * get consumer and meter details 
+     * 
+     | change the validation key  
      */
 
-    public function consumerDetails(Request $req)
+    public function WaterConsumerDetails(Request $req)
     {
         $validated = Validator::make(
             $req->all(),
@@ -2037,18 +2038,32 @@ class WaterConsumer extends Controller
                 'applicationId' => 'required|integer',
             ]
         );
-
         if ($validated->fails()) {
             return validationError($validated);
         }
-
         try {
-            $mwaterConsumer = new WaterSecondConsumer();
-            $applicationId = $req->applicationId;
-            $consumerDetails = $mwaterConsumer->fullWaterDetails($applicationId)->first();
-
-            // Return the data directly as JSON without an outer data array
-            return responseMsgs(true, "Consumer Details!", $consumerDetails, "", "01", ".ms", "POST", $req->deviceId);
+            $mwaterConsumer         = new WaterSecondConsumer();
+            $mWaterConsumerMeter    = new WaterConsumerMeter();
+            $refConnectionName      = Config::get('waterConstaint.METER_CONN_TYPE');
+            $refConsumerId          = $req->applicationId;
+            #consumer dettails 
+            $consumerDetails = $mwaterConsumer->fullWaterDetails($refConsumerId)->first();
+            # meter Details 
+            $refMeterData = $mWaterConsumerMeter->getMeterDetailsByConsumerIdV2($refConsumerId)->first();
+            $refMeterData->ref_initial_reading = (float)($refMeterData->ref_initial_reading);
+            switch ($refMeterData['connection_type']) {
+                case (1):
+                    $connectionName = $refConnectionName['1'];
+                    break;
+                case (3):
+                    $connectionName = $refConnectionName['3'];
+                    break;
+            }
+            $refMeterData['connectionName'] = $connectionName;
+            $refMeterData['ConnectionTypeName'] = $connectionName;
+            $consumerDemand['meterDetails'] = $refMeterData;
+            $returnValues = collect($consumerDetails)->merge($consumerDemand);
+            return responseMsgs(true, "Consumer Details!", remove_null($returnValues), "", "01", ".ms", "POST", $req->deviceId);
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
         }
@@ -2158,8 +2173,10 @@ class WaterConsumer extends Controller
         return $filteredDocs;
     }
 
-    /**\
-     * function for demands details 
+    /**
+     * function for demands details  
+     * 
+     view bill 
      */
     public function getConsumerDemands(Request $request)
     {
@@ -2185,7 +2202,7 @@ class WaterConsumer extends Controller
             }
             $allDemandGenerated = $mWaterDemands->getConsumerDemand($ConsumerId);           // get all demands of consumer generated 
             # sum of amount
-            $sumAmount = collect($allDemandGenerated)->sum('amount');                  
+            $sumAmount = collect($allDemandGenerated)->sum('amount');
             $roundedSumAmount = round($sumAmount);
             $ConsumerInitial = $mWaterConsumerInitialMeter->calculateUnitsConsumed($ConsumerId);  # unit consumed
             $finalReading = $ConsumerInitial->first()->initial_reading;
@@ -2203,7 +2220,7 @@ class WaterConsumer extends Controller
             $returnValues = collect($demandDetails)->merge($demands);
             return responseMsgs(true, "Consumer Details!", remove_null($returnValues), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
-            return responseMsg(false, $e->getMessage(), "");
+            return responseMsgs(false, $e->getMessage(), "", "010203", "1.0", "", 'POST', "");
         }
     }
 }
