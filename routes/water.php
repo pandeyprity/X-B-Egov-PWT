@@ -77,6 +77,8 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         # new connection for akoal water 
         Route::post('application/apply-new-connection', 'applyWaterNew');
         Route::post('application/holding', 'searchHolding');
+        //check
+        Route::post('check-test','check');
     });
 
     /**
@@ -104,10 +106,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('site-verification/save-site-details', 'saveSitedetails');                          // Admin
         Route::post('consumer/offline-payment', 'Consumerofflinepayment');
 
-        // # FOR AKOLA 
-        // Route::post('consumer/offline-request-payment', 'offlineConReqPayment');    
+         
         # FOR AKOLA 
-        Route::post('consumer/offline-request-payment', 'offlineConReqPayment');
+        Route::post('consumer/offline-request-payment', 'offlineConPayment');
 
         # for grievance
         Route::post('grievance/get-user-transactions', 'getUserTransactions');
