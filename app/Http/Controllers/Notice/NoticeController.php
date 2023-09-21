@@ -57,7 +57,7 @@ class NoticeController extends Controller
         $this->_DB_NAME = "pgsql_notice";
         $this->_DB = DB::connection( $this->_DB_NAME );
         DB::enableQueryLog();
-        $this->_DB->enableQueryLog();
+        // $this->_DB->enableQueryLog();
 
         $this->_REPOSITORY = $Repository;
         $this->_PROPERTY_REPOSITORY = new PropertyDetailsController($propertyRepository);
