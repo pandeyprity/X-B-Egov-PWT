@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Property;
 
 use App\BLL\Payment\ModuleRefUrl;
+use App\BLL\Property\Akola\Calculate2PercPenalty;
 use App\BLL\Property\Akola\GeneratePaymentReceipt;
 use App\BLL\Property\Akola\PostPropPayment;
 use App\BLL\Property\Akola\RevCalculateByAmt;
@@ -141,12 +142,17 @@ class HoldingTaxController extends Controller
             $demand = array();
             $revCalculateByAmt = new RevCalculateByAmt;
             $demandList = collect();
+            $calculate2PercPenalty = new Calculate2PercPenalty;
+
             // Get Property Details
             $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
             $arrear = $propBasicDtls->balance;
 
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
+            foreach ($demandList as $list) {
+                $calculate2PercPenalty->calculatePenalty($list);
+            }
 
             $stateTaxDtls = [                                       // For Calculation Ref of State tax perc 
                 'alv' => $demandList->last()->alv ?? 0,
@@ -176,7 +182,8 @@ class HoldingTaxController extends Controller
             $demand['grandTaxes'] = $grandTaxes;
             $demand['currentDemand'] = $demandList->where('fyear', getFY())->first()['balance'] ?? 0;
             $demand['arrear'] = $arrear;
-            $demand['payableAmt'] = round($grandTaxes['balance']);
+            $demand['monthlyPenalty'] = $grandTaxes['monthlyPenalty'];
+            $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['monthlyPenalty']);
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
             $holdingType = $propBasicDtls->holding_type;
             $ownershipType = $propBasicDtls->ownership_type;
@@ -239,6 +246,7 @@ class HoldingTaxController extends Controller
                 "major_building" => roundFigure($item->sum('major_building')),
                 "total_tax" => roundFigure($item->sum('total_tax')),
                 "balance" => roundFigure($item->sum('balance')),
+                "monthlyPenalty" => roundFigure($item->sum('monthlyPenalty')),
             ];
         });
     }
