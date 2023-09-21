@@ -1870,7 +1870,7 @@ class WaterConsumer extends Controller
             $filePath = $file->getPathname();
             $hashedFile = hash_file('sha256', $filePath);
             $filename = ($request->document)->getClientOriginalName();
-            $api = "http://192.168.0.122:8001/document/upload";
+            $api = "http://192.168.0.92:888/backend/document/upload";
             $transfer = [
                 "file" => $request->document,
                 "tags" => "good",

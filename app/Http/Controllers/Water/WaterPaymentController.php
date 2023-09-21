@@ -675,7 +675,7 @@ class WaterPaymentController extends Controller
      * | @return 
         | Serial No : 05
         | Working
-        | Check for Advance adjustment
+        | Caution : what if the "demand_from" of consumer demand dont exist
      */
     public function offlineDemandPayment(reqDemandPayment $request)
     {
@@ -687,7 +687,7 @@ class WaterPaymentController extends Controller
             $mWaterConsumerCollection   = new WaterConsumerCollection();
             $mWaterConsumerDemand       = new WaterConsumerDemand();
 
-            $offlinePaymentModes    = Config::get('payment-constants.VERIFICATION_PAYMENT_MODE');
+            $offlinePaymentModes    = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
             $adjustmentFor          = Config::get("waterConstaint.ADVANCE_FOR");
             $todayDate              = Carbon::now();
             $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
@@ -697,9 +697,8 @@ class WaterPaymentController extends Controller
             if ($refDemand->last()) {
                 $lastDemand = $refDemand->last();
                 $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from'])->startOfMonth();
-            } else {
-                $startingDate = null;
             }
+
             $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
