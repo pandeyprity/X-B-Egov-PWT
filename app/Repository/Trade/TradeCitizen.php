@@ -536,8 +536,7 @@ class TradeCitizen implements ITradeCitizen
             return responseMsg(false, $e->getMessage(), $args);
         }
     }
-    //initiatePayment
-    //pinelabResponse
+    
 
     # Serial No : 27
     public function citizenApplication_old(Request $request)
