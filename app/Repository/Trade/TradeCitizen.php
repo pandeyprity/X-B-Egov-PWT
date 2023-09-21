@@ -226,10 +226,14 @@ class TradeCitizen implements ITradeCitizen
             $mDenialAmount  = 0;
             $mPaymentStatus = 1;
             $mNoticeDate    = null;
-            $mShortUlbName  = "";
+            $mShortUlbName  = $refUlbDtl->short_name??"";
             $mWardNo        = "";
-            foreach ($refUlbName as $val) {
-                $mShortUlbName .= $val[0];
+            if(!$mShortUlbName)
+            {
+                foreach ($refUlbName as $val) {
+                    $mShortUlbName .= $val[0];
+                }
+
             }
 
             #-----------valication-------------------   
@@ -317,7 +321,7 @@ class TradeCitizen implements ITradeCitizen
             $Tradetransaction->ulb_id           = $refUlbId;
             $Tradetransaction->save();
             $transaction_id                     = $Tradetransaction->id;
-            $Tradetransaction->tran_no   = $args["transactionNo"]; //$this->createTransactionNo($transaction_id);//"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
+            $Tradetransaction->tran_no   = $this->_REPOSITORY_TRADE->createTransactionNo($transaction_id,$mShortUlbName);#$args["transactionNo"]; ;//"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
             $Tradetransaction->update();
 
             $TradeFineRebet = new TradeFineRebete();
@@ -395,10 +399,14 @@ class TradeCitizen implements ITradeCitizen
             $mDenialAmount  = 0;
             $mPaymentStatus = 1;
             $mNoticeDate    = null;
-            $mShortUlbName  = "";
+            $mShortUlbName  = $refUlbDtl->short_name??"";
             $mWardNo        = "";
-            foreach ($refUlbName as $val) {
-                $mShortUlbName .= $val[0];
+            if(!$mShortUlbName)
+            {
+                foreach ($refUlbName as $val) {
+                    $mShortUlbName .= $val[0];
+                }
+
             }
 
             #-----------valication-------------------   
@@ -488,7 +496,7 @@ class TradeCitizen implements ITradeCitizen
             $Tradetransaction->ulb_id           = $refUlbId;
             $Tradetransaction->save();
             $transaction_id                     = $Tradetransaction->id;
-            $Tradetransaction->tran_no   = $args["transactionNo"]; //$this->createTransactionNo($transaction_id);//"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
+            $Tradetransaction->tran_no   = $this->_REPOSITORY_TRADE->createTransactionNo($transaction_id,$mShortUlbName); //$args["transactionNo"];//"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
             $Tradetransaction->update();
 
             $TradeFineRebet = new TradeFineRebete();
