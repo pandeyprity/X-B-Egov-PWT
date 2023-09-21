@@ -111,6 +111,7 @@ Route::group(['middleware' => ['json.response', "auth_maker"]], function () {
         Route::post('application/send-to-officer', 'sendToLevel');
 
         Route::post('application/pay-razorpay-charge', 'handeRazorPay');           #id = c4
+        Route::post('application/pay-pinelab-charge', 'handelPinelab');           #id = c4.1
 
         Route::post('application/conform-razorpay-tran', 'conformRazorPayTran');   #id = c5
 

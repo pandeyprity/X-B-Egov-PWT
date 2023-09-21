@@ -163,6 +163,22 @@ class PaymentController extends Controller
     }
 
     /**
+     * | Generate Order Id
+     */
+    protected function getOrderId(int $modeuleId)
+    {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $randomString = '';
+        for ($i = 0; $i < 10; $i++) {
+            $index = rand(0, strlen($characters) - 1);
+            $randomString .= $characters[$index];
+        }
+        $orderId = (("Order_" . $modeuleId . date('dmyhism') . $randomString));
+        $orderId = explode("=", chunk_split($orderId, 30, "="))[0];
+        return $orderId;
+    }
+
+    /**
      * | Save Pine lab Request
      */
     public function initiatePayment(Request $req)
@@ -175,21 +191,22 @@ class PaymentController extends Controller
         ]);
         if ($validator->fails())
             return validationError($validator);
-
         try {
             $mPinelabPaymentReq =  new PinelabPaymentReq();
             $propertyModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
+            $moduleId = $req->moduleId;
+
             if ($req->paymentType == 'Property' || 'Saf')
                 $moduleId = $propertyModuleId;
 
             $user = authUser($req);
             $mReqs = [
-                "ref_no"          => Str::random(10),
+                "ref_no"          => $this->getOrderId($moduleId),
                 "user_id"         => $user->id,
                 "workflow_id"     => $req->workflowId ?? 0,
                 "amount"          => $req->amount,
                 "module_id"       => $moduleId,
-                "ulb_id"          => $user->ulb_id,
+                "ulb_id"          => $user->ulb_id ?? $req->ulbId,
                 "application_id"  => $req->applicationId,
                 "payment_type"    => $req->paymentType
                 // "method_id"       => $req->method_id,
@@ -247,34 +264,34 @@ class PaymentController extends Controller
                 'departmentId'      => $moduleId,         #_Module Id
                 'gatewayType'       => "Pinelab",         #_Pinelab Id
                 'transactionNo'     => $actualTransactionNo,
-                'TransactionDate'   => $detail->TransactionDate,
-                'HostResponse'      => $detail->HostResponse,
-                'CardEntryMode'     => $detail->CardEntryMode,
-                'ExpiryDate'        => $detail->ExpiryDate,
-                'InvoiceNumber'     => $detail->InvoiceNumber,
-                'MerchantAddress'   => $detail->MerchantAddress,
-                'TransactionTime'   => $detail->TransactionTime,
-                'TerminalId'        => $detail->TerminalId,
-                'TransactionType'   => $detail->TransactionType,
-                'CardNumber'        => $detail->CardNumber,
-                'MerchantId'        => $detail->MerchantId,
-                'PlutusVersion'     => $detail->PlutusVersion,
-                'PosEntryMode'      => $detail->PosEntryMode,
-                'RetrievalReferenceNumber' => $detail->RetrievalReferenceNumber,
-                'BillingRefNo'             => $detail->BillingRefNo,
-                'BatchNumber'              => $detail->BatchNumber,
-                'Remark'                   => $detail->Remark,
-                'AcquiringBankCode'        => $detail->AcquiringBankCode,
-                'MerchantName'             => $detail->MerchantName,
-                'MerchantCity'             => $detail->MerchantCity,
-                'ApprovalCode'             => $detail->ApprovalCode,
-                'CardType'                 => $detail->CardType,
-                'PrintCardholderName'      => $detail->PrintCardholderName,
-                'AcquirerName'             => $detail->AcquirerName,
-                'LoyaltyPointsAwarded'     => $detail->LoyaltyPointsAwarded,
-                'CardholderName'           => $detail->CardholderName,
-                'AuthAmoutPaise'           => $detail->AuthAmoutPaise,
-                'PlutusTransactionLogID'   => $detail->PlutusTransactionLogID,
+                'TransactionDate'   => $detail->TransactionDate ?? null,
+                'HostResponse'      => $detail->HostResponse ?? null,
+                'CardEntryMode'     => $detail->CardEntryMode ?? null,
+                'ExpiryDate'        => $detail->ExpiryDate ?? null,
+                'InvoiceNumber'     => $detail->InvoiceNumber ?? null,
+                'MerchantAddress'   => $detail->MerchantAddress ?? null,
+                'TransactionTime'   => $detail->TransactionTime ?? null,
+                'TerminalId'        => $detail->TerminalId ?? null,
+                'TransactionType'   => $detail->TransactionType ?? null,
+                'CardNumber'        => $detail->CardNumber ?? null,
+                'MerchantId'        => $detail->MerchantId ?? null,
+                'PlutusVersion'     => $detail->PlutusVersion ?? null,
+                'PosEntryMode'      => $detail->PosEntryMode ?? null,
+                'RetrievalReferenceNumber' => $detail->RetrievalReferenceNumber ?? null,
+                'BillingRefNo'             => $detail->BillingRefNo ?? null,
+                'BatchNumber'              => $detail->BatchNumber ?? null,
+                'Remark'                   => $detail->Remark ?? null,
+                'AcquiringBankCode'        => $detail->AcquiringBankCode ?? null,
+                'MerchantName'             => $detail->MerchantName ?? null,
+                'MerchantCity'             => $detail->MerchantCity ?? null,
+                'ApprovalCode'             => $detail->ApprovalCode ?? null,
+                'CardType'                 => $detail->CardType ?? null,
+                'PrintCardholderName'      => $detail->PrintCardholderName ?? null,
+                'AcquirerName'             => $detail->AcquirerName ?? null,
+                'LoyaltyPointsAwarded'     => $detail->LoyaltyPointsAwarded ?? null,
+                'CardholderName'           => $detail->CardholderName ?? null,
+                'AuthAmoutPaise'           => $detail->AuthAmoutPaise ?? null,
+                'PlutusTransactionLogID'   => $detail->PlutusTransactionLogID ?? null,
             ];
 
 
