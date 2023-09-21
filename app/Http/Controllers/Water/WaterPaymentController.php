@@ -273,18 +273,18 @@ class WaterPaymentController extends Controller
                 throw new Exception("Water Application's Transaction Details not Found!!");
 
             # Application transactions
-            $waterTrans = $mWaterTran->getTransNo($request->consumerId, NULL)->get();         // Water Consumer Payment History
-            $waterTrans = collect($waterTrans)->map(function ($value) use ($mWaterConsumerDemand, $mWaterTranDetail) {
-                $demandId = $mWaterTranDetail->getDetailByTranId($value['id']);
-                if ($demandId->first()) {
-                    $demandIds = ($demandId->pluck('demand_id'))->toArray();
-                    $value['demand'] = $mWaterConsumerDemand->getDemandBydemandId($demandIds)->get();
-                    return $value;
-                }
-                $value['demand'] = [];
-                return $value;
-            })->filter()->values();
-            $transactions['Consumer'] = $waterTrans;
+            // $waterTrans = $mWaterTran->getTransNo($request->consumerId, NULL)->get();         // Water Consumer Payment History
+            // $waterTrans = collect($waterTrans)->map(function ($value) use ($mWaterConsumerDemand, $mWaterTranDetail) {
+            //     $demandId = $mWaterTranDetail->getDetailByTranId($value['id']);
+            //     if ($demandId->first()) {
+            //         $demandIds = ($demandId->pluck('demand_id'))->toArray();
+            //         $value['demand'] = $mWaterConsumerDemand->getDemandBydemandId($demandIds)->get();
+            //         return $value;
+            //     }
+            //     $value['demand'] = [];
+            //     return $value;
+            // })->filter()->values();
+            // $transactions['Consumer'] = $waterTrans;
             $transactions['connection'] = $connectionTran;
 
             return responseMsgs(true, "", remove_null($transactions), "", "01", "ms", "POST", $request->deviceId ?? "");
