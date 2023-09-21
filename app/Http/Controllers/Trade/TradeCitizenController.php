@@ -779,6 +779,7 @@ class TradeCitizenController extends Controller
             $totalCharge = $chargeData['total_charge'];
 
             $myRequest = [
+                "userId" =>$refUser->id??0,
                 "paymentType"=>$transactionType,
                 'amount' => $totalCharge,
                 'workflowId' => $refWorkflowId,
@@ -789,42 +790,56 @@ class TradeCitizenController extends Controller
                 'ulbId' => $refLecenceData->ulb_id,
             ];
             $request->merge($myRequest);
-            $temp = $this->saveGenerateOrderid($request);
+            // $temp = $this->saveGenerateOrderid($request);
             $paymenController = App::makeWith(PaymentController::class, ['iSafRepository' => app(iSafRepository::class)]);
-            $in = $paymenController->initiatePayment($request);
-            return([$temp,$in]);
+            $temp = $paymenController->initiatePayment($request);
             if(isset($temp->original) && !$temp->original["status"])
             {
                 throw new Exception($temp->original["message"].(" :".$temp->original["data"]??""));
             }
             $request->merge(
                     [
-                        "orderId"=> $in->original["data"]["billRefNo"],
-                        "requestData"=>$request->all(),
+                        "orderId"=> $temp->original["data"]["billRefNo"],
+                        "requestData"=>json_encode($request->all()),
                     ]
                 );
             $this->begin();
+            $data = $request->all();
             $TradePinelabPayRequest = new TradePinelabPayRequest();
-            $TradePinelabPayRequest->insert($request->all());
-
-            $temp["requestId"]  = $TradeRazorPayRequest->id;
-            $temp["applicationNo"]  = $refLecenceData->application_no;
-            $temp['name']       = $refUser->user_name;
-            $temp['mobile']     = $refUser->mobile;
-            $temp['email']      = $refUser->email;
-            $temp['userId']     = $refUser->id;
-            $temp['ulbId']      = $refLecenceData->ulb_id;
-            $temp['firmName']   = $refLecenceData->firm_name;
-            $temp['wardNo']     = $refLecenceData->ward_no;
-            $temp['newWardNo']  = $refLecenceData->new_ward_no;
-            $temp['applyDate']  = $refLecenceData->apply_date;
-            $temp['licenceForYears']  = $refLecenceData->licence_for_years;
-            $temp['applicationType']  =  $this->_TRADE_CONSTAINT["APPLICATION-TYPE-BY-ID"][$refLecenceData->application_type_id];
+            $TradePinelabPayRequest->temp_id         = $data["applicationId"]??null;
+            $TradePinelabPayRequest->module_id       = $data["moduleId"]??null;
+            $TradePinelabPayRequest->tran_type       = $data["paymentType"]??null;
+            $TradePinelabPayRequest->merchant_id     = $data["merchantId"]??null;
+            $TradePinelabPayRequest->amount          = $data["amount"]??null;
+            $TradePinelabPayRequest->order_id        = $data["orderId"]??null;            
+            $TradePinelabPayRequest->ip_address      = $data["ipAddress"]??null;
+            $TradePinelabPayRequest->department_id   = $data["departmentId"]??null;
+            $TradePinelabPayRequest->user_id         = $data["userId"]??null;
+            $TradePinelabPayRequest->request_data    = $data["requestData"]??null;
+            $TradePinelabPayRequest->save();
+            $id = $TradePinelabPayRequest->id;
+            $respnse["requestId"]  = $id;
+            $respnse["applicationNo"]  = $refLecenceData->application_no;
+            $respnse["amount"]    = $data["amount"]??null;
+            $respnse["orderId"]    = $request->orderId;
+            $respnse["billRefNo"]    = $request->orderId;
+            $respnse['name']       = $refUser->user_name;
+            $respnse['mobile']     = $refUser->mobile;
+            $respnse['email']      = $refUser->email;
+            $respnse['userId']     = $refUser->id;
+            $respnse['ulbId']      = $refLecenceData->ulb_id;
+            $respnse['firmName']   = $refLecenceData->firm_name;
+            $respnse['wardNo']     = $refLecenceData->ward_no;
+            $respnse['newWardNo']  = $refLecenceData->new_ward_no;
+            $respnse['applyDate']  = $refLecenceData->apply_date??$refLecenceData->application_date;
+            $respnse['licenceForYears']  = $refLecenceData->licence_for_years;
+            $respnse['applicationType']  =  $this->_TRADE_CONSTAINT["APPLICATION-TYPE-BY-ID"][$refLecenceData->application_type_id]; 
+            
             $this->commit();
             return responseMsgs(
                 true,
                 "",
-                $temp,
+                $respnse,
                 $this->_META_DATA["apiId"],
                 $this->_META_DATA["version"],
                 $this->_META_DATA["queryRunTime"],

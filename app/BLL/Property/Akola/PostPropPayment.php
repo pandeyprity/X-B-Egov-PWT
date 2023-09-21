@@ -7,6 +7,7 @@ use App\MicroServices\IdGeneration;
 use App\Models\Payment\TempTransaction;
 use App\Models\Property\PropChequeDtl;
 use App\Models\Property\PropDemand;
+use App\Models\Property\PropPenaltyrebate;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropTranDtl;
 use App\Models\Property\PropTransaction;
@@ -36,6 +37,8 @@ class PostPropPayment
     private $_mPropTranDtl;
     private $_propDetails;
     private $_demands;
+    private array $_penaltyRebates;
+    private $_mPropPenaltyrebates;
 
     /**
      * | Required @param Requests(propertyId as id)
@@ -66,6 +69,7 @@ class PostPropPayment
             throw new Exception("Property Details Not Available for this id");
 
         $this->_tranNo = $idGeneration->generateTransactionNo($this->_propDetails->ulb_id);
+        $this->_mPropPenaltyrebates = new PropPenaltyrebate();
     }
 
     /**
@@ -81,6 +85,12 @@ class PostPropPayment
             $arrear = $arrear;
         else
             $arrear = 0;
+
+        $this->_penaltyRebates['monthlyPenalty'] = [                                    // Monthly Penalty
+            'type' => 'Monthly Penalty',
+            'isRebate' => false,
+            'amount' => $this->_propCalculation->original['data']['monthlyPenalty']
+        ];
 
         $payableAmount = $this->_propCalculation->original['data']['payableAmt'];
 
@@ -173,6 +183,20 @@ class PostPropPayment
             $this->_mPropTranDtl->create($tranDtlReq);
         }
 
+        // Rebate Penalty Transactions 🔴🔴 Rebate implementation is pending
+        foreach ($this->_penaltyRebates as $penalRebates) {
+            $reqPenalRebate = [
+                'tran_id' => $propTrans['id'],
+                'head_name' => $penalRebates['type'],
+                'amount' => $penalRebates['amount'],
+                'is_rebate' => $penalRebates['isRebate'],
+                'tran_date' => Carbon::now(),
+                'prop_id' => $this->_propId,
+                'app_type' => 'Property'
+            ];
+            $this->_mPropPenaltyrebates->create($reqPenalRebate);
+        }
+
         // Cheque Entry
         if (in_array($this->_REQ['paymentMode'], $this->_offlinePaymentModes)) {
             $this->_REQ->merge([
@@ -219,8 +243,8 @@ class PostPropPayment
             'payment_mode' => $this->_REQ['paymentMode'],
             'cheque_dd_no' => $this->_REQ['chequeNo'],
             'bank_name' => $this->_REQ['bankName'],
-            'tran_date' => $this->_REQ['this->_todayDate'],
-            'user_id' => $this->_REQ['this->_userId'],
+            'tran_date' => $this->_REQ['todayDate'],
+            'user_id' => $this->_REQ['userId'],
             'ulb_id' => $this->_REQ['ulbId'],
         ];
         $mTempTransaction->tempTransaction($tranReqs);

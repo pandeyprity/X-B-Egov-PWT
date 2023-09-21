@@ -16,31 +16,31 @@ class TradePinelabPayResponse extends Model
        $this->connection = $DB ? $DB:"pgsql_trade";
     }
 
-    public function insert(array $data)
-    {
-        $reqs = [
-            "request_id"      => $data["requestId"]??null,
-            'temp_id'         => $data["applicationId"]??null,
-            'module_id'       => $data["moduleId"]??null,
-            'merchant_id'     => $data["merchantId"]??null,
-            'amount'          => $data["amount"]??null,
-            'order_id'        => $data["orderId"]??null,
-            'payment_id'      => $data["paymentId"]??null,
-            'error_code'      => $data["errorCode"]??null,
-            'error_desc'      => $data["errorDesc"]??null, 
-            "error_source"    => $data["errorSource"]??null, 
-            "error_stap"      => $data["errorStap"]??null, 
-            "error_reason"    => $data["errorReason"]??null,       
-            'ip_address'      => $data["ipAddress"]??null,
-            'citizen_id'      => $data["citizenId"]??null,
-            'response_data'   => $data["responseData"]??null,
-        ];
-        if(isset($data["status"]))
-        {            
-            $reqs['status']          = $data["status"];
-        }
-        return TradePinelabPayResponse::create($reqs)->id;  
-    }
+    // public function insert(array $data)
+    // {
+    //     $reqs = [
+    //         "request_id"      => $data["requestId"]??null,
+    //         'temp_id'         => $data["applicationId"]??null,
+    //         'module_id'       => $data["moduleId"]??null,
+    //         'merchant_id'     => $data["merchantId"]??null,
+    //         'amount'          => $data["amount"]??null,
+    //         'order_id'        => $data["orderId"]??null,
+    //         'payment_id'      => $data["paymentId"]??null,
+    //         'error_code'      => $data["errorCode"]??null,
+    //         'error_desc'      => $data["errorDesc"]??null, 
+    //         "error_source"    => $data["errorSource"]??null, 
+    //         "error_stap"      => $data["errorStap"]??null, 
+    //         "error_reason"    => $data["errorReason"]??null,       
+    //         'ip_address'      => $data["ipAddress"]??null,
+    //         'citizen_id'      => $data["citizenId"]??null,
+    //         'response_data'   => $data["responseData"]??null,
+    //     ];
+    //     if(isset($data["status"]))
+    //     {            
+    //         $reqs['status']          = $data["status"];
+    //     }
+    //     return TradePinelabPayResponse::create($reqs)->id;  
+    // }
 
     // public function edit(array $data)
     // {

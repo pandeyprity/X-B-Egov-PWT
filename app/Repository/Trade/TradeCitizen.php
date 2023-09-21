@@ -34,6 +34,7 @@ use App\Models\Trade\AkolaTradeParamItemType;
 use App\Models\Trade\RejectedTradeLicence;
 use App\Models\Trade\TradeFineRebete;
 use App\Models\Trade\TradeLicence;
+use App\Models\Trade\TradePinelabPayRequest;
 use App\Models\Trade\TradeRenewal;
 use App\Models\Workflows\WfActiveDocument;
 use App\Models\WorkflowTrack;
@@ -225,10 +226,14 @@ class TradeCitizen implements ITradeCitizen
             $mDenialAmount  = 0;
             $mPaymentStatus = 1;
             $mNoticeDate    = null;
-            $mShortUlbName  = "";
+            $mShortUlbName  = $refUlbDtl->short_name??"";
             $mWardNo        = "";
-            foreach ($refUlbName as $val) {
-                $mShortUlbName .= $val[0];
+            if(!$mShortUlbName)
+            {
+                foreach ($refUlbName as $val) {
+                    $mShortUlbName .= $val[0];
+                }
+
             }
 
             #-----------valication-------------------   
@@ -303,6 +308,7 @@ class TradeCitizen implements ITradeCitizen
             $Tradetransaction = new TradeTransaction();
             $Tradetransaction->temp_id          = $licenceId;
             $Tradetransaction->response_id      = $RazorPayResponse->id;
+            $Tradetransaction->payment_gateway_type = "razor_pay";
             $Tradetransaction->ward_id          = $refLecenceData->ward_id;
             $Tradetransaction->tran_type        = $transactionType;
             $Tradetransaction->tran_date        = $mNowDate;
@@ -315,7 +321,7 @@ class TradeCitizen implements ITradeCitizen
             $Tradetransaction->ulb_id           = $refUlbId;
             $Tradetransaction->save();
             $transaction_id                     = $Tradetransaction->id;
-            $Tradetransaction->tran_no   = $args["transactionNo"]; //$this->createTransactionNo($transaction_id);//"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
+            $Tradetransaction->tran_no   = $this->_REPOSITORY_TRADE->createTransactionNo($transaction_id,$mShortUlbName);#$args["transactionNo"]; ;//"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
             $Tradetransaction->update();
 
             $TradeFineRebet = new TradeFineRebete();
@@ -393,24 +399,28 @@ class TradeCitizen implements ITradeCitizen
             $mDenialAmount  = 0;
             $mPaymentStatus = 1;
             $mNoticeDate    = null;
-            $mShortUlbName  = "";
+            $mShortUlbName  = $refUlbDtl->short_name??"";
             $mWardNo        = "";
-            foreach ($refUlbName as $val) {
-                $mShortUlbName .= $val[0];
+            if(!$mShortUlbName)
+            {
+                foreach ($refUlbName as $val) {
+                    $mShortUlbName .= $val[0];
+                }
+
             }
 
             #-----------valication-------------------   
-            $RazorPayRequest = TradeRazorPayRequest::select("*")
-                ->where("order_id", $args["orderId"])
+            $PinelabPay = TradePinelabPayRequest::select("*")
+                ->where("order_id", $args["BillingRefNo"])
                 ->where("temp_id", $args["id"])
                 ->where("status", 2)
+                ->orderBy("id", "DESC")
                 ->first();
-            if (!$RazorPayRequest) {
+            if (!$PinelabPay) {
                 throw new Exception("Data Not Found");
             }
             $refLecenceData = TradeLicence::find($args["id"]);
             $licenceId = $args["id"];
-            $refLevelData = $this->_REPOSITORY_TRADE->getWorkflowTrack($licenceId); //TradeLevelPending::getLevelData($licenceId);
             if (!$refLecenceData) {
                 throw new Exception("Licence Data Not Found !!!!!");
             } elseif ($refLecenceData->application_type_id == 4) {
@@ -431,7 +441,6 @@ class TradeCitizen implements ITradeCitizen
             #-----------End valication-------------------
 
             #-------------Calculation-----------------------------  
-            $args['curdate']             = $refLecenceData->application_date;
             $args['areaSqft']            = (float)$refLecenceData->area_in_sqft;
             $args['application_type_id'] = $refLecenceData->application_type_id;
             $args['firmEstdDate'] = !empty(trim($refLecenceData->valid_from)) ? $refLecenceData->valid_from : $refLecenceData->apply_date;
@@ -439,9 +448,12 @@ class TradeCitizen implements ITradeCitizen
                 $args['firmEstdDate'] = $refLecenceData->establishment_date;
             }
             $args['tobacco_status']      = $refLecenceData->tobacco_status;
+            $args['application_no']      = $refLecenceData->application_no;
             $args['licenseFor']          = $refLecenceData->licence_for_years;
             $args['nature_of_business']  = $refLecenceData->nature_of_bussiness;
             $args['noticeDate']          = $mNoticeDate;
+            $args['curdate']             = $refLecenceData->application_date;
+            
             // $chargeData = $this->_REPOSITORY_TRADE->cltCharge($args);
             $chargeData = $this->_REPOSITORY_TRADE->AkolaCltCharge($args);
             if ($chargeData['response'] == false || round($args['amount']) != round($chargeData['total_charge'])) {
@@ -457,19 +469,20 @@ class TradeCitizen implements ITradeCitizen
             $this->begin();
 
             $RazorPayResponse = new TradeRazorPayResponse();
-            $RazorPayResponse->temp_id   = $RazorPayRequest->temp_id;
-            $RazorPayResponse->request_id   = $RazorPayRequest->id;
+            $RazorPayResponse->temp_id   = $PinelabPay->temp_id;
+            $RazorPayResponse->request_id   = $PinelabPay->id;
             $RazorPayResponse->amount       = $args['amount'];
             $RazorPayResponse->merchant_id  = $args['merchantId'] ?? null;
             $RazorPayResponse->order_id     = $args["orderId"];
             $RazorPayResponse->payment_id   = $args["paymentId"];
             $RazorPayResponse->save();
 
-            $RazorPayRequest->status = 1;
-            $RazorPayRequest->update();
+            $PinelabPay->status = 1;
+            $PinelabPay->update();
 
             $Tradetransaction = new TradeTransaction();
             $Tradetransaction->temp_id          = $licenceId;
+            $Tradetransaction->payment_gateway_type = "pinelab_pay";
             $Tradetransaction->response_id      = $RazorPayResponse->id;
             $Tradetransaction->ward_id          = $refLecenceData->ward_id;
             $Tradetransaction->tran_type        = $transactionType;
@@ -483,7 +496,7 @@ class TradeCitizen implements ITradeCitizen
             $Tradetransaction->ulb_id           = $refUlbId;
             $Tradetransaction->save();
             $transaction_id                     = $Tradetransaction->id;
-            $Tradetransaction->tran_no   = $args["transactionNo"]; //$this->createTransactionNo($transaction_id);//"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
+            $Tradetransaction->tran_no   = $this->_REPOSITORY_TRADE->createTransactionNo($transaction_id,$mShortUlbName); //$args["transactionNo"];//"TRANML" . date('d') . $transaction_id . date('Y') . date('m') . date('s');
             $Tradetransaction->update();
 
             $TradeFineRebet = new TradeFineRebete();
@@ -508,8 +521,7 @@ class TradeCitizen implements ITradeCitizen
             $refLecenceData->provisional_license_no = $provNo;
             $refLecenceData->payment_status         = $mPaymentStatus;
             if ($refNoticeDetails) {
-                $this->_NOTICE->noticeClose($refLecenceData->denial_id);
-                // $this->_REPOSITORY_TRADE->updateStatusFine($refDenialId, $chargeData['notice_amount'], $licenceId, 1); //update status and fineAmount                     
+                $this->_NOTICE->noticeClose($refLecenceData->denial_id);                    
             }
             ($refLecenceData->id);
             $refLecenceData->update();
@@ -524,8 +536,7 @@ class TradeCitizen implements ITradeCitizen
             return responseMsg(false, $e->getMessage(), $args);
         }
     }
-    //initiatePayment
-    //pinelabResponse
+    
 
     # Serial No : 27
     public function citizenApplication_old(Request $request)
