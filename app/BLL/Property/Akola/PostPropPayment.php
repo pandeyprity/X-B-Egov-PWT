@@ -243,8 +243,8 @@ class PostPropPayment
             'payment_mode' => $this->_REQ['paymentMode'],
             'cheque_dd_no' => $this->_REQ['chequeNo'],
             'bank_name' => $this->_REQ['bankName'],
-            'tran_date' => $this->_REQ['this->_todayDate'],
-            'user_id' => $this->_REQ['this->_userId'],
+            'tran_date' => $this->_REQ['todayDate'],
+            'user_id' => $this->_REQ['userId'],
             'ulb_id' => $this->_REQ['ulbId'],
         ];
         $mTempTransaction->tempTransaction($tranReqs);
