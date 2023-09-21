@@ -21,7 +21,6 @@ class Kernel extends ConsoleKernel
         $schedule->command('telescope:prune')->daily();
         $schedule->command('whatsapp:send --hours=24')->daily();
         $schedule->command('trade:auto-forward --hours=24')->daily();
-        $schedule->command('telescope:clear')->daily();                 // clear telescope logs daily
     }
 
     /**
