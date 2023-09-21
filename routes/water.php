@@ -128,7 +128,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('consumer/caretaken-connections', 'viewCaretakenConnection');                       // Citiizen
         Route::post('consumer/calculate/meter-fixed-reading', 'calculateMeterFixedReading');            // Admin
         Route::post('consumer/self-generate-demand', 'selfGenerateDemand');                             // Citizen
-        Route::post('consumer/get-details', 'WaterconsumerDetails');
+        Route::post('consumer/get-details', 'WaterConsumerDetails');
 
         # Unfinished API
         Route::post('admin/consumer/add-fixed-rate', 'addFixedRate');               // Here             // Admin / Not used

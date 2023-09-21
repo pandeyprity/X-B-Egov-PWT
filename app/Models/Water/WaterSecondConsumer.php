@@ -104,27 +104,12 @@ class WaterSecondConsumer extends Model
             "water_consumer_owners.applicant_name as owner_name",
             "water_consumer_owners.mobile_no",
             "water_consumer_owners.guardian_name"
-
-            // 'ulb_ward_masters.ward_name',
-
         )
-            // ->leftJoin('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
             ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.' . $key, 'LIKE', '%' . $refNo . '%')
-            // ->where('water_second_consumers.status', 1)
-            ->groupBy(
-                // "water_consumer_owners.applicant_name as owner_name",
-                // "water_consumer_owners.mobile_no",
-                // "water_consumer_owners.guardian_name",
-                // 'water_second_consumers.id',
-                // 'water_second_consumers.ulb_id',
-                // 'water_second_consumers.consumer_no',
-                // 'water_second_consumers.ward_mstr_id',
-                // 'water_second_consumers.address',
-                // 'ulb_ward_masters.ward_name'
-            );
+            ->where('water_second_consumers.status', 1);
     }
-     /**
+    /**
      * | get the water consumer detaials by Owner details
      * | @param consumerNo
      * | @var 
@@ -149,6 +134,28 @@ class WaterSecondConsumer extends Model
             ->where('water_consumer_owners.' . $key, 'ILIKE', '%' . $refVal . '%')
             ->where('water_second_consumers.status', 1)
             ->where('ulb_ward_masters.status', true);
+    }
+    /**
+     * get meter details of consumer
+     */
+    public function getDetailByMeterNo($key, $refNo)
+    {
+        return WaterSecondConsumer::select(
+            'water_second_consumers.id',
+            'water_second_consumers.consumer_no',
+            'water_second_consumers.ward_mstr_id',
+            'water_second_consumers.address',
+            'water_second_consumers.ulb_id',
+            "water_consumer_owners.applicant_name as owner_name",
+            "water_consumer_owners.mobile_no",
+            "water_consumer_owners.guardian_name",
+            "water_consumer_meters.meter_no"
+
+        )
+            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', '=', 'water_second_consumers.id')
+            ->join('water_consumer_meters', 'water_consumer_meters.consumer_id', 'water_second_consumers.id')
+            ->where('water_consumer_meters.' . $key, 'LIKE', '%' . $refNo . '%')
+            ->where('water_second_consumers.status', 1);
     }
     /**
      * | Update the payment status and the current role for payment 
@@ -183,6 +190,7 @@ class WaterSecondConsumer extends Model
             "water_consumer_owners.guardian_name",
             'water_consumer_owners.mobile_no',
             "water_consumer_owners.email",
+            "ulb_masters.association_with",
             DB::raw('ulb_ward_masters.ward_name as ward_number') // Alias the column as "ward_number"
         )
             ->join("water_consumer_owners", 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
@@ -220,16 +228,16 @@ class WaterSecondConsumer extends Model
             "water_consumer_owners.guardian_name",
             "water_consumer_owners.email",
             DB::raw('ulb_ward_masters.ward_name as ward_number')   // Alias the column as "ward_number"
-        ) 
-            ->join("water_consumer_owners",'water_consumer_owners.consumer_id','water_second_consumers.id')
-            ->join('ulb_masters','ulb_masters.id','water_second_consumers.ulb_id')
+        )
+            ->join("water_consumer_owners", 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
+            ->join('ulb_masters', 'ulb_masters.id', 'water_second_consumers.ulb_id')
             ->join('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
             ->join('water_consumer_meters', 'water_consumer_meters.consumer_id', 'water_second_consumers.id')
             ->join('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.id', $applicationId)
             ->where('water_second_consumers.status', 4);
     }
-    
+
     /**
      * | Get consumer Details By ConsumerId
      * | @param conasumerId
@@ -284,12 +292,9 @@ class WaterSecondConsumer extends Model
         $mWaterConsumer->pin                         = $consumerDetails['pin'];
         $mWaterConsumer->user_type                   = $consumerDetails['user_type'];
         $mWaterConsumer->area_sqmt                   = $consumerDetails['area_sqft'];
-        $mWaterConsumer->rent_amount                 = $consumerDetails['rent_amount']??null;
+        $mWaterConsumer->rent_amount                 = $consumerDetails['rent_amount'] ?? null;
         $mWaterConsumer->approve_date                = Carbon::now();
         $mWaterConsumer->save();
         return $mWaterConsumer->id;
     }
-
-
-    
 }
