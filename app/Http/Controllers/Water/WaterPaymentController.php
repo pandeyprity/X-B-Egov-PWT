@@ -1670,6 +1670,7 @@ class WaterPaymentController extends Controller
                 "chequeNo"              => $chequeDetails['cheque_no']   ?? null,                                   // in case of chque,dd,nfts
                 "chequeDate"            => $chequeDetails['cheque_date'] ?? null,                                  // in case of chque,dd,nfts
                 "penaltyAmount"         => $penaltyAmount,
+                "association"           => $consumerDetails['association_with'],
                 "demandAmount"          => $refDemandAmount,
                 "ulbId"                 => $consumerDetails['ulb_id'],
                 "ulbName"               => $consumerDetails['ulb_name'],
