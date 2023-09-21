@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Trade;
 
 use App\EloquentModels\Common\ModelWard;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Requests\Trade\ApplicationId;
 use App\Http\Requests\Trade\CitizenApplication;
 use App\Http\Requests\Trade\ReqCitizenAddRecorde;
@@ -12,6 +13,7 @@ use App\Models\Citizen\ActiveCitizenUndercare;
 use App\Models\Trade\RejectedTradeLicence;
 use App\Models\Trade\TradeFineRebete;
 use App\Models\Trade\TradeLicence;
+use App\Models\Trade\TradePinelabPayRequest;
 use App\Models\Trade\TradeRazorPayRequest;
 use App\Models\Trade\TradeRazorPayResponse;
 use App\Models\Trade\TradeRenewal;
@@ -21,6 +23,7 @@ use App\Models\UlbWardMaster;
 use App\Models\WorkflowTrack;
 use App\Repository\Common\CommonFunction;
 use App\Repository\Notice\Notice;
+use App\Repository\Property\Interfaces\iSafRepository;
 use App\Repository\Trade\ITradeCitizen;
 use App\Repository\Trade\Trade;
 use App\Traits\Auth;
@@ -28,6 +31,7 @@ use App\Traits\Payment\Razorpay;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -411,7 +415,7 @@ class TradeCitizenController extends Controller
             $myRequest->request->add(['amount' => $totalCharge]);
             $myRequest->request->add(['workflowId' => $refWorkflowId]);
             $myRequest->request->add(['id' => $request->licenceId]);
-            $myRequest->request->add(['departmentId' => 3]);
+            $myRequest->request->add(['departmentId' => $this->_MODULE_ID]);
             $myRequest->request->add(['ulbId' => $refLecenceData->ulb_id]);
             $temp = $this->saveGenerateOrderid($myRequest);
             if(isset($temp->original) && !$temp->original["status"])
@@ -694,6 +698,152 @@ class TradeCitizenController extends Controller
                 false,
                 $e->getMessage(),
                 "",
+            );
+        }
+    }
+
+    public function handelPinelab(Request $request)
+    {
+        $this->_META_DATA["apiId"] = "c4";
+        $this->_META_DATA["queryRunTime"] = 4.00;
+        $this->_META_DATA["action"]    = $request->getMethod();
+        $this->_META_DATA["deviceId"] = $request->ip();
+        try {
+            $request->validate(
+                [                  
+                    "licenceId" => "required|digits_between:1,9223372036854775807",
+                ]
+            );
+            if(!$this->_COMMON_FUNCTION->checkUsersWithtocken("active_citizens"))
+            {
+                throw New Exception("Counter User Not Allowed");
+            }
+            #------------------------ Declaration-----------------------
+            $refUser            = Auth()->user();
+            $refNoticeDetails   = null;
+            $refWorkflowId      = $this->_WF_MASTER_Id;
+            $mNoticeDate        = null;
+            #------------------------End Declaration-----------------------
+            $refLecenceData = $this->_REPOSITORY_TRADE->getAllLicenceById($request->licenceId);
+            if(!$request->licenseFor)
+            {
+                $request->merge(["licenseFor"=>$$refLecenceData->licence_for_years??1]);
+            }
+            if (!$refLecenceData) {
+                throw new Exception("Licence Data Not Found !!!!!");
+            } elseif ($refLecenceData->application_type_id == 4) {
+                throw new Exception("Surender Application Not Pay Anny Amount");
+            } elseif ($refLecenceData->pending_status!=5) {
+                throw new Exception("Application Not Approved Please Wait For Approval");
+            }elseif (in_array($refLecenceData->payment_status, [1, 2])) {
+                throw new Exception("Payment Already Done Of This Application");
+            }
+            if ($refLecenceData->tobacco_status == 1 && $request->licenseFor > 1) 
+            {
+                throw new Exception("Tobaco Application Not Take Licence More Than One Year");
+            }
+            $request->request->add(['applicationId'=>$request->licenceId]);
+            $doc = $this->_REPOSITORY_TRADE->getLicenseDocLists($request);
+            if($doc->original['status'] && !$doc->original['data']['docUploadStatus'])
+            {
+                throw new Exception("Upload Document First");
+            }            
+            if ($refNoticeDetails = $this->_NOTICE->getNoticDtlById($refLecenceData->denial_id)) 
+            {
+                $mNoticeDate = date('Y-m-d', strtotime($refNoticeDetails['notice_date'])); //notice date 
+            }
+            
+
+            #-----------End validation-------------------
+            #-------------Calculation-----------------------------                
+            $args['areaSqft']            = (float)$refLecenceData->area_in_sqft;
+            $args['application_type_id'] = $refLecenceData->application_type_id;
+            $args['firmEstdDate'] = !empty(trim($refLecenceData->valid_from)) ? $refLecenceData->valid_from : $refLecenceData->apply_date;
+            if ($refLecenceData->application_type_id == 1) {
+                $args['firmEstdDate'] = $refLecenceData->establishment_date;
+            }
+            $args['tobacco_status']      = $refLecenceData->tobacco_status;
+            $args['application_no']      = $refLecenceData->application_no;
+            $args['licenseFor']          = $refLecenceData->licence_for_years;
+            $args['nature_of_business']  = $refLecenceData->nature_of_bussiness;
+            $args['noticeDate']          = $mNoticeDate;
+            $args['curdate']             = $refLecenceData->application_date;
+            // $chargeData = $this->_REPOSITORY_TRADE->cltCharge($args);
+            $chargeData = $this->_REPOSITORY_TRADE->AkolaCltCharge($args);
+            if ($chargeData['response'] == false || $chargeData['total_charge'] == 0) {
+                throw new Exception("Payble Amount Missmatch!!!");
+            }
+
+            $transactionType = $this->_TRADE_CONSTAINT["APPLICATION-TYPE-BY-ID"][$refLecenceData->application_type_id];
+
+            $totalCharge = $chargeData['total_charge'];
+
+            $myRequest = [
+                "paymentType"=>$transactionType,
+                'amount' => $totalCharge,
+                'workflowId' => $refWorkflowId,
+                'id' => $request->licenceId,
+                "applicationId" => $request->licenceId,
+                'departmentId' => $this->_MODULE_ID,
+                'moduleId' => $this->_MODULE_ID,
+                'ulbId' => $refLecenceData->ulb_id,
+            ];
+            $request->merge($myRequest);
+            $temp = $this->saveGenerateOrderid($request);
+            $paymenController = App::makeWith(PaymentController::class, ['iSafRepository' => app(iSafRepository::class)]);
+            $in = $paymenController->initiatePayment($request);
+            return([$temp,$in]);
+            if(isset($temp->original) && !$temp->original["status"])
+            {
+                throw new Exception($temp->original["message"].(" :".$temp->original["data"]??""));
+            }
+            $request->merge(
+                    [
+                        "orderId"=> $in->original["data"]["billRefNo"],
+                        "requestData"=>$request->all(),
+                    ]
+                );
+            $this->begin();
+            $TradePinelabPayRequest = new TradePinelabPayRequest();
+            $TradePinelabPayRequest->insert($request->all());
+
+            $temp["requestId"]  = $TradeRazorPayRequest->id;
+            $temp["applicationNo"]  = $refLecenceData->application_no;
+            $temp['name']       = $refUser->user_name;
+            $temp['mobile']     = $refUser->mobile;
+            $temp['email']      = $refUser->email;
+            $temp['userId']     = $refUser->id;
+            $temp['ulbId']      = $refLecenceData->ulb_id;
+            $temp['firmName']   = $refLecenceData->firm_name;
+            $temp['wardNo']     = $refLecenceData->ward_no;
+            $temp['newWardNo']  = $refLecenceData->new_ward_no;
+            $temp['applyDate']  = $refLecenceData->apply_date;
+            $temp['licenceForYears']  = $refLecenceData->licence_for_years;
+            $temp['applicationType']  =  $this->_TRADE_CONSTAINT["APPLICATION-TYPE-BY-ID"][$refLecenceData->application_type_id];
+            $this->commit();
+            return responseMsgs(
+                true,
+                "",
+                $temp,
+                $this->_META_DATA["apiId"],
+                $this->_META_DATA["version"],
+                $this->_META_DATA["queryRunTime"],
+                $this->_META_DATA["action"],
+                $this->_META_DATA["deviceId"]
+            );
+        } 
+        catch (Exception $e) 
+        {
+            $this->rollBack();
+            return responseMsgs(
+                false,
+                $e->getMessage(),
+                "",
+                $this->_META_DATA["apiId"],
+                $this->_META_DATA["version"],
+                $this->_META_DATA["queryRunTime"],
+                $this->_META_DATA["action"],
+                $this->_META_DATA["deviceId"]
             );
         }
     }

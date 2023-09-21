@@ -4,10 +4,17 @@ namespace App\Http\Controllers\Payment;
 
 use App\BLL\Payment\GetRefUrl;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Property\ActiveSafController;
+use App\Http\Controllers\Property\HoldingTaxController;
+use App\Http\Requests\Property\ReqPayment;
+use App\MicroServices\IdGenerator\PrefixIdGenerator;
 use App\Models\Payment\IciciPaymentReq;
 use App\Models\Payment\IciciPaymentResponse;
 use App\Models\Payment\PinelabPaymentReq;
 use App\Models\Payment\PinelabPaymentResponse;
+use App\Repository\Property\Interfaces\iSafRepository;
+use App\Repository\Trade\TradeCitizen;
+use App\Repository\Water\Concrete\WaterNewConnection;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -20,10 +27,12 @@ use ReflectionFunctionAbstract;
 class PaymentController extends Controller
 {
     private $_paymentStatus;
+    protected $_safRepo;
 
-    public function __construct()
+    public function __construct(iSafRepository $safRepo)
     {
         $this->_paymentStatus = Config::get('payment-constants.PAYMENT_STATUS');
+        $this->_safRepo = $safRepo;
     }
 
     // Generation of Referal url for payment for Testing
@@ -154,33 +163,50 @@ class PaymentController extends Controller
     }
 
     /**
+     * | Generate Order Id
+     */
+    protected function getOrderId(int $modeuleId)
+    {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $randomString = '';
+        for ($i = 0; $i < 10; $i++) {
+            $index = rand(0, strlen($characters) - 1);
+            $randomString .= $characters[$index];
+        }
+        $orderId = (("Order_" . $modeuleId . date('dmyhism') . $randomString));
+        $orderId = explode("=", chunk_split($orderId, 30, "="))[0];
+        return $orderId;
+    }
+
+    /**
      * | Save Pine lab Request
      */
     public function initiatePayment(Request $req)
     {
         $validator = Validator::make($req->all(), [
-            "workflowId"    => "required|int",
+            "workflowId"    => "nullable|int",
             "amount"        => "required|numeric",
             "moduleId"      => "nullable|int",
             "applicationId" => "required|int",
         ]);
         if ($validator->fails())
             return validationError($validator);
-
         try {
             $mPinelabPaymentReq =  new PinelabPaymentReq();
             $propertyModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
+            $moduleId = $req->moduleId;
+
             if ($req->paymentType == 'Property' || 'Saf')
                 $moduleId = $propertyModuleId;
 
             $user = authUser($req);
             $mReqs = [
-                "ref_no"          => Str::random(10),
+                "ref_no"          => $this->getOrderId($moduleId),
                 "user_id"         => $user->id,
-                // "workflow_id"     => $req->workflowId,
+                "workflow_id"     => $req->workflowId ?? 0,
                 "amount"          => $req->amount,
                 "module_id"       => $moduleId,
-                "ulb_id"          => $user->ulb_id,
+                "ulb_id"          => $user->ulb_id ?? $req->ulbId,
                 "application_id"  => $req->applicationId,
                 "payment_type"    => $req->paymentType
                 // "method_id"       => $req->method_id,
@@ -197,36 +223,106 @@ class PaymentController extends Controller
 
     /**
      * | Save Pine lab Response
-     incomplete
+
      */
     public function savePinelabResponse(Request $req)
     {
-        // $validator = Validator::make($req->all(), [
-        //     "transactionNo" => "required"
-        // ]);
-        // if ($validator->fails())
-        //     return validationError($validator);
-
         try {
-            $mPinelabPaymentReq =  new PinelabPaymentReq();
+            $mPinelabPaymentReq      =  new PinelabPaymentReq();
             $mPinelabPaymentResponse = new PinelabPaymentResponse();
+            $responseCode            = Config::get('payment-constants.PINELAB_RESPONSE_CODE');
+            $propertyModuleId        = Config::get('module-constants.PROPERTY_MODULE_ID');
+            $user                    = authUser($req);
+            $pinelabData             = $req->pinelabResponseBody;
+            $detail                  = (object)$req->pinelabResponseBody['Detail'];
+            Storage::disk('public')->put($req->billRefNo . '.json', json_encode($req->all()));
 
-            $paymentId = $req->pinelabResponseBody;
-            Storage::disk('public')->put($paymentId . '.json', json_encode($req->all()));
+            $actualTransactionNo = 'TRAN' . rand(00000, 99999) . rand(00000, 99999);
+            if (in_array($req->paymentType, ['Property', 'Saf']))
+                $moduleId = $propertyModuleId;
 
             $paymentData = $mPinelabPaymentReq->getPaymentRecord($req);
+            if ($paymentData) {
+                $mReqs = [
+                    "payment_req_id"       => $paymentData->id,
+                    "req_ref_no"           => $req->billRefNo,
+                    "res_ref_no"           => $req->res_ref_no,                         // flag
+                    "response_msg"         => $pinelabData['Response']['ResponseMsg'],
+                    "response_code"        => $pinelabData['Response']['ResponseCode'],
+                    "description"          => $req->description,
+                ];
+                $data = $mPinelabPaymentResponse->store($mReqs);
+            }
 
-            $user = authUser($req);
-            $mReqs = [
-                "payment_req_id"       => $user->payment_req_id,
-                "rejection_reason"     => $req->rejection_reason,
-                "rejection_source"     => $req->rejection_source,
-                "rejection_step"       => $req->rejection_step,
-                "response_code"       => $req->response_code,
-                "description"          => $user->description,
-                "rejection_suspecious" => $user->rejection_suspecious,
+            # data transfer to the respective module's database 
+            $moduleData = [
+                'id'                => $req->applicationId,
+                'amount'            => $req->amount,
+                'workflowId'        => $req->workflowId ?? 0,
+                'userId'            => $user->id,
+                'ulbId'             => $user->ulb_id,
+                'departmentId'      => $moduleId,         #_Module Id
+                'gatewayType'       => "Pinelab",         #_Pinelab Id
+                'transactionNo'     => $actualTransactionNo,
+                'TransactionDate'   => $detail->TransactionDate ?? null,
+                'HostResponse'      => $detail->HostResponse ?? null,
+                'CardEntryMode'     => $detail->CardEntryMode ?? null,
+                'ExpiryDate'        => $detail->ExpiryDate ?? null,
+                'InvoiceNumber'     => $detail->InvoiceNumber ?? null,
+                'MerchantAddress'   => $detail->MerchantAddress ?? null,
+                'TransactionTime'   => $detail->TransactionTime ?? null,
+                'TerminalId'        => $detail->TerminalId ?? null,
+                'TransactionType'   => $detail->TransactionType ?? null,
+                'CardNumber'        => $detail->CardNumber ?? null,
+                'MerchantId'        => $detail->MerchantId ?? null,
+                'PlutusVersion'     => $detail->PlutusVersion ?? null,
+                'PosEntryMode'      => $detail->PosEntryMode ?? null,
+                'RetrievalReferenceNumber' => $detail->RetrievalReferenceNumber ?? null,
+                'BillingRefNo'             => $detail->BillingRefNo ?? null,
+                'BatchNumber'              => $detail->BatchNumber ?? null,
+                'Remark'                   => $detail->Remark ?? null,
+                'AcquiringBankCode'        => $detail->AcquiringBankCode ?? null,
+                'MerchantName'             => $detail->MerchantName ?? null,
+                'MerchantCity'             => $detail->MerchantCity ?? null,
+                'ApprovalCode'             => $detail->ApprovalCode ?? null,
+                'CardType'                 => $detail->CardType ?? null,
+                'PrintCardholderName'      => $detail->PrintCardholderName ?? null,
+                'AcquirerName'             => $detail->AcquirerName ?? null,
+                'LoyaltyPointsAwarded'     => $detail->LoyaltyPointsAwarded ?? null,
+                'CardholderName'           => $detail->CardholderName ?? null,
+                'AuthAmoutPaise'           => $detail->AuthAmoutPaise ?? null,
+                'PlutusTransactionLogID'   => $detail->PlutusTransactionLogID ?? null,
             ];
-            $data = $mPinelabPaymentResponse->store($mReqs);
+
+
+            if ($pinelabData['Response']['ResponseCode'] == 00) {
+                $paymentData->payment_status = 1;
+                $paymentData->save();
+
+                # calling function for the modules
+                switch ($paymentData->module_id) {
+                    case ('1'):
+                        $refpropertyType = $paymentData->workflow_id;
+                        if ($refpropertyType == 0) {
+                            $objHoldingTaxController = new HoldingTaxController($this->_safRepo);
+                            $moduleData = new ReqPayment($moduleData);
+                            $objHoldingTaxController->paymentHolding($moduleData);
+                        } else {                                            //<------------------ (SAF PAYMENT)
+                            $obj = new ActiveSafController($this->_safRepo);
+                            $moduleData = new ReqPayment($moduleData);
+                            $obj->paymentSaf($moduleData);
+                        }
+                        break;
+                        // case ('2'):                                             //<------------------ (Water)
+                        //     $objWater = new WaterNewConnection();
+                        //     $objWater->razorPayResponse($moduleData);
+                        //     break;
+                    case ('3'):                                             //<------------------ (TRADE)
+                        $objTrade = new TradeCitizen();
+                        $objTrade->pinelabResponse($moduleData);
+                        break;
+                }
+            }
 
             return responseMsgs(true, "Data Saved", $data, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         } catch (Exception $e) {

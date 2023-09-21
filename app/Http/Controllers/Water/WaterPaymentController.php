@@ -357,7 +357,11 @@ class WaterPaymentController extends Controller
             # Application Deatils
             $applicationDetails = $mWaterApplication->getDetailsByApplicationId($transactionDetails->related_id)->first();
             if (is_null($applicationDetails)) {
-                $applicationDetails = $mWaterApprovalApplicationDetail->getApprovedApplicationById($transactionDetails->related_id)->firstOrFail();
+                $applicationDetails = $mWaterApprovalApplicationDetail->getApprovedApplicationById($transactionDetails->related_id)->first();
+                if(!$applicationDetails)
+                {
+                    throw new Exception('application details not found! ');
+                }
             }
             # Connection Charges
             $connectionCharges = $mWaterConnectionCharge->getChargesById($transactionDetails->demand_id)
@@ -414,6 +418,8 @@ class WaterPaymentController extends Controller
                 "tabize"                => $applicationDetails['tab_size'],
                 "category"              => $applicationDetails['category'],
                 "guardianName"          => $applicationDetails['guardianName'],
+                "association"           => $applicationDetails['association_with'],
+                "mobileNo"              => $applicationDetails['mobile_no'],
 
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
             ];
@@ -1608,7 +1614,10 @@ class WaterPaymentController extends Controller
                 $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->first();
             }
             # Application Deatils
-            $consumerDetails = $mWaterConsumer->fullWaterDetails($transactionDetails->related_id)->firstOrFail();
+            $consumerDetails = $mWaterConsumer->fullWaterDetails($transactionDetails->related_id)->first();
+            if(!$consumerDetails){
+                throw new Exception('consumer details not found');
+            }
 
             # consumer Demand Details 
             $detailsOfDemand = $mWaterTranDetail->getTransDemandByIds($transactionDetails->id)->get();
@@ -2156,7 +2165,7 @@ class WaterPaymentController extends Controller
         | Serial No :
         | Under Con
      */
-    public function offlineConReqPayment(reqConsumerReqPayment $request)
+    public function offlineConPayment(reqConsumerReqPayment $request)
     {
         try {
             $user           = authUser($request);

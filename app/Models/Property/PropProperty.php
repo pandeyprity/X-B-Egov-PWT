@@ -740,7 +740,12 @@ class PropProperty extends Model
     // get Prpoperty 
     public function getPropert($holdingNo)
     {
-        $propDetails = PropProperty::where('holding_no', $holdingNo)
+        $propDetails = PropProperty::select(
+            'ulb_ward_masters.*',
+            'prop_properties.*'
+        )
+             ->leftjoin('ulb_ward_masters','ulb_ward_masters.id','prop_properties.ward_mstr_id')
+             ->where('holding_no', $holdingNo)
             ->where('prop_properties.status', 1)
             ->first();
         if (!$propDetails) {

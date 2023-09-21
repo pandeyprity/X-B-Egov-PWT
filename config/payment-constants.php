@@ -63,5 +63,16 @@ return [
         "PENDING"   => 0,
         "APPROVED"  => 1,
         "REJECT"    => 2
+    ],
+
+    "PINELAB_RESPONSE_CODE" => [
+        0 => "Success",
+        1 => "App Not Activated",
+        2 => "Already Activated",
+        3 => "Invalid Method Id",
+        4 => "Invalid User/Pin",
+        5 => "User Blocked For Max Attempt",
+        6 => "Permission Denied For This User ",
+        7 => "Invalid Data Format",
     ]
 ];

@@ -293,9 +293,6 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
    * | Property Document Operation
      | Serial No : 13
    */
-  Route::controller(DocumentOperationController::class)->group(function () {
-    Route::post('get-all-documents', 'getAllDocuments');
-  });
 
   /**
    * | poperty related type details form ref
@@ -474,6 +471,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('reports/property/ward-wise-dcb', 'PropWardWiseDCB');                       //done
     Route::post('reports/property/holding-wise-fine-rebate', 'PropFineRebate');             //done
     Route::post('reports/property/deactivated-list', 'PropDeactedList');                    //done
+    Route::post('reports/property/admin-dashboard', 'adminDashReport');          // Admin dashboard report for akola
   });
 
   /**

@@ -1749,16 +1749,16 @@ class Report implements IReport
                 LEFT JOIN (
                     SELECT prop_demands.property_id,
                         SUM(
-                                CASE WHEN prop_demands.due_date BETWEEN '$fromDate' AND '$uptoDate' then prop_demands.amount
+                                CASE WHEN prop_demands.fyear  = '$fiYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_demand,
                         SUM(
-                            CASE WHEN prop_demands.due_date<'$fromDate' then prop_demands.amount
+                            CASE WHEN prop_demands.fyear  < '$fiYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_demand,
-                    SUM(prop_demands.amount) AS total_demand
+                    SUM(prop_demands.total_tax) AS total_demand
                     FROM prop_demands
                     JOIN (
                         SELECT * 
@@ -1770,22 +1770,22 @@ class Report implements IReport
                     WHERE prop_demands.status =1 
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
-                        AND prop_demands.due_date<='$uptoDate'
+                        AND prop_demands.fyear  <= '$fiYear'
                     GROUP BY prop_demands.property_id    
                 )demands ON demands.property_id = prop_properties.id
                 LEFT JOIN (
                     SELECT prop_demands.property_id,
                         SUM(
-                                CASE WHEN prop_demands.due_date BETWEEN '$fromDate' AND '$uptoDate' then prop_demands.amount
+                                CASE WHEN prop_demands.fyear  = '$fiYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_collection,
                         SUM(
-                            cASe when prop_demands.due_date <'$fromDate' then prop_demands.amount
+                            cASe when prop_demands.fyear  < '$fiYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_collection,
-                    SUM(prop_demands.amount) AS total_collection
+                    SUM(prop_demands.total_tax) AS total_collection
                     FROM prop_demands
                     JOIN (
                         SELECT * 
@@ -1802,12 +1802,12 @@ class Report implements IReport
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
                         AND prop_transactions.tran_date  BETWEEN '$fromDate' AND '$uptoDate'
-                        AND prop_demands.due_date<='$uptoDate'
+                        AND prop_demands.fyear  <= '$fiYear'
                     GROUP BY prop_demands.property_id
                 )collection ON collection.property_id = prop_properties.id
                 LEFT JOIN ( 
                     SELECT prop_demands.property_id,
-                    SUM(prop_demands.amount) AS total_prev_collection
+                    SUM(prop_demands.total_tax) AS total_prev_collection
                     FROM prop_demands
                     JOIN (
                         SELECT * 
@@ -1846,37 +1846,37 @@ class Report implements IReport
                 LEFT JOIN (
                     SELECT prop_demands.property_id,
                         SUM(
-                                CASE WHEN prop_demands.due_date BETWEEN '$fromDate' AND '$uptoDate' then prop_demands.amount
+                                CASE WHEN prop_demands.fyear  = '$fiYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_demand,
                         SUM(
-                            CASE WHEN prop_demands.due_date<'$fromDate' then prop_demands.amount
+                            CASE WHEN prop_demands.fyear  < '$fiYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_demand,
-                    SUM(prop_demands.amount) AS total_demand
+                    SUM(prop_demands.total_tax) AS total_demand
                     FROM prop_demands
                     JOIN prop_properties ON prop_properties.id = prop_demands.property_id
                     WHERE prop_demands.status =1 
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
-                        AND prop_demands.due_date<='$uptoDate'
+                        AND prop_demands.fyear  <= '$fiYear'
                     GROUP BY prop_demands.property_id    
                 )demands ON demands.property_id = prop_properties.id
                 LEFT JOIN (
                     SELECT prop_demands.property_id,
                         SUM(
-                                CASE WHEN prop_demands.due_date BETWEEN '$fromDate' AND '$uptoDate' then prop_demands.amount
+                                CASE WHEN prop_demands.fyear  = '$fiYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_collection,
                         SUM(
-                            cASe when prop_demands.due_date <'$fromDate' then prop_demands.amount
+                            cASe when prop_demands.fyear  < '$fiYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_collection,
-                    SUM(prop_demands.amount) AS total_collection
+                    SUM(prop_demands.total_tax) AS total_collection
                     FROM prop_demands
                     JOIN prop_properties ON prop_properties.id = prop_demands.property_id
                     JOIN prop_tran_dtls ON prop_tran_dtls.prop_demand_id = prop_demands.id 
@@ -1887,12 +1887,12 @@ class Report implements IReport
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
                         AND prop_transactions.tran_date  BETWEEN '$fromDate' AND '$uptoDate'
-                        AND prop_demands.due_date<='$uptoDate'
+                        AND prop_demands.fyear  <= '$fiYear'
                     GROUP BY prop_demands.property_id
                 )collection ON collection.property_id = prop_properties.id
                 LEFT JOIN ( 
                     SELECT prop_demands.property_id,
-                    SUM(prop_demands.amount) AS total_prev_collection
+                    SUM(prop_demands.total_tax) AS total_prev_collection
                     FROM prop_demands
                     JOIN prop_properties ON prop_properties.id = prop_demands.property_id
                     JOIN prop_tran_dtls ON prop_tran_dtls.prop_demand_id = prop_demands.id 
@@ -2050,21 +2050,21 @@ class Report implements IReport
                     SELECT prop_properties.ward_mstr_id,
                     COUNT
                         (DISTINCT (
-                            CASE WHEN prop_demands.fyear BETWEEN  '$fromYear' AND '$toYear'  then prop_demands.property_id
+                            CASE WHEN prop_demands.fyear  = '$fiYear'  then prop_demands.property_id
                             END)
                         ) as current_demand_hh,
                         SUM(
-                                CASE WHEN prop_demands.fyear BETWEEN '$fromYear' AND '$toYear' then prop_demands.total_tax
+                                CASE WHEN prop_demands.fyear = '$fiYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_demand,
                         COUNT
                             (DISTINCT (
-                                CASE WHEN prop_demands.fyear<'$fromYear' then prop_demands.property_id
+                                CASE WHEN prop_demands.fyear<'$fiYear' then prop_demands.property_id
                                 END)
                             ) as arrear_demand_hh,
                         SUM(
-                            CASE WHEN prop_demands.fyear<'$fromYear' then prop_demands.total_tax
+                            CASE WHEN prop_demands.fyear<'$fiYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_demand,
@@ -2074,32 +2074,32 @@ class Report implements IReport
                     WHERE prop_demands.status =1 
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
-                        AND prop_demands.fyear<='$toYear'
+                        AND prop_demands.fyear<='$fiYear'
                     GROUP BY prop_properties.ward_mstr_id
                 )demands ON demands.ward_mstr_id = ulb_ward_masters.id
                 LEFT JOIN (
                     SELECT prop_properties.ward_mstr_id,
                     COUNT
                         (DISTINCT (
-                            CASE WHEN prop_demands.fyear BETWEEN  '$fromYear' AND '$toYear'  then prop_demands.property_id
+                            CASE WHEN prop_demands.fyear  = '$fiYear'  then prop_demands.property_id
                             END)
                         ) as current_collection_hh,
 
                         COUNT(DISTINCT(prop_properties.id)) AS collection_from_no_of_hh,
                         SUM(
-                                CASE WHEN prop_demands.fyear BETWEEN '$fromYear' AND '$toYear' then prop_demands.total_tax
+                                CASE WHEN prop_demands.fyear  = '$fiYear' then prop_demands.total_tax
                                     ELSE 0
                                     END
                         ) AS current_collection,
 
                         COUNT
                             (DISTINCT (
-                                CASE WHEN prop_demands.fyear<'$fromYear' then prop_demands.property_id
+                                CASE WHEN prop_demands.fyear< '$fiYear' then prop_demands.property_id
                                 END)
                             ) as arrear_collection_hh,
 
                         SUM(
-                            CASE when prop_demands.fyear <'$fromYear' then prop_demands.total_tax
+                            CASE when prop_demands.fyear <'$fiYear' then prop_demands.total_tax
                                 ELSE 0
                                 END
                             ) AS arrear_collection,
@@ -2114,7 +2114,7 @@ class Report implements IReport
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
                         AND prop_transactions.tran_date  BETWEEN '$fromDate' AND '$uptoDate'
-                        AND prop_demands.fyear<='$uptoDate'
+                        AND prop_demands.fyear<='$fiYear'
                     GROUP BY prop_properties.ward_mstr_id
                 )collection ON collection.ward_mstr_id = ulb_ward_masters.id
                 LEFT JOIN ( 
@@ -3240,5 +3240,213 @@ class Report implements IReport
         $data['data'] = $details;
 
         return responseMsgs(true, "", $data, "", "", "", "post", $request->deviceId);
+    }
+
+    /**
+     * | Admin Dashboard Report for akola
+     */
+    public function adminDashReport()
+    {
+        try {
+            $currentFyear = getFY();
+            $query = " SELECT *,
+                                (SELECT COUNT(id) FROM prop_properties) AS total_properties,
+                                (SELECT ROUND(((zone1_collection/zone1_demand)*100),2) as zone1_recovery),
+                                (SELECT ROUND(((zone2_collection/zone2_demand)*100),2) as zone2_recovery),
+                                (SELECT ROUND(((zone3_collection/zone3_demand)*100),2) as zone3_recovery),
+                                (SELECT ROUND(((zone4_collection/zone4_demand)*100),2) as zone4_recovery)
+                                
+                                FROM
+                                -- Transaction Queries
+                            (
+                                SELECT 
+                                        COALESCE(SUM(amount),0) AS today_collections,
+                                        (
+                                            SELECT COALESCE(SUM(amount),0) FROM prop_transactions as t
+                                            JOIN prop_properties as p ON p.id=t.property_id
+                                            WHERE p.zone_mstr_id=1 AND tran_date=CURRENT_DATE AND t.status=1
+                                        ) as zone1_today_collection,
+                                        COALESCE(SUM(CASE WHEN payment_mode = 'NEFT' THEN amount ELSE 0 END),0) AS neft_collection,
+                                        COALESCE(SUM(CASE WHEN payment_mode = 'QR' THEN amount ELSE 0 END),0) AS qr_collection,
+                                        COALESCE(SUM(CASE WHEN payment_mode = 'CASH' THEN amount ELSE 0 END),0) AS cash_collection,
+                                        COALESCE(SUM(CASE WHEN payment_mode = 'DD' THEN amount ELSE 0 END),0) AS dd_collection,
+                                        COALESCE(SUM(CASE WHEN payment_mode = 'ONLINE' THEN amount ELSE 0 END),0) AS online_collection,
+                                        COALESCE(SUM(CASE WHEN payment_mode = 'CARD' THEN amount ELSE 0 END),0) AS card_collection,
+                                        COALESCE(SUM(CASE WHEN payment_mode = 'CHEQUE' THEN amount ELSE 0 END),0) AS chque_collection,
+                                        COALESCE(SUM(CASE WHEN payment_mode = 'RTGS' THEN amount ELSE 0 END),0) AS rtgs_collection
+                                        FROM prop_transactions
+                                WHERE tran_date=CURRENT_DATE and status=1
+                            ) AS tc,
+                            -- Property Demands Queries
+                            (
+                                SELECT cd.*,
+                                        ar.*
+                                    FROM
+                                    (
+                                        SELECT SUM(balance) AS current_demand
+                                        FROM prop_demands
+                                        WHERE fyear='$currentFyear' and paid_status=0 and status=1
+                                    ) as cd,
+                                    (
+                                        SELECT  COALESCE(SUM(COALESCE(balance, 0)),0) AS arrear_demand
+                                        FROM prop_demands
+                                        WHERE fyear<'$currentFyear' and paid_status=0 and status=1
+                                    ) as ar
+                            
+                            ) as current_arrear_demands,
+                            (
+                                SELECT 
+                                SUM(CASE WHEN p.zone_mstr_id = 1 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone1_demand,
+                                SUM(CASE WHEN p.zone_mstr_id = 2 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone2_demand,
+                                SUM(CASE WHEN p.zone_mstr_id = 3 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone3_demand,
+                                SUM(CASE WHEN p.zone_mstr_id = 4 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone4_demand
+                            
+                                FROM prop_demands as d
+                                join prop_properties as p on p.id=d.property_id
+                                where fyear='$currentFyear' and d.status=1 and p.status=1
+                            ) as zone_wise_demands,
+                            (
+                                SELECT 
+                                SUM(CASE WHEN p.zone_mstr_id = 1 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone1_collection,
+                                SUM(CASE WHEN p.zone_mstr_id = 2 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone2_collection,
+                                SUM(CASE WHEN p.zone_mstr_id = 3 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone3_collection,
+                                SUM(CASE WHEN p.zone_mstr_id = 4 THEN COALESCE((total_tax-adjust_amt),0) ELSE 0 END) AS zone4_collection
+                            
+                                FROM prop_demands as d
+                                join prop_properties as p on p.id=d.property_id
+                                where fyear='$currentFyear' and d.paid_status=1 and p.status=1 and d.status=1
+                            ) as zone_wise_collection,
+                            (SELECT 
+                                SUM(CASE WHEN p.zone_mstr_id = 1 THEN COALESCE(d.balance,0) ELSE 0 END) AS zone1_balance,
+                                SUM(CASE WHEN p.zone_mstr_id = 2 THEN COALESCE(d.balance,0) ELSE 0 END) AS zone2_balance,
+                                SUM(CASE WHEN p.zone_mstr_id = 3 THEN COALESCE(d.balance,0) ELSE 0 END) AS zone3_balance,
+                                SUM(CASE WHEN p.zone_mstr_id = 4 THEN COALESCE(d.balance,0) ELSE 0 END) AS zone4_balance
+                            
+                                FROM prop_demands as d
+                                join prop_properties as p on p.id=d.property_id
+                                where fyear='$currentFyear' and paid_status=0 and p.status=1 and d.status=1
+                            ) as zone_wise_balance,
+                            (
+                                SELECT 
+                                COALESCE(SUM(CASE WHEN p.zone_mstr_id = 1 THEN COALESCE(t.amount,0) ELSE 0 END),0) as zone1_today_collection,
+                                COALESCE(SUM(CASE WHEN p.zone_mstr_id = 2 THEN COALESCE(t.amount,0) ELSE 0 END),0) as zone2_today_collection,
+                                COALESCE(SUM(CASE WHEN p.zone_mstr_id = 3 THEN COALESCE(t.amount,0) ELSE 0 END),0) as zone3_today_collection,
+                                COALESCE(SUM(CASE WHEN p.zone_mstr_id = 4 THEN COALESCE(t.amount,0) ELSE 0 END),0) as zone4_today_collection
+                                FROM prop_transactions AS t
+                                JOIN (
+                                    SELECT id, zone_mstr_id
+                                    FROM prop_properties
+                                        UNION ALL
+                                    SELECT id, zone_mstr_id
+                                    FROM prop_safs
+                                ) AS p
+                                ON (
+                                    (t.tran_type = 'Property' AND t.property_id = p.id) OR
+                                    (t.tran_type <> 'Property' AND t.saf_id = p.id)
+                                )
+                                WHERE t.tran_date = CURRENT_DATE AND t.status = 1
+                            ) as zonewise_today_collection        
+                        ";
+
+            $report = DB::select($query);
+            $report[0]->zoneWiseReport = [
+                [
+                    'zone' => 1,
+                    'demand' => $report[0]->zone1_demand,
+                    'collection' => $report[0]->zone1_collection,
+                    'todayCollection' => $report[0]->zone1_today_collection,
+                    'recovery' => $report[0]->zone1_recovery,
+                    'balance' => $report[0]->zone1_balance,
+                ],
+                [
+                    'zone' => 2,
+                    'demand' => $report[0]->zone2_demand,
+                    'collection' => $report[0]->zone2_collection,
+                    'todayCollection' => $report[0]->zone2_today_collection,
+                    'recovery' => $report[0]->zone2_recovery,
+                    'balance' => $report[0]->zone2_balance,
+                ],
+                [
+                    'zone' => 3,
+                    'demand' => $report[0]->zone3_demand,
+                    'collection' => $report[0]->zone3_collection,
+                    'todayCollection' => $report[0]->zone3_today_collection,
+                    'recovery' => $report[0]->zone3_recovery,
+                    'balance' => $report[0]->zone3_balance,
+                ],
+                [
+                    'zone' => 4,
+                    'demand' => $report[0]->zone4_demand,
+                    'collection' => $report[0]->zone4_collection,
+                    'todayCollection' => $report[0]->zone4_today_collection,
+                    'recovery' => $report[0]->zone4_recovery,
+                    'balance' => $report[0]->zone4_balance,
+                ]
+            ];
+
+            $zoneWiseCollectionQuery = "SELECT z.id as zone_mstr_id,
+            COUNT(p.id) AS total_properties,
+                                           round(COALESCE(details.today_collections,0),2) as today_collections,
+                                           round(COALESCE(details.neft_collection,0),2) as neft_collection,
+                                           round(COALESCE(details.qr_collection,0),2) as qr_collection,
+                                           round(COALESCE(details.cash_collection,0),2) as cash_collection,
+                                           round(COALESCE(details.dd_collection,0),2) as dd_collection,
+                                           round(COALESCE(details.online_collection,0),2) as online_collection,
+                                           round(COALESCE(details.card_collection,0),2) as card_collection,
+                                           round(COALESCE(details.chque_collection,0),2) as chque_collection,
+                                           round(COALESCE(details.rtgs_collection,0),2) as rtgs_collection
+                                       FROM 
+                                       zone_masters as z 
+                                       JOIN prop_properties AS p ON p.zone_mstr_id=z.id
+                                       LEFT JOIN (
+                                       SELECT  
+                                               p.zone_mstr_id,
+                                               COALESCE(SUM(amount),0) AS today_collections,
+                                               COALESCE(SUM(CASE WHEN payment_mode = 'NEFT' THEN amount ELSE 0 END),0) AS neft_collection,
+                                               COALESCE(SUM(CASE WHEN payment_mode = 'QR' THEN amount ELSE 0 END),0) AS qr_collection,
+                                               COALESCE(SUM(CASE WHEN payment_mode = 'CASH' THEN amount ELSE 0 END),0) AS cash_collection,
+                                               COALESCE(SUM(CASE WHEN payment_mode = 'DD' THEN amount ELSE 0 END),0) AS dd_collection,
+                                               COALESCE(SUM(CASE WHEN payment_mode = 'ONLINE' THEN amount ELSE 0 END),0) AS online_collection,
+                                               COALESCE(SUM(CASE WHEN payment_mode = 'CARD' THEN amount ELSE 0 END),0) AS card_collection,
+                                               COALESCE(SUM(CASE WHEN payment_mode = 'CHEQUE' THEN amount ELSE 0 END),0) AS chque_collection,
+                                               COALESCE(SUM(CASE WHEN payment_mode = 'RTGS' THEN amount ELSE 0 END),0) AS rtgs_collection
+                                   
+                                           
+                                           FROM prop_transactions AS t
+                                           
+                                           LEFT JOIN (
+                                               SELECT id, zone_mstr_id
+                                               FROM prop_properties
+                                                   UNION ALL
+                                               SELECT id, zone_mstr_id
+                                               FROM prop_safs
+                                           ) AS p
+                                           ON (
+                                               (t.tran_type = 'Property' AND t.property_id = p.id) OR
+                                               (t.tran_type <> 'Property' AND t.saf_id = p.id)
+                                           )
+                                           LEFT JOIN zone_masters AS z on z.id=p.zone_mstr_id
+                                           WHERE t.tran_date = CURRENT_DATE AND t.status = 1
+                                           GROUP BY zone_mstr_id 
+                                           ) AS details on details.zone_mstr_id=z.id
+                                           
+                                           GROUP BY 
+                                                        z.id,details.today_collections,
+                                           details.today_collections,
+                                           details.neft_collection,
+                                           details.qr_collection,
+                                           details.cash_collection,
+                                           details.dd_collection,
+                                           details.online_collection,
+                                           details.card_collection,
+                                           details.chque_collection,
+                                           details.rtgs_collection";
+            $zoneWiseReport = DB::select($zoneWiseCollectionQuery);
+            $report[0]->zoneWiseReport = collect($zoneWiseReport);
+
+            return responseMsgs(true, "Admin Dashboard Reports", collect($report)->first());
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), []);
+        }
     }
 }

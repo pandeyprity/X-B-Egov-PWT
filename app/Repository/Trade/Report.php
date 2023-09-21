@@ -53,8 +53,8 @@ class Report implements IReport
         $this->_DB = DB::connection( $this->_DB_NAME );
         $this->_NOTICE_DB = DB::connection($this->_NOTICE_DB);
         DB::enableQueryLog();
-        $this->_DB->enableQueryLog();
-        $this->_NOTICE_DB->enableQueryLog();
+        // $this->_DB->enableQueryLog();
+        // $this->_NOTICE_DB->enableQueryLog();
 
         $this->_COMMON_FUNCTION = new CommonFunction();
         $this->_MODEL_WARD = new ModelWard();

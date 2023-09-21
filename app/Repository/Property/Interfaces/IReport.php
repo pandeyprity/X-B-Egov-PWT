@@ -26,4 +26,5 @@ interface IReport
     public function previousYearPaidButnotCurrentYear($request);
     public function dcbPieChart($request);
     public function rebateNpenalty($request);
+    public function adminDashReport();
 }
