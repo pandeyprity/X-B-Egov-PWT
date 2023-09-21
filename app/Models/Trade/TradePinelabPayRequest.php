@@ -16,22 +16,22 @@ class TradePinelabPayRequest extends Model
        $this->connection = $DB ? $DB:"pgsql_trade";
     }
 
-    public function insert(array $data)
-    {
-        $reqs = [
-            'temp_id'         => $data["applicationId"]??null,
-            'module_id'       => $data["moduleId"]??null,
-            'tran_type'       => $data["paymentType"]??null,
-            'merchant_id'     => $data["merchantId"]??null,
-            'amount'          => $data["amount"]??null,
-            'order_id'        => $data["orderId"]??null,            
-            'ip_address'      => $data["ipAddress"]??null,
-            'department_id'   => $data["departmentId"]??null,
-            'citizen_id'      => $data["citizenId"]??null,
-            'request_data'    => $data["requestData"]??null,
-        ];
-        return TradePinelabPayRequest::create($reqs)->id;  
-    }
+    // public function insert(array $data)
+    // {
+    //     $reqs = [
+    //         'temp_id'         => $data["applicationId"]??null,
+    //         'module_id'       => $data["moduleId"]??null,
+    //         'tran_type'       => $data["paymentType"]??null,
+    //         'merchant_id'     => $data["merchantId"]??null,
+    //         'amount'          => $data["amount"]??null,
+    //         'order_id'        => $data["orderId"]??null,            
+    //         'ip_address'      => $data["ipAddress"]??null,
+    //         'department_id'   => $data["departmentId"]??null,
+    //         'citizen_id'      => $data["citizenId"]??null,
+    //         // 'request_data'    => $data["requestData"]??null,
+    //     ];
+    //     return TradePinelabPayRequest::setConnection($this->connection)->create($reqs)->id;  
+    // }
     public function edit(array $data)
     {
         $requestData = self::find($data["id"]);
