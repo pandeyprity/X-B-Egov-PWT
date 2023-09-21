@@ -273,7 +273,7 @@ class WaterPaymentController extends Controller
                 throw new Exception("Water Application's Transaction Details not Found!!");
 
             # Application transactions
-            $waterTrans = $mWaterTran->ConsumerTransaction($request->consumerId)->get();         // Water Consumer Payment History
+            $waterTrans = $mWaterTran->getTransNo($request->consumerId, NULL)->get();         // Water Consumer Payment History
             $waterTrans = collect($waterTrans)->map(function ($value) use ($mWaterConsumerDemand, $mWaterTranDetail) {
                 $demandId = $mWaterTranDetail->getDetailByTranId($value['id']);
                 if ($demandId->first()) {
@@ -358,8 +358,7 @@ class WaterPaymentController extends Controller
             $applicationDetails = $mWaterApplication->getDetailsByApplicationId($transactionDetails->related_id)->first();
             if (is_null($applicationDetails)) {
                 $applicationDetails = $mWaterApprovalApplicationDetail->getApprovedApplicationById($transactionDetails->related_id)->first();
-                if(!$applicationDetails)
-                {
+                if (!$applicationDetails) {
                     throw new Exception('application details not found! ');
                 }
             }
@@ -1615,7 +1614,7 @@ class WaterPaymentController extends Controller
             }
             # Application Deatils
             $consumerDetails = $mWaterConsumer->fullWaterDetails($transactionDetails->related_id)->first();
-            if(!$consumerDetails){
+            if (!$consumerDetails) {
                 throw new Exception('consumer details not found');
             }
 
