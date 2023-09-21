@@ -29,7 +29,8 @@ class ReqPayment extends FormRequest
         $rules = array();
         $offlinePaymentModes = Config::get('payment-constants.PAYMENT_MODE_OFFLINE');
         $cash = Config::get('payment-constants.PAYMENT_MODE.3');
-        if (isset($this['paymentMode']) &&  in_array($this['paymentMode'], $offlinePaymentModes) && $this['paymentMode'] != $cash) {
+        $neft = Config::get('payment-constants.PAYMENT_MODE.6');
+        if (isset($this['paymentMode']) &&  in_array($this['paymentMode'], $offlinePaymentModes) && $this['paymentMode'] != $cash && $this['paymentMode'] != $neft) {
             $rules['chequeDate'] = "required|date|date_format:Y-m-d";
             $rules['bankName'] = "required";
             $rules['branchName'] = "required";

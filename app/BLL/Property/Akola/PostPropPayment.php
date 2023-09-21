@@ -183,7 +183,7 @@ class PostPropPayment
             $this->_mPropTranDtl->create($tranDtlReq);
         }
 
-        // Rebate Penalty Transactions
+        // Rebate Penalty Transactions 🔴🔴 Rebate implementation is pending
         foreach ($this->_penaltyRebates as $penalRebates) {
             $reqPenalRebate = [
                 'tran_id' => $propTrans['id'],
