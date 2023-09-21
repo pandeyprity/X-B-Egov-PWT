@@ -1853,6 +1853,13 @@ class NewConnectionController extends Controller
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
+                case ("applicantName"): 
+                   return $paramenter =strtoupper($paramenter); 
+                    $waterReturnDetails = $mWaterConsumer->getDetailByOwnerDetails($refstring, $paramenter)->paginate($pages);
+                    $checkVal = $waterReturnDetails->last(); 
+                    if (!$checkVal || $checkVal == 0)
+                        throw new Exception("Data according to " . $key . " not Found!");
+                    break;
                 default:
                     throw new Exception("Data provided in filterBy is not valid!");
             }
@@ -3048,29 +3055,27 @@ class NewConnectionController extends Controller
         try {
             $articlesSet = array_flip([
                 "a", "an", "the", "and", "but", "or", "for", "nor", "so",
-                "yet","in", "on", "at", "by", "with", "about", "before", "after",
-                 "during", "under", "over", "between", "through", "above", "below","I", "you", "he", 
-                 "she", "it", "we", "they", "me", "him", "her", "us", "them","am", "is", "are", "was", 
-                 "were", "be", "being", "been","do", "does", "did", "have", "has", "had", "shall", 
-                 "will", "should", "would", "may", "might", "must", "can", "could","this", "that",
-                  "these", "those", "my", "your", "his", "her", "its", "our", "their","oh", "wow", "ouch", "hey", "hello", "hi"
+                "yet", "in", "on", "at", "by", "with", "about", "before", "after",
+                "during", "under", "over", "between", "through", "above", "below", "I", "you", "he",
+                "she", "it", "we", "they", "me", "him", "her", "us", "them", "am", "is", "are", "was",
+                "were", "be", "being", "been", "do", "does", "did", "have", "has", "had", "shall",
+                "will", "should", "would", "may", "might", "must", "can", "could", "this", "that",
+                "these", "those", "my", "your", "his", "her", "its", "our", "their", "oh", "wow", "ouch", "hey", "hello", "hi"
             ]);
-    
+
             $inputText = $request->input('var');
             $words = preg_split("/\s+/", $inputText);
-    
+
             // Filter out words that are in the $articles set
-            $filteredWords = array_filter($words, function($word) use ($articlesSet) {
+            $filteredWords = array_filter($words, function ($word) use ($articlesSet) {
                 return !isset($articlesSet[strtolower($word)]);
             });
-    
+
             $resultText = implode(" ", $filteredWords);
-    
+
             return responseMsgs(true, "check", $resultText, "", "01", responseTime(), $request->getMethod(), $request->deviceId);
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
         }
     }
-    
-    
 }

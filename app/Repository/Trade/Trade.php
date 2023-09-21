@@ -955,7 +955,7 @@ class Trade implements ITrade
             return responseMsg(false, $e->getMessage(), "");
         }
     }
-    public function postTempTransection(TradeTransaction $refTransection, ActiveTradeLicence $refApplication, $mWardNo = null)
+    public function postTempTransection(TradeTransaction $refTransection, TradeLicence $refApplication, $mWardNo = null)
     {
         $module_id = $this->_MODULE_ID;
         $mTempTransaction = new TempTransaction();
