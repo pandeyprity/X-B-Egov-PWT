@@ -20,6 +20,7 @@ class Calculate2PercPenalty
         $currentFy = getFY();
         $currentMonth = Carbon::now()->format('m');
 
+        $demand = (object)$demand;
         if ($demand->fyear == $currentFy) {
             $noOfPenalMonths = $currentMonth - 4;                   // Start of the month april
             $monthlyBalance = $demand->balance / 12;

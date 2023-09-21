@@ -150,9 +150,6 @@ class HoldingTaxController extends Controller
 
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
-            foreach ($demandList as $list) {
-                $calculate2PercPenalty->calculatePenalty($list);
-            }
 
             $stateTaxDtls = [                                       // For Calculation Ref of State tax perc 
                 'alv' => $demandList->last()->alv ?? 0,
@@ -168,6 +165,13 @@ class HoldingTaxController extends Controller
 
             if (isset($req->isArrear) && $req->isArrear)                            // If Citizen wants to pay only arrear from Payment function
                 $demandList = $demandList->where('is_arrear', true)->values();
+
+
+            foreach ($demandList as $list) {
+                $calculate2PercPenalty->calculatePenalty($list);
+            }
+
+            $demandList = collect($demandList)->sortBy('fyear')->values();
 
             $paymentStatus = $demandList->isEmpty() ? 1 : 0;
 
