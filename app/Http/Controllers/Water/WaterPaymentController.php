@@ -418,6 +418,8 @@ class WaterPaymentController extends Controller
                 "tabize"                => $applicationDetails['tab_size'],
                 "category"              => $applicationDetails['category'],
                 "guardianName"          => $applicationDetails['guardianName'],
+                "association"           => $applicationDetails['association_with'],
+                "mobileNo"              => $applicationDetails['mobile_no'],
 
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
             ];
@@ -2164,7 +2166,7 @@ class WaterPaymentController extends Controller
         | Serial No :
         | Under Con
      */
-    public function offlineConReqPayment(reqConsumerReqPayment $request)
+    public function offlineConPayment(reqConsumerReqPayment $request)
     {
         try {
             $user           = authUser($request);

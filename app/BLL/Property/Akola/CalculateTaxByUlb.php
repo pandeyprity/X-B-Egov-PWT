@@ -51,9 +51,11 @@ class CalculateTaxByUlb extends TaxCalculator
         if (collect($this->_propVerifications)->isEmpty())
             throw new Exception("Property Verification Details not available to generate FAM");
 
-        $this->_safs = PropActiveSaf::find($this->_verificationId);                         // Get Saf details from active table
+        $this->_safs = PropActiveSaf::find($this->_propVerifications->saf_id);                         // Get Saf details from active table
         if (collect($this->_safs)->isEmpty())
-            $this->_safs = PropSaf::find($this->_verificationId);                           // Get Saf details from approved table
+            $this->_safs = PropSaf::find($this->_propVerifications->saf_id);                           // Get Saf details from approved table
+        if (collect($this->_safs)->isEmpty())
+            throw new Exception("Cant find this application no");
     }
 
     /**

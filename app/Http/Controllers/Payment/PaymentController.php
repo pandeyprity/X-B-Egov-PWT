@@ -163,6 +163,22 @@ class PaymentController extends Controller
     }
 
     /**
+     * | Generate Order Id
+     */
+    protected function getOrderId(int $modeuleId)
+    {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $randomString = '';
+        for ($i = 0; $i < 10; $i++) {
+            $index = rand(0, strlen($characters) - 1);
+            $randomString .= $characters[$index];
+        }
+        $orderId = (("Order_" . $modeuleId . date('dmyhism') . $randomString));
+        $orderId = explode("=", chunk_split($orderId, 30, "="))[0];
+        return $orderId;
+    }
+
+    /**
      * | Save Pine lab Request
      */
     public function initiatePayment(Request $req)
@@ -175,21 +191,22 @@ class PaymentController extends Controller
         ]);
         if ($validator->fails())
             return validationError($validator);
-
         try {
             $mPinelabPaymentReq =  new PinelabPaymentReq();
             $propertyModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
+            $moduleId = $req->moduleId;
+
             if ($req->paymentType == 'Property' || 'Saf')
                 $moduleId = $propertyModuleId;
 
             $user = authUser($req);
             $mReqs = [
-                "ref_no"          => Str::random(10),
+                "ref_no"          => $this->getOrderId($moduleId),
                 "user_id"         => $user->id,
                 "workflow_id"     => $req->workflowId ?? 0,
                 "amount"          => $req->amount,
                 "module_id"       => $moduleId,
-                "ulb_id"          => $user->ulb_id,
+                "ulb_id"          => $user->ulb_id ?? $req->ulbId,
                 "application_id"  => $req->applicationId,
                 "payment_type"    => $req->paymentType
                 // "method_id"       => $req->method_id,

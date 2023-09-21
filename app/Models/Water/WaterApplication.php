@@ -475,9 +475,12 @@ class WaterApplication extends Model
             'water_applications.address',
             'water_applications.holding_no',
             'water_applications.saf_no',
+            "water_applications.category",
+            'water_applications.mobile_no',
             'ulb_ward_masters.ward_name',
             'ulb_masters.ulb_name',
             'ulb_masters.logo',
+            'ulb_masters.association_with',
             DB::raw("string_agg(water_applicants.applicant_name,',') as applicantName"),
             DB::raw("string_agg(water_applicants.mobile_no::VARCHAR,',') as mobileNo"),
             DB::raw("string_agg(water_applicants.guardian_name,',') as guardianName"),
@@ -500,6 +503,8 @@ class WaterApplication extends Model
                 'ulb_masters.id',
                 'ulb_masters.ulb_name',
                 'ulb_masters.logo',
+                'ulb_masters.association_with',
+                "water_applications.category"
             );
     }
 
@@ -673,6 +678,10 @@ class WaterApplication extends Model
         $saveNewApplication->property_no_type       = $req->propertyNoType;
         $saveNewApplication->property_no            = $req->propertyNo;
         $saveNewApplication->tab_size               = $req->TabSize;
+        $saveNewApplication->mobile_no              = $req->mobileNo;
+        $saveNewApplication->zone                   = $req->zone;
+        $saveNewApplication->cycle                  = $req->cycle;
+        $saveNewApplication->building_type          = $req->buildingType;
         $saveNewApplication->save();
         return $saveNewApplication;
     }

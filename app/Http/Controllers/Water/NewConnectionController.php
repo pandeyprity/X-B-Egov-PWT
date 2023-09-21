@@ -1314,7 +1314,7 @@ class NewConnectionController extends Controller
             $connectionCharges['applicationNo'] = $refApplication->application_no;
             $connectionCharges['applicationId'] = $refApplication->id;
 
-            $requiedDocType = $refWaterNewConnection->getDocumentTypeList($refApplication,$user);  # get All Related Document Type List
+            $requiedDocType = $refWaterNewConnection->getDocumentTypeList($refApplication, $user);  # get All Related Document Type List
             $refOwneres = $refWaterNewConnection->getOwnereDtlByLId($refApplication->id);    # get Owneres List
             $ownerList = collect($refOwneres)->map(function ($value) {
                 $return['applicant_name'] = $value['applicant_name'];
@@ -1638,7 +1638,7 @@ class NewConnectionController extends Controller
                 throw new Exception("Application Not Found for this id");
             }
             // $refWaterApplicant = $mWaterApplicant->getOwnerList($req->applicationId)->get();
-            $documentList = $this->getWaterDocLists($refWaterApplication,$req);
+            $documentList = $this->getWaterDocLists($refWaterApplication, $req);
             $waterTypeDocs['listDocs'] = collect($documentList)->map(function ($value, $key) use ($refWaterApplication) {
                 return $this->filterDocument($value, $refWaterApplication)->first();
             });
@@ -1740,23 +1740,23 @@ class NewConnectionController extends Controller
      * | 01.01
         | Serial No :  
      */
-    public function getWaterDocLists($application,$req)
-{
-    $user           = authUser($req);
-    $mRefReqDocs    = new RefRequiredDocument();
-    $moduleId       = Config::get('module-constants.WATER_MODULE_ID');
-    $refUserType    = Config::get('waterConstaint.REF_USER_TYPE');
+    public function getWaterDocLists($application, $req)
+    {
+        $user           = authUser($req);
+        $mRefReqDocs    = new RefRequiredDocument();
+        $moduleId       = Config::get('module-constants.WATER_MODULE_ID');
+        $refUserType    = Config::get('waterConstaint.REF_USER_TYPE');
 
-    $type = ["FORM_SCAN_COPY", "STAMP", "ID_PROOF"];
+        $type = ["FORM_SCAN_COPY", "STAMP", "ID_PROOF"];
 
-    // Check if user_type is not equal to 1
-    if ($user->user_type == $refUserType['1']) {
-        // Modify $type array for user_type not equal to 1
-        $type = ["STAMP", "ID_PROOF"];
+        // Check if user_type is not equal to 1
+        if ($user->user_type == $refUserType['1']) {
+            // Modify $type array for user_type not equal to 1
+            $type = ["STAMP", "ID_PROOF"];
+        }
+
+        return $mRefReqDocs->getCollectiveDocByCode($moduleId, $type);
     }
-
-    return $mRefReqDocs->getCollectiveDocByCode($moduleId, $type);
-}
 
 
 
@@ -1847,12 +1847,12 @@ class NewConnectionController extends Controller
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
-                    case ("meterNo"):                                                                        // Static
-                        $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
-                        $checkVal = collect($waterReturnDetails)->last();
-                        if (!$checkVal || $checkVal == 0)
-                            throw new Exception("Data according to " . $key . " not Found!");
-                        break;
+                case ("meterNo"):                                                                        // Static
+                    $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
+                    $checkVal = collect($waterReturnDetails)->last();
+                    if (!$checkVal || $checkVal == 0)
+                        throw new Exception("Data according to " . $key . " not Found!");
+                    break;
                 default:
                     throw new Exception("Data provided in filterBy is not valid!");
             }
@@ -3041,4 +3041,36 @@ class NewConnectionController extends Controller
         $returnData['usageType'] = $usage->unique()->values();
         return $returnData;
     }
+
+    #check only
+    public function check(Request $request)
+    {
+        try {
+            $articlesSet = array_flip([
+                "a", "an", "the", "and", "but", "or", "for", "nor", "so",
+                "yet","in", "on", "at", "by", "with", "about", "before", "after",
+                 "during", "under", "over", "between", "through", "above", "below","I", "you", "he", 
+                 "she", "it", "we", "they", "me", "him", "her", "us", "them","am", "is", "are", "was", 
+                 "were", "be", "being", "been","do", "does", "did", "have", "has", "had", "shall", 
+                 "will", "should", "would", "may", "might", "must", "can", "could","this", "that",
+                  "these", "those", "my", "your", "his", "her", "its", "our", "their","oh", "wow", "ouch", "hey", "hello", "hi"
+            ]);
+    
+            $inputText = $request->input('var');
+            $words = preg_split("/\s+/", $inputText);
+    
+            // Filter out words that are in the $articles set
+            $filteredWords = array_filter($words, function($word) use ($articlesSet) {
+                return !isset($articlesSet[strtolower($word)]);
+            });
+    
+            $resultText = implode(" ", $filteredWords);
+    
+            return responseMsgs(true, "check", $resultText, "", "01", responseTime(), $request->getMethod(), $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+    
+    
 }
