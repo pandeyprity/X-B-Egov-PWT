@@ -3,6 +3,12 @@
 namespace App\Http\Controllers\Property;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Property\Reports\CollectionReport;
+use App\Http\Requests\Property\Reports\Levelformdetail;
+use App\Http\Requests\Property\Reports\LevelUserPending;
+use App\Http\Requests\Property\Reports\SafPropIndividualDemandAndCollection;
+use App\Http\Requests\Property\Reports\UserWiseLevelPending;
+use App\Http\Requests\Property\Reports\UserWiseWardWireLevelPending;
 use App\Models\Property\PropDemand;
 use App\Models\Property\PropTransaction;
 use App\Repository\Common\CommonFunction;
@@ -36,103 +42,46 @@ class ReportController extends Controller
         $this->_common = new CommonFunction();
     }
 
-    public function collectionReport(Request $request)
+    public function collectionReport(CollectionReport $request)
     {
-        $request->validate(
-            [
-                "fromDate" => "required|date|date_format:Y-m-d",
-                "uptoDate" => "required|date|date_format:Y-m-d",
-                "wardId" => "nullable|digits_between:1,9223372036854775807",
-                "userId" => "nullable|digits_between:1,9223372036854775807",
-                "paymentMode" => "nullable",
-                "page" => "nullable|digits_between:1,9223372036854775807",
-                "perPage" => "nullable|digits_between:1,9223372036854775807",
-                "all" => "nullable|in:1,0",
-                "footer" => "nullable|in:1,0",
-            ]
-        );
-        $request->request->add(["metaData" => ["pr1.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr1.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->collectionReport($request);
     }
 
-    public function safCollection(Request $request)
-    {
-        $request->validate(
-            [
-                "fromDate" => "required|date|date_format:Y-m-d",
-                "uptoDate" => "required|date|date_format:Y-m-d",
-                "wardId" => "nullable|digits_between:1,9223372036854775807",
-                "userId" => "nullable|digits_between:1,9223372036854775807",
-                "paymentMode" => "nullable",
-                "page" => "nullable|digits_between:1,9223372036854775807",
-                "perPage" => "nullable|digits_between:1,9223372036854775807",
-            ]
-        );
-        $request->request->add(["metaData" => ["pr2.1", 1.1, null, $request->getMethod(), null,]]);
+    public function safCollection(CollectionReport $request)
+    {        
+        $request->merge(["metaData" => ["pr2.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->safCollection($request);
     }
 
-    public function safPropIndividualDemandAndCollection(Request $request)
-    {
-        $request->validate(
-            [
-                "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
-                "key" => "nullable|regex:/^[^<>{};:.,~!?@#$%^=&*\"]*$/i",
-                "wardId" => "nullable|digits_between:1,9223372036854775807",
-                "page" => "nullable|digits_between:1,9223372036854775807",
-                "perPage" => "nullable|digits_between:1,9223372036854775807",
-            ]
-        );
-        $request->request->add(["metaData" => ["pr3.1", 1.1, null, $request->getMethod(), null,]]);
+    public function safPropIndividualDemandAndCollection(SafPropIndividualDemandAndCollection $request)
+    { 
+        $request->merge(["metaData" => ["pr3.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->safPropIndividualDemandAndCollection($request);
     }
 
     public function levelwisependingform(Request $request)
     {
-        $request->request->add(["metaData" => ["pr4.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr4.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->levelwisependingform($request);
     }
 
-    public function levelformdetail(Request $request)
+    public function levelformdetail(Levelformdetail $request)
     {
-        $request->validate(
-            [
-                "ulbId" => "nullable|digits_between:1,9223372036854775807",
-                "roleId" => "nullable|digits_between:1,9223372036854775807",
-                "userId" => "nullable|digits_between:1,9223372036854775807",
-                "page" => "nullable|digits_between:1,9223372036854775807",
-                "perPage" => "nullable|digits_between:1,9223372036854775807",
-            ]
-        );
-        $request->request->add(["metaData" => ["pr4.2", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr4.2", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->levelformdetail($request);
     }
 
-    public function levelUserPending(Request $request)
+    public function levelUserPending(LevelUserPending $request)
     {
-        $request->validate(
-            [
-                "roleId" => "required|digits_between:1,9223372036854775807",
-                "ulbId" => "nullable|digits_between:1,9223372036854775807",
-                "page" => "nullable|digits_between:1,9223372036854775807",
-                "perPage" => "nullable|digits_between:1,9223372036854775807",
-            ]
-        );
-        $request->request->add(["metaData" => ["pr4.2.1", 1.1, null, $request->getMethod(), null,]]);
+        
+        $request->merge(["metaData" => ["pr4.2.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->levelUserPending($request);
     }
 
-    public function userWiseLevelPending(Request $request)
+    public function userWiseLevelPending(UserWiseLevelPending $request)
     {
-        $request->validate(
-            [
-                "userId" => "required|digits_between:1,9223372036854775807",
-                "ulbId" => "nullable|digits_between:1,9223372036854775807",
-                "page" => "nullable|digits_between:1,9223372036854775807",
-                "perPage" => "nullable|digits_between:1,9223372036854775807",
-            ]
-        );
-        $request->request->add(["metaData" => ["pr4.2.2", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr4.2.2", 1.1, null, $request->getMethod(), null,]]);
 
         $refUser        = authUser($request);
         $refUserId      = $refUser->id;
@@ -158,17 +107,9 @@ class ReportController extends Controller
         return responseMsgs($respons["original"]["status"], $respons["original"]["message"], $respons["original"]["data"], $apiId, $version, $queryRunTime, $action, $deviceId);
     }
 
-    public function userWiseWardWireLevelPending(Request $request)
+    public function userWiseWardWireLevelPending(UserWiseWardWireLevelPending $request)
     {
-        $request->validate(
-            [
-                "ulbId" => "nullable|digits_between:1,9223372036854775807",
-                "userId" => "required|digits_between:1,9223372036854775807",
-                "page" => "nullable|digits_between:1,9223372036854775807",
-                "perPage" => "nullable|digits_between:1,9223372036854775807",
-            ]
-        );
-        $request->request->add(["metaData" => ["pr4.2.1.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr4.2.1.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->userWiseWardWireLevelPending($request);
     }
 
@@ -182,7 +123,7 @@ class ReportController extends Controller
                 "wardId" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr5.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr5.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->safSamFamGeotagging($request);
     }
 
@@ -198,7 +139,7 @@ class ReportController extends Controller
                 "userId" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr1.2", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr1.2", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->PropPaymentModeWiseSummery($request);
     }
 
@@ -214,7 +155,7 @@ class ReportController extends Controller
                 "userId" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr2.2", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr2.2", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->SafPaymentModeWiseSummery($request);
     }
 
@@ -229,7 +170,7 @@ class ReportController extends Controller
                 "perPage" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr7.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr7.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->PropDCB($request);
     }
 
@@ -244,7 +185,7 @@ class ReportController extends Controller
                 // "perPage" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr8.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr8.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->PropWardWiseDCB($request);
     }
 
@@ -259,7 +200,7 @@ class ReportController extends Controller
                 "perPage" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr9.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr9.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->PropFineRebate($request);
     }
 
@@ -275,7 +216,7 @@ class ReportController extends Controller
                 "perPage" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr10.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr10.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->PropDeactedList($request);
     }
 
@@ -458,7 +399,7 @@ class ReportController extends Controller
                 "wardMstrId" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr13.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr13.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->propIndividualDemandCollection($request);
     }
 
@@ -474,7 +415,7 @@ class ReportController extends Controller
                 "wardMstrId" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr14.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr14.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->gbsafIndividualDemandCollection($request);
     }
 
@@ -489,7 +430,7 @@ class ReportController extends Controller
                 "wardMstrId" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr15.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr15.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->notPaidFrom2016($request);
     }
 
@@ -504,7 +445,7 @@ class ReportController extends Controller
                 "wardMstrId" => "nullable|digits_between:1,9223372036854775807",
             ]
         );
-        $request->request->add(["metaData" => ["pr16.1", 1.1, null, $request->getMethod(), null,]]);
+        $request->merge(["metaData" => ["pr16.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->previousYearPaidButnotCurrentYear($request);
     }
 
