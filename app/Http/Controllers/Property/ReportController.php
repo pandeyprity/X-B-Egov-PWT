@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Validator;
 
 #------------date 13/03/2023 -------------------------------------------------------------------------
 #   Code By Sandeep Bara
@@ -46,6 +47,8 @@ class ReportController extends Controller
                 "paymentMode" => "nullable",
                 "page" => "nullable|digits_between:1,9223372036854775807",
                 "perPage" => "nullable|digits_between:1,9223372036854775807",
+                "all" => "nullable|in:1,0",
+                "footer" => "nullable|in:1,0",
             ]
         );
         $request->request->add(["metaData" => ["pr1.1", 1.1, null, $request->getMethod(), null,]]);
@@ -518,6 +521,21 @@ class ReportController extends Controller
      */
     public function propSafCollection(Request $request)
     {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'collectionType' => 'required|array',
+                // 'collectionType.*' => 'required|in:property,saf,gbsaf'
+            ]
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+
         $propCollection = null;
         $safCollection = null;
         $gbsafCollection = null;

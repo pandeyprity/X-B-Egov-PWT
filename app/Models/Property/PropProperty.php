@@ -549,6 +549,7 @@ class PropProperty extends Model
             'prop_properties.id',
             'prop_properties.ulb_id',
             'prop_properties.holding_no',
+            'zone_name',
             'latitude',
             'longitude',
             'prop_properties.new_holding_no',
@@ -561,6 +562,7 @@ class PropProperty extends Model
             DB::raw("string_agg(prop_owners.mobile_no::VARCHAR,',') as mobile_no"),
             DB::raw("string_agg(prop_owners.owner_name,',') as owner_name"),
         )
+            ->join('zone_masters', 'zone_masters.id', 'prop_properties.zone_mstr_id')
             ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'prop_properties.ward_mstr_id')
             ->leftjoin(DB::raw("(select latitude, longitude,  prop_saf_geotag_uploads.saf_id
                                 from prop_saf_geotag_uploads 
@@ -744,8 +746,8 @@ class PropProperty extends Model
             'ulb_ward_masters.*',
             'prop_properties.*'
         )
-             ->leftjoin('ulb_ward_masters','ulb_ward_masters.id','prop_properties.ward_mstr_id')
-             ->where('holding_no', $holdingNo)
+            ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'prop_properties.ward_mstr_id')
+            ->where('holding_no', $holdingNo)
             ->where('prop_properties.status', 1)
             ->first();
         if (!$propDetails) {
