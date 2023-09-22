@@ -4183,6 +4183,10 @@ class Trade implements ITrade
                 $status = "License Surrenderd Successfully";
             }
         }
+        elseif($application->gettable()==(new RejectedTradeLicence)->gettable()){ 
+            $rols  = WfRole::find($application->current_role);
+            $status = "Application Is Rejected By ". ($rols->role_name??"");
+        }
         elseif ($application->is_parked) {
             $rols  = WfRole::find($application->current_role);
             $status = "Application back to citizen by " . ($rols->role_name??"");
@@ -4191,18 +4195,18 @@ class Trade implements ITrade
             $status = "Application pending at " . ($rols->role_name??"");
         } elseif (!$application->is_active) {
             $status = "Application rejected ";
-        } 
-        elseif ($docChequ2 && strtoupper($mUserType) == $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""] && $application->citizen_id == $refUserId && $application->document_upload_status == 0 && $application->payment_status == 0) {
+        } # && $application->payment_status == 0
+        elseif ($docChequ2 && strtoupper($mUserType) == $this->_TRADE_CONSTAINT["USER-TYPE-SHORT-NAME"][""] && $application->citizen_id == $refUserId && $application->document_upload_status == 0) {
             $request = new Request(["applicationId" => $licenceId, "ulb_id" => $refUlbId, "user_id" => $refUserId]);
             $doc_status = $this->checkWorckFlowForwardBackord($request);
-            if ($doc_status && $application->payment_status == 0) {
-                $status = "All Required Documents Are Uploaded But Payment is Pending ";
+            if ($doc_status ) {#&& $application->payment_status == 0
+                $status = "All Required Documents Are Uploaded";# But Payment is Pending 
             } elseif ($doc_status && $application->payment_status == 1) {
                 $status = "Pending At Counter";
             } elseif (!$doc_status && $application->payment_status == 1) {
                 $status = "Payment is Done But Document Not Uploaded";
-            } elseif (!$doc_status && $application->payment_status == 0) {
-                $status = "Payment is Pending And Document Not Uploaded";
+            } elseif (!$doc_status) {# && $application->payment_status == 0
+                $status = "Document Not Uploaded";#Payment is Pending And 
             }
         } 
         elseif($docChequ2 && $application->payment_status==1 && $application->document_upload_status == 0 && $application->application_type_id==4){
