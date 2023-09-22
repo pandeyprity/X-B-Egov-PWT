@@ -1856,8 +1856,7 @@ class NewConnectionController extends Controller
                 case ("applicantName"):
                     $paramenter = strtoupper($paramenter);
                     $waterReturnDetails = $mWaterConsumer->getDetailByOwnerDetails($refstring, $paramenter)->paginate($pages);
-                    $checkVal = $waterReturnDetails->last();
-                    if (!$checkVal || $checkVal == 0)
+                    if (!$waterReturnDetails)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
                 default:
