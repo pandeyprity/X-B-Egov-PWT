@@ -764,7 +764,7 @@ class Report implements IReport
             list($fromYear,$toYear)=explode("-",$fiYear);
             if($toYear-$fromYear !=1)
             {
-                throw new Exception("Enter Valide Financial Year");
+                throw new Exception("Enter Valid Financial Year");
             }
             $fromDate = $fromYear."-04-01";
             $uptoDate = $toYear."-03-31";
