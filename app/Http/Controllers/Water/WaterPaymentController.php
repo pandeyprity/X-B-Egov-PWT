@@ -1610,7 +1610,7 @@ class WaterPaymentController extends Controller
 
             #  Data not equal to Cash
             if (!in_array($transactionDetails['payment_mode'], [$mPaymentModes['1'], $mPaymentModes['5']])) {
-                $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->first();
+               $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->first();
             }
             # Application Deatils
             $consumerDetails = $mWaterConsumer->fullWaterDetails($transactionDetails->related_id)->first();
@@ -1670,6 +1670,7 @@ class WaterPaymentController extends Controller
                 "chequeNo"              => $chequeDetails['cheque_no']   ?? null,                                   // in case of chque,dd,nfts
                 "chequeDate"            => $chequeDetails['cheque_date'] ?? null,                                  // in case of chque,dd,nfts
                 "penaltyAmount"         => $penaltyAmount,
+                "association"           => $consumerDetails['association_with'],
                 "demandAmount"          => $refDemandAmount,
                 "ulbId"                 => $consumerDetails['ulb_id'],
                 "ulbName"               => $consumerDetails['ulb_name'],

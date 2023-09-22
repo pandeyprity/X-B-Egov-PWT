@@ -73,7 +73,7 @@ class GetRefUrl
     }
 
 
-    
+
     /**
      * | Get the Payment Status and data 
      */
@@ -89,5 +89,4 @@ class GetRefUrl
 
         // // Http::->post("$petApi->end_point", $transfer);
     }
-
 }
