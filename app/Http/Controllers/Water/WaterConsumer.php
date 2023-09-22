@@ -148,7 +148,9 @@ class WaterConsumer extends Controller
             $refConnectionName      = Config::get('waterConstaint.METER_CONN_TYPE');
             $refConsumerId          = $request->ConsumerId;
 
-            $consumerDemand['consumerDemands'] = $mWaterConsumerDemand->getConsumerDemand($refConsumerId);
+            $refConsumerDemand = $mWaterConsumerDemand->getConsumerDemand($refConsumerId);
+            $refConsumerDemand = collect($refConsumerDemand)->sortBy('id')->values();
+            $consumerDemand['consumerDemands'] = $refConsumerDemand;
             $checkParam = collect($consumerDemand['consumerDemands'])->first();
             if (isset($checkParam)) {
                 $sumDemandAmount = collect($consumerDemand['consumerDemands'])->sum('balance_amount');
