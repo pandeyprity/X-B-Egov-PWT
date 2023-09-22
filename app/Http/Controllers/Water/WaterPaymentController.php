@@ -284,8 +284,8 @@ class WaterPaymentController extends Controller
             //     $value['demand'] = [];
             //     return $value;
             // })->filter()->values();
-            // $transactions['Consumer'] = $waterTrans;
-            $transactions['connection'] = $connectionTran;
+            $transactions['Consumer'] = $connectionTran;
+            // $transactions['connection'] = $waterTrans;
 
             return responseMsgs(true, "", remove_null($transactions), "", "01", "ms", "POST", $request->deviceId ?? "");
         } catch (Exception $e) {
