@@ -41,6 +41,7 @@ class GeneratePaymentReceipt
     private $_ulbDetails;
     private $_mUlbMasters;
     private $_mPropSaf;
+    private $_isArrearPayment = true;
 
     /**
      * | Initializations of Variables
@@ -100,6 +101,7 @@ class GeneratePaymentReceipt
         }
 
         if (collect($tranDtls)->isNotEmpty()) {
+            $this->_isArrearPayment = false;
             if ($this->_tranType == 'Property') {                                   // Get Property Demands by demand ids
                 $demandIds = collect($tranDtls)->pluck('prop_demand_id')->toArray();
                 $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
@@ -196,7 +198,8 @@ class GeneratePaymentReceipt
             "paidAmtInWords" => getIndianCurrency($this->_trans->amount),
             "tcName" => $this->_trans->tc_name,
             "tcMobile" => $this->_trans->tc_mobile,
-            "ulbDetails" => $this->_ulbDetails
+            "ulbDetails" => $this->_ulbDetails,
+            "isArrearPayment" => $this->_isArrearPayment
         ];
 
         $this->_GRID['receiptDtls'] = $receiptDtls;
