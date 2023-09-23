@@ -2041,7 +2041,7 @@ class Report implements IReport
         }
     }
 
-    public function PropWardWiseDCB(Request $request)
+    public function oldPropWardWiseDCB(Request $request)
     {
         $metaData = collect($request->metaData)->all();
         list($apiId, $version, $queryRunTime, $action, $deviceId) = $metaData;
@@ -2210,6 +2210,192 @@ class Report implements IReport
                                     + COALESCE(collection.arrear_collection, 0::numeric), 0::numeric
                                 )
                             ))) AS outstanding                                 
+            ";
+            $dcb = DB::select($select . $from);
+
+            $data['total_arrear_demand'] = round(collect($dcb)->sum('arrear_demand'), 0);
+            $data['total_current_demand'] = round(collect($dcb)->sum('current_demand'), 0);
+            $data['total_arrear_collection'] = round(collect($dcb)->sum('arrear_collection'), 0);
+            $data['total_current_collection'] = round(collect($dcb)->sum('current_collection'), 0);
+            $data['total_old_due'] = round(collect($dcb)->sum('old_due'), 0);
+            $data['total_current_due'] = round(collect($dcb)->sum('current_due'), 0);
+            $data['total_arrear_demand_hh'] = round(collect($dcb)->sum('arrear_demand_hh'), 0);
+            $data['total_current_demand_hh'] = round(collect($dcb)->sum('current_demand_hh'), 0);
+            $data['total_arrear_collection_hh'] = round(collect($dcb)->sum('arrear_collection_hh'), 0);
+            $data['total_current_collection_hh'] = round(collect($dcb)->sum('current_collection_hh'), 0);
+            $data['total_arrear_balance_hh'] = round(collect($dcb)->sum('arrear_balance_hh'));
+            $data['total_current_balance_hh'] = round(collect($dcb)->sum('current_balance_hh'));
+            // $data['total_current_eff'] = round(($data['total_current_collection_hh'] / $data['total_current_demand']) * 100);
+            // $data['total_arrear_hh_eff'] = round(($data['total_arrear_collection_hh'] /  $data['total_arrear_demand_hh']) * 100);
+            // $data['total_current_hh_eff'] = round(($data['total_current_collection_hh']) / ($data['total_current_demand_hh']) * 100);
+            // $data['total_arrear_eff'] = round(($data['total_arrear_collection']) / ($data['total_arrear_demand']) * 100);
+            $data['total_eff'] = round((($data['total_arrear_collection'] + $data['total_current_collection']) / ($data['total_arrear_demand'] + $data['total_current_demand'])) * 100);
+            $data['dcb'] = $dcb;
+
+            $queryRunTime = (collect(DB::getQueryLog())->sum("time"));
+            return responseMsgs(true, "", $data, $apiId, $version, $queryRunTime, $action, $deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
+        }
+    }
+    public function PropWardWiseDCB(Request $request)
+    {
+        $metaData = collect($request->metaData)->all();
+        list($apiId, $version, $queryRunTime, $action, $deviceId) = $metaData;
+        try {
+            $refUser        = authUser($request);
+            $refUserId      = $refUser->id;
+            $ulbId          = $refUser->ulb_id;
+            $wardId = null;
+            $fiYear = getFY();
+            if ($request->fiYear) {
+                $fiYear = $request->fiYear;
+            }
+            list($fromYear, $toYear) = explode("-", $fiYear);
+            if ($toYear - $fromYear != 1) {
+                throw new Exception("Enter Valide Financial Year");
+            }
+            $fromDate = $fromYear . "-04-01";
+            $uptoDate = $toYear . "-03-31";
+            if ($request->ulbId) {
+                $ulbId = $request->ulbId;
+            }
+            if ($request->wardId) {
+                $wardId = $request->wardId;
+            }
+            $from = "
+                FROM ulb_ward_masters 
+                LEFT JOIN(
+                    SELECT prop_properties.ward_mstr_id,            
+                        COUNT(DISTINCT (CASE WHEN prop_demands.fyear  = '$fiYear'  then prop_demands.property_id               
+                                        END)                        
+                            ) as current_demand_hh,    
+                        SUM(              
+                            CASE WHEN prop_demands.fyear = '$fiYear' then prop_demands.total_tax           
+                            ELSE 0                                   
+                            END                        
+                        ) AS current_demand,       
+                        COUNT(DISTINCT ( CASE WHEN prop_demands.fyear < '$fiYear' then prop_demands.property_id 
+                                        END)                            
+                            ) as arrear_demand_hh,                       
+                        SUM(CASE WHEN prop_demands.fyear < '$fiYear' then prop_demands.total_tax ELSE 0 END ) AS arrear_demand,     
+                        SUM(total_tax) AS total_demand,
+                        COUNT(DISTINCT (CASE WHEN prop_demands.fyear  = '$fiYear' and prop_demands.paid_status =1 then prop_demands.property_id               
+                                            END)                        
+                                ) as current_collection_hh,  
+                        SUM(              
+                                CASE WHEN prop_demands.fyear = '$fiYear' and prop_demands.paid_status =1 then prop_demands.total_tax           
+                                ELSE 0                                   
+                                END                        
+                            ) AS current_collection,
+                        COUNT(DISTINCT ( CASE WHEN prop_demands.fyear < '$fiYear' and prop_demands.paid_status =1 then prop_demands.property_id 
+                                            END)                            
+                                ) as arrear_collection_hh, 
+                        SUM(CASE WHEN prop_demands.fyear < '$fiYear' and prop_demands.paid_status =1  then prop_demands.total_tax ELSE 0 END ) AS arrear_collection,
+                        SUM(CASE WHEN prop_demands.paid_status =1  then prop_demands.total_tax ELSE 0 END) AS total_collection,
+                        COUNT(DISTINCT(CASE WHEN prop_demands.paid_status =1  then prop_properties.id end)) AS collection_from_no_of_hh 
+                    FROM prop_demands                    
+                    JOIN prop_properties ON prop_properties.id = prop_demands.property_id
+                    WHERE prop_demands.status =1 
+                        AND prop_demands.ulb_id =$ulbId
+                        " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
+                        AND prop_demands.fyear<='$fiYear'
+                    GROUP BY prop_properties.ward_mstr_id
+                )demands ON demands.ward_mstr_id = ulb_ward_masters.id                                
+                WHERE  ulb_ward_masters.ulb_id = $ulbId  
+                    " . ($wardId ? " AND ulb_ward_masters.id = $wardId" : "") . "
+                GROUP BY ulb_ward_masters.ward_name           
+            ";
+            $select = "SELECT ulb_ward_masters.ward_name AS ward_no,
+                            SUM(COALESCE(demands.current_demand_hh, 0::numeric)) AS current_demand_hh,   
+                            SUM(COALESCE(demands.arrear_demand_hh, 0::numeric)) AS arrear_demand_hh,      
+                            SUM(COALESCE(demands.current_collection_hh, 0::numeric)) AS current_collection_hh,  
+                            SUM(COALESCE(demands.arrear_collection_hh, 0::numeric)) AS arrear_collection_hh,      
+                            SUM(COALESCE(demands.collection_from_no_of_hh, 0::numeric)) AS collection_from_hh,   
+                            round(
+                                SUM(
+                                    (
+                                            COALESCE(demands.arrear_collection_hh, 0::numeric) 
+                                            / (case when demands.arrear_demand_hh > 0 or demands.arrear_demand_hh is not null then demands.arrear_demand_hh else 1 end)
+                                    )
+                                    *100
+                                )
+                            ) AS arrear_hh_eff,                            
+                            round(
+                                SUM(
+                                    (
+                                        COALESCE(demands.current_collection_hh, 0::numeric) 
+                                        / (case when demands.current_demand_hh > 0 or demands.current_demand_hh is not null then demands.current_demand_hh else 1 end)
+                                    )
+                                    *100
+                                )
+                            ) AS current_hh_eff,                            
+                            round(
+                                SUM(
+                                    COALESCE(                                
+                                        COALESCE(demands.current_demand_hh, 0::numeric)  
+                                        +COALESCE(demands.arrear_demand_hh, 0::numeric)
+                                        - COALESCE(demands.collection_from_no_of_hh, 0::numeric), 0::numeric     
+                                    )
+                                )
+                            ) AS balance_hh,                                                   
+                            round(
+                                SUM(
+                                    COALESCE(                                
+                                        COALESCE(demands.arrear_demand, 0::numeric)   
+                                    )
+                                )
+                            ) AS arrear_demand,    
+                            round(SUM(COALESCE(demands.current_demand, 0::numeric))) AS current_demand,   
+                            round(SUM(COALESCE(demands.arrear_collection, 0::numeric))) AS arrear_collection,   
+                            round(SUM(COALESCE(demands.current_collection, 0::numeric))) AS current_collection, 
+                            round(
+                                SUM(
+                                    (                                    
+                                        COALESCE(demands.arrear_demand, 0::numeric)                               
+                                        - COALESCE(demands.arrear_collection, 0::numeric)           
+                                    )
+                                )
+                            )AS old_due,                          
+                            round(SUM((COALESCE(demands.current_demand, 0::numeric) - COALESCE(demands.current_collection, 0::numeric)))) AS current_due,    
+                            round(SUM((COALESCE(demands.current_demand_hh, 0::numeric) - COALESCE(demands.current_collection_hh, 0::numeric)))) AS current_balance_hh, 
+                            round(SUM((COALESCE(demands.arrear_demand_hh, 0::numeric) - COALESCE(demands.arrear_collection_hh, 0::numeric)))) AS arrear_balance_hh,   
+                            round(
+                                SUM(
+                                    (
+                                        COALESCE(demands.arrear_collection ::numeric , 0::numeric)
+                                        / (case when demands.arrear_demand > 0 or demands.arrear_demand is not null then demands.arrear_demand else 1 end)
+                                        
+                                    )
+                                    *100
+                                )
+                            ) AS arrear_eff,                            
+                            round(
+                                SUM(
+                                    (
+                                        COALESCE(demands.current_collection, 0::numeric)
+                                            / (case when demands.current_demand > 0 or demands.current_demand is not null then demands.current_demand else 1 end)
+                                        
+                                    )
+                                    *100
+                                )
+                            ) AS current_eff,
+                            round(
+                                SUM(
+                                    (                                
+                                        COALESCE(                                   
+                                            COALESCE(demands.current_demand, 0::numeric)         
+                                            + (                                       
+                                                COALESCE(demands.arrear_demand, 0::numeric)   
+                                            ), 0::numeric                                
+                                        )                                 
+                                        - COALESCE(                              
+                                            COALESCE(demands.current_collection, 0::numeric)   
+                                            + COALESCE(demands.arrear_collection, 0::numeric), 0::numeric     
+                                        )                            
+                                    )
+                                )
+                            ) AS outstanding                                  
             ";
             $dcb = DB::select($select . $from);
 
