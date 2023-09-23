@@ -151,18 +151,6 @@ class HoldingTaxController extends Controller
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
 
-            $stateTaxDtls = [                                       // For Calculation Ref of State tax perc 
-                'alv' => $demandList->last()->alv ?? 0,
-                'state_education_tax' => $demandList->last()->state_education_tax ?? 0,
-                'professional_tax' => $demandList->last()->professional_tax ?? 0
-            ];
-
-            if ($arrear > 0) {                                      // Reverse Calculation
-                $revCalculateByAmt->_stateTaxDtls = $stateTaxDtls;
-                $revCalculateByAmt->calculateRev($arrear);
-                $demandList = $demandList->merge([$revCalculateByAmt->_GRID]);
-            }
-
             if (isset($req->isArrear) && $req->isArrear)                            // If Citizen wants to pay only arrear from Payment function
                 $demandList = $demandList->where('is_arrear', true)->values();
 
@@ -173,7 +161,10 @@ class HoldingTaxController extends Controller
 
             $demandList = collect($demandList)->sortBy('fyear')->values();
 
-            $paymentStatus = $demandList->isEmpty() ? 1 : 0;
+            if ($demandList->isEmpty() && $arrear <= 0)                              // Check the Payment Status
+                $paymentStatus = 1;
+            else
+                $paymentStatus = 0;
 
             $grandTaxes = $this->sumTaxHelper($demandList);
 
@@ -187,7 +178,7 @@ class HoldingTaxController extends Controller
             $demand['currentDemand'] = $demandList->where('fyear', getFY())->first()['balance'] ?? 0;
             $demand['arrear'] = $arrear;
             $demand['monthlyPenalty'] = $grandTaxes['monthlyPenalty'];
-            $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['monthlyPenalty']);
+            $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['monthlyPenalty'] + $arrear);
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
             $holdingType = $propBasicDtls->holding_type;
             $ownershipType = $propBasicDtls->ownership_type;

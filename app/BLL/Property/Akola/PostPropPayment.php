@@ -39,6 +39,8 @@ class PostPropPayment
     private $_demands;
     private array $_penaltyRebates;
     private $_mPropPenaltyrebates;
+    private $_fromFyear = null;
+    private $_uptoFyear = null;
 
     /**
      * | Required @param Requests(propertyId as id)
@@ -95,11 +97,7 @@ class PostPropPayment
         $payableAmount = $this->_propCalculation->original['data']['payableAmt'];
 
         if ($payableAmount <= 0)
-            throw new Exception("Payment Amount is should be greater than 0");
-
-        if ($demands->isEmpty())
-            throw new Exception("No Dues For this Property");
-        $this->_demands = $demands;
+            throw new Exception("Payment Amount should be greater than 0");
 
         // Property Transactions
         $tranBy = authUser($this->_REQ)->user_type;
@@ -110,7 +108,8 @@ class PostPropPayment
             'amount' => $payableAmount,                                                                         // Payable Amount with Arrear
             'demandAmt' => $this->_propCalculation->original['data']['grandTaxes']['balance'],                         // Demandable Amount
             'tranBy' => $tranBy,
-            'arrearSettledAmt' => $arrear
+            'arrearSettledAmt' => $arrear,
+            'isArrearSettled' => false
         ]);
 
         if (in_array($this->_REQ['paymentMode'], $this->_verifyPaymentModes)) {
@@ -118,6 +117,19 @@ class PostPropPayment
                 'verifyStatus' => 2
             ]);
         }
+
+        if ($demands->isEmpty() && $arrear <= 0)
+            throw new Exception("No Dues For this Property");
+
+        if ($demands->isEmpty() && $arrear > 0) {
+            $arrearDate = Carbon::now()->addYear(-1)->format('Y-m-d');
+            $arrearFyear = getFY($arrearDate);
+            $this->_fromFyear = $arrearFyear;
+            $this->_uptoFyear = $arrearFyear;
+            $this->_REQ['isArrearSettled'] = true;
+        }
+
+        $this->_demands = $demands;
     }
 
     /**
@@ -133,7 +145,7 @@ class PostPropPayment
         $this->_propDetails->save();
 
         $this->_REQ['ulbId'] = $this->_propDetails->ulb_id;
-        $propTrans = $this->_mPropTrans->postPropTransactions($this->_REQ, $this->_demands);
+        $propTrans = $this->_mPropTrans->postPropTransactions($this->_REQ, $this->_demands, $this->_fromFyear, $this->_uptoFyear);
         $this->_propTransaction = $propTrans;
 
         // Updation of payment status in demand table

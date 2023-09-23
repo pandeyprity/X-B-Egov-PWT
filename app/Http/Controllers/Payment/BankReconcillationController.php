@@ -273,33 +273,48 @@ class BankReconcillationController extends Controller
                         );
 
                 if ($applicationPaymentStatus == 0) {
+                    if ($transaction->is_arrear_settled == false) {
+                        $propTranDtls = PropTranDtl::where('tran_id', $transaction->id)->get();
+                        foreach ($propTranDtls as $propTranDtl) {
+                            $propDemandId = $propTranDtl->prop_demand_id;
+                            $safDemandId = $propTranDtl->saf_demand_id;
 
-                    $propTranDtls = PropTranDtl::where('tran_id', $transaction->id)->get();
+                            if ($safDemandId) {
+                                $safDemandDtl =  PropSafsDemand::where('id', $safDemandId)->first();
+                                PropSafsDemand::where('id', $safDemandId)
+                                    ->update(
+                                        [
+                                            'paid_status' => $applicationPaymentStatus,
+                                            'balance' => $safDemandDtl->total_tax - $safDemandDtl->adjust_amt,
+                                        ]
+                                    );
+                            }
 
-                    foreach ($propTranDtls as $propTranDtl) {
-                        $propDemandId = $propTranDtl->prop_demand_id;
-                        $safDemandId = $propTranDtl->saf_demand_id;
-
-                        if ($safDemandId) {
-                            $safDemandDtl =  PropSafsDemand::where('id', $safDemandId)->first();
-                            PropSafsDemand::where('id', $safDemandId)
-                                ->update(
-                                    [
-                                        'paid_status' => $applicationPaymentStatus,
-                                        'balance' => $safDemandDtl->total_tax - $safDemandDtl->adjust_amt,
-                                    ]
-                                );
+                            if ($propDemandId) {
+                                $propDemandDtl =  PropDemand::where('id', $propDemandId)->first();
+                                PropDemand::where('id', $propDemandId)
+                                    ->update(
+                                        [
+                                            'paid_status' => $applicationPaymentStatus,
+                                            'balance' => $propDemandDtl->total_tax - $propDemandDtl->adjust_amt,
+                                        ]
+                                    );
+                                $property = PropProperty::find($transaction->property_id);
+                                if (collect($property)->isEmpty())
+                                    throw new Exception("Property Not Available");
+                                $property->balance = $transaction->arrear_settled_amt;
+                                $property->save();
+                            }
                         }
+                    }
 
-                        if ($propDemandId) {
-                            $propDemandDtl =  PropDemand::where('id', $propDemandId)->first();
-                            PropDemand::where('id', $propDemandId)
-                                ->update(
-                                    [
-                                        'paid_status' => $applicationPaymentStatus,
-                                        'balance' => $propDemandDtl->total_tax - $propDemandDtl->adjust_amt,
-                                    ]
-                                );
+                    if ($transaction->is_arrear_settled) {
+                        if ($transaction->tran_type == 'Property') {
+                            $property = PropProperty::find($transaction->property_id);
+                            if (collect($property)->isEmpty())
+                                throw new Exception("Property Not Found");
+                            $property->balance = $transaction->arrear_settled_amt;
+                            $property->save();
                         }
                     }
                 }

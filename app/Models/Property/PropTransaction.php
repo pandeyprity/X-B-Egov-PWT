@@ -147,8 +147,9 @@ class PropTransaction extends Model
 
     /**
      * | Property Transaction
+     * | @param 
      */
-    public function postPropTransactions($req, $demands)
+    public function postPropTransactions($req, $demands, $fromFyear = null, $uptoFyear = null)
     {
         $propTrans = new PropTransaction();
         $propTrans->property_id = $req['id'];
@@ -159,12 +160,13 @@ class PropTransaction extends Model
         $propTrans->payment_mode = $req['paymentMode'];
         $propTrans->user_id = $req['userId'];
         $propTrans->ulb_id = $req['ulbId'];
-        $propTrans->from_fyear = collect($demands)->first()['fyear'];
-        $propTrans->to_fyear = collect($demands)->last()['fyear'];
+        $propTrans->from_fyear = collect($demands)->first()['fyear'] ?? $fromFyear;
+        $propTrans->to_fyear = collect($demands)->last()['fyear'] ?? $uptoFyear;
         $propTrans->demand_amt = $req['demandAmt'];
         $propTrans->tran_by_type = $req['tranBy'];
         $propTrans->verify_status = $req['verifyStatus'];
         $propTrans->arrear_settled_amt = $req['arrearSettledAmt'];
+        $propTrans->is_arrear_settled = $req['isArrearSettled'];
         $propTrans->save();
 
         return [
