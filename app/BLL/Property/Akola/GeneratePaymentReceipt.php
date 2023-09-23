@@ -41,7 +41,7 @@ class GeneratePaymentReceipt
     private $_ulbDetails;
     private $_mUlbMasters;
     private $_mPropSaf;
-    private $_isArrearPayment = true;
+    private $_isArrearReceipt = true;
 
     /**
      * | Initializations of Variables
@@ -101,7 +101,7 @@ class GeneratePaymentReceipt
         }
 
         if (collect($tranDtls)->isNotEmpty()) {
-            $this->_isArrearPayment = false;
+            $this->_isArrearReceipt = false;
             if ($this->_tranType == 'Property') {                                   // Get Property Demands by demand ids
                 $demandIds = collect($tranDtls)->pluck('prop_demand_id')->toArray();
                 $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
@@ -199,7 +199,7 @@ class GeneratePaymentReceipt
             "tcName" => $this->_trans->tc_name,
             "tcMobile" => $this->_trans->tc_mobile,
             "ulbDetails" => $this->_ulbDetails,
-            "isArrearPayment" => $this->_isArrearPayment
+            "isArrearReceipt" => $this->_isArrearReceipt
         ];
 
         $this->_GRID['receiptDtls'] = $receiptDtls;
