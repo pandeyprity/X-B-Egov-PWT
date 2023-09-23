@@ -464,6 +464,11 @@ class PropertyDetailsController extends Controller
                             ->where('prop_properties.plot_no',  $request->plotNo)
                             ->where('prop_properties.village_mauja_name',  $request->maujaName);
                     break;
+
+                case ("propertyNo"):
+                    $data = $mPropProperty->searchProperty($ulbId)
+                        ->where('prop_properties.property_no', $parameter);
+                    break;
             }
 
             if ($userType != 'Citizen')
