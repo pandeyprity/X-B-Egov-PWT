@@ -86,42 +86,45 @@ class GeneratePaymentReceipt
         $this->_tranType = $trans->tran_type;                // Property or SAF 
 
         $tranDtls = $this->_mPropTranDtl->getTranDemandsByTranId($trans->id);
-
-        if (collect($tranDtls)->isEmpty())
-            throw new Exception("Demands against transaction not exist");
+        $this->_propertyDtls = $this->_mPropProperty->getBasicDetails($trans->property_id);             // Get details from property table
 
         if ($this->_tranType == 'Property') {                                   // Get Property Demands by demand ids
-            $demandIds = collect($tranDtls)->pluck('prop_demand_id')->toArray();
-            $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
-            $this->_GRID['penaltyRebates'] = $this->_mPropPenaltyRebates->getPenaltyRebatesHeads($trans->id, "Property");
-            // Fetch Application Details
-            $this->_propertyDtls = $this->_mPropProperty->getBasicDetails($trans->property_id);             // Get details from property table
             if (collect($this->_propertyDtls)->isEmpty())
                 throw new Exception("Property Details not available");
         }
 
         if ($this->_tranType == 'Saf') {                                   // Get Saf Demands by demand ids
-            $demandIds = collect($tranDtls)->pluck('saf_demand_id')->toArray();
-            $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
-            $this->_GRID['penaltyRebates'] = $this->_mPropPenaltyRebates->getPenaltyRebatesHeads($trans->id, "Saf");
             $this->_propertyDtls = $this->_mPropSaf->getBasicDetails($trans->saf_id);                       // Get Details from saf table
             if (collect($this->_propertyDtls)->isEmpty())
                 throw new Exception("Saf Details not available");
         }
 
-        $this->_ulbDetails = $this->_mUlbMasters->getUlbDetails($this->_propertyDtls->ulb_id);
+        if (collect($tranDtls)->isNotEmpty()) {
+            if ($this->_tranType == 'Property') {                                   // Get Property Demands by demand ids
+                $demandIds = collect($tranDtls)->pluck('prop_demand_id')->toArray();
+                $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
+                $this->_GRID['penaltyRebates'] = $this->_mPropPenaltyRebates->getPenaltyRebatesHeads($trans->id, "Property");
+            }
 
-        $currentDemand = $demandsList->where('fyear', $currentFyear);
-        $this->_currentDemand = $this->aggregateDemand($currentDemand);
+            if ($this->_tranType == 'Saf') {                                   // Get Saf Demands by demand ids
+                $demandIds = collect($tranDtls)->pluck('saf_demand_id')->toArray();
+                $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
+                $this->_GRID['penaltyRebates'] = $this->_mPropPenaltyRebates->getPenaltyRebatesHeads($trans->id, "Saf");
+            }
+            $this->_ulbDetails = $this->_mUlbMasters->getUlbDetails($this->_propertyDtls->ulb_id);
 
-        $overdueDemand = $demandsList->where('fyear', '<>', $currentFyear);
-        $this->_overDueDemand = $this->aggregateDemand($overdueDemand);
+            $currentDemand = $demandsList->where('fyear', $currentFyear);
+            $this->_currentDemand = $this->aggregateDemand($currentDemand);
 
-        $this->_GRID['overdueDemand'] = $this->_overDueDemand;
-        $this->_GRID['currentDemand'] = $this->_currentDemand;
+            $overdueDemand = $demandsList->where('fyear', '<>', $currentFyear);
+            $this->_overDueDemand = $this->aggregateDemand($overdueDemand);
 
-        $aggregateDemandList = new Collection([$this->_currentDemand, $this->_overDueDemand]);
-        $this->_GRID['aggregateDemand'] = $this->aggregateDemand($aggregateDemandList);
+            $this->_GRID['overdueDemand'] = $this->_overDueDemand;
+            $this->_GRID['currentDemand'] = $this->_currentDemand;
+
+            $aggregateDemandList = new Collection([$this->_currentDemand, $this->_overDueDemand]);
+            $this->_GRID['aggregateDemand'] = $this->aggregateDemand($aggregateDemandList);
+        }
     }
 
     /**
