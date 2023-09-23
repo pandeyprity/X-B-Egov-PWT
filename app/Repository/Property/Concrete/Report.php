@@ -2278,7 +2278,7 @@ class Report implements IReport
                         COUNT(DISTINCT ( CASE WHEN prop_demands.fyear < '$fiYear' then prop_demands.property_id 
                                         END)                            
                             ) as arrear_demand_hh,                       
-                        SUM(CASE WHEN prop_demands.fyear < '$fiYear' then prop_demands.total_tax+prop_properties.balance ELSE 0 END ) AS arrear_demand,     
+                        SUM(CASE WHEN prop_demands.fyear < '$fiYear' then (prop_demands.total_tax) ELSE 0 END ) AS arrear_demand,     
                         SUM(total_tax) AS total_demand,
                         COUNT(DISTINCT (CASE WHEN prop_demands.fyear  = '$fiYear' and prop_demands.paid_status =1 then prop_demands.property_id               
                                             END)                        
@@ -2301,7 +2301,12 @@ class Report implements IReport
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
                         AND prop_demands.fyear<='$fiYear'
                     GROUP BY prop_properties.ward_mstr_id
-                )demands ON demands.ward_mstr_id = ulb_ward_masters.id                                
+                )demands ON demands.ward_mstr_id = ulb_ward_masters.id   
+                left join(
+                    SELECT prop_properties.ward_mstr_id, SUM(prop_properties.balance)AS balance
+                    FROM prop_properties
+                    GROUP BY prop_properties.ward_mstr_id
+                ) AS arrear                            
                 WHERE  ulb_ward_masters.ulb_id = $ulbId  
                     " . ($wardId ? " AND ulb_ward_masters.id = $wardId" : "") . "
                 GROUP BY ulb_ward_masters.ward_name           
@@ -2342,7 +2347,7 @@ class Report implements IReport
                             round(
                                 SUM(
                                     COALESCE(                                
-                                        COALESCE(demands.arrear_demand, 0::numeric)   
+                                        COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)   
                                     )
                                 )
                             ) AS arrear_demand,    
@@ -2352,7 +2357,7 @@ class Report implements IReport
                             round(
                                 SUM(
                                     (                                    
-                                        COALESCE(demands.arrear_demand, 0::numeric)                               
+                                        COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)                              
                                         - COALESCE(demands.arrear_collection, 0::numeric)           
                                     )
                                 )
@@ -2364,7 +2369,7 @@ class Report implements IReport
                                 SUM(
                                     (
                                         COALESCE(demands.arrear_collection ::numeric , 0::numeric)
-                                        / (case when demands.arrear_demand > 0 or demands.arrear_demand is not null then demands.arrear_demand else 1 end)
+                                        / (case when (demands.arrear_demand + COALESCE(arrear.balance, 0::numeric)) > 0 or demands.arrear_demand is not null then demands.arrear_demand else 1 end)
                                         
                                     )
                                     *100
@@ -2386,7 +2391,7 @@ class Report implements IReport
                                         COALESCE(                                   
                                             COALESCE(demands.current_demand, 0::numeric)         
                                             + (                                       
-                                                COALESCE(demands.arrear_demand, 0::numeric)   
+                                                COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)  
                                             ), 0::numeric                                
                                         )                                 
                                         - COALESCE(                              
