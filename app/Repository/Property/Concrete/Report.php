@@ -2278,7 +2278,7 @@ class Report implements IReport
                         COUNT(DISTINCT ( CASE WHEN prop_demands.fyear < '$fiYear' then prop_demands.property_id 
                                         END)                            
                             ) as arrear_demand_hh,                       
-                        SUM(CASE WHEN prop_demands.fyear < '$fiYear' then prop_demands.total_tax ELSE 0 END ) AS arrear_demand,     
+                        SUM(CASE WHEN prop_demands.fyear < '$fiYear' then prop_demands.total_tax+prop_properties.balance ELSE 0 END ) AS arrear_demand,     
                         SUM(total_tax) AS total_demand,
                         COUNT(DISTINCT (CASE WHEN prop_demands.fyear  = '$fiYear' and prop_demands.paid_status =1 then prop_demands.property_id               
                                             END)                        
