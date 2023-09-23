@@ -556,6 +556,7 @@ class PropProperty extends Model
             'prop_properties.pt_no',
             'prop_properties.khata_no',
             'prop_properties.plot_no',
+            'prop_properties.property_no',
             'ward_name',
             'prop_address',
             'prop_properties.status as active_status',
