@@ -2305,8 +2305,11 @@ class Report implements IReport
                 left join(
                     SELECT prop_properties.ward_mstr_id, SUM(prop_properties.balance)AS balance
                     FROM prop_properties
+                    where prop_properties.status = 1 
+                        AND prop_properties.ulb_id =$ulbId
+                    " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
                     GROUP BY prop_properties.ward_mstr_id
-                ) AS arrear                            
+                ) AS arrear  on arrear.ward_mstr_id = ulb_ward_masters.id                            
                 WHERE  ulb_ward_masters.ulb_id = $ulbId  
                     " . ($wardId ? " AND ulb_ward_masters.id = $wardId" : "") . "
                 GROUP BY ulb_ward_masters.ward_name           
