@@ -728,6 +728,7 @@ class PropProperty extends Model
                 'p.holding_no as application_no',
                 'p.prop_address',
                 'p.ulb_id',
+                'p.property_no',
                 'o.owner_name',
                 'o.guardian_name',
                 'o.mobile_no',

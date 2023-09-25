@@ -100,6 +100,8 @@ class GeneratePaymentReceipt
                 throw new Exception("Saf Details not available");
         }
 
+        $this->_ulbDetails = $this->_mUlbMasters->getUlbDetails($this->_propertyDtls->ulb_id);
+
         if (collect($tranDtls)->isNotEmpty()) {
             $this->_isArrearReceipt = false;
             if ($this->_tranType == 'Property') {                                   // Get Property Demands by demand ids
@@ -113,7 +115,6 @@ class GeneratePaymentReceipt
                 $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
                 $this->_GRID['penaltyRebates'] = $this->_mPropPenaltyRebates->getPenaltyRebatesHeads($trans->id, "Saf");
             }
-            $this->_ulbDetails = $this->_mUlbMasters->getUlbDetails($this->_propertyDtls->ulb_id);
 
             $currentDemand = $demandsList->where('fyear', $currentFyear);
             $this->_currentDemand = $this->aggregateDemand($currentDemand);
@@ -190,6 +191,7 @@ class GeneratePaymentReceipt
             "arrearSettled" => $this->_trans->arrear_settled_amt,
             "ulbId" => $this->_propertyDtls->ulb_id,
             "wardNo" => $this->_propertyDtls->ward_no,
+            "propertyNo" => $this->_propertyDtls->property_no ?? "",
             "towards" => $this->_mTowards,
             "description" => [
                 "keyString" => "Holding Tax"
