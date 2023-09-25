@@ -401,13 +401,13 @@ class PropertyDetailsController extends Controller
             $key = $request->filteredBy;
             $parameter = $request->parameter;
             $isLegacy = $request->isLegacy;
-            $perPage = $request->perPage ?? 10;
+            $perPage = $request->perPage ?? 5;
 
             switch ($key) {
                 case ("holdingNo"):
                     $data = $mPropProperty->searchProperty($ulbId)
-                        ->where('prop_properties.holding_no',  $parameter)
-                        ->orWhere('prop_properties.new_holding_no',  $parameter);
+                        ->where('prop_properties.holding_no', 'LIKE', '%' . strtoupper($parameter) . '%')
+                        ->orWhere('prop_properties.new_holding_no', 'LIKE', '%' . strtoupper($parameter) . '%');
                     break;
 
                 case ("ptn"):
@@ -478,11 +478,10 @@ class PropertyDetailsController extends Controller
                 if ($key == 'ptn') {
                     $paginator =
                         $data
-                        ->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude', 'zone_name')
+                        ->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude', 'zone_name', 'd.paid_status')
                         ->paginate($perPage);
                 } else {
-                    $paginator = $data->where('holding_no', '!=', null)
-                        ->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude', 'zone_name')
+                    $paginator = $data->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude', 'zone_name', 'd.paid_status')
                         ->paginate($perPage);
                 }
             }
