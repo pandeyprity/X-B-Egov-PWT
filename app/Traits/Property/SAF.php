@@ -499,17 +499,42 @@ trait SAF
 
     /**
      * | read holding type
+     * | @param req is the floors
      */
     public function holdingType($req)
     {
         $useType =  collect($req)->pluck('useType');
         // Check Pure Residential
         $pureResidential = collect($useType)->every(function ($value) {
-            return $value == 11;
+            return $value == Config::get('akola-property-constant.RESIDENTIAL_USAGE_TYPE');
         });
         // check Pure Commercial
         $pureCommercial = collect($useType)->every(function ($value) {
-            return $value != 11;
+            return $value != Config::get('akola-property-constant.RESIDENTIAL_USAGE_TYPE');
+        });
+
+        if ($pureResidential == true)
+            return "PURE_RESIDENTIAL";
+        elseif ($pureCommercial == true)
+            return "PURE_COMMERCIAL";
+        else
+            return "MIX_COMMERCIAL";
+    }
+
+    /**
+     * | read holding type
+     * | @param req is the floors
+     */
+    public function propHoldingType($req)
+    {
+        $useType =  collect($req)->pluck('usage_type_mstr_id');
+        // Check Pure Residential
+        $pureResidential = collect($useType)->every(function ($value) {
+            return $value == Config::get('akola-property-constant.RESIDENTIAL_USAGE_TYPE');
+        });
+        // check Pure Commercial
+        $pureCommercial = collect($useType)->every(function ($value) {
+            return $value != Config::get('akola-property-constant.RESIDENTIAL_USAGE_TYPE');
         });
 
         if ($pureResidential == true)

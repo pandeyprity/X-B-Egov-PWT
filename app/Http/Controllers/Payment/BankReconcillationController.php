@@ -561,22 +561,39 @@ class BankReconcillationController extends Controller
                 $propTrans->status = 0;
                 $propTrans->save();
 
-                $propTranDtl = PropTranDtl::where('tran_id', $tranDtl->transaction_id)->first();
-                $propTranDtl->status = 0;
-                $propTranDtl->save();
+                if ($propTrans->arrear_settled == false) {
 
-                if ($propTrans->payment_mode == in_array($propTrans->payment_mode, ['CHEQUE', 'DD'])) {
-                    $propChequeDtl = PropChequeDtl::where('transaction_id', $tranDtl->transaction_id)->first();
-                    $propChequeDtl->status = 0;
-                    $propChequeDtl->save();
+                    $propTranDtl = PropTranDtl::where('tran_id', $tranDtl->transaction_id)->first();
+                    $propTranDtl->status = 0;
+                    $propTranDtl->save();
+
+                    if ($propTrans->payment_mode == in_array($propTrans->payment_mode, ['CHEQUE', 'DD'])) {
+                        $propChequeDtl = PropChequeDtl::where('transaction_id', $tranDtl->transaction_id)->first();
+                        $propChequeDtl->status = 0;
+                        $propChequeDtl->save();
+                    }
+
+                    $propDemandDtl =  PropDemand::where('id', $propTranDtl->prop_demand_id)->first();
+                    PropDemand::where('property_id', $propTranDtl->prop_demand_id)
+                        ->update([
+                            'paid_status' => 0,
+                            'balance' => $propDemandDtl->total_tax - $propDemandDtl->adjust_amt,
+                        ]);
+                    // Balance Update
+                    $property = PropProperty::find($propTrans->property_id);
+                    if (collect($property)->isEmpty())
+                        throw new Exception("Property Not Found");
+                    $property->balance = $propTrans->arrear_settled_amt;
+                    $property->save();
                 }
 
-                $propDemandDtl =  PropDemand::where('id', $propTranDtl->prop_demand_id)->first();
-                PropDemand::where('property_id', $propTranDtl->prop_demand_id)
-                    ->update([
-                        'paid_status' => 0,
-                        'balance' => $propDemandDtl->total_tax - $propDemandDtl->adjust_amt,
-                    ]);
+                if ($propTrans->arrear_settled) {
+                    $property = PropProperty::find($propTrans->property_id);
+                    if (collect($property)->isEmpty())
+                        throw new Exception("Property Not Found");
+                    $property->balance = $propTrans->arrear_settled_amt;
+                    $property->save();
+                }
             }
 
             #_For Water Transaction Deactivation

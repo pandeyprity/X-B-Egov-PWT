@@ -175,11 +175,13 @@ class GeneratePaymentReceipt
             "transactionDate" => Carbon::parse($this->_trans->tran_date)->format('d-m-Y'),
             "transactionNo" => $this->_trans->tran_no,
             "transactionTime" => $this->_trans->created_at->format('H:i:s'),
+            "verifyStatus" => $this->_trans->verify_status,                     // (0-Not Verified,1-Verified,2-Under Verification,3-Bounce)
             "applicationNo" => $this->_propertyDtls->application_no,
             "customerName" => $this->_propertyDtls->owner_name,
             "guardianName" => $this->_propertyDtls->guardian_name,
             "mobileNo" => $this->_propertyDtls->mobile_no,
             "address" => $this->_propertyDtls->prop_address,
+            "zone_name" => $this->_propertyDtls->zone_name,
             "paidFrom" => $this->_trans->from_fyear,
             "paidUpto" => $this->_trans->to_fyear,
             "paymentMode" => $this->_trans->payment_mode,

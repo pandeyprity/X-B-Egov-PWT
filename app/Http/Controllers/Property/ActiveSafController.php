@@ -2256,6 +2256,10 @@ class ActiveSafController extends Controller
 
             $floors = $mPropFloors->getPropFloors($properties->id);        // Model function to get Property Floors
             $owners = $mPropOwners->getOwnersByPropId($properties->id);    // Model function to get Property Owners
+
+            if (!$properties->holding_type)
+                $properties->holding_type = $this->propHoldingType($floors);
+
             $propertyDtl = collect($properties);
             $propertyDtl['floors'] = $floors;
             $propertyDtl['owners'] = $owners;
