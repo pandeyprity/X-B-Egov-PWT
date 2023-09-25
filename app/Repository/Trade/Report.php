@@ -791,8 +791,10 @@ class Report implements IReport
                                                         ORDER BY trade_param_application_types.id
                                                         ");
             $application_type_transacton=collect($application_type_transacton);
+            $data["data"]=$application_type_transacton;
+            $data["fiYear"]=$fiYear;
             $queryRunTime = (collect(DB::getQueryLog())->sum("time"));
-            return responseMsgs(true,"",remove_null($application_type_transacton),$apiId, $version, $queryRunTime,$action,$deviceId);
+            return responseMsgs(true,"",remove_null($data),$apiId, $version, $queryRunTime,$action,$deviceId);
         }
         catch(Exception $e)
         {
