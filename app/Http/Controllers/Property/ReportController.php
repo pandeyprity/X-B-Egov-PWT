@@ -477,6 +477,7 @@ class ReportController extends Controller
             ]);
         }
 
+        $request->merge(["metaData" => ["pr17.1", 1.1, null, $request->getMethod(), null,]]);
         $propCollection = null;
         $safCollection = null;
         $gbsafCollection = null;
@@ -496,14 +497,14 @@ class ReportController extends Controller
 
         foreach ($collectionTypes as $collectionType) {
             if ($collectionType == 'property') {
-                $propCollection =   $this->collectionReport($request);
+                $propCollection =   $this->Repository->collectionReport($request);#$this->collectionReport($request);
                 $proptotal = $propCollection->original['data']['totalAmount'];
                 $proptotalData = $propCollection->original['data']['total'];
                 $propCollection = $propCollection->original['data']['data'];
             }
 
             if ($collectionType == 'saf') {
-                $safCollection = $this->safCollection($request);
+                $safCollection = $this->Repository->safCollection($request);#$this->safCollection($request);
                 $saftotal = $safCollection->original['data']['totalAmount'];
                 $saftotalData = $safCollection->original['data']['total'];
                 $safCollection = $safCollection->original['data']['data'];
