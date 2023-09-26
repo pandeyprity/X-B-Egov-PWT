@@ -340,7 +340,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('prop/cluster-payment', 'clusterPayment');                        // (12) Cluster Payment
     Route::post('prop-dues', 'propertyDues');                                     // (13) Property Dues Dynamic
     Route::post('legacy-payment-holding', 'legacyPaymentHolding');                // (14) Legacy Property Payment
-    Route::post('v1/get-billref-no', 'generateBillRefNo');                        // (15) 
+    Route::post('v1/get-billref-no', 'generateBillRefNo');                        // (15) Pine Lab Get Reference No
   });
 
   /**

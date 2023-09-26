@@ -26,6 +26,7 @@ use App\Models\Property\PropDemand;
 use App\Models\Property\PropIcicipayPayment;
 use App\Models\Property\PropOwner;
 use App\Models\Property\PropPenaltyrebate;
+use App\Models\Property\PropPinelabPayment;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropRazorpayPenalrebate;
 use App\Models\Property\PropRazorpayRequest;
@@ -335,7 +336,10 @@ class HoldingTaxController extends Controller
     {
         $validated = Validator::make(
             $req->all(),
-            ['propId' => 'required|integer']
+            [
+                'propId' => 'required|integer',
+                'paymentMode' => 'required|string'
+            ]
         );
         if ($validated->fails()) {
             return response()->json([
@@ -346,6 +350,7 @@ class HoldingTaxController extends Controller
         }
 
         $pineLabPayment = new PineLabPayment;
+        $mPropPinelabPayment = new PropPinelabPayment();
 
         try {
             $holdingDues = $this->getHoldingDues($req);
@@ -366,10 +371,32 @@ class HoldingTaxController extends Controller
                 "paymentType" => "Property"
             ];
 
+            DB::beginTransaction();
+            DB::connection('pgsql_master')->beginTransaction();
             $refNo = $pineLabPayment->initiatePayment($pineLabParams);
+            // Table maintain for particular module 
+            $pineReqs = [
+                "bill_ref_no" => $refNo,
+                "payment_mode" => $req->paymentMode,
+                "prop_id" => $req->propId,
+                "tran_type" => 'Property',
+                "from_fyear" => collect($holdingDues['demandList'])->first()['fyear'],
+                "to_fyear" => collect($holdingDues['demandList'])->last()['fyear'],
+                "demand_amt" => $holdingDues['grandTaxes']['balance'],
+                "ulb_id" => 2,
+                "ip_address" => $req->ipAddress ?? getClientIpAddress(),
+                "demand_list" => json_encode($holdingDues, true),
+                "payable_amount" => $holdingDues['payableAmt'],
+                "arrear_settled" => $holdingDues['arrear']
+            ];
 
+            $mPropPinelabPayment->create($pineReqs);
+            DB::commit();
+            DB::connection('pgsql_master')->commit();
             return responseMsgs(true, "Bill id is", ['billRefNo' => $refNo], "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         } catch (Exception $e) {
+            DB::rollBack();
+            DB::connection('pgsql_master')->rollBack();
             return responseMsgs(false, $e->getMessage(), "", "1.0", responseTime(), $req->getMethod(), $req->deviceId);
         }
     }
@@ -377,135 +404,15 @@ class HoldingTaxController extends Controller
     /**
      * | Payment Holding (Case for Online Payment)
      */
-    public function paymentHolding(ReqPayment $req)
+    public function paymentHolding(Request $req)
     {
-        try {
-            $userId = $req['userId'];
-            $tranBy = 'ONLINE';
-            $mPropDemand = new PropDemand();
-            $mPropTrans = new PropTransaction();
-            $propId = $req['id'];
-            $mPropAdjustment = new PropAdjustment();
-            $mPropRazorPayRequest = new PropRazorpayRequest();
-            $mPropRazorpayPenalRebates = new PropRazorpayPenalrebate();
-            $mPropPenaltyRebates = new PropPenaltyrebate();
-            $mPropRazorpayResponse = new PropRazorpayResponse();
-
-            $propDetails = PropProperty::findOrFail($propId);
-            $orderId = $req['orderId'];
-            $paymentId = $req['paymentId'];
-            $razorPayReqs = new Request([
-                'orderId' => $orderId,
-                'key' => 'prop_id',
-                'keyId' => $propId
-            ]);
-            $propRazorPayRequest = $mPropRazorPayRequest->getRazorPayRequests($razorPayReqs);
-            if (collect($propRazorPayRequest)->isEmpty())
-                throw new Exception("No Order Request Found");
-
-            if (!$userId)
-                $userId = 0;                                                        // For Ghost User in case of online payment
-
-            $tranNo = $req['transactionNo'];
-
-            $demands = json_decode($propRazorPayRequest->demand_list, true);
-            $amount = $propRazorPayRequest['amount'];
-            $advanceAmt = $propRazorPayRequest['advance_amount'];
-            if (collect($demands)->isEmpty())
-                throw new Exception("No Dues For this Property");
-
-            DB::beginTransaction();
-            // Replication of Prop Transactions
-            $tranReqs = [
-                'property_id' => $req['id'],
-                'tran_date' => $this->_carbon->format('Y-m-d'),
-                'tran_no' => $tranNo,
-                'payment_mode' => 'ONLINE',
-                'amount' => $amount,
-                'tran_date' => $this->_carbon->format('Y-m-d'),
-                'verify_date' => $this->_carbon->format('Y-m-d'),
-                'citizen_id' => $userId,
-                'is_citizen' => true,
-                'from_fyear' => $propRazorPayRequest->from_fyear,
-                'to_fyear' => $propRazorPayRequest->to_fyear,
-                'from_qtr' => $propRazorPayRequest->from_qtr,
-                'to_qtr' => $propRazorPayRequest->to_qtr,
-                'demand_amt' => $propRazorPayRequest->demand_amt,
-                'ulb_id' => $propRazorPayRequest->ulb_id,
-            ];
-
-            $storedTransaction = $mPropTrans->storeTrans($tranReqs);
-            $tranId = $storedTransaction['id'];
-
-            $razorpayPenalRebates = $mPropRazorpayPenalRebates->getPenalRebatesByReqId($propRazorPayRequest->id);
-            // Replication of Razorpay Penalty Rebates to Prop Penal Rebates
-            foreach ($razorpayPenalRebates as $item) {
-                $propPenaltyRebateReqs = [
-                    'tran_id' => $tranId,
-                    'head_name' => $item['head_name'],
-                    'amount' => $item['amount'],
-                    'is_rebate' => $item['is_rebate'],
-                    'tran_date' => $this->_carbon->format('Y-m-d'),
-                    'prop_id' => $req['id'],
-                ];
-                $mPropPenaltyRebates->postRebatePenalty($propPenaltyRebateReqs);
-            }
-
-            // Updation of Prop Razor pay Request
-            $propRazorPayRequest->status = 1;
-            $propRazorPayRequest->payment_id = $paymentId;
-            $propRazorPayRequest->save();
-
-            // Update Prop Razorpay Response
-            $razorpayResponseReq = [
-                'razorpay_request_id' => $propRazorPayRequest->id,
-                'order_id' => $orderId,
-                'payment_id' => $paymentId,
-                'prop_id' => $req['id'],
-                'from_fyear' => $propRazorPayRequest->from_fyear,
-                'from_qtr' => $propRazorPayRequest->from_qtr,
-                'to_fyear' => $propRazorPayRequest->to_fyear,
-                'to_qtr' => $propRazorPayRequest->to_qtr,
-                'demand_amt' => $propRazorPayRequest->demand_amt,
-                'ulb_id' => $propDetails->ulb_id,
-                'ip_address' => getClientIpAddress(),
-            ];
-            $mPropRazorpayResponse->store($razorpayResponseReq);
-
-            // Reflect on Prop Tran Details
-            foreach ($demands as $demand) {
-                $propDemand = $mPropDemand->getDemandById($demand['id']);
-                $propDemand->balance = 0;
-                $propDemand->paid_status = 1;           // <-------- Update Demand Paid Status 
-                $propDemand->save();
-
-                $propTranDtl = new PropTranDtl();
-                $propTranDtl->tran_id = $tranId;
-                $propTranDtl->prop_demand_id = $demand['id'];
-                $propTranDtl->total_demand = $demand['amount'];
-                $propTranDtl->ulb_id = $propDetails->ulb_id;
-                $propTranDtl->save();
-            }
-            // Advance Adjustment 
-            if ($advanceAmt > 0) {
-                $adjustReq = [
-                    'prop_id' => $propId,
-                    'tran_id' => $tranId,
-                    'amount' => $advanceAmt
-                ];
-                if ($tranBy == 'Citizen')
-                    $adjustReq = array_merge($adjustReq, ['citizen_id' => $userId ?? 0]);
-                else
-                    $adjustReq = array_merge($adjustReq, ['user_id' => $userId ?? 0]);
-
-                $mPropAdjustment->store($adjustReq);
-            }
-            DB::commit();
-            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $tranNo], "011604", "1.0", "", "POST", $req->deviceId);
-        } catch (Exception $e) {
-            DB::rollBack();
-            return responseMsgs(false, $e->getMessage(), "", "011604", "1.0", "", "POST", $req->deviceId ?? "");
-        }
+        $postPropPayment = new PostPropPayment($req);
+        $mPropPinelabPayment = new PropPinelabPayment();
+        $billRefNo = $req->billRefNo;
+        $paymentReqs = $mPropPinelabPayment->getPaymentByBillRefNo($billRefNo);
+        $demandList = $paymentReqs->demand_list;
+        $postPropPayment->_propCalculation = json_decode($demandList);
+        $postPropPayment->postPayment();
     }
 
     /**
@@ -628,8 +535,8 @@ class HoldingTaxController extends Controller
                 'doc_code' => $refImageName,
                 'relative_path' => $relativePath,
                 'document' => $imageName,
-                'uploaded_by' => authUser($req)->id,
-                'uploaded_by_type' => authUser($req)->user_type,
+                'uploaded_by' => authUser($req)->id ?? auth()->user()->id,
+                'uploaded_by_type' => authUser($req)->user_type ?? auth()->user()->user_type,
                 'doc_category' => $refImageName,
             ];
             DB::beginTransaction();

@@ -58,7 +58,7 @@ class PostPropPayment
     {
         $this->_offlinePaymentModes = Config::get('payment-constants.PAYMENT_MODE_OFFLINE');
         $this->_todayDate = Carbon::now();
-        $this->_userId = authUser($this->_REQ)->id;
+        $this->_userId = auth()->user()->id;
         $this->_mPropDemand = new PropDemand();
         $idGeneration = new IdGeneration;
         $this->_mPropTrans = new PropTransaction();
@@ -79,7 +79,7 @@ class PostPropPayment
      */
     public function readPaymentParams()
     {
-        $demands = $this->_propCalculation->original['data']['demandList'];
+        $demands = $this->_propCalculation->original['data']['demandList'] ?? $this->_propCalculation->demandList;
         // 🔺🔺 Arrears and Settlements is on under process
         $arrear = $this->_propCalculation->original['data']['arrear'];
 
@@ -100,7 +100,7 @@ class PostPropPayment
             throw new Exception("Payment Amount should be greater than 0");
 
         // Property Transactions
-        $tranBy = authUser($this->_REQ)->user_type;
+        $tranBy = auth()->user()->user_type;
         $this->_REQ->merge([
             'userId' => $this->_userId,
             'todayDate' => $this->_todayDate->format('Y-m-d'),

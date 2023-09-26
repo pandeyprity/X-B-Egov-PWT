@@ -25,7 +25,7 @@ class PineLabPayment
             $index = rand(0, strlen($characters) - 1);
             $randomString .= $characters[$index];
         }
-        $orderId = (("Order_" . $modeuleId . date('dmyhism') . $randomString));
+        $orderId = (("billref_" . $modeuleId . date('dmyhism') . $randomString));
         $orderId = explode("=", chunk_split($orderId, 30, "="))[0];
         return $orderId;
     }
@@ -47,8 +47,7 @@ class PineLabPayment
 
         if ($req->paymentType == 'Property' || 'Saf')
             $moduleId = $propertyModuleId;
-
-        $user = authUser($req);
+        $user = auth()->user();
         $mReqs = [
             "ref_no"          => $this->getBillRefNo($moduleId),
             "user_id"         => $user->id,
@@ -62,7 +61,5 @@ class PineLabPayment
         ];
         $data = $mPinelabPaymentReq->store($mReqs);
         return $data->ref_no;
-
-        // return responseMsgs(true, "Bill id is", ['billRefNo' => $data->ref_no], "", 01, responseTime(), $req->getMethod(), $req->deviceId);
     }
 }

@@ -45,7 +45,7 @@ class PaymentController extends Controller
             $paymentReq = [
                 "user_id" => $req->userId,
                 "workflow_id" => $req->workflowId,
-                "req_ref_no" => $req->_refNo,
+                "req_ref_no" => $getRefUrl->_refNo,
                 "amount" => $req->amount,
                 "application_id" => $req->applicationId,
                 "module_id" => $req->moduleId,
@@ -53,7 +53,7 @@ class PaymentController extends Controller
                 "referal_url" => $url['encryptUrl']
             ];
             $mIciciPaymentReq->create($paymentReq);
-            return responseMsgs(true,  ["message" => $url['plainUrl'], "req_ref_no" => $req->_refNo], $url['encryptUrl']);
+            return responseMsgs(true,  ["plainUrl" => $url['plainUrl'], "req_ref_no" => $getRefUrl->_refNo], $url['encryptUrl']);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), []);
         }
@@ -228,17 +228,17 @@ class PaymentController extends Controller
     public function savePinelabResponse(Request $req)
     {
         try {
+            Storage::disk('public')->put($req->billRefNo . '.json', json_encode($req->all()));
             $mPinelabPaymentReq      =  new PinelabPaymentReq();
             $mPinelabPaymentResponse = new PinelabPaymentResponse();
             $responseCode            = Config::get('payment-constants.PINELAB_RESPONSE_CODE');
             $propertyModuleId        = Config::get('module-constants.PROPERTY_MODULE_ID');
             $user                    = authUser($req);
             $pinelabData             = $req->pinelabResponseBody;
-            $detail                  = (object)$req->pinelabResponseBody['Detail'];
+            $detail                  = (object)($req->pinelabResponseBody['Detail'] ?? []);
 
-            Storage::disk('public')->put($req->billRefNo . '.json', json_encode($req->all()));
 
-            $actualTransactionNo = 'TRAN-' . rand(00000, 99999) . time();
+            $actualTransactionNo = 'TRAN-' . $req->billRefNo . time();
             if (in_array($req->paymentType, ['Property', 'Saf']))
                 $moduleId = $propertyModuleId;
 
@@ -258,8 +258,9 @@ class PaymentController extends Controller
             # data transfer to the respective module's database 
             $moduleData = [
                 'id'                => $req->applicationId,
+                'billRefNo'         => $req->billRefNo,
                 'amount'            => $req->amount,
-                'workflowId'        => $req->workflowId ?? 0,
+                'workflowId'        => $req->workflowId,
                 'userId'            => $user->id,
                 'ulbId'             => $user->ulb_id,
                 'departmentId'      => $moduleId,         #_Module Id
@@ -298,15 +299,15 @@ class PaymentController extends Controller
 
             if ($pinelabData['Response']['ResponseCode'] == 00) {
                 $paymentData->payment_status = 1;
-                $paymentData->save();
+                // $paymentData->save();
 
                 # calling function for the modules
                 switch ($paymentData->module_id) {
                     case ('1'):
-                        $refpropertyType = $paymentData->workflow_id;
-                        if ($refpropertyType == 0) {
+                        $workflowId = $paymentData->workflow_id;
+                        if ($workflowId == 0) {
                             $objHoldingTaxController = new HoldingTaxController($this->_safRepo);
-                            $moduleData = new ReqPayment($moduleData);
+                            $moduleData = new Request($moduleData);
                             $objHoldingTaxController->paymentHolding($moduleData);
                         } else {                                            //<------------------ (SAF PAYMENT)
                             $obj = new ActiveSafController($this->_safRepo);

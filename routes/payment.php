@@ -81,5 +81,5 @@ Route::controller(PaymentController::class)->group(function () {
     Route::post('v1/eazypayuat/get-webhook-data', 'getWebhookData');
     Route::post('v1/eazypayuat/get-payment-status', 'getPaymentDataByRefNo');
     Route::post('v1/pinelab/initiate-payment', 'initiatePayment');
-    Route::post('v1/pinelab/save-response', 'savePinelabResponse');
+    Route::post('v1/pinelab/save-response', 'savePinelabResponse')->middleware('auth_maker');
 });
