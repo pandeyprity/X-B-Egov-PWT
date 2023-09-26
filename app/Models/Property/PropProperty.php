@@ -542,6 +542,84 @@ class PropProperty extends Model
 
     /**
      * | Search Property
+               select  
+                        p.id,
+                        COALESCE(d.fyear,'2023-2024') AS current_fyear,
+                        COALESCE(d.paid_status,1) AS current_paid_status,
+                        string_agg(pd.fyear::text,',') AS previous_fyears,
+                        string_to_array(string_agg(pd.paid_status::TEXT,','),',') AS previous_paid_status,
+                        '0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')) AS previous_unpaid_status,
+                        
+                        CASE 
+                            WHEN 
+                                    -- Current Year paid and previous year paid 
+                                        COALESCE(d.paid_status,1)=1
+                                    AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
+                                    AND p.balance<1
+                                        THEN 1 --'all_paid'
+                                        -- Current Year unpaid but arrear paid
+                                WHEN 
+                                        COALESCE(d.paid_status,1)=0 
+                                    AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
+                                    AND p.balance<1
+                                        THEN 2 -- 'arrear_paid_but_current_due'
+                                        
+                                    WHEN 
+                                        -- Current Year unpaid and arrear unpaid
+                                        COALESCE(d.paid_status,1)=0 
+                                    AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
+                                    AND balance>0
+                                        THEN 3 -- 'arrear_and_current_due'
+                                        
+                                WHEN 
+                                        -- Current Year unpaid and arrear unpaid
+                                        COALESCE(d.paid_status,1)=0 
+                                    AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
+                                    AND balance>0
+                                        THEN 3 -- 'arrear_and_current_due'
+                                        
+                                WHEN 
+                                        -- arrear_overdue
+                                        COALESCE(d.paid_status,1)=1
+                                    AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
+                                    OR balance>0
+                                        THEN 4 -- 'arrear_overdue'
+                                        
+                            
+                                        
+                                ELSE 
+                                    -- only arrear overdue
+                                    4 --'arrear_overdue'
+                                        
+                        END AS paid_status
+                        
+                        FROM prop_properties as p
+                        
+                        LEFT JOIN (
+                                SELECT 
+                                paid_status,
+                                fyear,
+                                property_id,
+                                status
+                                FROM prop_demands
+                                WHERE fyear='2023-2024' AND status=1		
+                        ) AS d ON d.property_id=p.id
+                        
+                        LEFT JOIN (
+                                SELECT 
+                                paid_status,
+                                fyear,
+                                property_id,
+                                status
+                                FROM prop_demands
+                                WHERE fyear<'2023-2024' AND status=1		
+                        ) AS pd ON pd.property_id=p.id
+                        
+                        
+                        WHERE p.id=39681
+                        GROUP BY p.id,d.fyear,d.paid_status
+                        --LIMIT 100
+     * 
      */
     public function searchProperty($ulbId)
     {
@@ -560,28 +638,42 @@ class PropProperty extends Model
             'ward_name',
             'prop_address',
             'prop_properties.status as active_status',
-            DB::raw("string_agg(prop_owners.mobile_no::VARCHAR,',') as mobile_no"),
-            DB::raw("string_agg(prop_owners.owner_name,',') as owner_name"),
+            'o.mobile_no',
+            'o.owner_name',
             DB::raw("CASE 
-                                -- Current Year paid and previous year paid 
                         WHEN 
-                                COALESCE(d.paid_status,0)=1 
+                                -- Current Year paid and previous year paid 
+                                COALESCE(d.paid_status,1)=1
                                 AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
                                 AND prop_properties.balance<1
-                                THEN 1  --'all_paid'
+                                THEN 1 --'all_paid'
                                 -- Current Year unpaid but arrear paid
                         WHEN 
-                                COALESCE(d.paid_status,0)=0 
+                                COALESCE(d.paid_status,1)=0 
                                 AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
                                 AND prop_properties.balance<1
                                 THEN 2 -- 'arrear_paid_but_current_due'
                                 
-                        WHEN 
+                            WHEN 
                                 -- Current Year unpaid and arrear unpaid
-                                COALESCE(d.paid_status,0)=0 
+                                COALESCE(d.paid_status,1)=0 
                                 AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
                                 AND prop_properties.balance>0
-                                THEN 3  -- 'arrear_and_current_due'
+                                THEN 3 -- 'arrear_and_current_due'
+                                
+                        WHEN 
+                                -- Current Year unpaid and arrear unpaid
+                                COALESCE(d.paid_status,1)=0 
+                                AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
+                                AND prop_properties.balance>0
+                                THEN 3 -- 'arrear_and_current_due'
+                                
+                        WHEN 
+                                -- arrear_overdue
+                                COALESCE(d.paid_status,1)=1
+                                AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
+                                OR prop_properties.balance>0
+                                THEN 4 -- 'arrear_overdue'
                                 
                         ELSE 
                             -- only arrear overdue
@@ -599,7 +691,7 @@ class PropProperty extends Model
                            ) as geotag"), function ($join) {
                 $join->on("geotag.saf_id", "=", "prop_properties.saf_id");
             })
-            ->leftjoin('prop_owners', 'prop_owners.property_id', 'prop_properties.id')
+            ->leftjoin('prop_owners as o', 'o.property_id', 'prop_properties.id')
             ->leftJoin(DB::raw(
                 "(SELECT 
                     paid_status,

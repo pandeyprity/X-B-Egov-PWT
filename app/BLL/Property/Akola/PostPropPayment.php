@@ -91,7 +91,7 @@ class PostPropPayment
         $this->_penaltyRebates['monthlyPenalty'] = [                                    // Monthly Penalty
             'type' => 'Monthly Penalty',
             'isRebate' => false,
-            'amount' => $this->_propCalculation->original['data']['monthlyPenalty']
+            'amount' => $this->_propCalculation->original['data']['totalInterestPenalty']
         ];
 
         $payableAmount = $this->_propCalculation->original['data']['payableAmt'];
