@@ -640,8 +640,6 @@ class PropProperty extends Model
             'prop_properties.status as active_status',
             'o.mobile_no',
             'o.owner_name',
-            // DB::raw("string_agg(prop_owners.mobile_no::VARCHAR,',') as mobile_no"),
-            // DB::raw("string_agg(prop_owners.owner_name,',') as owner_name"),
             DB::raw("CASE 
                         WHEN 
                                 -- Current Year paid and previous year paid 

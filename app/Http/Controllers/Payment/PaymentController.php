@@ -53,7 +53,7 @@ class PaymentController extends Controller
                 "referal_url" => $url['encryptUrl']
             ];
             $mIciciPaymentReq->create($paymentReq);
-            return responseMsgs(true,  $url['plainUrl'], $url['encryptUrl']);
+            return responseMsgs(true,  ["message" => $url['plainUrl'], "req_ref_no" => $req->_refNo], $url['encryptUrl']);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), []);
         }
@@ -189,8 +189,10 @@ class PaymentController extends Controller
             "moduleId"      => "nullable|int",
             "applicationId" => "required|int",
         ]);
+
         if ($validator->fails())
             return validationError($validator);
+
         try {
             $mPinelabPaymentReq =  new PinelabPaymentReq();
             $propertyModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
@@ -209,8 +211,6 @@ class PaymentController extends Controller
                 "ulb_id"          => $user->ulb_id ?? $req->ulbId,
                 "application_id"  => $req->applicationId,
                 "payment_type"    => $req->paymentType
-                // "method_id"       => $req->method_id,
-                // "transaction_type" => $req->transactionType,
 
             ];
             $data = $mPinelabPaymentReq->store($mReqs);
@@ -235,6 +235,7 @@ class PaymentController extends Controller
             $user                    = authUser($req);
             $pinelabData             = $req->pinelabResponseBody;
             $detail                  = (object)$req->pinelabResponseBody['Detail'];
+
             Storage::disk('public')->put($req->billRefNo . '.json', json_encode($req->all()));
 
             $actualTransactionNo = 'TRAN-' . rand(00000, 99999) . time();

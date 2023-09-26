@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Property;
 
 use App\BLL\Payment\ModuleRefUrl;
+use App\BLL\Payment\PineLabPayment;
 use App\BLL\Property\Akola\Calculate2PercPenalty;
 use App\BLL\Property\Akola\GeneratePaymentReceipt;
 use App\BLL\Property\Akola\PostPropPayment;
@@ -314,6 +315,7 @@ class HoldingTaxController extends Controller
                 "payable_amount" => $holdingDues['payableAmt'],
                 "arrear_settled" => $holdingDues['arrear']
             ];
+
             $mPropIciciPayPayments->create($propIciciReqs);
             DB::commit();
             DB::connection('pgsql_master')->commit();
@@ -325,6 +327,52 @@ class HoldingTaxController extends Controller
         }
     }
 
+
+    /**
+     * | Generate Bill Reference No
+     */
+    public function generateBillRefNo(Request $req)
+    {
+        $validated = Validator::make(
+            $req->all(),
+            ['propId' => 'required|integer']
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+
+        $pineLabPayment = new PineLabPayment;
+
+        try {
+            $holdingDues = $this->getHoldingDues($req);
+            if ($holdingDues->original['status'] == false)
+                throw new Exception($holdingDues->original['message']);
+
+            if ($holdingDues->original['data']['paymentStatus'])
+                throw new Exception("Payment Already Done");
+
+            $holdingDues = $holdingDues->original['data'];
+            $payableAmount = $holdingDues['payableAmt'];
+
+            $pineLabParams = (object)[
+                "workflowId"    => 0,
+                "amount"        => $payableAmount,
+                "moduleId"      => 1,
+                "applicationId" => $req->propId,
+                "paymentType" => "Property"
+            ];
+
+            $refNo = $pineLabPayment->initiatePayment($pineLabParams);
+
+            return responseMsgs(true, "Bill id is", ['billRefNo' => $refNo], "", 01, responseTime(), $req->getMethod(), $req->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "1.0", responseTime(), $req->getMethod(), $req->deviceId);
+        }
+    }
 
     /**
      * | Payment Holding (Case for Online Payment)
