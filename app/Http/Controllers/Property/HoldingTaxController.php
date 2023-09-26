@@ -139,6 +139,7 @@ class HoldingTaxController extends Controller
         try {
             $mPropDemand = new PropDemand();
             $mPropProperty = new PropProperty();
+            $mPropOwners = new PropOwner();
             $demand = array();
             $revCalculateByAmt = new RevCalculateByAmt;
             $demandList = collect();
@@ -177,8 +178,17 @@ class HoldingTaxController extends Controller
             $demand['grandTaxes'] = $grandTaxes;
             $demand['currentDemand'] = $demandList->where('fyear', getFY())->first()['balance'] ?? 0;
             $demand['arrear'] = $arrear;
-            $demand['monthlyPenalty'] = $grandTaxes['monthlyPenalty'];
-            $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['monthlyPenalty'] + $arrear);
+
+            // Monthly Interest Penalty Calculation
+            $demand['arrearMonthlyPenalty'] = $calculate2PercPenalty->calculateArrearPenalty($arrear);              // Penalty On Arrear
+            $demand['monthlyPenalty'] = $grandTaxes['monthlyPenalty'];                                              // Monthly Penalty
+            $demand['totalInterestPenalty'] = $demand['arrearMonthlyPenalty'] + $demand['monthlyPenalty'];          // Total Interest Penalty
+            // Read Rebate
+            $firstOwner = $mPropOwners->firstOwner($req->propId);
+            // if($firstOwner->is_armed_force)
+            //     // $rebate=
+            $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['totalInterestPenalty'] + $arrear);
+
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
             $holdingType = $propBasicDtls->holding_type;
             $ownershipType = $propBasicDtls->ownership_type;
@@ -274,6 +284,7 @@ class HoldingTaxController extends Controller
 
             if ($holdingDues->original['data']['paymentStatus'])
                 throw new Exception("Payment Already Done");
+
             $holdingDues = $holdingDues->original['data'];
             $payableAmount = $holdingDues['payableAmt'];
             $basicDetails = $holdingDues['basicDetails'];

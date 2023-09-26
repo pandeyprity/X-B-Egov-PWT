@@ -88,7 +88,7 @@ class PaymentController extends Controller
                     "icici_signature" => $req->signature,
                     "payment_status" => 1
                 ];
-                $mIciciPaymentRes->create($resPayReqs);             // Resonse Data 
+                $mIciciPaymentRes->create($resPayReqs);             // Response Data 
             }
             // ❗❗ Pending for Module Specific Table Updation ❗❗
 
@@ -237,7 +237,7 @@ class PaymentController extends Controller
             $detail                  = (object)$req->pinelabResponseBody['Detail'];
             Storage::disk('public')->put($req->billRefNo . '.json', json_encode($req->all()));
 
-            $actualTransactionNo = 'TRAN' . rand(00000, 99999) . rand(00000, 99999);
+            $actualTransactionNo = 'TRAN-' . rand(00000, 99999) . time();
             if (in_array($req->paymentType, ['Property', 'Saf']))
                 $moduleId = $propertyModuleId;
 

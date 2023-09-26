@@ -478,10 +478,10 @@ class PropertyDetailsController extends Controller
                 if ($key == 'ptn') {
                     $paginator =
                         $data
-                        ->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude', 'zone_name', 'd.paid_status')
+                        ->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude', 'zone_name', 'd.paid_status', 'o.owner_name', 'o.mobile_no')
                         ->paginate($perPage);
                 } else {
-                    $paginator = $data->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude', 'zone_name', 'd.paid_status')
+                    $paginator = $data->groupby('prop_properties.id', 'ulb_ward_masters.ward_name', 'latitude', 'longitude', 'zone_name', 'd.paid_status', 'o.owner_name', 'o.mobile_no')
                         ->paginate($perPage);
                 }
             }
