@@ -417,7 +417,7 @@ class PropertyDetailsController extends Controller
 
                 case ("ownerName"):
                     $data = $mPropProperty->searchProperty($ulbId)
-                        ->where('prop_owners.owner_name', 'LIKE', '%' . strtoupper($parameter) . '%');
+                        ->where('o.owner_name', 'LIKE', '%' . strtoupper($parameter) . '%');
                     break;
 
                 case ("address"):
@@ -427,7 +427,7 @@ class PropertyDetailsController extends Controller
 
                 case ("mobileNo"):
                     $data = $mPropProperty->searchProperty($ulbId)
-                        ->where('prop_owners.mobile_no', 'LIKE', '%' . $parameter . '%');
+                        ->where('o.mobile_no', 'LIKE', '%' . $parameter . '%');
                     break;
 
                 case ("khataNo"):
