@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\Http;
+
 if(!function_exists('SMSJHGOVT'))
 {
 	function SMSJHGOVT($mobileno, $message, $templateid=null)
@@ -710,4 +712,239 @@ function whattest(object $request)
         ]
     ));
 
+}
+
+
+if(!function_exists('SMSAKGOVT'))
+{
+	function SMSAKGOVT($mobileno, $message, $templateid=null)
+    {
+        if(strlen($mobileno)==10 && is_numeric($mobileno) && $templateid != NULL)
+        {
+            $username="SwatiIndbiz"; //username of the department
+            $password="txif7813TX"; //password of the department
+            $senderid="AKOLAM"; //senderid of the deparment
+            $entityID="1701169417204712671"; //senderid of the deparment
+            $message=$message; //message content
+            $url = "http://nimbusit.biz/api/SmsApi/SendSingleApi?";
+
+            $data = array(
+				"UserID" => trim($username),
+				"Password" => trim($password),
+				"SenderID" => trim($senderid),
+				"Phno" =>trim($mobileno),
+				"Msg" => trim($message),
+				"EntityID" =>trim($entityID),
+				"TemplateID" => $templateid,
+            );
+
+            $fields = '';
+            foreach($data as $key => $value) {
+                $fields .= $key . '=' . ($value) . '&';
+            }
+            $url = $url.(rtrim($fields, '&'));
+            $result = Http::post($url);
+            $responseBody = json_decode($result->getBody(),true);
+            if (isset($responseBody["Status"]) && strtoupper($responseBody["Status"]) =='OK')
+            {
+                $response = ['response'=>true, 'status'=> 'success', 'msg'=>$responseBody["Response"]["Message"]??""];                
+            }
+            else
+            {
+                $response = ['response'=>false, 'status'=> 'failure', 'msg'=>$responseBody["Response"]["Message"]??""];              
+            }
+            
+            return $response;
+        }
+        else
+        {
+            if($templateid == NULL)
+              $response = ['response'=>false, 'status'=> 'failure', 'msg'=>'Template Id is required'];
+            else
+              $response = ['response'=>false, 'status'=> 'failure', 'msg'=>'Invalid Mobile No.'];
+            return $response;
+        }
+	}
+}
+
+if(!function_exists("AkolaProperty"))
+{
+    function AkolaProperty($data=array(),$sms_for=null)
+    {
+
+        if(strtoupper($sms_for)==strtoupper('New Assessment'))
+        {
+            try
+            {
+                //Dear {#var#}, congratulations on submitting your Assessment application! Your Ref No. is {#var#}. For details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES               
+                $sms = "Dear ".$data["owner_name"].", congratulations on submitting your Assessment application! Your Ref No. is ".$data["saf_no"].". For details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES";
+                $temp_id = "1707169564185074869";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Dear {#var#}, congratulations on submitting your Assessment application! Your Ref No. is {#var#}. For details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES",
+                "discriuption"=>"1. 2 para required 
+                        2. 1st para array('owner_name'=>'','saf_no'=>'') sizeof 2  
+                        3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+        elseif(strtoupper($sms_for)==strtoupper('Re Assessment'))
+        {
+            try
+            {
+                //Dear {#var#}, your application Ref. No. {#var#} for re-assessment of Property No. {#var#} has been received. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES 
+                $sms = "Dear ".$data["owner_name"].", your application Ref. No. ".$data["saf_no"]." for re-assessment of Property No. ".$data["holding_no"]." has been received. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES";
+                $temp_id = "1707169564187295411";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Dear {#var#}, your application Ref. No. {#var#} for re-assessment of Property No. {#var#} has been received. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES ",
+                "discriuption"=>"1. 2 para required 
+                        2. 1st para array('owner_name'=>'','saf_no'=>'','holding_no'=>'') sizeof 3  
+                        3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+        elseif(strtoupper($sms_for)==strtoupper('Objection Apply'))
+        {
+            try
+            {
+                //Dear {#var#}, your application for OBJECTION Ref. No. {#var#} has been submitted successfully. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES 
+                $sms = "Dear ".$data["owner_name"].", your application for OBJECTION Ref. No. ".$data["objection_no"]." has been submitted successfully. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES";
+                $temp_id = "1707169564196725505";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Dear {#var#}, your application for OBJECTION Ref. No. {#var#} has been submitted successfully. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES",
+                "discriuption"=>"1. 2 para required 
+                        2. 1st para array('owner_name'=>'','objection_no'=>'') sizeof 2  
+                        3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+    
+        elseif(strtoupper($sms_for)==strtoupper('Holding Payment'))
+        {
+            try
+            {
+                //Thank you {#var#} for making payment of Rs. {#var#} against Property No. {#var#}. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES 
+                $sms = "Thank you ".$data["owner_name"]." for making payment of Rs. ".$data["amount"]." against Property No. ".$data["holding_no"].". For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES";
+                $temp_id = "1707169564199604962";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Thank you {#var#} for making payment of Rs. {#var#} against Property No. {#var#}. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES",
+                "discriuption"=>"1. 2 para required 
+                        2. 1st para array('owner_name'=>'','amount'=>'','holding_no'=>'') sizeof 3  
+                        3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+    
+        elseif(strtoupper($sms_for)==strtoupper('Holding Demand'))
+        {
+            try
+            {
+                //Dear {#var#}, your Property Tax Demand of Rs {#var#} has been generated upto FY {#var#}. Please pay on time to avoid any late fine. Please ignore if already paid. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES 
+                $sms = "Dear ".$data["owner_name"].", your Property Tax Demand of Rs".$data["amount"]." has been generated upto FY ".$data["fyear"].". Please pay on time to avoid any late fine. Please ignore if already paid. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES";
+                $temp_id = "1707169564203481769";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Dear {#var#}, your Property Tax Demand of Rs {#var#} has been generated upto FY {#var#}. Please pay on time to avoid any late fine. Please ignore if already paid. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES",
+                "discriuption"=>"1. 2 para required 
+                        2. 1st para array('owner_name'=>'','amount'=>'','fyear'=>'') sizeof 3  
+                        3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+    
+        elseif(strtoupper($sms_for)==strtoupper('Doc Verify'))
+        {
+            try
+            {
+                //Dear {#var#}, your application Ref: no. {#var#} is under process for review. The documents submitted have been verified at LEVEL {#var#} and processed for further approval. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES
+                $sms = "Dear ".$data["owner_name"].", your application Ref: no. ".$data["saf_no"]." is under process for review. The documents submitted have been verified at LEVEL ".$data["role_name"]." and processed for further approval. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES";
+                $temp_id = "1707169564205289913";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Dear {#var#}, your application Ref: no. {#var#} is under process for review. The documents submitted have been verified at LEVEL {#var#} and processed for further approval. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES",
+                "discriuption"=>"1. 2 para required 
+                        2. 1st para array('owner_name'=>'','saf_no'=>'','role_name'=>'') sizeof 3  
+                        3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+
+        elseif(strtoupper($sms_for)==strtoupper('BTC'))
+        {
+            try
+            {
+                //Dear {#var#}, your application Ref No. {#var#} has been returned by AMC due to incomplete Documents/Information for the Property having Holding No. {#var#}. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES
+                $sms = "Dear ".$data["owner_name"].", your application Ref No. ".$data["saf_no"]." has been returned by AMC due to incomplete Documents/Information for the Property having Holding No. ".$data["holding_no"].". For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES";
+                $temp_id = "1707169564208638633";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Dear {#var#}, your application Ref No. {#var#} has been returned by AMC due to incomplete Documents/Information for the Property having Holding No. {#var#}. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES",
+                "discriuption"=>"1. 2 para required 
+                        2. 1st para array('owner_name'=>'','saf_no'=>'','holding_no'=>'') sizeof 3  
+                        3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+
+        elseif(strtoupper($sms_for)==strtoupper('Saf Approval'))
+        {
+            try
+            {
+                //Dear {#var#}, congratulations, your application Ref No. {#var#} has been approved. Your Property ID is: {#var#}. Please pay Rs. {#var#} against Property Tax. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES
+                $sms = "Dear ".$data["owner_name"].", congratulations, your application Ref No. ".$data["saf_no"]." has been approved. Your Property ID is: ".$data["holding_no"].". Please pay Rs. ".$data["amount"]." against Property Tax. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES";
+                $temp_id = "1707169564214439001";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Dear {#var#}, congratulations, your application Ref No. {#var#} has been approved. Your Property ID is: {#var#}. Please pay Rs. {#var#} against Property Tax. For more details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES",
+                "discriuption"=>"1. 2 para required 
+                        2. 1st para array('owner_name'=>'','saf_no'=>'','holding_no'=>'','amount'=>'') sizeof 4  
+                        3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }
+        else
+        {
+            return array('sms'=>'pleas supply two para',
+                            '1'=>'array()',
+                            '2'=>"sms for 
+                            1. New Assessment
+                            2. Re Assessment
+                            3. Objection Apply
+                            4. Holding Payment
+                            5. Holding Demand
+                            6. Doc Verify
+                            7. BTC
+                            8. Saf Approval
+                            9. Re Assessment",                          
+                            'status'=>false
+                        );
+        }
+    }
 }
