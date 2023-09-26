@@ -60,8 +60,10 @@ class UlbMaster extends Model
             ->join('m_states as s', 's.id', '=', 'u.state_id')
             ->where('u.id', $ulbId)
             ->first();
+
         if (collect($ulb)->isEmpty())
             throw new Exception("Ulb Not Found");
+
         return [
             "ulb_name" => $ulb->ulb_name,
             "district" => $ulb->district_name,

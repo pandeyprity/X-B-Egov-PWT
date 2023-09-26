@@ -109,7 +109,8 @@ class PostPropPayment
             'demandAmt' => $this->_propCalculation->original['data']['grandTaxes']['balance'],                         // Demandable Amount
             'tranBy' => $tranBy,
             'arrearSettledAmt' => $arrear,
-            'isArrearSettled' => false
+            'isArrearSettled' => false,
+            'verifyStatus' => 1
         ]);
 
         if (in_array($this->_REQ['paymentMode'], $this->_verifyPaymentModes)) {

@@ -100,6 +100,8 @@ class GeneratePaymentReceipt
                 throw new Exception("Saf Details not available");
         }
 
+        $this->_ulbDetails = $this->_mUlbMasters->getUlbDetails($this->_propertyDtls->ulb_id);
+
         if (collect($tranDtls)->isNotEmpty()) {
             $this->_isArrearReceipt = false;
             if ($this->_tranType == 'Property') {                                   // Get Property Demands by demand ids
@@ -113,7 +115,6 @@ class GeneratePaymentReceipt
                 $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
                 $this->_GRID['penaltyRebates'] = $this->_mPropPenaltyRebates->getPenaltyRebatesHeads($trans->id, "Saf");
             }
-            $this->_ulbDetails = $this->_mUlbMasters->getUlbDetails($this->_propertyDtls->ulb_id);
 
             $currentDemand = $demandsList->where('fyear', $currentFyear);
             $this->_currentDemand = $this->aggregateDemand($currentDemand);
@@ -174,11 +175,13 @@ class GeneratePaymentReceipt
             "transactionDate" => Carbon::parse($this->_trans->tran_date)->format('d-m-Y'),
             "transactionNo" => $this->_trans->tran_no,
             "transactionTime" => $this->_trans->created_at->format('H:i:s'),
+            "verifyStatus" => $this->_trans->verify_status,                     // (0-Not Verified,1-Verified,2-Under Verification,3-Bounce)
             "applicationNo" => $this->_propertyDtls->application_no,
             "customerName" => $this->_propertyDtls->owner_name,
             "guardianName" => $this->_propertyDtls->guardian_name,
             "mobileNo" => $this->_propertyDtls->mobile_no,
             "address" => $this->_propertyDtls->prop_address,
+            "zone_name" => $this->_propertyDtls->zone_name,
             "paidFrom" => $this->_trans->from_fyear,
             "paidUpto" => $this->_trans->to_fyear,
             "paymentMode" => $this->_trans->payment_mode,
@@ -190,6 +193,7 @@ class GeneratePaymentReceipt
             "arrearSettled" => $this->_trans->arrear_settled_amt,
             "ulbId" => $this->_propertyDtls->ulb_id,
             "wardNo" => $this->_propertyDtls->ward_no,
+            "propertyNo" => $this->_propertyDtls->property_no ?? "",
             "towards" => $this->_mTowards,
             "description" => [
                 "keyString" => "Holding Tax"

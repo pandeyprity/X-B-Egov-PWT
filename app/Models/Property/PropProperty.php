@@ -562,6 +562,32 @@ class PropProperty extends Model
             'prop_properties.status as active_status',
             DB::raw("string_agg(prop_owners.mobile_no::VARCHAR,',') as mobile_no"),
             DB::raw("string_agg(prop_owners.owner_name,',') as owner_name"),
+            DB::raw("CASE 
+                                -- Current Year paid and previous year paid 
+                        WHEN 
+                                COALESCE(d.paid_status,0)=1 
+                                AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
+                                AND prop_properties.balance<1
+                                THEN 1  --'all_paid'
+                                -- Current Year unpaid but arrear paid
+                        WHEN 
+                                COALESCE(d.paid_status,0)=0 
+                                AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
+                                AND prop_properties.balance<1
+                                THEN 2 -- 'arrear_paid_but_current_due'
+                                
+                        WHEN 
+                                -- Current Year unpaid and arrear unpaid
+                                COALESCE(d.paid_status,0)=0 
+                                AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
+                                AND prop_properties.balance>0
+                                THEN 3  -- 'arrear_and_current_due'
+                                
+                        ELSE 
+                            -- only arrear overdue
+                            4 --'arrear_overdue'
+                                
+                    END AS paid_status")
         )
             ->join('zone_masters', 'zone_masters.id', 'prop_properties.zone_mstr_id')
             ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'prop_properties.ward_mstr_id')
@@ -573,7 +599,29 @@ class PropProperty extends Model
                            ) as geotag"), function ($join) {
                 $join->on("geotag.saf_id", "=", "prop_properties.saf_id");
             })
-            ->leftjoin('prop_owners', 'prop_owners.property_id', 'prop_properties.id');
+            ->leftjoin('prop_owners', 'prop_owners.property_id', 'prop_properties.id')
+            ->leftJoin(DB::raw(
+                "(SELECT 
+                    paid_status,
+                    fyear,
+                    property_id,
+                    status
+                    FROM prop_demands
+                WHERE fyear='2023-2024' AND status=1) as d"
+            ), function ($join) {
+                $join->on("d.property_id", "=", "prop_properties.id");
+            })
+            ->leftJoin(DB::raw(
+                "(SELECT 
+                    paid_status,
+                    fyear,
+                    property_id,
+                    status
+                    FROM prop_demands
+                WHERE fyear<'2023-2024' AND status=1) as pd"
+            ), function ($join) {
+                $join->on("pd.property_id", "=", "prop_properties.id");
+            });
     }
 
     /**
@@ -728,6 +776,8 @@ class PropProperty extends Model
                 'p.holding_no as application_no',
                 'p.prop_address',
                 'p.ulb_id',
+                'p.property_no',
+                'z.zone_name',
                 'o.owner_name',
                 'o.guardian_name',
                 'o.mobile_no',
@@ -735,6 +785,7 @@ class PropProperty extends Model
             )
             ->leftJoin('prop_owners as o', 'o.property_id', '=', 'p.id')
             ->leftJoin('ulb_ward_masters as u', 'u.id', '=', 'p.ulb_id')
+            ->join('zone_masters as z', 'z.id', '=', 'p.zone_mstr_id')
             ->where('p.id', $propId)
             ->orderBy('o.id')
             ->first();

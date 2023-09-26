@@ -198,7 +198,8 @@ class HoldingTaxController extends Controller
                 'land_occupation_date',
                 'citizen_id',
                 'user_id',
-                'applicant_name'
+                'applicant_name',
+                'property_no'
             ]);
             $basicDtls['moduleId'] = 1;
             $basicDtls['workflowId'] = 0;

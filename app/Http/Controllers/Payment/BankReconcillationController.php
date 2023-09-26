@@ -14,6 +14,7 @@ use App\Models\Property\PropTranDtl;
 use App\Models\Property\PropTransaction;
 use App\Models\Trade\ActiveTradeLicence;
 use App\Models\Trade\TradeChequeDtl;
+use App\Models\Trade\TradeLicence;
 use App\Models\Trade\TradeTransaction;
 use App\Models\Water\WaterApplication;
 use App\Models\Water\WaterChequeDtl;
@@ -29,6 +30,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 /**
  * | Created On-14-02-2023 
@@ -460,12 +462,24 @@ class BankReconcillationController extends Controller
 
 
                 //  Update in trade applications
-                ActiveTradeLicence::where('id', $transaction->temp_id)
-                    ->update(
-                        ['payment_status' => $applicationPaymentStatus]
-                    );
+                $application = ActiveTradeLicence::find($mChequeDtl->temp_id);
+                if(!$application)
+                {
+                    $application = TradeLicence::find($mChequeDtl->temp_id);
+                }
+                if(!$application)
+                {
+                    throw new Exception("Application Not Found");
+                }
+                $application->payment_status = $applicationPaymentStatus;
+                $application->update();
+                $wardId = $application->ward_id;
+                // ActiveTradeLicence::where('id', $transaction->temp_id)
+                //     ->update(
+                //         ['payment_status' => $applicationPaymentStatus]
+                //     );
 
-                $wardId = ActiveTradeLicence::find($mChequeDtl->temp_id)->ward_id;
+                // $wardId = ActiveTradeLicence::find($mChequeDtl->temp_id)->ward_id;
 
                 $request->merge([
                     'id' => $mChequeDtl->id,
@@ -561,22 +575,39 @@ class BankReconcillationController extends Controller
                 $propTrans->status = 0;
                 $propTrans->save();
 
-                $propTranDtl = PropTranDtl::where('tran_id', $tranDtl->transaction_id)->first();
-                $propTranDtl->status = 0;
-                $propTranDtl->save();
+                if ($propTrans->arrear_settled == false) {
 
-                if ($propTrans->payment_mode == in_array($propTrans->payment_mode, ['CHEQUE', 'DD'])) {
-                    $propChequeDtl = PropChequeDtl::where('transaction_id', $tranDtl->transaction_id)->first();
-                    $propChequeDtl->status = 0;
-                    $propChequeDtl->save();
+                    $propTranDtl = PropTranDtl::where('tran_id', $tranDtl->transaction_id)->first();
+                    $propTranDtl->status = 0;
+                    $propTranDtl->save();
+
+                    if ($propTrans->payment_mode == in_array($propTrans->payment_mode, ['CHEQUE', 'DD'])) {
+                        $propChequeDtl = PropChequeDtl::where('transaction_id', $tranDtl->transaction_id)->first();
+                        $propChequeDtl->status = 0;
+                        $propChequeDtl->save();
+                    }
+
+                    $propDemandDtl =  PropDemand::where('id', $propTranDtl->prop_demand_id)->first();
+                    PropDemand::where('property_id', $propTranDtl->prop_demand_id)
+                        ->update([
+                            'paid_status' => 0,
+                            'balance' => $propDemandDtl->total_tax - $propDemandDtl->adjust_amt,
+                        ]);
+                    // Balance Update
+                    $property = PropProperty::find($propTrans->property_id);
+                    if (collect($property)->isEmpty())
+                        throw new Exception("Property Not Found");
+                    $property->balance = $propTrans->arrear_settled_amt;
+                    $property->save();
                 }
 
-                $propDemandDtl =  PropDemand::where('id', $propTranDtl->prop_demand_id)->first();
-                PropDemand::where('property_id', $propTranDtl->prop_demand_id)
-                    ->update([
-                        'paid_status' => 0,
-                        'balance' => $propDemandDtl->total_tax - $propDemandDtl->adjust_amt,
-                    ]);
+                if ($propTrans->arrear_settled) {
+                    $property = PropProperty::find($propTrans->property_id);
+                    if (collect($property)->isEmpty())
+                        throw new Exception("Property Not Found");
+                    $property->balance = $propTrans->arrear_settled_amt;
+                    $property->save();
+                }
             }
 
             #_For Water Transaction Deactivation
@@ -585,6 +616,33 @@ class BankReconcillationController extends Controller
 
             #_For Trade Transaction Deactivation
             if ($tranDtl->module_id == $tradeModuleId) {
+                $tradeTrans = TradeTransaction::find($tranDtl->transaction_id);
+                if(!$tradeTrans)
+                {
+                    throw new Exception("Trade Transaction Not Available");
+                }
+                if(!$tradeTrans->is_verified)
+                {
+                    throw new Exception("Transaction Verified");
+                }
+                $application = ActiveTradeLicence::find($tradeTrans->temp_id);
+                if(!$application)
+                {
+                    $application = TradeLicence::find($tradeTrans->temp_id);
+                }
+                if(!$application)
+                {
+                    throw new Exception("Application Not Found");
+                }
+                if (!in_array(Str::upper($propTrans->payment_mode), ['ONLINE', 'ONL','CASH'])) {
+                    $propChequeDtl = TradeChequeDtl::where('tran_id', $tradeTrans->id)->first();
+                    $propChequeDtl->status = 0;
+                    $propChequeDtl->update();
+                }                
+                $application->payment_status = 0;
+                $tradeTrans->status = 0;
+                $tradeTrans->update();
+                $application->update();
             }
 
             $tranDtl->delete();
