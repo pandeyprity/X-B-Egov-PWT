@@ -287,4 +287,19 @@ class WaterConsumerDemand extends Model
             ->where('status', true)
             ->orderByDesc('id');
     }
+
+    /**
+     * get all data of consumer demands
+     */
+    public function getALLDemand($fromDate, $uptoDate)
+    {
+        return WaterConsumerDemand::select(
+            'water_consumer_demands.amount',
+            'water_consumer_demands.paid_status'
+        )
+        ->where('water_consumer_demands.demand_from', '>=', $fromDate) 
+        ->where('water_consumer_demands.demand_upto', '<=', $uptoDate) 
+        ->where('status', true);
+    }
+    
 }
