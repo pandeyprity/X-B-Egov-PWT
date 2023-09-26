@@ -70,10 +70,10 @@ if(!function_exists('send_sms'))
 {
     function send_sms($mobile,$message, $templateid)
     {
-        // $res=SMSJHGOVT("7050180186", $message, $templateid);
+        $res=SMSAKGOVT("7050180186", $message, $templateid);
         //print_var($message);
         // $res=SMSJHGOVT($mobile, $message, $templateid);
-        return [];//$res;
+        return $res;
     }
 }
 if(!function_exists('Trade'))
@@ -943,6 +943,42 @@ if(!function_exists("AkolaProperty"))
                             7. BTC
                             8. Saf Approval
                             9. Re Assessment",                          
+                            'status'=>false
+                        );
+        }
+    }
+}
+
+if(!function_exists("AkolaTrade"))
+{
+    function AkolaTrade($data=array(),$sms_for=null)
+    {
+
+        if(strtoupper($sms_for)==strtoupper('Renewal'))
+        {
+            try
+            {
+                //Dear {#var#}, congratulations on submitting your renewal application! Your Ref No. is {#var#}. For details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES               
+                $sms = "Dear ".$data['owner_name'].", congratulations on submitting your renewal application! Your Ref No. is ".$data['application_no'].". For details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES";
+                $temp_id = "1707169564221433065";
+                return array("sms"=>$sms,"temp_id"=>$temp_id,'status'=>true);              
+            } 
+            catch(Exception $e)
+            {
+                return array("sms_formate"=>"Dear {#var#}, congratulations on submitting your renewal application! Your Ref No. is {#var#}. For details visit www.akolamc.org/call us at:18008907909 SWATI INDUSTRIES",
+                "discriuption"=>"1. 2 para required 
+                        2. 1st para array('owner_name'=>'','application_no'=>'') sizeof 2  
+                        3. 2nd para sms for ",
+                "error"=>$e->getMessage(),
+                'status'=>false);
+            }
+        }        
+        else
+        {
+            return array('sms'=>'pleas supply two para',
+                            '1'=>'array()',
+                            '2'=>"sms for 
+                            1. Renewal",                          
                             'status'=>false
                         );
         }
