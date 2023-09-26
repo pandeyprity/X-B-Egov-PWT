@@ -621,9 +621,9 @@ class BankReconcillationController extends Controller
                 {
                     throw new Exception("Trade Transaction Not Available");
                 }
-                if(!$tradeTrans->verify_date)
+                if(!$tradeTrans->is_verified)
                 {
-                    throw new Exception("Transaction Verifyed");
+                    throw new Exception("Transaction Verified");
                 }
                 $application = ActiveTradeLicence::find($tradeTrans->temp_id);
                 if(!$application)
@@ -634,7 +634,7 @@ class BankReconcillationController extends Controller
                 {
                     throw new Exception("Application Not Found");
                 }
-                if (!in_array(Str::upper($propTrans->payment_mode), ['ONLINE', 'ONL','CASE'])) {
+                if (!in_array(Str::upper($propTrans->payment_mode), ['ONLINE', 'ONL','CASH'])) {
                     $propChequeDtl = TradeChequeDtl::where('tran_id', $tradeTrans->id)->first();
                     $propChequeDtl->status = 0;
                     $propChequeDtl->update();

@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\Water;
 
-use App\Http\Controllers\Controller;
+use Exception;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use App\Models\Water\WaterTran;
 use App\Traits\Water\WaterTrait;
-use Carbon\Carbon;
-use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Config;
+use App\Models\Water\WaterConsumerDemand;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * | ----------------------------------------------------------------------------------
@@ -1201,6 +1202,44 @@ class WaterReportController extends Controller
             return responseMsgs(true, "", $list, $apiId, $version, $queryRunTime, $action, $deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
+        }
+    }
+
+    /**
+     * dcb report
+     * working
+     * date-25/09/2023
+     */
+    public function WaterdcbReport(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try {
+            $fiyear=$request->fiyear;
+            $currentDate = Carbon::now()->format('Y-m-d');
+            $currentFyear = getFinancialYear($currentDate);
+            $refDate = $this->getFyearDate($currentFyear);
+            $fromDate = $refDate['fromDate'];
+            $uptoDate = $refDate['uptoDate'];
+            $mWaterConsumerDemand = new WaterConsumerDemand();
+            $demand = $mWaterConsumerDemand->getALLDemand($fromDate, $uptoDate)->get();
+            $totalDemands = $demand->sum('amount');
+            $filteredDemandPaid0 = $demand->where('paid_status', 0)->sum('amount');
+            $filteredDemandPaid1 = $demand->where('paid_status', 1)->sum('amount');
+            $data = [
+                'balanceAmount'  => $filteredDemandPaid0,
+                'collections'    => $filteredDemandPaid1,
+                'totalDemand'    => $totalDemands,
+            ];
+            return responseMsgs(true, "", remove_null($data), "", "", "", 'POST', "");
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
     }
 }

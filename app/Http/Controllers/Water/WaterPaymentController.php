@@ -366,20 +366,6 @@ class WaterPaymentController extends Controller
             # Connection Charges
             $connectionCharges = $mWaterConnectionCharge->getChargesById($transactionDetails->demand_id)
                 ->first();
-
-            # if penalty Charges
-            // if ($transactionDetails->penalty_ids) {
-            //     $penaltyIds = explode(',', $transactionDetails->penalty_ids);
-            //     $refPenalty = $mWaterPenaltyInstallment->getPenaltyByArrayOfId($penaltyIds);
-            //     $totalPenaltyAmount = collect($refPenalty)->sum('balance_amount');
-
-            //     # check and find for rebate
-            //     $refRebaterDetails = $mWaterTranFineRebate->getFineRebate($applicationDetails['id'], $mSearchForRebate['4'], $transactionDetails['id'])->first();
-            //     if (!is_null($refRebaterDetails)) {
-            //         $rebateAmount = $refRebaterDetails['amount'];
-            //     }
-            // }
-
             # Transaction Date
             $refDate = $transactionDetails->tran_date;
             $transactionDate = Carbon::parse($refDate)->format('Y-m-d');
@@ -1611,7 +1597,7 @@ class WaterPaymentController extends Controller
 
             #  Data not equal to Cash
             if (!in_array($transactionDetails['payment_mode'], [$mPaymentModes['1'], $mPaymentModes['5']])) {
-               $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->first();
+                $chequeDetails = $mWaterChequeDtl->getChequeDtlsByTransId($transactionDetails['id'])->first();
             }
             # Application Deatils
             $consumerDetails = $mWaterConsumer->fullWaterDetails($transactionDetails->related_id)->first();
