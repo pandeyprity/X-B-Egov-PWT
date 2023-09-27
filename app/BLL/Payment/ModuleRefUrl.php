@@ -19,6 +19,7 @@ class ModuleRefUrl extends GetRefUrl
     public function getReferalUrl(Request $req)
     {
         $mIciciPaymentReq = new IciciPaymentReq();          // We Have to pass transaction amount here which is pending
+        $this->_tranAmt = $req->amount;
         $url = $this->generateRefUrl();
         $paymentReq = [
             "user_id" => isEmpty($req->userId) ? null : $req->userId,
