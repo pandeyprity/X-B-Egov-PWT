@@ -21,8 +21,9 @@ class GetRefUrl
     private static $subMerchantId = 45;
     private static $paymentMode = 9;
     private static $baseUrl = "https://eazypayuat.icicibank.com";
-    private static $returnUrl = "http://203.129.217.244/property";
+    private static $returnUrl = "http://203.129.217.244:8081/property";
     private static $ciphering = "aes-128-ecb";                                          // Store the cipher method for encryption
+    public $_tranAmt;
     public $_refNo;
     public $_refUrl;
 
@@ -34,20 +35,21 @@ class GetRefUrl
         $todayDate = Carbon::now()->format('d/M/Y');
         $refNo = time() . rand();
         $this->_refNo = $refNo;
-        $mandatoryField = "$refNo|" . self::$subMerchantId . "|10|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
+        $tranAmt = $this->_tranAmt;
+        $mandatoryField = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
         $eMandatoryField = $this->encryptAes($mandatoryField);
         $optionalField = $this->encryptAes("X|X|X");
         $returnUrl = $this->encryptAes(self::$returnUrl);
         $eRefNo = $this->encryptAes($refNo);
         $subMerchantId = $this->encryptAes(self::$subMerchantId);
-        $tranAmt = $this->encryptAes(10);
+        $eTranAmt = $this->encryptAes($tranAmt);
         $paymentMode = $this->encryptAes(self::$paymentMode);
 
         $plainUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $mandatoryField . "&optional fields=X|X|X" . '&returnurl=' . self::$returnUrl . '&Reference No=' . $refNo
-            . '&submerchantid=' . self::$subMerchantId . '&transaction amount=' . "10" . '&paymode=' . self::$paymentMode;
+            . '&submerchantid=' . self::$subMerchantId . '&transaction amount=' . "$tranAmt" . '&paymode=' . self::$paymentMode;
 
         $encryptUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $eMandatoryField . "&optional fields=$optionalField" . '&returnurl=' . $returnUrl . '&Reference No=' . $eRefNo
-            . '&submerchantid=' . $subMerchantId . '&transaction amount=' . $tranAmt . '&paymode=' . $paymentMode;
+            . '&submerchantid=' . $subMerchantId . '&transaction amount=' . $eTranAmt . '&paymode=' . $paymentMode;
         $this->_refUrl = $encryptUrl;
         return [
             'plainUrl' => $plainUrl,
