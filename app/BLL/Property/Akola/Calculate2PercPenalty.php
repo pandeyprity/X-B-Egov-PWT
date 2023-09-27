@@ -49,6 +49,6 @@ class Calculate2PercPenalty
         $currentMonth = Carbon::now()->format('m');
         $currentFyMonths = $currentMonth - 4;
         $arrearPenalty = $arrear * $currentFyMonths * 0.02;
-        return $arrearPenalty;
+        return roundFigure($arrearPenalty);
     }
 }

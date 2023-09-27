@@ -22,8 +22,12 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use ReflectionFunctionAbstract;
+
+/**
+ * | Created On-27-09-2023 
+ * | Author - Anshu Kumar
+ * | Status-Closed
+ */
 
 class PaymentController extends Controller
 {
@@ -224,7 +228,8 @@ class PaymentController extends Controller
 
     /**
      * | Save Pine lab Response
-
+     * | Code by Mrinal Kumar
+     * | Edited By-Anshu Kumar(27-09-2023)
      */
     public function savePinelabResponse(Request $req)
     {

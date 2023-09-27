@@ -463,12 +463,10 @@ class BankReconcillationController extends Controller
 
                 //  Update in trade applications
                 $application = ActiveTradeLicence::find($mChequeDtl->temp_id);
-                if(!$application)
-                {
+                if (!$application) {
                     $application = TradeLicence::find($mChequeDtl->temp_id);
                 }
-                if(!$application)
-                {
+                if (!$application) {
                     throw new Exception("Application Not Found");
                 }
                 $application->payment_status = $applicationPaymentStatus;
@@ -576,7 +574,6 @@ class BankReconcillationController extends Controller
                 $propTrans->save();
 
                 if ($propTrans->arrear_settled == false) {
-
                     $propTranDtl = PropTranDtl::where('tran_id', $tranDtl->transaction_id)->first();
                     $propTranDtl->status = 0;
                     $propTranDtl->save();
@@ -617,28 +614,24 @@ class BankReconcillationController extends Controller
             #_For Trade Transaction Deactivation
             if ($tranDtl->module_id == $tradeModuleId) {
                 $tradeTrans = TradeTransaction::find($tranDtl->transaction_id);
-                if(!$tradeTrans)
-                {
+                if (!$tradeTrans) {
                     throw new Exception("Trade Transaction Not Available");
                 }
-                if(!$tradeTrans->is_verified)
-                {
+                if (!$tradeTrans->is_verified) {
                     throw new Exception("Transaction Verified");
                 }
                 $application = ActiveTradeLicence::find($tradeTrans->temp_id);
-                if(!$application)
-                {
+                if (!$application) {
                     $application = TradeLicence::find($tradeTrans->temp_id);
                 }
-                if(!$application)
-                {
+                if (!$application) {
                     throw new Exception("Application Not Found");
                 }
-                if (!in_array(Str::upper($propTrans->payment_mode), ['ONLINE', 'ONL','CASH'])) {
+                if (!in_array(Str::upper($propTrans->payment_mode), ['ONLINE', 'ONL', 'CASH'])) {
                     $propChequeDtl = TradeChequeDtl::where('tran_id', $tradeTrans->id)->first();
                     $propChequeDtl->status = 0;
                     $propChequeDtl->update();
-                }                
+                }
                 $application->payment_status = 0;
                 $tradeTrans->status = 0;
                 $tradeTrans->update();
