@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 class PropTransaction extends Model
 {
@@ -151,6 +152,14 @@ class PropTransaction extends Model
      */
     public function postPropTransactions($req, $demands, $fromFyear = null, $uptoFyear = null)
     {
+        $fromDemand = collect($demands)->first();
+        if ($fromDemand instanceof stdClass)
+            $fromDemand = (array)$fromDemand;
+
+        $toDemand = collect($demands)->last();
+        if ($toDemand instanceof stdClass)
+            $toDemand = (array)$toDemand;
+
         $propTrans = new PropTransaction();
         $propTrans->property_id = $req['id'];
         $propTrans->amount = $req['amount'];
@@ -158,10 +167,10 @@ class PropTransaction extends Model
         $propTrans->tran_date = $req['todayDate'];
         $propTrans->tran_no = $req['tranNo'];
         $propTrans->payment_mode = $req['paymentMode'];
-        $propTrans->user_id = $req['userId'];
+        $propTrans->user_id = $req['userId'] ?? auth()->user()->id;
         $propTrans->ulb_id = $req['ulbId'];
-        $propTrans->from_fyear = collect($demands)->first()['fyear'] ?? $fromFyear;
-        $propTrans->to_fyear = collect($demands)->last()['fyear'] ?? $uptoFyear;
+        $propTrans->from_fyear = $fromDemand['fyear'] ?? $fromFyear;         // 🔴 In Case of only arrear payment fromFyear 
+        $propTrans->to_fyear = $toDemand['fyear'] ?? $uptoFyear;            // 🔴 In Case of only arrear payment uptoFyear 
         $propTrans->demand_amt = $req['demandAmt'];
         $propTrans->tran_by_type = $req['tranBy'];
         $propTrans->verify_status = $req['verifyStatus'];

@@ -584,9 +584,14 @@ class PropProperty extends Model
                                     AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
                                     OR balance>0
                                         THEN 4 -- 'arrear_overdue'
+
+                                WHEN 
+                                -- Current Payment done arrear not available
+                                COALESCE(d.paid_status,1)=1
+                                AND string_to_array(string_agg(pd.paid_status::TEXT,','),',') IS NULL
+                                THEN 1 -- 'current_payment_done'
                                         
                             
-                                        
                                 ELSE 
                                     -- only arrear overdue
                                     4 --'arrear_overdue'
@@ -876,7 +881,7 @@ class PropProperty extends Model
                 'u.ward_name as ward_no'
             )
             ->leftJoin('prop_owners as o', 'o.property_id', '=', 'p.id')
-            ->leftJoin('ulb_ward_masters as u', 'u.id', '=', 'p.ulb_id')
+            ->leftJoin('ulb_ward_masters as u', 'u.id', '=', 'p.ward_mstr_id')
             ->join('zone_masters as z', 'z.id', '=', 'p.zone_mstr_id')
             ->where('p.id', $propId)
             ->orderBy('o.id')

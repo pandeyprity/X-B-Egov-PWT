@@ -406,13 +406,23 @@ class HoldingTaxController extends Controller
      */
     public function paymentHolding(Request $req)
     {
-        $postPropPayment = new PostPropPayment($req);
-        $mPropPinelabPayment = new PropPinelabPayment();
-        $billRefNo = $req->billRefNo;
-        $paymentReqs = $mPropPinelabPayment->getPaymentByBillRefNo($billRefNo);
-        $demandList = $paymentReqs->demand_list;
-        $postPropPayment->_propCalculation = json_decode($demandList);
-        $postPropPayment->postPayment();
+        try {
+            $billRefNo = $req->billRefNo;
+            $mPropPinelabPayment = new PropPinelabPayment();
+            $paymentReqs = $mPropPinelabPayment->getPaymentByBillRefNo($billRefNo);
+            $req->merge(['paymentMode' => $paymentReqs->payment_mode]);                 // Add Payment Mode by the table
+            $postPropPayment = new PostPropPayment($req);
+            $demandList = json_decode($paymentReqs->demand_list);
+            $demandList = responseMsgs(true, "Demand Details", $demandList);
+            $demandList->original['data'] = (array)$demandList->original['data'];
+            $demandList->original['data']['grandTaxes'] = (array)$demandList->original['data']['grandTaxes'];
+
+            $postPropPayment->_propCalculation = $demandList;
+            $postPropPayment->postPayment();
+            DB::commit();
+        } catch (Exception $e) {
+            DB::rollBack();
+        }
     }
 
     /**

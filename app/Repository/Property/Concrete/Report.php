@@ -47,7 +47,6 @@ class Report implements IReport
         list($apiId, $version, $queryRunTime, $action, $deviceId) = $metaData;
         try {
             $refUser        = authUser($request);
-            $refUserId      = $refUser->id;
             $ulbId          = $refUser->ulb_id;
             $wardId = null;
             $userId = null;
@@ -63,9 +62,12 @@ class Report implements IReport
             if ($request->wardId) {
                 $wardId = $request->wardId;
             }
-            if ($request->userId) {
+
+            if ($request->userId)
                 $userId = $request->userId;
-            }
+            else
+                $userId = auth()->user()->id;                   // In Case of any logged in TC User
+
             if ($request->paymentMode) {
                 $paymentMode = $request->paymentMode;
             }
@@ -93,6 +95,7 @@ class Report implements IReport
                             prop_transactions.tran_date,
                             prop_transactions.payment_mode AS transaction_mode,
                             prop_transactions.amount,users.user_name as emp_name,users.id as user_id,
+                            users.mobile as tc_mobile,
                             prop_transactions.tran_no,prop_cheque_dtls.cheque_no,
                             prop_cheque_dtls.bank_name,prop_cheque_dtls.branch_name
                 "),
@@ -158,7 +161,11 @@ class Report implements IReport
                     "data" => $data,
 
                 ];
+                $tcName = collect($data)->first()->emp_name;
+                $tcMobile = collect($data)->first()->tc_mobile;
                 if ($request->footer) {
+                    $list["tcName"] = $tcName;
+                    $list["tcMobile"] = $tcMobile;
                     $list["footer"] = $footer;
                     $list["totalCount"] = $totalFCount;
                     $list["totalAmount"] = $totalFAmount;

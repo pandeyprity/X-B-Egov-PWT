@@ -70,7 +70,11 @@ class PostPropPayment
         if (collect($this->_propDetails)->isEmpty())
             throw new Exception("Property Details Not Available for this id");
 
-        $this->_tranNo = $idGeneration->generateTransactionNo($this->_propDetails->ulb_id);
+        if ($this->_REQ['transactionNo'])
+            $this->_tranNo = $this->_REQ['transactionNo'];          // Transaction No comes in case of online payment
+        else
+            $this->_tranNo = $idGeneration->generateTransactionNo($this->_propDetails->ulb_id);
+
         $this->_mPropPenaltyrebates = new PropPenaltyrebate();
     }
 
@@ -79,7 +83,7 @@ class PostPropPayment
      */
     public function readPaymentParams()
     {
-        $demands = $this->_propCalculation->original['data']['demandList'] ?? $this->_propCalculation->demandList;
+        $demands = $this->_propCalculation->original['data']['demandList'];
         // 🔺🔺 Arrears and Settlements is on under process
         $arrear = $this->_propCalculation->original['data']['arrear'];
 
@@ -119,10 +123,10 @@ class PostPropPayment
             ]);
         }
 
-        if ($demands->isEmpty() && $arrear <= 0)
+        if (collect($demands)->isEmpty() && $arrear <= 0)
             throw new Exception("No Dues For this Property");
 
-        if ($demands->isEmpty() && $arrear > 0) {
+        if (collect($demands)->isEmpty() && $arrear > 0) {
             $arrearDate = Carbon::now()->addYear(-1)->format('Y-m-d');
             $arrearFyear = getFY($arrearDate);
             $this->_fromFyear = $arrearFyear;
@@ -140,7 +144,7 @@ class PostPropPayment
     {
         $this->readPaymentParams();
 
-        // 🌹🔴🔴🔴🔴Begining Transactions 🔴🔴🔴
+        // 🔴🔴🔴🔴Begining Transactions 🔴🔴🔴
         DB::beginTransaction();
         $this->_propDetails->balance = 0;                  // Update Arrear
         $this->_propDetails->save();
@@ -151,6 +155,7 @@ class PostPropPayment
 
         // Updation of payment status in demand table
         foreach ($this->_demands as $demand) {
+            $demand = collect($demand);
             $demand = (object)$demand->toArray();
             if (isset($demand->id)) {                     // if id exist on demand
                 // 🔴🔴🔴🔴🔴🔴🔴 If isArrear is true then disable this condition (Pending)

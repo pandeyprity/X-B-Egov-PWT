@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Property\ActiveSafController;
 use App\Http\Controllers\Property\HoldingTaxController;
 use App\Http\Requests\Property\ReqPayment;
+use App\MicroServices\IdGeneration;
 use App\MicroServices\IdGenerator\PrefixIdGenerator;
 use App\Models\Payment\IciciPaymentReq;
 use App\Models\Payment\IciciPaymentResponse;
@@ -227,6 +228,7 @@ class PaymentController extends Controller
      */
     public function savePinelabResponse(Request $req)
     {
+        $idGeneration = new IdGeneration;
         try {
             Storage::disk('public')->put($req->billRefNo . '.json', json_encode($req->all()));
             $mPinelabPaymentReq      =  new PinelabPaymentReq();
@@ -238,20 +240,25 @@ class PaymentController extends Controller
             $detail                  = (object)($req->pinelabResponseBody['Detail'] ?? []);
 
 
-            $actualTransactionNo = 'TRAN-' . $req->billRefNo . time();
+            $actualTransactionNo = $idGeneration->generateTransactionNo($user->ulb_id);
+
             if (in_array($req->paymentType, ['Property', 'Saf']))
                 $moduleId = $propertyModuleId;
 
             $paymentData = $mPinelabPaymentReq->getPaymentRecord($req);
+
+            if (collect($paymentData)->isEmpty())
+                throw new Exception("Payment Data not available");
             if ($paymentData) {
                 $mReqs = [
                     "payment_req_id"       => $paymentData->id,
                     "req_ref_no"           => $req->billRefNo,
-                    "res_ref_no"           => $req->res_ref_no,                         // flag
+                    "res_ref_no"           => $actualTransactionNo,                         // flag
                     "response_msg"         => $pinelabData['Response']['ResponseMsg'],
                     "response_code"        => $pinelabData['Response']['ResponseCode'],
                     "description"          => $req->description,
                 ];
+
                 $data = $mPinelabPaymentResponse->store($mReqs);
             }
 
@@ -293,13 +300,13 @@ class PaymentController extends Controller
                 'LoyaltyPointsAwarded'     => $detail->LoyaltyPointsAwarded ?? null,
                 'CardholderName'           => $detail->CardholderName ?? null,
                 'AuthAmoutPaise'           => $detail->AuthAmoutPaise ?? null,
-                'PlutusTransactionLogID'   => $detail->PlutusTransactionLogID ?? null,
+                'PlutusTransactionLogID'   => $detail->PlutusTransactionLogID ?? null
             ];
 
 
-            if ($pinelabData['Response']['ResponseCode'] == 00) {
+            if ($pinelabData['Response']['ResponseCode'] == 00) {                           // Success Response code(00)
                 $paymentData->payment_status = 1;
-                // $paymentData->save();
+                $paymentData->save();
 
                 # calling function for the modules
                 switch ($paymentData->module_id) {
@@ -325,7 +332,6 @@ class PaymentController extends Controller
                         break;
                 }
             }
-
             return responseMsgs(true, "Data Saved", $data, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
