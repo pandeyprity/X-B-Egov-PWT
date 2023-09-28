@@ -519,21 +519,18 @@ class BankReconcillationController extends Controller
      */
     public function searchTransactionNo(Request $req)
     {
-        try {
-            $validator = Validator::make($req->all(), [
-                "transactionNo" => "required"
-            ]);
-            if ($validator->fails())
-                return validationError($validator);
+        $validator = Validator::make($req->all(), [
+            "transactionNo" => "required",
+            "tranType" => "required|In:Property,Water,Trade"
+        ]);
 
-            $transactionDtl = TempTransaction::select(
-                'temp_transactions.*',
-                'module_name',
-                DB::raw("'1'as status")
-            )
-                ->join('module_masters', 'module_masters.id', 'temp_transactions.module_id')
-                ->where('transaction_no', $req->transactionNo)
-                ->get();
+        if ($validator->fails())
+            return validationError($validator);
+        try {
+            if ($req->tranType == "Property") {
+                $mPropTransaction = new PropTransaction();
+                $transactionDtl = $mPropTransaction->getTransByTranNo($req->transactionNo);
+            }
 
             return responseMsgs(true, "Transaction No is", $transactionDtl, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         } catch (Exception $e) {
