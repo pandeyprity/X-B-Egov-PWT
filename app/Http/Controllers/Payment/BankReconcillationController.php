@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payment;
 
+use App\BLL\Property\DeactivateTran;
 use App\Http\Controllers\Controller;
 use App\Models\Payment\PaymentReconciliation;
 use App\Models\Payment\TempTransaction;
@@ -541,24 +542,23 @@ class BankReconcillationController extends Controller
     }
 
     /**
-     * | 
+     * | Required @param Request
+     * | Required @return 
      */
     public function deactivateTransaction(Request $req)
     {
         $validator = Validator::make($req->all(), [
-            "id" => "required",
-            "applicationId" => "required"
+            "id" => "required|integer",                         // Transaction ID
+            "moduleId" => "required|integer"
 
         ]);
         if ($validator->fails())
             return validationError($validator);
+
         try {
             $propertyModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
             $waterModuleId = Config::get('module-constants.WATER_MODULE_ID');
             $tradeModuleId = Config::get('module-constants.TRADE_MODULE_ID');
-            $tranDtl = TempTransaction::find($req->id);
-            if (!$tranDtl)
-                throw new Exception("No Transaction Found");
 
             DB::beginTransaction();
             DB::connection('pgsql_master')->beginTransaction();
@@ -566,54 +566,18 @@ class BankReconcillationController extends Controller
             DB::connection('pgsql_trade')->beginTransaction();
 
             #_For Property Transaction Deactivation
-            if ($tranDtl->module_id == $propertyModuleId) {
-                $propTrans = PropTransaction::find($tranDtl->transaction_id);
-                if (!$propTrans)
-                    throw new Exception("Property Transaction Not Available");
-                $propTrans->status = 0;
-                $propTrans->save();
-
-                if ($propTrans->arrear_settled == false) {
-                    $propTranDtl = PropTranDtl::where('tran_id', $tranDtl->transaction_id)->first();
-                    $propTranDtl->status = 0;
-                    $propTranDtl->save();
-
-                    if ($propTrans->payment_mode == in_array($propTrans->payment_mode, ['CHEQUE', 'DD'])) {
-                        $propChequeDtl = PropChequeDtl::where('transaction_id', $tranDtl->transaction_id)->first();
-                        $propChequeDtl->status = 0;
-                        $propChequeDtl->save();
-                    }
-
-                    $propDemandDtl =  PropDemand::where('id', $propTranDtl->prop_demand_id)->first();
-                    PropDemand::where('property_id', $propTranDtl->prop_demand_id)
-                        ->update([
-                            'paid_status' => 0,
-                            'balance' => $propDemandDtl->total_tax - $propDemandDtl->adjust_amt,
-                        ]);
-                    // Balance Update
-                    $property = PropProperty::find($propTrans->property_id);
-                    if (collect($property)->isEmpty())
-                        throw new Exception("Property Not Found");
-                    $property->balance = $propTrans->arrear_settled_amt;
-                    $property->save();
-                }
-
-                if ($propTrans->arrear_settled) {
-                    $property = PropProperty::find($propTrans->property_id);
-                    if (collect($property)->isEmpty())
-                        throw new Exception("Property Not Found");
-                    $property->balance = $propTrans->arrear_settled_amt;
-                    $property->save();
-                }
+            if ($req->moduleId == $propertyModuleId) {
+                $deactivateTran = new DeactivateTran($req->id);                 // Property or Saf Deactivate Transaction
+                $deactivateTran->deactivate();
             }
 
             #_For Water Transaction Deactivation
-            if ($tranDtl->module_id == $waterModuleId) {
+            if ($req->moduleId == $waterModuleId) {
             }
 
             #_For Trade Transaction Deactivation
-            if ($tranDtl->module_id == $tradeModuleId) {
-                $tradeTrans = TradeTransaction::find($tranDtl->transaction_id);
+            if ($req->moduleId == $tradeModuleId) {
+                $tradeTrans = TradeTransaction::find($req->transaction_id);
                 if (!$tradeTrans) {
                     throw new Exception("Trade Transaction Not Available");
                 }
@@ -627,7 +591,7 @@ class BankReconcillationController extends Controller
                 if (!$application) {
                     throw new Exception("Application Not Found");
                 }
-                if (!in_array(Str::upper($propTrans->payment_mode), ['ONLINE', 'ONL', 'CASH'])) {
+                if (!in_array(Str::upper($tradeTrans->payment_mode), ['ONLINE', 'ONL', 'CASH'])) {
                     $propChequeDtl = TradeChequeDtl::where('tran_id', $tradeTrans->id)->first();
                     $propChequeDtl->status = 0;
                     $propChequeDtl->update();
@@ -638,7 +602,7 @@ class BankReconcillationController extends Controller
                 $application->update();
             }
 
-            $tranDtl->delete();
+            // return ["Test"];
 
             DB::commit();
             DB::connection('pgsql_master')->commit();

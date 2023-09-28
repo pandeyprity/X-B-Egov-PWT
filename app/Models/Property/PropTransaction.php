@@ -48,6 +48,7 @@ class PropTransaction extends Model
             ->where('tran_no', $tranNo)
             ->leftJoin("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
             ->leftJoin("users as u", "u.id", "prop_transactions.user_id")
+            ->where('prop_transactions.status', 1)
             ->firstorfail();
     }
 
