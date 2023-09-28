@@ -48,6 +48,7 @@ class PropTransaction extends Model
             ->where('tran_no', $tranNo)
             ->leftJoin("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
             ->leftJoin("users as u", "u.id", "prop_transactions.user_id")
+            ->where('prop_transactions.status', 1)
             ->firstorfail();
     }
 
@@ -381,5 +382,31 @@ class PropTransaction extends Model
             'cheque_doc_refno' => $cheDocDtls['ReferenceNo'],
             'cheque_doc_uniqueid' => $cheDocDtls['uniqueId']
         ]);
+    }
+
+    /**
+     * | Get Property Transaction by Transaction No
+     */
+    public function getTransByTranNo($tranNo)
+    {
+        return DB::table('prop_transactions as t')
+            ->select(
+                't.id as transaction_id',
+                't.tran_no as transaction_no',
+                't.amount',
+                't.payment_mode',
+                't.tran_date',
+                't.tran_type as module_name',
+                DB::raw("
+                CASE
+                    WHEN t.property_id is not null THEN t.property_id
+                    ELSE t.saf_id
+                END as application_id
+            "),
+                DB::raw('1 as moduleId')
+            )
+            ->where('t.tran_no', $tranNo)
+            ->where('status', 1)
+            ->get();
     }
 }
