@@ -8,6 +8,7 @@ use App\Models\Property\PropTranDtl;
 use App\Models\Property\PropTransaction;
 use App\Models\Trade\TradeTransaction;
 use App\Models\UlbMaster;
+use App\Models\ulbRevenueTargete;
 use App\Models\UlbWardMaster;
 use App\Models\Water\WaterTran;
 use App\Repository\Common\CommonFunction;
@@ -19,6 +20,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon as SupportCarbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use stdClass;
 
@@ -457,5 +459,227 @@ class StateDashboardController extends Controller
         );
         $request->request->add(["metaData" => ["ds11.1", 1.1, null, $request->getMethod(), null,]]);
         return $Repository->stateDashboardDCB($request);
+    }
+
+    public function ulbsTargets(Request $request)
+    {
+        if(!$request->metaData)
+        {
+            $request->merge(["metaData" => ["ds11.1", 1.1, null, $request->getMethod(), null,]]);
+        }
+        $metaData = collect($request->metaData)->all();
+        list($apiId, $version, $queryRunTime, $action, $deviceId) = $metaData;
+        $validation = Validator::make($request->all(),[
+            "fromDate" => "required|date|date_format:Y-m-d",
+            "uptoDate" => "required|date|date_format:Y-m-d",
+            "wardId" => "nullable|digits_between:1,9223372036854775807",
+            "userId" => "nullable|digits_between:1,9223372036854775807",
+            "ulbId" => "nullable|digits_between:1,9223372036854775807",
+        ]);
+        if($validation->fails())
+        {
+            return responseMsgs(false, "given Data invalid", $validation->errors(), $apiId, $version, $queryRunTime, $action, $deviceId);
+        }
+        try{
+            $fromDate =  $uptoDate=$toDaye = Carbon::now()->format("Y-m-d");
+            $fiYear = getFY();
+            $ulbId = null;
+            if ($request->fiYear) {
+                $fiYear = $request->fiYear;
+            }
+            list($fromYear, $toYear) = explode("-", $fiYear);
+            if ($toYear - $fromYear != 1) {
+                throw new Exception("Enter Valide Financial Year");
+            }
+            if ($request->fromDate) {
+                $fromDate = $request->fromDate;
+            }
+            if ($request->uptoDate) {
+                $uptoDate = $request->uptoDate;
+            }
+            $FfromDate = $fromYear . "-04-01";
+            $FuptoDate = $toYear . "-03-31";
+            if ($request->ulbId) {
+                $ulbId = $request->ulbId;
+            }
+            $target = ulbRevenueTargete::select(DB::raw(
+                        "ulb_revenue_targetes.ulb_id,ulb_masters.ulb_name,
+                        SUM(ulb_revenue_targetes.amt_prop_trg) AS amt_prop_trg, 
+                        SUM(ulb_revenue_targetes.amt_prop_arr_trg) AS amt_prop_arr_trg,
+                        SUM(ulb_revenue_targetes.amt_prop_curr_trg ) AS amt_prop_curr_trg,	
+                        SUM(ulb_revenue_targetes.amt_water_trg) AS amt_water_trg,
+                        SUM(ulb_revenue_targetes.amt_water_arr_trg) AS amt_water_arr_trg,
+                        SUM(ulb_revenue_targetes.amt_water_curr_trg) AS amt_water_curr_trg,	
+                        SUM(ulb_revenue_targetes.amt_trade_trg) AS amt_trade_trg,
+                        SUM(ulb_revenue_targetes.amt_trade_arr_trg) AS amt_trade_arr_trg,
+                        SUM(ulb_revenue_targetes.amt_trade_curr_trg) AS amt_trade_curr_trg
+                        "
+                    ))
+                    ->join("ulb_masters","ulb_masters.id","ulb_revenue_targetes.ulb_id")
+                    ->where("ulb_revenue_targetes.status",1)
+                    ->whereBetween("ulb_revenue_targetes.effected_from",[$FfromDate,$FuptoDate])
+                    ->groupBy("ulb_revenue_targetes.ulb_id")
+                    ->groupBy("ulb_masters.ulb_name");
+            if($ulbId)
+            {
+                $target = $target->where("ulb_masters.id",$ulbId);
+            }
+
+            $target = $target->get();
+            $propColl = propTransaction::select(DB::raw("SUM(prop_transactions.amount) AS amount,prop_transactions.ulb_id, ulb_masters.ulb_name"))
+                        ->join("ulb_masters","ulb_masters.id","prop_transactions.ulb_id")
+                        ->whereNotNull("prop_transactions.property_id")
+                        ->whereIn("prop_transactions.status",[1,2])                        
+                        ->whereIN("prop_transactions.ulb_id",$target->pluck("ulb_id")->unique())
+                        ->groupBy("prop_transactions.ulb_id")
+                        ->groupBy("ulb_masters.ulb_name");  
+            $propTodayColl =  propTransaction::select(DB::raw("SUM(prop_transactions.amount) AS amount,prop_transactions.ulb_id, ulb_masters.ulb_name"))
+                        ->join("ulb_masters","ulb_masters.id","prop_transactions.ulb_id")
+                        ->whereNotNull("prop_transactions.property_id")
+                        ->whereIn("prop_transactions.status",[1,2])                        
+                        ->whereIN("prop_transactions.ulb_id",$target->pluck("ulb_id")->unique())
+                        ->groupBy("prop_transactions.ulb_id")
+                        ->groupBy("ulb_masters.ulb_name");                     
+            $propTodayColl =$propTodayColl->where("prop_transactions.tran_date",$toDaye)->get();
+            $propColl = $propColl->whereBetween("prop_transactions.tran_date",[$fromDate,$uptoDate])->get()->map(function($val)use($target,$propTodayColl){
+                $val->amt_trg = $target->where("ulb_id",$val->ulb_id)->sum("amt_prop_trg");
+                $val->balance = $val->amt_trg - $val->amount;
+                $val->coll = $val->amount;
+                $val->to_day_coll = $propTodayColl->where("ulb_id",$val->ulb_id)->sum("amount");
+                return $val;
+            });
+            
+            $waterColl = waterTran::select(DB::raw("SUM(water_trans.amount) AS amount,water_trans.ulb_id, ulb_masters.ulb_name"))
+                        ->join("ulb_masters","ulb_masters.id","water_trans.ulb_id")
+                        ->where(DB::raw("upper(water_trans.tran_type)"),str::upper("Demand Collection"))
+                        ->whereIn("water_trans.status",[1,2]) 
+                        ->whereIN("water_trans.ulb_id",$target->pluck("ulb_id")->unique())                       
+                        ->groupBy("water_trans.ulb_id")
+                        ->groupBy("ulb_masters.ulb_name");
+            $waterTodayColl = waterTran::select(DB::raw("SUM(water_trans.amount) AS amount,water_trans.ulb_id, ulb_masters.ulb_name"))
+                        ->join("ulb_masters","ulb_masters.id","water_trans.ulb_id")
+                        ->where(DB::raw("upper(water_trans.tran_type)"),str::upper("Demand Collection"))
+                        ->whereIn("water_trans.status",[1,2])  
+                        ->whereIN("water_trans.ulb_id",$target->pluck("ulb_id")->unique())                      
+                        ->groupBy("water_trans.ulb_id")
+                        ->groupBy("ulb_masters.ulb_name");
+            $waterTodayColl =$waterTodayColl->where("water_trans.tran_date",$toDaye)->get();
+            $waterColl = $waterColl->whereBetween("water_trans.tran_date",[$fromDate,$uptoDate])->get()->map(function($val)use($target,$waterTodayColl){
+                $val->amt_trg = $target->where("ulb_id",$val->ulb_id)->sum("amt_water_trg");
+                $val->balance = $val->amt_trg - $val->amount;
+                $val->coll = $val->amount;
+                $val->to_day_coll = $waterTodayColl->where("ulb_id",$val->ulb_id)->sum("amount");
+                return $val;
+            });
+
+            $tradeColl = tradeTransaction::select(DB::raw("SUM(trade_transactions.paid_amount) AS amount,trade_transactions.ulb_id, ulb_masters.ulb_name"))
+                        ->join("ulb_masters","ulb_masters.id","trade_transactions.ulb_id")
+                        ->whereIn("trade_transactions.status",[1,2])                        
+                        ->whereIN("trade_transactions.ulb_id",$target->pluck("ulb_id")->unique())
+                        ->groupBy("trade_transactions.ulb_id")
+                        ->groupBy("ulb_masters.ulb_name");
+            $tradeTodayColl = tradeTransaction::select(DB::raw("SUM(trade_transactions.paid_amount) AS amount,trade_transactions.ulb_id, ulb_masters.ulb_name"))
+                            ->join("ulb_masters","ulb_masters.id","trade_transactions.ulb_id")
+                            ->whereIn("trade_transactions.status",[1,2])
+                            ->whereIN("trade_transactions.ulb_id",$target->pluck("ulb_id")->unique())
+                            ->groupBy("trade_transactions.ulb_id")
+                            ->groupBy("ulb_masters.ulb_name");
+            $tradeTodayColl =$tradeTodayColl->where("trade_transactions.tran_date",$toDaye)->get();
+            $tradeColl = $tradeColl->whereBetween("trade_transactions.tran_date",[$fromDate,$uptoDate])->get()->map(function($val)use($target,$tradeTodayColl){
+                $val->amt_trg = $target->where("ulb_id",$val->ulb_id)->sum("amt_trade_trg");
+                $val->balance = $val->amt_trg - $val->amount;
+                $val->coll = $val->amount;
+                $val->to_day_coll = $tradeTodayColl->where("ulb_id",$val->ulb_id)->sum("amount");
+                return $val;
+            });
+
+            $queryRunTime = (collect(DB::getQueryLog())->sum("time"));            
+            $final["target"]= [
+                "property"=> $target->sum("amt_prop_trg"),
+                "water"   => $target->sum("amt_water_trg"),
+                "trade" => $target->sum("amt_trade_trg"),
+                "total" => $target->sum("amt_prop_trg")+$target->sum("amt_water_trg")+$target->sum("amt_trade_trg"),
+            ];
+            $final["coll"]= [
+                "property"=> $propColl->sum("amount"),
+                "water"   => $waterColl->sum("amount"),
+                "trade" => $tradeColl->sum("amount"),
+                "total" => $propColl->sum("amount") + $waterColl->sum("amount")+$tradeColl->sum("amount"),
+            ];
+            $final["balence"]= [
+                "property"=> $final["target"]["property"]-$final["coll"]["property"],
+                "water"   => $final["target"]["water"]-$final["coll"]["water"],
+                "trade" => $final["target"]["trade"]-$final["coll"]["trade"],
+                "total" => $final["target"]["total"]-$final["coll"]["total"],
+            ];
+            $final["today"]= [
+                "property"=> $propTodayColl->sum("amount"),
+                "water"   => $waterTodayColl->sum("amount"),
+                "trade" => $tradeTodayColl->sum("amount"),
+                "total" => $propTodayColl->sum("amount") + $waterTodayColl->sum("amount")+$tradeTodayColl->sum("amount"),
+            ];
+            $data["target"]=$final;
+            $data["dtl"]=$target->map(function($val)use($propColl,$waterColl,$tradeColl){
+                $val->prop_demand = $val->amt_prop_trg;
+                $val->water_demand = $val->amt_water_trg;
+                $val->trade_demand = $val->amt_trade_trg;
+                $val->total_demand = $val->amt_prop_trg + $val->amt_water_trg + $val->amt_trade_trg;
+
+                $val->prop_coll = $propColl->where("ulb_id",$val->ulb_id)->sum("amount") ;
+                $val->water_coll = $waterColl->where("ulb_id",$val->ulb_id)->sum("amount") ;
+                $val->trade_coll = $tradeColl->where("ulb_id",$val->ulb_id)->sum("amount") ;
+                $val->total_coll = $propColl->where("ulb_id",$val->ulb_id)->sum("amount") + $waterColl->where("ulb_id",$val->ulb_id)->sum("amount") + $tradeColl->where("ulb_id",$val->ulb_id)->sum("amount");
+
+                $val->prop_balance = $val->prop_demand -$val->prop_coll;
+                $val->water_balance = $val->water_demand -$val->water_coll;
+                $val->trade_balance = $val->trade_demand -$val->trade_coll;
+                $val->total_balance = $val->total_demand -$val->total_coll;
+
+                $val->prop_today_coll = $propColl->where("ulb_id",$val->ulb_id)->sum("to_day_coll") ;
+                $val->water_today_coll = $waterColl->where("ulb_id",$val->ulb_id)->sum("to_day_coll") ;
+                $val->trade_today_coll = $tradeColl->where("ulb_id",$val->ulb_id)->sum("to_day_coll") ;
+                $val->total_today_coll = $propColl->where("ulb_id",$val->ulb_id)->sum("to_day_coll") + $waterColl->where("ulb_id",$val->ulb_id)->sum("to_day_coll") + $tradeColl->where("ulb_id",$val->ulb_id)->sum("to_day_coll");
+
+                $val->prop_per = ($val->prop_coll   / (($val->prop_demand > 0) ? $val->prop_demand : 1 ))*100 ;
+                $val->water_per = ($val->water_coll / (($val->water_demand > 0) ? $val->water_demand : 1 ))*100;
+                $val->trade_per = ($val->trade_coll / (($val->trade_demand > 0) ? $val->trade_demand :1 ))*100;
+                $val->total_per = ($val->total_coll / (($val->total_demand > 0) ? $val->total_demand :1 ))*100;
+
+                return $val;
+            });
+            $data["total"] =[
+                "ulb_name"=>"Total",
+                "prop_demand"=>$data["dtl"]->sum("prop_demand"),
+                "water_demand"=>$data["dtl"]->sum("water_demand"),
+                "trade_demand"=>$data["dtl"]->sum("trade_demand"),
+                "total_demand"=>$data["dtl"]->sum("total_demand"),
+
+                "prop_coll"=>$data["dtl"]->sum("prop_coll"),
+                "water_coll"=>$data["dtl"]->sum("water_coll"),
+                "trade_coll"=>$data["dtl"]->sum("trade_coll"),
+                "total_coll"=>$data["dtl"]->sum("total_coll"),
+
+                "prop_balance"=>$data["dtl"]->sum("prop_balance"),
+                "water_balance"=>$data["dtl"]->sum("water_balance"),
+                "trade_balance"=>$data["dtl"]->sum("trade_balance"),
+                "total_balance"=>$data["dtl"]->sum("total_balance"),
+
+                "prop_today_coll"=>$data["dtl"]->sum("prop_today_coll"),
+                "water_today_coll"=>$data["dtl"]->sum("water_today_coll"),
+                "trade_today_coll"=>$data["dtl"]->sum("trade_today_coll"),
+                "total_today_coll"=>$data["dtl"]->sum("total_today_coll"),
+
+                "prop_per"=>$data["dtl"]->sum("prop_per"),
+                "water_per"=>$data["dtl"]->sum("water_per"),
+                "trade_per"=>$data["dtl"]->sum("trade_per"),
+                "total_per"=>$data["dtl"]->sum("total_per"),
+            ];
+            return responseMsgs(true, "", $data, $apiId, $version, $queryRunTime, $action, $deviceId);
+
+        }
+        catch(Exception $e)
+        {
+            return responseMsgs(false, $e->getMessage(), [], $apiId, $version, $queryRunTime, $action, $deviceId);
+        }
     }
 }
