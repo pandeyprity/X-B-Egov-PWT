@@ -532,6 +532,12 @@ class ReportController extends Controller
         return responseMsgs(true, "", $data, "", "", "", "post", $request->deviceId);
     }
 
+    public function propSafCollectionUserWise(Request $request)
+    {
+        $request->merge(["user"=>"tc"]);
+        return $this->propSafCollection($request);
+    }
+
     /**
      * | Holding Wise Rebate & Penalty
      */

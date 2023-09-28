@@ -464,6 +464,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('reports/previous-year-paid-not-current-year', 'previousYearPaidButnotCurrentYear'); //done
     Route::post('reports/dcb-piechart', 'dcbPieChart');                                             //done
     Route::post('reports/prop/saf/collection', 'propSafCollection');                          //done
+    Route::post('reports/prop/saf/collection-user-wise', 'propSafCollectionUserWise');
     Route::post('reports/rebate/penalty', 'rebateNpenalty');
 
     Route::post('reports/property/payment-mode-wise-summery', 'PropPaymentModeWiseSummery'); //done

@@ -65,8 +65,8 @@ class Report implements IReport
 
             if ($request->userId)
                 $userId = $request->userId;
-            else
-                $userId = auth()->user()->id;                   // In Case of any logged in TC User
+            // else
+            //     $userId = auth()->user()->id;                   // In Case of any logged in TC User
 
             if ($request->paymentMode) {
                 $paymentMode = $request->paymentMode;
@@ -161,8 +161,8 @@ class Report implements IReport
                     "data" => $data,
 
                 ];
-                $tcName = collect($data)->first()->emp_name;
-                $tcMobile = collect($data)->first()->tc_mobile;
+                $tcName = collect($data)->first()->emp_name??"";
+                $tcMobile = collect($data)->first()->tc_mobile??"";
                 if ($request->footer) {
                     $list["tcName"] = $tcName;
                     $list["tcMobile"] = $tcMobile;
