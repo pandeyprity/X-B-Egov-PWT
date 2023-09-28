@@ -65,8 +65,8 @@ class Report implements IReport
 
             if ($request->userId)
                 $userId = $request->userId;
-            else
-                $userId = auth()->user()->id;                   // In Case of any logged in TC User
+            // else
+            //     $userId = auth()->user()->id;                   // In Case of any logged in TC User
 
             if ($request->paymentMode) {
                 $paymentMode = $request->paymentMode;
