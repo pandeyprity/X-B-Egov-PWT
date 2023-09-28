@@ -181,7 +181,7 @@ class ActiveSafController extends Controller
                 $redisConn->set('wards-ulb', json_encode($wards));            // Caching
             }
 
-            $data['ward_master'] = $wards;
+            $data['ward_master'] = collect($wards)->sortBy('id')->values();
 
             // Ownership Types
             if (!$ownershipTypes) {

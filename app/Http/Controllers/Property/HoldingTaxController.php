@@ -581,8 +581,8 @@ class HoldingTaxController extends Controller
                 'errors' => $validated->errors()
             ], 401);
         }
-        try {
 
+        try {
             $generatePaymentReceipt = new GeneratePaymentReceipt;
             $generatePaymentReceipt->generateReceipt($req->tranNo);
             $receipt = $generatePaymentReceipt->_GRID;

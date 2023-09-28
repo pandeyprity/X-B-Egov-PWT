@@ -403,7 +403,8 @@ class PropTransaction extends Model
                     ELSE t.saf_id
                 END as application_id
             "),
-                DB::raw('1 as moduleId')
+                DB::raw('1 as moduleId'),
+                't.status'
             )
             ->where('t.tran_no', $tranNo)
             ->where('status', 1)
