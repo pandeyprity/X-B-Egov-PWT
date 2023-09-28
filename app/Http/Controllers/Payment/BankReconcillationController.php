@@ -602,8 +602,6 @@ class BankReconcillationController extends Controller
                 $application->update();
             }
 
-            // return ["Test"];
-
             DB::commit();
             DB::connection('pgsql_master')->commit();
             DB::connection('pgsql_water')->commit();
