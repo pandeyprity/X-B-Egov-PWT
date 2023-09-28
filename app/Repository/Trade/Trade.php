@@ -3796,20 +3796,20 @@ class Trade implements ITrade
                 "trade_param_ownership_types.ownership_type",
                 DB::raw("ulb_ward_masters.ward_name AS ward_no, new_ward.ward_name as new_ward_no, zone_masters.zone_name ")
             )
-                ->leftjoin("ulb_ward_masters", function ($join) {
-                    $join->on("ulb_ward_masters.id", "=", "trade_licences.ward_id");
-                })
-                ->leftjoin("ulb_ward_masters AS new_ward", function ($join) {
-                    $join->on("new_ward.id", "=", "trade_licences.new_ward_id");
-                })
-                ->join("zone_masters", "zone_masters.id", "trade_licences.zone_id")
-                ->join("trade_param_application_types", "trade_param_application_types.id", "trade_licences.application_type_id")
-                ->leftjoin("trade_param_category_types", "trade_param_category_types.id", "trade_licences.category_type_id")
-                ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", "trade_licences.firm_type_id")
-                ->leftjoin("trade_param_ownership_types", "trade_param_ownership_types.id", "trade_licences.ownership_type_id")
-                ->where('trade_licences.id', $id)
-                ->first();
-            return $application;
+            ->join("trade_param_application_types", "trade_param_application_types.id", "trade_licences.application_type_id")
+            ->join("zone_masters", "zone_masters.id", "trade_licences.zone_id")
+            ->leftjoin("ulb_ward_masters", function ($join) {
+                $join->on("ulb_ward_masters.id", "=", "trade_licences.ward_id");
+            })
+            ->leftjoin("ulb_ward_masters AS new_ward", function ($join) {
+                $join->on("new_ward.id", "=", "trade_licences.new_ward_id");
+            })
+            ->leftjoin("trade_param_category_types", "trade_param_category_types.id", "trade_licences.category_type_id")
+            ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", "trade_licences.firm_type_id")
+            ->leftjoin("trade_param_ownership_types", "trade_param_ownership_types.id", "trade_licences.ownership_type_id")
+            ->where('trade_licences.id', $id)
+            ->first();
+        return $application;
         } catch (Exception $e) {
             echo $e->getMessage();
         }

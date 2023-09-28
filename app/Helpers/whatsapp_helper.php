@@ -8,13 +8,8 @@ if(!function_exists('WHATSAPPJHGOVT'))
     {
         $bearerToken = Config::get("NoticeConstaint.WHATSAPP_TOKEN");
         $numberId = Config::get("NoticeConstaint.WHATSAPP_NUMBER_ID");
-        $url = Config::get("NoticeConstaint.WHATSAPP_URL");        
-        $result = Http::withHeaders([
-    
-            "Authorization" => "Bearer $bearerToken",
-            "contentType" => "application/json"
-
-        ])->post($url.$numberId."/messages", [
+        $url = Config::get("NoticeConstaint.WHATSAPP_URL");  
+        $data = [
             "messaging_product" => "whatsapp",
             "recipient_type" => "individual",
             "to" => "+91$mobileno", //<--------------------- here
@@ -22,13 +17,13 @@ if(!function_exists('WHATSAPPJHGOVT'))
             "template" => [
                 "name" => "$templateid",
                 "language" => [
-                    "code" => "en"
+                    "code" => "en_US"
                 ],
                 "components" => [
                     ($message
                     ?
                     (
-                        ($message['conten_type']??"")=="pdf"?
+                        ($message['content_type']??"")=="pdf"?
                         (
                             [
                                 "type" => "header",
@@ -37,9 +32,9 @@ if(!function_exists('WHATSAPPJHGOVT'))
                                         "type" => "document",
                                         "document" => $message[0]
                                         // [
-                                        //     // "link"=> "http://www.xmlpdf.com/manualfiles/hello-world.pdf",
-                                        //     // "filename"=> "Payment Receipt.pdf"
-                                        //     // $message[0]
+                                        //     "link"=> "http://www.xmlpdf.com/manualfiles/hello-world.pdf",
+                                        //     "filename"=> "Payment Receipt.pdf"
+                                        // //     // $message[0]
                                         //     ]
                                     ]
                                 ]
@@ -47,7 +42,7 @@ if(!function_exists('WHATSAPPJHGOVT'))
                         )
                         :
                         (
-                            ($message['conten_type']??"")=="text"?
+                            ($message['content_type']??"")=="text"?
                             (
                                 [
                                     "type" => "body",
@@ -64,7 +59,13 @@ if(!function_exists('WHATSAPPJHGOVT'))
                     :""),
                 ]
             ]
-        ]);
+        ];       
+        $result = Http::withHeaders([
+    
+            "Authorization" => "Bearer $bearerToken",
+            "contentType" => "application/json"
+
+        ])->post($url.$numberId."/messages", $data);
         $responseBody = json_decode($result->getBody(),true);
         if (isset($responseBody["error"]))
         {
