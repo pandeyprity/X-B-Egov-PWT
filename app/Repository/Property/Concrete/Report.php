@@ -161,8 +161,8 @@ class Report implements IReport
                     "data" => $data,
 
                 ];
-                $tcName = collect($data)->first()->emp_name;
-                $tcMobile = collect($data)->first()->tc_mobile;
+                $tcName = collect($data)->first()->emp_name??"";
+                $tcMobile = collect($data)->first()->tc_mobile??"";
                 if ($request->footer) {
                     $list["tcName"] = $tcName;
                     $list["tcMobile"] = $tcMobile;
@@ -190,7 +190,7 @@ class Report implements IReport
             $queryRunTime = (collect(DB::getQueryLog())->sum("time"));
             return responseMsgs(true, "", $list, $apiId, $version, $queryRunTime, $action, $deviceId);
         } catch (Exception $e) {
-            return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
+            return responseMsgs(false, [$e->getMessage(),$e->getFile(),$e->getLine()], $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
 
