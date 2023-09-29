@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 class PropTransaction extends Model
 {
@@ -47,6 +48,7 @@ class PropTransaction extends Model
             ->where('tran_no', $tranNo)
             ->leftJoin("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
             ->leftJoin("users as u", "u.id", "prop_transactions.user_id")
+            ->where('prop_transactions.status', 1)
             ->firstorfail();
     }
 
@@ -151,6 +153,14 @@ class PropTransaction extends Model
      */
     public function postPropTransactions($req, $demands, $fromFyear = null, $uptoFyear = null)
     {
+        $fromDemand = collect($demands)->first();
+        if ($fromDemand instanceof stdClass)
+            $fromDemand = (array)$fromDemand;
+
+        $toDemand = collect($demands)->last();
+        if ($toDemand instanceof stdClass)
+            $toDemand = (array)$toDemand;
+
         $propTrans = new PropTransaction();
         $propTrans->property_id = $req['id'];
         $propTrans->amount = $req['amount'];
@@ -158,10 +168,10 @@ class PropTransaction extends Model
         $propTrans->tran_date = $req['todayDate'];
         $propTrans->tran_no = $req['tranNo'];
         $propTrans->payment_mode = $req['paymentMode'];
-        $propTrans->user_id = $req['userId'];
+        $propTrans->user_id = $req['userId'] ?? auth()->user()->id;
         $propTrans->ulb_id = $req['ulbId'];
-        $propTrans->from_fyear = collect($demands)->first()['fyear'] ?? $fromFyear;
-        $propTrans->to_fyear = collect($demands)->last()['fyear'] ?? $uptoFyear;
+        $propTrans->from_fyear = $fromDemand['fyear'] ?? $fromFyear;         // 🔴 In Case of only arrear payment fromFyear 
+        $propTrans->to_fyear = $toDemand['fyear'] ?? $uptoFyear;            // 🔴 In Case of only arrear payment uptoFyear 
         $propTrans->demand_amt = $req['demandAmt'];
         $propTrans->tran_by_type = $req['tranBy'];
         $propTrans->verify_status = $req['verifyStatus'];
@@ -372,5 +382,32 @@ class PropTransaction extends Model
             'cheque_doc_refno' => $cheDocDtls['ReferenceNo'],
             'cheque_doc_uniqueid' => $cheDocDtls['uniqueId']
         ]);
+    }
+
+    /**
+     * | Get Property Transaction by Transaction No
+     */
+    public function getTransByTranNo($tranNo)
+    {
+        return DB::table('prop_transactions as t')
+            ->select(
+                't.id as transaction_id',
+                't.tran_no as transaction_no',
+                't.amount',
+                't.payment_mode',
+                't.tran_date',
+                't.tran_type as module_name',
+                DB::raw("
+                CASE
+                    WHEN t.property_id is not null THEN t.property_id
+                    ELSE t.saf_id
+                END as application_id
+            "),
+                DB::raw('1 as moduleId'),
+                't.status'
+            )
+            ->where('t.tran_no', $tranNo)
+            ->where('status', 1)
+            ->get();
     }
 }

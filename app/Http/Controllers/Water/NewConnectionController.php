@@ -1399,7 +1399,7 @@ class NewConnectionController extends Controller
      * | 01
         | Serial No : 
      */
-    public function getSafHoldingDetails(Request $request)
+    public function getSafHoldingDetail(Request $request)
     {
         $validated = Validator::make(
             $request->all(),

@@ -334,12 +334,13 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('v1/generate-holding-demand', 'generateHoldingDemand');              // (01) Property/Holding Yearly Holding Tax Generation
     Route::post('get-holding-dues', 'getHoldingDues');                            // (02) Property/ Holding Dues
     Route::post('v1/get-referal-url', 'getReferalUrl');                            // (03) Generate Referal url
-    // Route::post('generate-prop-orderid', 'generateOrderId');                      // (03) Generate Property Order ID
+    // Route::post('generate-prop-orderid', 'generateOrderId');                     // (03) Generate Property Order ID
     Route::post('offline-payment-holding', 'offlinePaymentHolding');              // (04) Payment Holding
     Route::post('prop/get-cluster-holding-due', 'getClusterHoldingDues');         // (11) Property Cluster Dues
     Route::post('prop/cluster-payment', 'clusterPayment');                        // (12) Cluster Payment
     Route::post('prop-dues', 'propertyDues');                                     // (13) Property Dues Dynamic
     Route::post('legacy-payment-holding', 'legacyPaymentHolding');                // (14) Legacy Property Payment
+    Route::post('v1/get-billref-no', 'generateBillRefNo');                        // (15) Pine Lab Get Reference No
   });
 
   /**
@@ -463,6 +464,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('reports/previous-year-paid-not-current-year', 'previousYearPaidButnotCurrentYear'); //done
     Route::post('reports/dcb-piechart', 'dcbPieChart');                                             //done
     Route::post('reports/prop/saf/collection', 'propSafCollection');                          //done
+    Route::post('reports/prop/saf/collection-user-wise', 'propSafCollectionUserWise');
     Route::post('reports/rebate/penalty', 'rebateNpenalty');
 
     Route::post('reports/property/payment-mode-wise-summery', 'PropPaymentModeWiseSummery'); //done

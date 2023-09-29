@@ -29,6 +29,8 @@ Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger'
         Route::post('state/district-wise-data', 'districtWiseData');
 
         Route::post('state/property/DCB', 'stateDashboardDCB');                    //done
+        #========created by : sandeep bara | date : 28-09-2023 =================
+    Route::post('ulb/target', 'ulbsTargets'); 
     });
 
     /**

@@ -11,7 +11,6 @@ use Carbon\Carbon;
  */
 class Calculate2PercPenalty
 {
-
     /**
      * | @param demand 
      */
@@ -40,5 +39,16 @@ class Calculate2PercPenalty
         $amount = $monthlyBalance * $noOfPenalMonths;
         $penalAmt = $amount * 0.02;
         $demand->monthlyPenalty = roundFigure($penalAmt);
+    }
+
+    /**
+     * | Calculate Arrear Penalty
+     */
+    public function calculateArrearPenalty($arrear)
+    {
+        $currentMonth = Carbon::now()->format('m');
+        $currentFyMonths = $currentMonth - 4;
+        $arrearPenalty = $arrear * $currentFyMonths * 0.02;
+        return roundFigure($arrearPenalty);
     }
 }

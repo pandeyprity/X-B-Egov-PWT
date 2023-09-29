@@ -11,6 +11,7 @@ use function PHPUnit\Framework\isEmpty;
  * | Author - Anshu Kumar
  * | Created On-12-09-2023 
  * | Created for - Module Specifil Referal Urls
+ * | Status-Closed
  */
 class ModuleRefUrl extends GetRefUrl
 {
@@ -18,6 +19,7 @@ class ModuleRefUrl extends GetRefUrl
     public function getReferalUrl(Request $req)
     {
         $mIciciPaymentReq = new IciciPaymentReq();          // We Have to pass transaction amount here which is pending
+        $this->_tranAmt = $req->amount;
         $url = $this->generateRefUrl();
         $paymentReq = [
             "user_id" => isEmpty($req->userId) ? null : $req->userId,

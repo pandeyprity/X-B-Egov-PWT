@@ -58,7 +58,7 @@ class PostPropPayment
     {
         $this->_offlinePaymentModes = Config::get('payment-constants.PAYMENT_MODE_OFFLINE');
         $this->_todayDate = Carbon::now();
-        $this->_userId = authUser($this->_REQ)->id;
+        $this->_userId = auth()->user()->id;
         $this->_mPropDemand = new PropDemand();
         $idGeneration = new IdGeneration;
         $this->_mPropTrans = new PropTransaction();
@@ -70,7 +70,11 @@ class PostPropPayment
         if (collect($this->_propDetails)->isEmpty())
             throw new Exception("Property Details Not Available for this id");
 
-        $this->_tranNo = $idGeneration->generateTransactionNo($this->_propDetails->ulb_id);
+        if ($this->_REQ['transactionNo'])
+            $this->_tranNo = $this->_REQ['transactionNo'];          // Transaction No comes in case of online payment
+        else
+            $this->_tranNo = $idGeneration->generateTransactionNo($this->_propDetails->ulb_id);
+
         $this->_mPropPenaltyrebates = new PropPenaltyrebate();
     }
 
@@ -91,7 +95,7 @@ class PostPropPayment
         $this->_penaltyRebates['monthlyPenalty'] = [                                    // Monthly Penalty
             'type' => 'Monthly Penalty',
             'isRebate' => false,
-            'amount' => $this->_propCalculation->original['data']['monthlyPenalty']
+            'amount' => $this->_propCalculation->original['data']['totalInterestPenalty']
         ];
 
         $payableAmount = $this->_propCalculation->original['data']['payableAmt'];
@@ -100,7 +104,7 @@ class PostPropPayment
             throw new Exception("Payment Amount should be greater than 0");
 
         // Property Transactions
-        $tranBy = authUser($this->_REQ)->user_type;
+        $tranBy = auth()->user()->user_type;
         $this->_REQ->merge([
             'userId' => $this->_userId,
             'todayDate' => $this->_todayDate->format('Y-m-d'),
@@ -119,10 +123,10 @@ class PostPropPayment
             ]);
         }
 
-        if ($demands->isEmpty() && $arrear <= 0)
+        if (collect($demands)->isEmpty() && $arrear <= 0)
             throw new Exception("No Dues For this Property");
 
-        if ($demands->isEmpty() && $arrear > 0) {
+        if (collect($demands)->isEmpty() && $arrear > 0) {
             $arrearDate = Carbon::now()->addYear(-1)->format('Y-m-d');
             $arrearFyear = getFY($arrearDate);
             $this->_fromFyear = $arrearFyear;
@@ -140,7 +144,7 @@ class PostPropPayment
     {
         $this->readPaymentParams();
 
-        // 🌹🔴🔴🔴🔴Begining Transactions 🔴🔴🔴
+        // 🔴🔴🔴🔴Begining Transactions 🔴🔴🔴
         DB::beginTransaction();
         $this->_propDetails->balance = 0;                  // Update Arrear
         $this->_propDetails->save();
@@ -151,6 +155,7 @@ class PostPropPayment
 
         // Updation of payment status in demand table
         foreach ($this->_demands as $demand) {
+            $demand = collect($demand);
             $demand = (object)$demand->toArray();
             if (isset($demand->id)) {                     // if id exist on demand
                 // 🔴🔴🔴🔴🔴🔴🔴 If isArrear is true then disable this condition (Pending)
