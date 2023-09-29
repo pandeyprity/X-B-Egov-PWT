@@ -1224,8 +1224,8 @@ class WaterReportController extends Controller
         try {
             $mWaterConsumerDemand = new WaterConsumerDemand();
             $currentDate = Carbon::now()->format('Y-m-d');
-            $currentYear = Carbon::now()->year;
-            $currentFyear = getFinancialYear($currentDate);
+            $currentYear = collect(explode('-', $request->fiYear))->first() ?? Carbon::now()->year;
+            $currentFyear = $request->fiYear ?? getFinancialYear($currentDate);
             $startOfCurrentYear = Carbon::createFromDate($currentYear, 4, 1);   // Start date of current financial year
             $startOfPreviousYear = $startOfCurrentYear->copy()->subYear();      // Start date of previous financial year
             $previousFinancialYear = getFinancialYear($startOfPreviousYear);
@@ -1268,7 +1268,7 @@ class WaterReportController extends Controller
         }
     }
 
-    
+
     /**
      * | Get details of water according to applicationNo , consumerNo , etc
      * | maping of water with property  
@@ -1312,7 +1312,4 @@ class WaterReportController extends Controller
     public function getConsumerRelatedDetails()
     {
     }
-
-
-
 }
