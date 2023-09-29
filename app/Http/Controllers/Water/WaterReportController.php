@@ -1246,9 +1246,9 @@ class WaterReportController extends Controller
             $totalCollection = round($demand->where('paid_status', 1)->sum('amount'), 2);  // Format to two decimal places 
             // sum of collection amount 
             $financialYear = [
-                'balanceAmount'  => $balanceAmount,
-                'collections'    => $totalCollection,
-                'totalDemand'    => $totalCurrentDemands,
+                'balanceAmount'  => $balanceAmount ?? 0,
+                'collections'    => $totalCollection ?? 0,
+                'totalDemand'    => $totalCurrentDemands ?? 0,
             ];
             #previous year demands 
             $previousDemand = $mWaterConsumerDemand->previousDemand($previousFromDate, $previousUptoDate)->get();
@@ -1257,16 +1257,16 @@ class WaterReportController extends Controller
             $totalPreviousBalance = round($previousDemand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal place
 
             $previousYear = [
-                'balanceAmountPrevious' => $totalPreviousBalance,
-                'collectionsPrevious'   => $previousCollection,
-                "totalDemandPrevious"   => $totalPreviousDemands
+                'balanceAmountPrevious' => $totalPreviousBalance ?? 0,
+                'collectionsPrevious'   => $previousCollection ?? 0,
+                "totalDemandPrevious"   => $totalPreviousDemands ?? 0
             ];
             return $totalDcb = [
                 'totalDemands' => ($totalCurrentDemands + $totalPreviousDemands),
                 'totalCollections' => ($totalCollection + $previousCollection),
-                "totalBalance"    => ($balanceAmount + $totalPreviousBalance),
                 "arrearBalance"   => $previousYear['totalDemandPrevious'] - $previousYear['collectionsPrevious'],
                 "currentBalance"  => round($financialYear['totalDemand'] - $financialYear['collections'], 2),
+                "totalBalance"  => (($previousYear['totalDemandPrevious'] - $previousYear['collectionsPrevious']) + ($financialYear['totalDemand'] - $financialYear['collections']))
             ];
             $returnValues = collect($financialYear)->merge($previousYear)->merge($totalDcb);
 
