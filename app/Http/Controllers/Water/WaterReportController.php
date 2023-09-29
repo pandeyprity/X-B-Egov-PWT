@@ -9,6 +9,7 @@ use App\Models\Water\WaterTran;
 use App\Traits\Water\WaterTrait;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\Water\WaterConsumer;
 use Illuminate\Support\Facades\Config;
 use App\Models\Water\WaterConsumerDemand;
 use Illuminate\Support\Facades\Validator;
@@ -1266,4 +1267,52 @@ class WaterReportController extends Controller
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
     }
+
+    
+    /**
+     * | Get details of water according to applicationNo , consumerNo , etc
+     * | maping of water with property  
+        | Serial No : 0
+        | Under con
+     */
+    public function getWaterDetailsByParams(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'parmeter' => 'required|',
+                'filterBy' => 'required',
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try {
+            $mWaterConsumer = new WaterConsumer();
+            $parameter = $request->parmeter;
+            $filterBy = $request->filterBy;
+
+            switch ($filterBy) {
+                case 'consumerNo':                                      // Static
+                    $this->getConsumerRelatedDetails();
+                    break;
+                case 'applicationNo':                                   // Static
+                    $this->getApplicationRelatedDetails();
+                    break;
+            }
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "01", responseTime(), $request->getMethod(), $request->deviceId);
+        }
+    }
+
+    /**
+     * | Get consumer details by consumer id and related property details
+        | Serial No :
+        | Under Con
+     */
+    public function getConsumerRelatedDetails()
+    {
+    }
+
+
+
 }
