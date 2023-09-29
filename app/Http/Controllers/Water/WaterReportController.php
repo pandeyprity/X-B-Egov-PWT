@@ -1261,7 +1261,7 @@ class WaterReportController extends Controller
                 'collectionsPrevious'   => $previousCollection ?? 0,
                 "totalDemandPrevious"   => $totalPreviousDemands ?? 0
             ];
-            return $totalDcb = [
+            $totalDcb = [
                 'totalDemands' => ($totalCurrentDemands + $totalPreviousDemands),
                 'totalCollections' => ($totalCollection + $previousCollection),
                 "arrearBalance"   => $previousYear['totalDemandPrevious'] - $previousYear['collectionsPrevious'],
@@ -1319,5 +1319,48 @@ class WaterReportController extends Controller
      */
     public function getConsumerRelatedDetails()
     {
+    }
+
+    /**
+     * |get transaction lis by year 
+     |under wo
+     */
+    public function getTransactionDetail(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try {
+            $mWaterTrans = new WaterTran();
+            $currentDate = Carbon::now()->format('Y-m-d'); 
+            $currentYear = collect(explode('-', $request->fiYear))->first() ?? Carbon::now()->year;
+            $currentFyear = $request->fiYear ?? getFinancialYear($currentDate);
+            
+            #get financial  year 
+            $refDate = $this->getFyearDate($currentFyear);
+            $fromDate = $refDate['fromDate'];
+            $uptoDate = $refDate['uptoDate'];
+            $transaction = $mWaterTrans->getCashReport($fromDate, $uptoDate)
+            ->get();
+            
+            return $returnData = [
+                'waterCash' =>  $transaction->where('payment_mode', 'Cash')->count(),
+                'totaAmountCash' => $transaction->where('payment_mode', 'Cash')->sum('amount'),
+                'waterCheque'    => $transaction->where('payment_mode','Cheque')->count(),
+                'totalAmountCash'    => $transaction->where('payment_mode','Cheque')->sum('amount'),
+                'waterOnline'      => $transaction->where('payment_mode','online')->count(),
+                'waterAmountOnline'=> $transaction->where('payment_mode','online')->sum('amount'),
+
+            ];
+
+            return responseMsgs(true, "water transaction report", remove_null($returnData), "", "", "", 'POST', "");
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
+        }
     }
 }
