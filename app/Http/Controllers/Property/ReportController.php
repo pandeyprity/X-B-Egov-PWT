@@ -554,4 +554,12 @@ class ReportController extends Controller
     {
         return $this->Repository->adminDashReport();
     }
+
+    /**
+     * | Tc Collection Report
+     */
+    public function tcCollectionReport()
+    {
+        return $this->Repository->tcCollectionReport();
+    }
 }

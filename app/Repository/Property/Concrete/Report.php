@@ -161,8 +161,8 @@ class Report implements IReport
                     "data" => $data,
 
                 ];
-                $tcName = collect($data)->first()->emp_name??"";
-                $tcMobile = collect($data)->first()->tc_mobile??"";
+                $tcName = collect($data)->first()->emp_name ?? "";
+                $tcMobile = collect($data)->first()->tc_mobile ?? "";
                 if ($request->footer) {
                     $list["tcName"] = $tcName;
                     $list["tcMobile"] = $tcMobile;
@@ -3670,6 +3670,33 @@ class Report implements IReport
             return responseMsgs(true, "Admin Dashboard Reports", collect($report)->first());
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), []);
+        }
+    }
+
+    /**
+     * | TC collection Report
+     */
+    public function tcCollectionReport()
+    {
+        try {
+            $userId = auth()->user()->id;
+            $query = " SELECT 
+                            COALESCE(count(id),0) AS total_counter,
+                            COALESCE(SUM(amount),0) AS total_collection,
+                            COALESCE(SUM(CASE WHEN payment_mode = 'NEFT' THEN amount ELSE 0 END),0) AS neft_collection,
+                            COALESCE(SUM(CASE WHEN payment_mode = 'QR' THEN amount ELSE 0 END),0) AS qr_collection,
+                            COALESCE(SUM(CASE WHEN payment_mode = 'CASH' THEN amount ELSE 0 END),0) AS cash_collection,
+                            COALESCE(SUM(CASE WHEN payment_mode = 'DD' THEN amount ELSE 0 END),0) AS dd_collection,
+                            COALESCE(SUM(CASE WHEN payment_mode = 'ONLINE' THEN amount ELSE 0 END),0) AS online_collection,
+                            COALESCE(SUM(CASE WHEN payment_mode = 'CARD' THEN amount ELSE 0 END),0) AS card_collection,
+                            COALESCE(SUM(CASE WHEN payment_mode = 'CHEQUE' THEN amount ELSE 0 END),0) AS chque_collection,
+                            COALESCE(SUM(CASE WHEN payment_mode = 'RTGS' THEN amount ELSE 0 END),0) AS rtgs_collection
+                            FROM prop_transactions
+                    WHERE tran_date=CURRENT_DATE AND status=1 AND user_id=$userId";
+            $response = DB::select($query);
+            return responseMsgs(true, "", remove_null($response[0]), "", "", "", "POST", "");
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "", "", "POST", "");
         }
     }
 }
