@@ -740,7 +740,7 @@ class WaterReportController extends Controller
             $prePreviousUptoDate = $refDate['uptoDate'];
 
 
-            $sql1 = $this->demandByFyear($currentFyear, $fromDate, $uptoDate, $ulbId);
+            return $sql1 = $this->demandByFyear($currentFyear, $fromDate, $uptoDate, $ulbId);
             $sql2 = $this->demandByFyear($previousFinancialYear, $previousFromDate, $previousUptoDate, $ulbId);
             $sql3 = $this->demandByFyear($prePreviousFinancialYear, $prePreviousFromDate, $prePreviousUptoDate, $ulbId);
 
@@ -1207,7 +1207,7 @@ class WaterReportController extends Controller
 
     /**
      * dcb report
-     * working
+      |working
      * date-25/09/2023
      */
     public function WaterdcbReport(Request $request)
@@ -1221,23 +1221,47 @@ class WaterReportController extends Controller
         if ($validated->fails())
             return validationError($validated);
         try {
-            $fiyear=$request->fiyear;
+            $mWaterConsumerDemand = new WaterConsumerDemand();
             $currentDate = Carbon::now()->format('Y-m-d');
+            $currentYear = Carbon::now()->year;
             $currentFyear = getFinancialYear($currentDate);
+            $startOfCurrentYear = Carbon::createFromDate($currentYear, 4, 1);   // Start date of current financial year
+            $startOfPreviousYear = $startOfCurrentYear->copy()->subYear();      // Start date of previous financial year
+            $previousFinancialYear = getFinancialYear($startOfPreviousYear);
+            $startOfprePreviousYear = $startOfCurrentYear->copy()->subYear()->subYear();
+            $prePreviousFinancialYear = getFinancialYear($startOfprePreviousYear);
+            #get financial  year 
             $refDate = $this->getFyearDate($currentFyear);
             $fromDate = $refDate['fromDate'];
             $uptoDate = $refDate['uptoDate'];
-            $mWaterConsumerDemand = new WaterConsumerDemand();
+            #common function 
+            $refDate = $this->getFyearDate($previousFinancialYear);
+            $previousFromDate = $refDate['fromDate'];
+            $previousUptoDate = $refDate['uptoDate'];
+            #curent year demands 
             $demand = $mWaterConsumerDemand->getALLDemand($fromDate, $uptoDate)->get();
-            $totalDemands = $demand->sum('amount');
-            $filteredDemandPaid0 = $demand->where('paid_status', 0)->sum('amount');
-            $filteredDemandPaid1 = $demand->where('paid_status', 1)->sum('amount');
-            $data = [
-                'balanceAmount'  => $filteredDemandPaid0,
-                'collections'    => $filteredDemandPaid1,
-                'totalDemand'    => $totalDemands,
+            $totalCurrentDemands = $demand->sum('amount');                                     // sum of total demand
+            $balanceAmount = $demand->where('paid_status', 0)->sum('amount');    // sum of balance amount
+            $totalCollection = $demand->where('paid_status', 1)->sum('amount');    // sum of collection amount 
+            $financialYear = [
+                'balanceAmount'  => $balanceAmount,
+                'collections'    => $totalCollection,
+                'totalDemand'    => $totalCurrentDemands,
             ];
-            return responseMsgs(true, "", remove_null($data), "", "", "", 'POST', "");
+            #previous year demands 
+            $previousDemand = $mWaterConsumerDemand->previousDemand($previousFromDate, $previousUptoDate)->get();
+            $totalPreviousDemands = $previousDemand->sum('amount');
+            $previousCollection = $previousDemand->where('paid_status', 1)->sum('amount');
+            $totalPreviousBalance = $previousDemand->where('paid_status', 0)->sum('amount');
+
+            $previousYear = [
+                'balanceAmountPrevious' => $totalPreviousBalance,
+                'collectionsPrevious'   => $previousCollection,
+                "totalDemandPrevious"   => $totalPreviousDemands
+            ];
+            $returnValues = collect($financialYear)->merge($previousYear);
+
+            return responseMsgs(true, "water demand report", remove_null($returnValues), "", "", "", 'POST', "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }

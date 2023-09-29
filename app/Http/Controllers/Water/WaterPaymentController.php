@@ -58,6 +58,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Redis;
 use Predis\Command\Redis\SELECT;
+use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\PDF;
 
 /**
  * | ----------------------------------------------------------------------------------
@@ -1681,7 +1683,43 @@ class WaterPaymentController extends Controller
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
 
             ];
-            return responseMsgs(true, "Payment Receipt", remove_null($returnValues), "", "1.0", "", "POST", $req->deviceId ?? "");
+            # Watsapp pdf sending
+            $transactionNo = $returnValues['transactionNo'];
+            $filename = $transactionNo . '.pdf';
+            $url = "Uploads/water/payment/" . $filename;
+
+            // Check if the file with the same transaction number already exists
+            if (Storage::exists('public/' . $url)) {
+                // The file exists, use the existing file
+                $pdf = Storage::get('public/' . $url);
+            } else {
+                // Generate a new PDF
+                $pdf = PDF::loadView('water_consumer_payment', [$returnValues]);
+                $file = $pdf->download($filename);
+
+                // Store the new PDF
+                Storage::put('public/' . $url, $file);
+            }
+
+            $whatsapp2 = Whatsapp_Send(
+                6206998554,
+                "file_test",
+                [
+                    "content_type" => "pdf",
+                    [
+                        "link" => config('app.url') . "/getImageLink?path=" . $url,
+                        "filename" => "TEST_PDF" . ".pdf"
+                    ]
+                ]
+            );
+
+            // $data["test"] = json_encode($whatsapp);
+            //  $data["test2"]=json_encode($whatsapp2);
+            // dd($data);
+
+            // return view("water_consumer_payment", $data);
+
+            return responseMsgs(true, "Payment Receipt", remove_null($returnValues, $whatsapp2), "", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
@@ -2416,5 +2454,36 @@ class WaterPaymentController extends Controller
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), [], "", "03", responseTime(), $request->getMethod(), $request->deviceId);
         }
+    }
+    public function v2(Request $request)
+    {
+        $data["data"] = ["afsdf", "sdlfjksld", "dfksdfjk"];
+        // return view('water_consumer_payment', $data);
+        # Watsapp pdf sending
+        $filename = "1-2-" . time() . '.' . 'pdf';
+        $url = "Uploads/water/payment/" . $filename;
+        $pdf = PDF::loadView('water_consumer_payment', $data);
+        $file = $pdf->download($filename . '.' . 'pdf');
+        $pdf = Storage::put('public' . '/' . $url, $file);
+
+      
+        $whatsapp2 = (Whatsapp_Send(
+            6206998554,
+            "file_test",
+            [
+                "content_type" => "pdf",
+                [
+                    "link" => config('app.url') . "/getImageLink?path=" . $url,
+                    "filename" => "TEST_PDF" . ".pdf"
+                ]
+            ],
+            // "en_Us"
+        ));
+
+        // $data["test"] = json_encode($whatsapp);
+        // $data["test2"] = json_encode($whatsapp2);
+        // dd($data);
+
+        return view("water_consumer_payment", $data);
     }
 }

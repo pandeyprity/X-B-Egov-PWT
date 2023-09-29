@@ -301,5 +301,17 @@ class WaterConsumerDemand extends Model
         ->where('water_consumer_demands.demand_upto', '<=', $uptoDate) 
         ->where('status', true);
     }
+    #previous year financial 
+
+    public function previousDemand($fromDate, $uptoDate)
+    {
+        return WaterConsumerDemand::select(
+            'water_consumer_demands.amount',
+            'water_consumer_demands.paid_status'
+        )
+        ->where('water_consumer_demands.demand_from', '>=', $fromDate) 
+        ->where('water_consumer_demands.demand_upto', '<=', $uptoDate) 
+        ->where('status', true);
+    }
     
 }

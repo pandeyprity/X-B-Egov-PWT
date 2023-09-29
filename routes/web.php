@@ -23,3 +23,5 @@ Route::get('/getImageLink', function () {
 Route::get('/whatsappTest', [\App\Http\Controllers\Notice\NoticeController::class, 'openNoticiList']);
 // Laravel Logging
 Route::get('logs', [\Rap2hpoutre\LaravelLogViewer\LogViewerController::class, 'index']);
+
+Route::get('/water-pdf', [\App\Http\Controllers\Water\WaterPaymentController::class, 'v2']);
