@@ -1241,9 +1241,10 @@ class WaterReportController extends Controller
             $previousUptoDate = $refDate['uptoDate'];
             #curent year demands 
             $demand = $mWaterConsumerDemand->getALLDemand($fromDate, $uptoDate)->get();
-            $totalCurrentDemands = $demand->sum('amount');                                     // sum of total demand
-            $balanceAmount = $demand->where('paid_status', 0)->sum('amount');    // sum of balance amount
-            $totalCollection = $demand->where('paid_status', 1)->sum('amount');    // sum of collection amount 
+            $totalCurrentDemands = round($demand->sum('amount'), 2);  // Format the sum to two decimal places
+            $balanceAmount = round($demand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal places
+            $totalCollection = round($demand->where('paid_status', 1)->sum('amount'), 2);  // Format to two decimal places 
+            // sum of collection amount 
             $financialYear = [
                 'balanceAmount'  => $balanceAmount,
                 'collections'    => $totalCollection,
@@ -1251,16 +1252,23 @@ class WaterReportController extends Controller
             ];
             #previous year demands 
             $previousDemand = $mWaterConsumerDemand->previousDemand($previousFromDate, $previousUptoDate)->get();
-            $totalPreviousDemands = $previousDemand->sum('amount');
-            $previousCollection = $previousDemand->where('paid_status', 1)->sum('amount');
-            $totalPreviousBalance = $previousDemand->where('paid_status', 0)->sum('amount');
+            $totalPreviousDemands = round($previousDemand->sum('amount'), 2);  // Format the sum to two decimal places
+            $previousCollection = round($previousDemand->where('paid_status', 1)->sum('amount'), 2);  // Format to two decimal places
+            $totalPreviousBalance = round($previousDemand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal place
 
             $previousYear = [
                 'balanceAmountPrevious' => $totalPreviousBalance,
                 'collectionsPrevious'   => $previousCollection,
                 "totalDemandPrevious"   => $totalPreviousDemands
             ];
-            $returnValues = collect($financialYear)->merge($previousYear);
+            return $totalDcb = [
+                'totalDemands' => ($totalCurrentDemands + $totalPreviousDemands),
+                'totalCollections' => ($totalCollection + $previousCollection),
+                "totalBalance"    => ($balanceAmount + $totalPreviousBalance),
+                "arrearBalance"   => $previousYear['totalDemandPrevious'] - $previousYear['collectionsPrevious'],
+                "currentBalance"  => round($financialYear['totalDemand'] - $financialYear['collections'], 2),
+            ];
+            $returnValues = collect($financialYear)->merge($previousYear)->merge($totalDcb);
 
             return responseMsgs(true, "water demand report", remove_null($returnValues), "", "", "", 'POST', "");
         } catch (Exception $e) {
