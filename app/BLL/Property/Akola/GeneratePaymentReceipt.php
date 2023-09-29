@@ -174,7 +174,7 @@ class GeneratePaymentReceipt
             "accountDescription" => $this->_mAccDescription,
             "transactionDate" => Carbon::parse($this->_trans->tran_date)->format('d-m-Y'),
             "transactionNo" => $this->_trans->tran_no,
-            "transactionTime" => $this->_trans->created_at->format('H:i:s'),
+            "transactionTime" => $this->_trans->created_at->format('H:i'),
             "verifyStatus" => $this->_trans->verify_status,                     // (0-Not Verified,1-Verified,2-Under Verification,3-Bounce)
             "applicationNo" => $this->_propertyDtls->application_no,
             "customerName" => $this->_propertyDtls->owner_name,

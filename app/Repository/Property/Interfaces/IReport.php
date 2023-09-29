@@ -27,4 +27,5 @@ interface IReport
     public function dcbPieChart($request);
     public function rebateNpenalty($request);
     public function adminDashReport();
+    public function tcCollectionReport();
 }

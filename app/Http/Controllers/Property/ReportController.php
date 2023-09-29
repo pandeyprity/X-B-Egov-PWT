@@ -49,13 +49,13 @@ class ReportController extends Controller
     }
 
     public function safCollection(CollectionReport $request)
-    {        
+    {
         $request->merge(["metaData" => ["pr2.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->safCollection($request);
     }
 
     public function safPropIndividualDemandAndCollection(SafPropIndividualDemandAndCollection $request)
-    { 
+    {
         $request->merge(["metaData" => ["pr3.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->safPropIndividualDemandAndCollection($request);
     }
@@ -74,7 +74,7 @@ class ReportController extends Controller
 
     public function levelUserPending(LevelUserPending $request)
     {
-        
+
         $request->merge(["metaData" => ["pr4.2.1", 1.1, null, $request->getMethod(), null,]]);
         return $this->Repository->levelUserPending($request);
     }
@@ -497,14 +497,14 @@ class ReportController extends Controller
 
         foreach ($collectionTypes as $collectionType) {
             if ($collectionType == 'property') {
-                $propCollection =   $this->Repository->collectionReport($request);#$this->collectionReport($request);
+                $propCollection =   $this->Repository->collectionReport($request); #$this->collectionReport($request);
                 $proptotal = $propCollection->original['data']['totalAmount'];
                 $proptotalData = $propCollection->original['data']['total'];
                 $propCollection = $propCollection->original['data']['data'];
             }
 
             if ($collectionType == 'saf') {
-                $safCollection = $this->Repository->safCollection($request);#$this->safCollection($request);
+                $safCollection = $this->Repository->safCollection($request); #$this->safCollection($request);
                 $saftotal = $safCollection->original['data']['totalAmount'];
                 $saftotalData = $safCollection->original['data']['total'];
                 $safCollection = $safCollection->original['data']['data'];
@@ -534,7 +534,7 @@ class ReportController extends Controller
 
     public function propSafCollectionUserWise(Request $request)
     {
-        $request->merge(["user"=>"tc"]);
+        $request->merge(["user" => "tc"]);
         return $this->propSafCollection($request);
     }
 
@@ -553,5 +553,13 @@ class ReportController extends Controller
     public function adminDashReport()
     {
         return $this->Repository->adminDashReport();
+    }
+
+    /**
+     * | Tc Collection Report
+     */
+    public function tcCollectionReport()
+    {
+        return $this->Repository->tcCollectionReport();
     }
 }
