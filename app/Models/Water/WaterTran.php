@@ -245,7 +245,7 @@ class WaterTran extends Model
                 'penalty_ids' => $penaltyIds
             ]);
     }
-     /**
+    /**
      * | Get details of Cash transactions
      * | According to Fyear
      * | @param fromDate
@@ -253,12 +253,12 @@ class WaterTran extends Model
      */
     public function getCashReport($fromDate, $toDate)
     {
-        return WaterTran::select('id', 'amount','payment_mode')
+        return WaterTran::select('id', 'amount', 'payment_mode', 'user_type')
             ->where('status', 1)
             ->whereBetween('tran_date', [$fromDate, $toDate])
             ->orderByDesc('id');
     }
-     /**
+    /**
      * | Get details of Cheque transactions
      * | According to Fyear
      * | @param fromDate
@@ -270,8 +270,6 @@ class WaterTran extends Model
             ->where('payment_mode', 'Cheque')
             ->where('status', 1)
             ->whereBetween('tran_date', [$fromDate, $toDate]);
-            // ->orderByDesc('id');
+        // ->orderByDesc('id');
     }
 }
-
-
