@@ -1355,27 +1355,42 @@ class WaterReportController extends Controller
 
             $cash   = $transaction->where('payment_mode', 'Cash');
             $cheque = $transaction->where('payment_mode', 'Cheque');
-            $online = $transaction->where('payment_mode', 'online');
+            $online = $transaction->where('payment_mode', 'Online');
+            $DD     = $transaction->where('payment_mode', 'DD');
+            $Neft   = $transaction->where('payment_mode', 'Neft');
             $returnData["collectionSummery"] = [
                 'waterCash'         => $cash->count(),
                 'totaAmountCash'    => $cash->sum('amount'),
                 'waterCheque'       => $cheque->count(),
-                'totalAmountCash'   => $cheque->sum('amount'),
+                'totalAmountCheque'   => $cheque->sum('amount'),
                 'waterOnline'       => $online->count(),
                 'waterAmountOnline' => $online->sum('amount'),
+                'waterDd'           => $DD->count(),
+                'totalAmountDd'     => $DD->sum('amount'),
+                'waterNeft'         => $Neft->count(),
+                'totalAmuntNeft'    => $Neft->sum('amount'),
+                'toatalCollection' => $cash->sum('amount') + $cheque->sum('amount') + $online->sum('amount') + $DD->sum('amount') + $Neft->sum('amount'),
 
             ];
 
             $jskCash    = $cash->where('user_type', 'JSK');
             $jskCheque  = $cheque->where('user_type', 'JSK');
             $jskOnline  = $online->where('user_type', 'JSK');
+            $jskDd      = $DD->where('user_type', 'JSK');
+            $jskNeft    = $Neft->where('user_type', 'JSK');
+
             $returnData["jskCollectionSummery"] = [
                 'waterCash'         => $jskCash->count(),
                 'totaAmountCash'    => $jskCash->sum('amount'),
                 'waterCheque'       => $jskCheque->count(),
-                'totalAmountCash'   => $jskCheque->sum('amount'),
+                'totalAmountCheque' => round($jskCheque->sum('amount'), 2),
                 'waterOnline'       => $jskOnline->count(),
                 'waterAmountOnline' => $jskOnline->sum('amount'),
+                'waterDd'           => $jskDd->count(),
+                'totaAmountDd'      => $jskDd->sum('amount'),
+                "waterNeft"         => $jskNeft->count(),
+                'totalAmountNeft'   => $jskNeft->sum('amount'),
+                'toatalCollection'  => $jskCash->sum('amount') + $jskCheque->sum('amount') + $jskOnline->sum('amount') + $jskDd->sum('amount') + $jskNeft->sum('amount')
 
             ];
 
@@ -1383,16 +1398,72 @@ class WaterReportController extends Controller
             $TcCash     = $cash->where('user_type', 'TC');
             $TcCheque   = $cheque->where('user_type', 'TC');
             $TcOnline   = $online->where('user_type', 'TC');
+            $TcDd       = $DD->where('user_type', 'TC');
+            $TcNeft     = $Neft->where('user_type', 'TC');
             $returnData["dtdCollectionSummery"] = [
                 'waterCash'         => $TcCash->count(),
                 'totaAmountCash'    => $TcCash->sum('amount'),
                 'waterCheque'       => $TcCheque->count(),
-                'totalAmountCash'   => $TcCheque->sum('amount'),
+                'totalAmountCheque' => $TcCheque->sum('amount'),
                 'waterOnline'       => $TcOnline->count(),
                 'waterAmountOnline' => $TcOnline->sum('amount'),
+                'waterDd'           => $TcDd->count(),
+                'totalAmountDd'     => $TcDd->sum('amount'),
+                'waterNeft'         => $TcNeft->count(),
+                'totalAmountNeft'   => $TcNeft->sum('amount'),
+                'toatalCollection'  => $TcCash->sum('amount') + $TcCheque->sum('amount') + $TcOnline->sum('amount') + $TcDd->sum('amount') + $TcNeft->sum('amount')
 
+            ];   #net collection summary 
+            $returnData["netcollectionSummary"] = [
+                'netTransaction' => $transaction->count(),
+                'netTotalAmount' => round($transaction->sum('amount'), 2)
             ];
+
+
             return responseMsgs(true, "water transaction report", remove_null($returnData), "", "", "", 'POST', "");
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
+        }
+    }
+    /**
+     * tc visit report 
+     * dateWise
+     * 
+     */
+    public function tCvisitReport(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'filterBy'  => 'required',
+                'parameter' => 'required',
+                'pages'     => 'nullable',
+            ]
+        );
+
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+
+        try {
+            $mWaterTrans    = new WaterTran();
+            $key            = $request->filterBy;
+            $paramenter     = $request->parameter;
+            $pages          = $request->pages ?? 10;
+            $string         = preg_replace("/([A-Z])/", "_$1", $key);
+            $refstring      = strtolower($string);
+
+            switch ($key) {
+                case ("tranDate"):                                                                        // Static
+                    $waterReturnDetails = $mWaterTrans->getDetailsOfTc($refstring, $paramenter)->paginate($pages);
+                    $checkVal = collect($waterReturnDetails)->last();
+                    if (!$checkVal || $checkVal == 0)
+                        throw new Exception("Data according to " . $key . " not Found!");
+                    break;
+                }
+            $returnData["netcollectionSummary"] = [];
+
+            return responseMsgs(true, "tc visit report", remove_null($waterReturnDetails), "", "", "", 'POST', "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
