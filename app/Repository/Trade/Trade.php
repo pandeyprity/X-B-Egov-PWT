@@ -336,6 +336,13 @@ class Trade implements ITrade
                     }
 
                     $mnaturOfBusiness = $refOldLicece->nature_of_bussiness;
+                    if(!$mnaturOfBusiness);
+                    {
+                        $mnaturOfBusiness = array_map(function ($val) {
+                            return $val['id'];
+                        }, $request->firmDetails['natureOfBusiness']);
+                        $mnaturOfBusiness = implode(',', $mnaturOfBusiness);
+                    }
                     $wardId = $refOldLicece->ward_mstr_id;
                     $mWardNo = array_filter($data['wardList'], function ($val) use ($wardId) {
                         return $val['id'] == $wardId;
@@ -584,12 +591,12 @@ class Trade implements ITrade
     {
         $refActiveLicense->parent_ids          = trim(($refActiveLicense->trade_id . "," . $refOldLicece->parent_ids), ',');
 
-        $refActiveLicense->firm_type_id        = $refOldLicece->firm_type_id;
-        $refActiveLicense->firm_description    = $refOldLicece->firm_description;
-        $refActiveLicense->category_type_id    = $refOldLicece->category_type_id;
-        $refActiveLicense->ownership_type_id   = $refOldLicece->ownership_type_id;
-        $refActiveLicense->zone_id             = $refOldLicece->zone_id;
-        $refActiveLicense->ward_id             = $refOldLicece->ward_id;
+        $refActiveLicense->firm_type_id        = $refOldLicece->firm_type_id ? $refOldLicece->firm_type_id : ($request->initialBusinessDetails['firmType']??null);
+        $refActiveLicense->firm_description    = $refOldLicece->firm_description ? $refOldLicece->firm_description : ($request->initialBusinessDetails['otherFirmType'] ?? null);
+        $refActiveLicense->category_type_id    = $refOldLicece->category_type_id ? $refOldLicece->category_type_id : ($request->initialBusinessDetails['categoryTypeId'] ?? null);
+        $refActiveLicense->ownership_type_id   = $refOldLicece->ownership_type_id ? $refOldLicece->ownership_type_id : ($request->initialBusinessDetails['ownershipType']??1);
+        $refActiveLicense->zone_id             = $refOldLicece->zone_id == $request->firmDetails['zoneId'] ? $refOldLicece->zone_id : $request->firmDetails['zoneId']  ;
+        $refActiveLicense->ward_id             = $refOldLicece->ward_id ? $refOldLicece->ward_id : $request->firmDetails['wardNo'];
         $refActiveLicense->new_ward_id         = $refOldLicece->new_ward_id;
         $refActiveLicense->holding_no          = $request->firmDetails['holdingNo'];
         $refActiveLicense->nature_of_bussiness = $refOldLicece->nature_of_bussiness;
