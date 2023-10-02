@@ -106,13 +106,22 @@ class WaterSecondConsumer extends Model
             "water_consumer_owners.guardian_name",
             "water_second_consumers.property_no",
             "water_consumer_demands.balance_amount",
-            "water_consumer_demands.amount"
+            "water_consumer_demands.amount",
+            DB::raw("
+                CASE
+                    WHEN water_consumer_demands.paid_status = 1 THEN 'Paid'
+                    WHEN water_consumer_demands.paid_status = 0 THEN 'Unpaid'
+                    WHEN water_consumer_demands.paid_status = 2 THEN 'Pending'
+                    ELSE 'unknown'
+                END AS payment_status
+            ")
         )
             ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
-            ->join('water_consumer_demands','water_consumer_demands.consumer_id','water_second_consumers.id')
+            ->join('water_consumer_demands', 'water_consumer_demands.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.' . $key, 'LIKE', '%' . $refNo . '%')
             ->where('water_second_consumers.status', 1);
     }
+
     /**
      * | get the water consumer detaials by Owner details
      * | @param consumerNo
@@ -131,9 +140,20 @@ class WaterSecondConsumer extends Model
             'water_consumer_owners.applicant_name as owner_name',
             'water_consumer_owners.mobile_no as mobile_no',
             'water_consumer_owners.guardian_name as guardian_name',
+            "water_consumer_demands.balance_amount",
+            "water_consumer_demands.amount",
+            DB::raw("
+        CASE
+            WHEN water_consumer_demands.paid_status = 1  THEN 'paid'
+            WHEN water_consumer_demands.paid_status = 0 THEN 'unpaid'
+            WHEN water_consumer_demands.paid_status = 2 THEN 'pending'
+            ELSE 'unknown'
+        END AS payment_status
+    ")
         )
             ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', '=', 'water_second_consumers.id')
             ->where('water_consumer_owners.' . $key, 'ILIKE', '%' . $refVal . '%')
+            ->join('water_consumer_demands', 'water_consumer_demands.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.status', 1);
     }
     /**

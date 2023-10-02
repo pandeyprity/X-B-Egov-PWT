@@ -179,6 +179,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
 
         Route::post('report/water-dcb', 'WaterdcbReport');
         Route::post('report/water-transaction', 'getTransactionDetail');
+        Route::post('report/tc-visit-report','tCvisitReport');
     });
 
 
