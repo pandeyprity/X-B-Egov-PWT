@@ -26,6 +26,7 @@ use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class PropertyDetailsController extends Controller
 {
@@ -384,10 +385,27 @@ class PropertyDetailsController extends Controller
     // get details of the diff operation in property
     public function propertyListByKey(Request $request)
     {
-        $request->validate([
+        // $request->validate([
+        //     'filteredBy' => "required",
+        //     'parameter' => "nullable",
+        //     'wardId' => "nullable|digits_between:1,9223372036854775807",
+        // ]);
+
+        $validated = Validator::make($request->all(),
+        [
             'filteredBy' => "required",
-            'parameter' => "nullable"
-        ]);
+            'parameter' => "nullable",
+            'zoneId' => "nullable|digits_between:1,9223372036854775807",
+            'wardId' => "nullable|digits_between:1,9223372036854775807",
+        ]
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
 
         try {
             $mPropProperty = new PropProperty();
@@ -406,8 +424,10 @@ class PropertyDetailsController extends Controller
             switch ($key) {
                 case ("holdingNo"):
                     $data = $mPropProperty->searchProperty($ulbId)
-                        ->where('prop_properties.holding_no', 'LIKE', '%' . strtoupper($parameter) . '%')
-                        ->orWhere('prop_properties.new_holding_no', 'LIKE', '%' . strtoupper($parameter) . '%');
+                        ->where(function($where)use($parameter){
+                            $where->ORwhere('prop_properties.holding_no', 'LIKE', '%' . strtoupper($parameter) . '%')
+                            ->orWhere('prop_properties.new_holding_no', 'LIKE', '%' . strtoupper($parameter) . '%');
+                        });                        
                     break;
 
                 case ("ptn"):
@@ -469,8 +489,17 @@ class PropertyDetailsController extends Controller
                     $data = $mPropProperty->searchProperty($ulbId)
                         ->where('prop_properties.property_no', 'LIKE', '%' . $parameter . '%');
                     break;
+                default: $data = $mPropProperty->searchProperty($ulbId);
             }
 
+            if($request->zoneId)
+            {
+                $data = $data->where("prop_properties.zone_mstr_id",$request->zoneId);
+            }
+            if($request->wardId)
+            {
+                $data = $data->where("prop_properties.ward_mstr_id",$request->wardId);
+            }
             if ($userType != 'Citizen')
                 $data = $data->where('prop_properties.ulb_id', $ulbId);
 
