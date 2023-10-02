@@ -1662,7 +1662,7 @@ class Trade implements ITrade
 
             $validator = Validator::make($request->all(), $rules, $message);
             if ($validator->fails()) {
-                return responseMsg(false, $validator->errors(), $request->all());
+                return responseMsg(false, $validator->errors(), "");
             }
 
             $mApplicationTypeId = $request->applicationType;    //if application type is for new, renewal, amendment or surrender btw 1,2,3,4
@@ -1679,7 +1679,7 @@ class Trade implements ITrade
                 "owner.*",
                 DB::raw("ulb_ward_masters.ward_name as ward_no,'trade_licences' AS tbl")
             )
-                ->join("ulb_ward_masters", "ulb_ward_masters.id", "=", "trade_licences.ward_id")
+                ->leftjoin("ulb_ward_masters", "ulb_ward_masters.id", "=", "trade_licences.ward_id")
                 ->leftjoin(
                     DB::raw("(SELECT temp_id,
                                     string_agg(owner_name,',') as owner_name,
@@ -1705,7 +1705,7 @@ class Trade implements ITrade
                     "owner.*",
                     DB::raw("ulb_ward_masters.ward_name as ward_no,'active_trade_licences' AS tbl")
                 )
-                    ->join("ulb_ward_masters", "ulb_ward_masters.id", "=", "active_trade_licences.ward_id")
+                    ->leftjoin("ulb_ward_masters", "ulb_ward_masters.id", "=", "active_trade_licences.ward_id")
                     ->leftjoin(
                         DB::raw("(SELECT temp_id,
                                 string_agg(owner_name,',') as owner_name,

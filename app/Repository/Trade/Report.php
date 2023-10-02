@@ -451,7 +451,7 @@ class Report implements IReport
             $data = $this->_DB->TABLE("trade_licences AS licences")
                     ->select($select1)
                     ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
-                    ->join("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
+                    ->leftjoin("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id")
                     ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", "licences.firm_type_id");
                     
             if($oprater)
@@ -489,7 +489,7 @@ class Report implements IReport
                 $old = $this->_DB->TABLE("trade_renewals AS licences")
                     ->select($select2)
                     ->join("ulb_masters","ulb_masters.id","licences.ulb_id")
-                    ->join("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id") 
+                    ->leftjoin("ulb_ward_masters","ulb_ward_masters.id","licences.ward_id") 
                     ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", "licences.firm_type_id");
                     if($ulbId)
                     {
