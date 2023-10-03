@@ -149,7 +149,7 @@ class HoldingTaxController extends Controller
 
             // Get Property Details
             $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
-            $arrear = $propBasicDtls->balance;
+            $arrear = $propBasicDtls->new_arrear;                           // 🔴🔴 Replaced with balance to new arrear
 
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
@@ -338,7 +338,8 @@ class HoldingTaxController extends Controller
             $req->all(),
             [
                 'propId' => 'required|integer',
-                'paymentMode' => 'required|string'
+                'paymentMode' => 'required|string',
+                'isArrear' => 'required|bool'
             ]
         );
         if ($validated->fails()) {
@@ -354,6 +355,7 @@ class HoldingTaxController extends Controller
 
         try {
             $holdingDues = $this->getHoldingDues($req);
+            // return $holdingDues;
             if ($holdingDues->original['status'] == false)
                 throw new Exception($holdingDues->original['message']);
 
@@ -362,6 +364,16 @@ class HoldingTaxController extends Controller
 
             $holdingDues = $holdingDues->original['data'];
             $payableAmount = $holdingDues['payableAmt'];
+
+            $demands = $holdingDues['demandList'];
+            $arrear = $holdingDues['arrear'];
+
+            if (collect($demands)->isEmpty() && $arrear > 0) {
+                $arrearDate = Carbon::now()->addYear(-1)->format('Y-m-d');
+                $arrearFyear = getFY($arrearDate);
+                $fromFyear = $arrearFyear;
+                $uptoFyear = $arrearFyear;
+            }
 
             $pineLabParams = (object)[
                 "workflowId"    => 0,
@@ -380,8 +392,8 @@ class HoldingTaxController extends Controller
                 "payment_mode" => $req->paymentMode,
                 "prop_id" => $req->propId,
                 "tran_type" => 'Property',
-                "from_fyear" => collect($holdingDues['demandList'])->first()['fyear'],
-                "to_fyear" => collect($holdingDues['demandList'])->last()['fyear'],
+                "from_fyear" => collect($holdingDues['demandList'])->first()['fyear'] ?? $fromFyear,
+                "to_fyear" => collect($holdingDues['demandList'])->last()['fyear'] ?? $uptoFyear,
                 "demand_amt" => $holdingDues['grandTaxes']['balance'],
                 "ulb_id" => 2,
                 "ip_address" => $req->ipAddress ?? getClientIpAddress(),
