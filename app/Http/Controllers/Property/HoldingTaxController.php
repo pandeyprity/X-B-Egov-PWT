@@ -147,7 +147,6 @@ class HoldingTaxController extends Controller
             // $revCalculateByAmt = new RevCalculateByAmt;              
             $demandList = collect();
             $calculate2PercPenalty = new Calculate2PercPenalty;
-            $mPropPendingArrear = new PropPendingArrear();
             $fy = getFY();
 
             // Get Property Details
@@ -173,7 +172,6 @@ class HoldingTaxController extends Controller
 
             $demandList = collect($demandList)->sortBy('fyear')->values();
 
-
             if ($demandList->isEmpty())                              // Check the Payment Status
                 $paymentStatus = 1;
             else
@@ -181,6 +179,8 @@ class HoldingTaxController extends Controller
 
             $grandTaxes = $this->sumTaxHelper($demandList);
 
+            if ($grandTaxes['balance'] <= 0)
+                $paymentStatus = 1;
 
             $demand['paymentStatus'] = $paymentStatus;
             $demand['demandList'] = $demandList;
