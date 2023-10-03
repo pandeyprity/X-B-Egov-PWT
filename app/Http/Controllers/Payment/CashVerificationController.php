@@ -113,7 +113,7 @@ class CashVerificationController extends Controller
             $waterModuleId = Config::get('module-constants.WATER_MODULE_ID');
             $tradeModuleId = Config::get('module-constants.TRADE_MODULE_ID');
 
-            $revDailycollection =  RevDailycollection::select('users.id', 'collection_id', 'name', 'deposit_amount', 'module_id', 'tran_no')
+            $revDailycollection =  RevDailycollection::select('users.id', 'collection_id', 'name', 'deposit_amount', 'module_id', 'tran_no', 'rev_dailycollections.status')
                 ->join('rev_dailycollectiondetails as rdc', 'rdc.collection_id', 'rev_dailycollections.id')
                 ->join('users', 'users.id', 'rev_dailycollections.tc_id')
                 ->groupBy('users.id', 'collection_id', 'name', 'rdc.deposit_amount', 'module_id', 'tran_no')
