@@ -37,6 +37,7 @@ use App\Models\Property\PropSafsDemand;
 use App\Models\Property\PropTranDtl;
 use App\Models\Property\PropTransaction;
 use App\Models\UlbMaster;
+use App\Models\User;
 use App\Models\Workflows\WfActiveDocument;
 use App\Models\Workflows\WfRoleusermap;
 use App\Repository\Property\Interfaces\iSafRepository;
@@ -143,11 +144,14 @@ class HoldingTaxController extends Controller
             $mPropDemand = new PropDemand();
             $mPropProperty = new PropProperty();
             $mPropOwners = new PropOwner();
+            $mUsers = new User();
             $demand = array();
             // $revCalculateByAmt = new RevCalculateByAmt;              
             $demandList = collect();
             $calculate2PercPenalty = new Calculate2PercPenalty;
             $fy = getFY();
+            $userId = auth()->user()->id;
+            $userDtls = $mUsers::find($userId);
 
             // Get Property Details
             $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
@@ -229,6 +233,8 @@ class HoldingTaxController extends Controller
             $basicDtls['workflowId'] = 0;
             $basicDtls["holding_type"] = $holdingType;
             $basicDtls["ownership_type"] = $ownershipType;
+            $basicDtls["demand_receipt_date"] = Carbon::now()->format('d-m-Y');
+            $basicDtls["tc_name"] = $userDtls->name ?? null;
 
             $demand['basicDetails'] = $basicDtls;
 

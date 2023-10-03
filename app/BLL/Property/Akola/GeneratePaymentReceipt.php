@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Config;
  * | Author -Anshu Kumar
  * | Created On-09-09-2023 
  * | Created for - Payment Receipt for SAF Payment and Property Payment
+ * | Status-Closed
  */
 
 class GeneratePaymentReceipt
