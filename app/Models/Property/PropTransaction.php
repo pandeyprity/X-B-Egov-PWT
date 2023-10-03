@@ -42,7 +42,7 @@ class PropTransaction extends Model
             'prop_cheque_dtls.branch_name',
             'prop_cheque_dtls.cheque_no',
             'prop_cheque_dtls.cheque_date',
-            'u.user_name as tc_name',
+            'u.name as tc_name',
             'u.mobile as tc_mobile'
         )
             ->where('tran_no', $tranNo)
