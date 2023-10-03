@@ -26,6 +26,7 @@ use App\Models\Property\PropDemand;
 use App\Models\Property\PropIcicipayPayment;
 use App\Models\Property\PropOwner;
 use App\Models\Property\PropPenaltyrebate;
+use App\Models\Property\PropPendingArrear;
 use App\Models\Property\PropPinelabPayment;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropRazorpayPenalrebate;
@@ -143,13 +144,20 @@ class HoldingTaxController extends Controller
             $mPropProperty = new PropProperty();
             $mPropOwners = new PropOwner();
             $demand = array();
-            $revCalculateByAmt = new RevCalculateByAmt;
+            // $revCalculateByAmt = new RevCalculateByAmt;              
             $demandList = collect();
             $calculate2PercPenalty = new Calculate2PercPenalty;
+            $mPropPendingArrear = new PropPendingArrear();
 
             // Get Property Details
             $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
             $arrear = $propBasicDtls->new_arrear;                           // 🔴🔴 Replaced with balance to new arrear
+
+            if ($arrear > 0) {
+                $pendingArrearDtls = $mPropPendingArrear->getInterestByPropId($req->propId);            // 🔴🔴 Adjust Interest from Arrear
+                $interest = $pendingArrearDtls->total_interest ?? 0;
+                $arrear = $arrear - $interest;
+            }
 
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
@@ -185,10 +193,12 @@ class HoldingTaxController extends Controller
             $demand['arrearMonthlyPenalty'] = $calculate2PercPenalty->calculateArrearPenalty($arrear);              // Penalty On Arrear
             $demand['monthlyPenalty'] = $grandTaxes['monthlyPenalty'];                                              // Monthly Penalty
             $demand['totalInterestPenalty'] = $demand['arrearMonthlyPenalty'] + $demand['monthlyPenalty'];          // Total Interest Penalty
+
             // Read Rebate ❗❗❗ Rebate is pending
-            $firstOwner = $mPropOwners->firstOwner($req->propId);
+            // $firstOwner = $mPropOwners->firstOwner($req->propId);
             // if($firstOwner->is_armed_force)
             //     // $rebate=
+
             $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['totalInterestPenalty'] + $arrear);
 
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
