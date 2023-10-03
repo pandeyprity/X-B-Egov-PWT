@@ -318,4 +318,5 @@ class WaterSecondConsumer extends Model
         $mWaterConsumer->save();
         return $mWaterConsumer->id;
     }
+   
 }

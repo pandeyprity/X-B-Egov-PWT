@@ -313,5 +313,22 @@ class WaterConsumerDemand extends Model
         ->where('water_consumer_demands.demand_upto', '<=', $uptoDate) 
         ->where('status', true);
     }
-    
+     /**
+     * get details of tc visit
+     */
+    public function getDetailsOfTc($key, $refNo)
+    {
+        return WaterConsumerDemand::select(
+            'water_second_consumers.*',
+            'water_consumer_demands.*',
+            'users.user_name as TcName'
+        )
+            // ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_trans.related_id')
+            // ->join('water_second_consumers', 'water_trans.related_id', '=', 'water_second_consumers.id')
+            // ->join('water_consumer_demands', 'water_trans.related_id', '=', 'water_consumer_demands.consumer_id')
+            ->leftjoin('users','users.id','water_consumer_demands.emp_details_id')
+            ->where('water_consumer_demands.' . $key, 'LIKE', '%' . $refNo . '%')
+            ->orderByDesc('water_consumer_demands.id')
+            ->where('users.user_type', 'TC');
+    }
 }
