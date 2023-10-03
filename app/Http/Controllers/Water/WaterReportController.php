@@ -1460,7 +1460,15 @@ class WaterReportController extends Controller
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
-                }
+                case ('userName'):
+                   $waterReturnDetails = $mWaterTrans->getTcDetails($refstring, $paramenter)->paginate($pages);
+                   return $waterReturnDetails;
+                    $checkVal = collect($waterReturnDetails)->last();
+                    if (!$checkVal || $checkVal == 0)
+                        throw new Exception("Data according to " . $key . " not Found!");
+                    break;
+            }
+
             $returnData["netcollectionSummary"] = [];
 
             return responseMsgs(true, "tc visit report", remove_null($waterReturnDetails), "", "", "", 'POST', "");

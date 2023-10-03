@@ -265,6 +265,26 @@ class WaterTran extends Model
     {
         return WaterTran::select(
             'water_trans.*',
+            'water_second_consumers.*',
+            'water_consumer_demands.*',
+            'users.user_name as TcName'
+        )
+            ->join('water_consumer_owners','water_consumer_owners.consumer_id','water_trans.related_id')
+            ->join('water_second_consumers', 'water_trans.related_id', '=', 'water_second_consumers.id')
+            ->join('water_consumer_demands', 'water_trans.related_id', '=', 'water_consumer_demands.consumer_id')
+            ->leftjoin('water')
+            ->leftjoin('users', 'water_trans.emp_dtl_id', '=', 'users.id')
+            ->where('water_trans.' . $key, 'LIKE', '%' . $refNo . '%')
+            ->where('water_trans.user_type', 'TC');
+            
+    }
+    /**
+     * tc name wise
+     */
+    public function getTcDetails($key, $refNo)
+    {
+        return WaterTran::select(
+            'water_trans.*',
             'water_second_consumers.consumer_no',
             'water_consumer_demands.amount',
             'users.user_name'
@@ -272,9 +292,10 @@ class WaterTran extends Model
             ->join('water_consumer_owners','water_consumer_owners.consumer_id','water_trans.related_id')
             ->join('water_second_consumers', 'water_trans.related_id', '=', 'water_second_consumers.id')
             ->join('water_consumer_demands', 'water_trans.related_id', '=', 'water_consumer_demands.consumer_id')
-            ->leftjoin('users', 'water_trans.emp_dtl_id', '=', 'users.id')
-            ->where('water_trans.' . $key, 'LIKE', '%' . $refNo . '%')
-            ->where('water_trans.user_type', 'TC')
-            ;
+            ->leftjoin('users', 'water_trans.emp_dtl_id','users.id')
+            ->where('users.' . $key, 'LIKE', '%' . $refNo . '%')
+            ->where('water_trans.user_type', 'TC');
+            
     }
+
 }
