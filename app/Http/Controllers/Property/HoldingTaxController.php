@@ -26,6 +26,7 @@ use App\Models\Property\PropDemand;
 use App\Models\Property\PropIcicipayPayment;
 use App\Models\Property\PropOwner;
 use App\Models\Property\PropPenaltyrebate;
+use App\Models\Property\PropPendingArrear;
 use App\Models\Property\PropPinelabPayment;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropRazorpayPenalrebate;
@@ -143,20 +144,27 @@ class HoldingTaxController extends Controller
             $mPropProperty = new PropProperty();
             $mPropOwners = new PropOwner();
             $demand = array();
-            $revCalculateByAmt = new RevCalculateByAmt;
+            // $revCalculateByAmt = new RevCalculateByAmt;              
             $demandList = collect();
             $calculate2PercPenalty = new Calculate2PercPenalty;
+            $fy = getFY();
 
             // Get Property Details
             $propBasicDtls = $mPropProperty->getPropBasicDtls($req->propId);
-            $arrear = $propBasicDtls->new_arrear;                           // 🔴🔴 Replaced with balance to new arrear
+            // $arrear = $propBasicDtls->new_arrear;                           // 🔴🔴 Replaced with balance to new arrear
 
+            // if ($arrear > 0) {
+            //     $pendingArrearDtls = $mPropPendingArrear->getInterestByPropId($req->propId);            // 🔴🔴 Adjust Interest from Arrear
+            //     $totalInterest = collect($pendingArrearDtls)->sum('total_interest');
+            //     $interest = $totalInterest ?? 0;
+            //     $arrear = $arrear - $interest;
+            // }
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
 
-            if (isset($req->isArrear) && $req->isArrear)                            // If Citizen wants to pay only arrear from Payment function
-                $demandList = $demandList->where('is_arrear', true)->values();
 
+            if (isset($req->isArrear) && $req->isArrear)                            // If Citizen wants to pay only arrear from Payment function
+                $demandList = $demandList->where('fyear', '<', $fy)->values();
 
             foreach ($demandList as $list) {
                 $calculate2PercPenalty->calculatePenalty($list);
@@ -164,33 +172,37 @@ class HoldingTaxController extends Controller
 
             $demandList = collect($demandList)->sortBy('fyear')->values();
 
-            if ($demandList->isEmpty() && $arrear <= 0)                              // Check the Payment Status
+            if ($demandList->isEmpty())                              // Check the Payment Status
                 $paymentStatus = 1;
             else
                 $paymentStatus = 0;
 
             $grandTaxes = $this->sumTaxHelper($demandList);
 
+            if ($grandTaxes['balance'] <= 0)
+                $paymentStatus = 1;
+
             $demand['paymentStatus'] = $paymentStatus;
             $demand['demandList'] = $demandList;
-            $currentDemandList = collect($demandList)->where('fyear', getFY())->values();
+            $currentDemandList = collect($demandList)->where('fyear', $fy)->values();
             $demand['currentDemandList'] = $this->sumTaxHelper($currentDemandList);
-            $overDueDemandList = collect($demandList)->where('fyear', '!=', getFY())->values();
+            $overDueDemandList = collect($demandList)->where('fyear', '!=', $fy)->values();
             $demand['overdueDemandList'] =  $this->sumTaxHelper($overDueDemandList);
             $demand['grandTaxes'] = $grandTaxes;
-            $demand['currentDemand'] = $demandList->where('fyear', getFY())->first()['balance'] ?? 0;
-            $demand['arrear'] = $arrear;
+            $demand['currentDemand'] = $demandList->where('fyear', $fy)->first()['balance'] ?? 0;
+
+            $demand['arrear'] = $demandList->where('fyear', '<', $fy)->sum('balance');
 
             // Monthly Interest Penalty Calculation
-            $demand['arrearMonthlyPenalty'] = $calculate2PercPenalty->calculateArrearPenalty($arrear);              // Penalty On Arrear
-            $demand['monthlyPenalty'] = $grandTaxes['monthlyPenalty'];                                              // Monthly Penalty
+            $demand['arrearMonthlyPenalty'] = $demandList->where('fyear', '<', $fy)->sum('monthlyPenalty');              // Penalty On Arrear
+            $demand['monthlyPenalty'] = $demandList->where('fyear', $fy)->sum('monthlyPenalty');                         // Monthly Penalty
             $demand['totalInterestPenalty'] = $demand['arrearMonthlyPenalty'] + $demand['monthlyPenalty'];          // Total Interest Penalty
             // Read Rebate ❗❗❗ Rebate is pending
-            $firstOwner = $mPropOwners->firstOwner($req->propId);
+            // $firstOwner = $mPropOwners->firstOwner($req->propId);
             // if($firstOwner->is_armed_force)
             //     // $rebate=
-            $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['totalInterestPenalty'] + $arrear);
 
+            $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['totalInterestPenalty']);
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
             $holdingType = $propBasicDtls->holding_type;
             $ownershipType = $propBasicDtls->ownership_type;

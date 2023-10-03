@@ -871,6 +871,7 @@ class PropProperty extends Model
         return DB::table('prop_properties as p')
             ->select(
                 'p.holding_no as application_no',
+                'p.applicant_name',
                 'p.prop_address',
                 'p.ulb_id',
                 'p.property_no',

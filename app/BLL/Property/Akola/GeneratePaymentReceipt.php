@@ -177,7 +177,7 @@ class GeneratePaymentReceipt
             "transactionTime" => $this->_trans->created_at->format('H:i'),
             "verifyStatus" => $this->_trans->verify_status,                     // (0-Not Verified,1-Verified,2-Under Verification,3-Bounce)
             "applicationNo" => $this->_propertyDtls->application_no,
-            "customerName" => $this->_propertyDtls->owner_name,
+            "customerName" => $this->_propertyDtls->applicant_name,
             "guardianName" => $this->_propertyDtls->guardian_name,
             "mobileNo" => $this->_propertyDtls->mobile_no,
             "address" => $this->_propertyDtls->prop_address,
