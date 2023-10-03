@@ -2905,6 +2905,12 @@ class Trade implements ITrade
                 }
                 $pen += $val->amount;
             }
+            if(!$transaction)
+            {
+                $transaction = new TradeTransaction;
+                $transaction->paid_amount = 0 ;
+                $transaction->id =0;
+            }
             $transaction->rate = number_format(($transaction->paid_amount - $pen), 2);
             $transaction->delay_fee = number_format($delay_fee, 2);
             $transaction->denial_fee = number_format($denial_fee, 2);
@@ -3093,6 +3099,12 @@ class Trade implements ITrade
             foreach ($penalty as $val) 
             {
                 $pen += $val->amount;
+            }
+            if(!$transaction)
+            {
+                $transaction = new TradeTransaction;
+                $transaction->paid_amount = 0 ;
+                $transaction->id =0;
             }
             $transaction->rate = $transaction->paid_amount - $pen;
             $application->ulb_logo = $application->ulb_logo ? ($this->_DOC_URL."/".$application->ulb_logo):"";
@@ -3326,6 +3338,12 @@ class Trade implements ITrade
                     $denial_fee = $val->amount;
                 }
                 $pen += $val->amount;
+            }
+            if(!$transaction)
+            {
+                $transaction = new TradeTransaction;
+                $transaction->paid_amount = 0 ;
+                $transaction->id =0;
             }
             $transaction->rate = number_format(($transaction->paid_amount - $pen), 2);
             $transaction->delay_fee = number_format($delay_fee, 2);
