@@ -48,6 +48,7 @@ class RevDailycollection extends Model
             ->join('users as u', 'u.id', 'rev_dailycollections.tc_id')
             ->join('users as uu', 'uu.id', 'rev_dailycollections.user_id')
             ->join('ulb_masters', 'ulb_masters.id', 'rev_dailycollections.ulb_id')
+            ->where('rev_dailycollections.status', 1)
             ->where('rev_dailycollections.ulb_id', $ulbId);
     }
 }
