@@ -86,6 +86,7 @@ class Report implements IReport
                             new_holding_no,
                             prop_transactions.id AS tran_id,
                             CONCAT('', prop_properties.holding_no, '') AS holding_no,
+                            prop_properties.property_no,
                             prop_owner_detail.owner_name,
                             prop_owner_detail.mobile_no,
                             CONCAT(
@@ -2331,7 +2332,7 @@ class Report implements IReport
                                 SUM(
                                     (
                                             COALESCE(demands.arrear_collection_hh, 0::numeric) 
-                                            / (case when demands.arrear_demand_hh > 0 or demands.arrear_demand_hh is not null then demands.arrear_demand_hh else 1 end)
+                                            / (case when COALESCE(demands.arrear_demand_hh, 0::numeric) > 0  then demands.arrear_demand_hh else 1 end)
                                     )
                                     *100
                                 )
@@ -2340,7 +2341,7 @@ class Report implements IReport
                                 SUM(
                                     (
                                         COALESCE(demands.current_collection_hh, 0::numeric) 
-                                        / (case when demands.current_demand_hh > 0 or demands.current_demand_hh is not null then demands.current_demand_hh else 1 end)
+                                        / (case when COALESCE(demands.current_demand_hh, 0::numeric) > 0 then demands.current_demand_hh else 1 end)
                                     )
                                     *100
                                 )
@@ -2379,7 +2380,7 @@ class Report implements IReport
                                 SUM(
                                     (
                                         COALESCE(demands.arrear_collection ::numeric , 0::numeric)
-                                        / (case when (demands.arrear_demand + COALESCE(arrear.balance, 0::numeric)) > 0 or demands.arrear_demand is not null then demands.arrear_demand else 1 end)
+                                        / (case when (COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)) > 0 then demands.arrear_demand else 1 end)
                                         
                                     )
                                     *100
@@ -2389,7 +2390,7 @@ class Report implements IReport
                                 SUM(
                                     (
                                         COALESCE(demands.current_collection, 0::numeric)
-                                            / (case when demands.current_demand > 0 or demands.current_demand is not null then demands.current_demand else 1 end)
+                                            / (case when COALESCE(demands.current_demand, 0::numeric) > 0  then demands.current_demand else 1 end)
                                         
                                     )
                                     *100
