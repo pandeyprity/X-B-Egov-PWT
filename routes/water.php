@@ -175,8 +175,11 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('consumer/report/dcb-pie-chart', 'dcbPieChart');                                    //02
         Route::post('report-cosumer', 'consumerReport');                                                //03
         Route::post('connection-collection', 'connectionCollection');                                   //04
-        // Route::post('report/water/dcb','WaterdcbReport');
+        #akola
+
         Route::post('report/water-dcb', 'WaterdcbReport');
+        Route::post('report/water-transaction', 'getTransactionDetail');
+        Route::post('report/tc-visit-report','tCvisitReport');
     });
 
 

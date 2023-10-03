@@ -273,7 +273,7 @@ class ReportController extends Controller
             $financialYear = getFinancialYear($startOfYear, 2015); // Calculate financial year and add a label
             $financialYears[] = $financialYear;
         }
-        return responseMsgs(true, "Financial Year List", $financialYears, 'pr11.1', '01', '382ms-547ms', 'Post', '');
+        return responseMsgs(true, "Financial Year List", array_reverse($financialYears), 'pr11.1', '01', '382ms-547ms', 'Post', '');
     }
 
     /**

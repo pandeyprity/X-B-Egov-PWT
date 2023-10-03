@@ -1222,54 +1222,61 @@ class WaterReportController extends Controller
         if ($validated->fails())
             return validationError($validated);
         try {
-            $mWaterConsumerDemand = new WaterConsumerDemand();
-            $currentDate = Carbon::now()->format('Y-m-d');
-            $currentYear = collect(explode('-', $request->fiYear))->first() ?? Carbon::now()->year;
-            $currentFyear = $request->fiYear ?? getFinancialYear($currentDate);
-            $startOfCurrentYear = Carbon::createFromDate($currentYear, 4, 1);   // Start date of current financial year
-            $startOfPreviousYear = $startOfCurrentYear->copy()->subYear();      // Start date of previous financial year
-            $previousFinancialYear = getFinancialYear($startOfPreviousYear);
-            $startOfprePreviousYear = $startOfCurrentYear->copy()->subYear()->subYear();
-            $prePreviousFinancialYear = getFinancialYear($startOfprePreviousYear);
+            $now                        = Carbon::now();
+            $mWaterConsumerDemand       = new WaterConsumerDemand();
+            $currentDate                = $now->format('Y-m-d');
+            $currentYear                = collect(explode('-', $request->fiYear))->first() ?? $now->year;
+            $currentFyear               = $request->fiYear ?? getFinancialYear($currentDate);
+            $startOfCurrentYear         = Carbon::createFromDate($currentYear, 4, 1);           // Start date of current financial year
+            $startOfPreviousYear        = $startOfCurrentYear->copy()->subYear();               // Start date of previous financial year
+            $previousFinancialYear      = getFinancialYear($startOfPreviousYear);
+
             #get financial  year 
             $refDate = $this->getFyearDate($currentFyear);
             $fromDate = $refDate['fromDate'];
             $uptoDate = $refDate['uptoDate'];
+
             #common function 
             $refDate = $this->getFyearDate($previousFinancialYear);
             $previousFromDate = $refDate['fromDate'];
             $previousUptoDate = $refDate['uptoDate'];
+
             #curent year demands 
-            $demand = $mWaterConsumerDemand->getALLDemand($fromDate, $uptoDate)->get();
-            $totalCurrentDemands = round($demand->sum('amount'), 2);  // Format the sum to two decimal places
-            $balanceAmount = round($demand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal places
-            $totalCollection = round($demand->where('paid_status', 1)->sum('amount'), 2);  // Format to two decimal places 
+            $demand                 = $mWaterConsumerDemand->getAllDemand($fromDate, $uptoDate)->get();
+            $previousDemand         = $mWaterConsumerDemand->previousDemand($previousFromDate, $previousUptoDate)->get();
+
+            $totalCurrentDemands    = round($demand->sum('amount'), 2);  // Format the sum to two decimal places
+            $balanceAmount          = round($demand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal places
+            $totalCollection        = round($demand->where('paid_status', 1)->sum('amount'), 2);  // Format to two decimal places 
             // sum of collection amount 
             $financialYear = [
                 'balanceAmount'  => $balanceAmount ?? 0,
                 'collections'    => $totalCollection ?? 0,
                 'totalDemand'    => $totalCurrentDemands ?? 0,
             ];
+
             #previous year demands 
-            $previousDemand = $mWaterConsumerDemand->previousDemand($previousFromDate, $previousUptoDate)->get();
-            $totalPreviousDemands = round($previousDemand->sum('amount'), 2);  // Format the sum to two decimal places
-            $previousCollection = round($previousDemand->where('paid_status', 1)->sum('amount'), 2);  // Format to two decimal places
-            $totalPreviousBalance = round($previousDemand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal place
+            $totalPreviousDemands   = round($previousDemand->sum('amount'), 2);  // Format the sum to two decimal places
+            $previousCollection     = round($previousDemand->where('paid_status', 1)->sum('amount'), 2);  // Format to two decimal places
+            $totalPreviousBalance   = round($previousDemand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal place
 
             $previousYear = [
                 'balanceAmountPrevious' => $totalPreviousBalance ?? 0,
                 'collectionsPrevious'   => $previousCollection ?? 0,
                 "totalDemandPrevious"   => $totalPreviousDemands ?? 0
             ];
-            return $totalDcb = [
-                'totalDemands' => ($totalCurrentDemands + $totalPreviousDemands),
-                'totalCollections' => ($totalCollection + $previousCollection),
-                "arrearBalance"   => $previousYear['totalDemandPrevious'] - $previousYear['collectionsPrevious'],
-                "currentBalance"  => round($financialYear['totalDemand'] - $financialYear['collections'], 2),
-                "totalBalance"  => (($previousYear['totalDemandPrevious'] - $previousYear['collectionsPrevious']) + ($financialYear['totalDemand'] - $financialYear['collections']))
-            ];
-            $returnValues = collect($financialYear)->merge($previousYear)->merge($totalDcb);
 
+            $arrearBalance = $totalPreviousDemands - $previousCollection;
+            $currentBalance = round($totalCurrentDemands - $totalCollection, 2);
+            $totalDcb = [
+                'totalDemands'      => $totalCurrentDemands + $totalPreviousDemands,
+                'totalCollections'  => $totalCollection + $previousCollection,
+                "arrearBalance"     => $arrearBalance,
+                "currentBalance"    => $currentBalance
+            ];
+            $totalDcb["totalBalance"] = $arrearBalance + $currentBalance;
+
+            $returnValues = collect($financialYear)->merge($previousYear)->merge($totalDcb);
             return responseMsgs(true, "water demand report", remove_null($returnValues), "", "", "", 'POST', "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
@@ -1319,5 +1326,154 @@ class WaterReportController extends Controller
      */
     public function getConsumerRelatedDetails()
     {
+    }
+
+    /**
+     * |get transaction lis by year 
+     |under wo
+     */
+    public function getTransactionDetail(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try {
+            $mWaterTrans    = new WaterTran();
+            $currentDate    = Carbon::now()->format('Y-m-d');
+            $currentFyear   = $request->fiYear ?? getFinancialYear($currentDate);
+
+            #get financial  year 
+            $refDate        = $this->getFyearDate($currentFyear);
+            $fromDate       = $refDate['fromDate'];
+            $uptoDate       = $refDate['uptoDate'];
+            $transaction    = $mWaterTrans->getCashReport($fromDate, $uptoDate)->get();
+
+            $cash   = $transaction->where('payment_mode', 'Cash');
+            $cheque = $transaction->where('payment_mode', 'Cheque');
+            $online = $transaction->where('payment_mode', 'Online');
+            $DD     = $transaction->where('payment_mode', 'DD');
+            $Neft   = $transaction->where('payment_mode', 'Neft');
+            $returnData["collectionSummery"] = [
+                'waterCash'         => $cash->count(),
+                'totaAmountCash'    => $cash->sum('amount'),
+                'waterCheque'       => $cheque->count(),
+                'totalAmountCheque'   => $cheque->sum('amount'),
+                'waterOnline'       => $online->count(),
+                'waterAmountOnline' => $online->sum('amount'),
+                'waterDd'           => $DD->count(),
+                'totalAmountDd'     => $DD->sum('amount'),
+                'waterNeft'         => $Neft->count(),
+                'totalAmuntNeft'    => $Neft->sum('amount'),
+                'toatalCollection' => $cash->sum('amount') + $cheque->sum('amount') + $online->sum('amount') + $DD->sum('amount') + $Neft->sum('amount'),
+
+            ];
+
+            $jskCash    = $cash->where('user_type', 'JSK');
+            $jskCheque  = $cheque->where('user_type', 'JSK');
+            $jskOnline  = $online->where('user_type', 'JSK');
+            $jskDd      = $DD->where('user_type', 'JSK');
+            $jskNeft    = $Neft->where('user_type', 'JSK');
+
+            $returnData["jskCollectionSummery"] = [
+                'waterCash'         => $jskCash->count(),
+                'totaAmountCash'    => $jskCash->sum('amount'),
+                'waterCheque'       => $jskCheque->count(),
+                'totalAmountCheque' => round($jskCheque->sum('amount'), 2),
+                'waterOnline'       => $jskOnline->count(),
+                'waterAmountOnline' => $jskOnline->sum('amount'),
+                'waterDd'           => $jskDd->count(),
+                'totaAmountDd'      => $jskDd->sum('amount'),
+                "waterNeft"         => $jskNeft->count(),
+                'totalAmountNeft'   => $jskNeft->sum('amount'),
+                'toatalCollection'  => $jskCash->sum('amount') + $jskCheque->sum('amount') + $jskOnline->sum('amount') + $jskDd->sum('amount') + $jskNeft->sum('amount')
+
+            ];
+
+            # may use where in for tc and tl
+            $TcCash     = $cash->where('user_type', 'TC');
+            $TcCheque   = $cheque->where('user_type', 'TC');
+            $TcOnline   = $online->where('user_type', 'TC');
+            $TcDd       = $DD->where('user_type', 'TC');
+            $TcNeft     = $Neft->where('user_type', 'TC');
+            $returnData["dtdCollectionSummery"] = [
+                'waterCash'         => $TcCash->count(),
+                'totaAmountCash'    => $TcCash->sum('amount'),
+                'waterCheque'       => $TcCheque->count(),
+                'totalAmountCheque' => $TcCheque->sum('amount'),
+                'waterOnline'       => $TcOnline->count(),
+                'waterAmountOnline' => $TcOnline->sum('amount'),
+                'waterDd'           => $TcDd->count(),
+                'totalAmountDd'     => $TcDd->sum('amount'),
+                'waterNeft'         => $TcNeft->count(),
+                'totalAmountNeft'   => $TcNeft->sum('amount'),
+                'toatalCollection'  => $TcCash->sum('amount') + $TcCheque->sum('amount') + $TcOnline->sum('amount') + $TcDd->sum('amount') + $TcNeft->sum('amount')
+
+            ];   #net collection summary 
+            $returnData["netcollectionSummary"] = [
+                'netTransaction' => $transaction->count(),
+                'netTotalAmount' => round($transaction->sum('amount'), 2)
+            ];
+
+
+            return responseMsgs(true, "water transaction report", remove_null($returnData), "", "", "", 'POST', "");
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
+        }
+    }
+    /**
+     * tc visit report 
+     * dateWise
+     * 
+     */
+    public function tCvisitReport(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'filterBy'  => 'required',
+                'parameter' => 'required',
+                'pages'     => 'nullable',
+            ]
+        );
+
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+
+        try {
+            $mWaterTrans    = new WaterTran();
+            $key            = $request->filterBy;
+            $paramenter     = $request->parameter;
+            $pages          = $request->pages ?? 10;
+            $string         = preg_replace("/([A-Z])/", "_$1", $key);
+            $refstring      = strtolower($string);
+
+            switch ($key) {
+                case ("tranDate"):                                                                        // Static
+                    $waterReturnDetails = $mWaterTrans->getDetailsOfTc($refstring, $paramenter)->paginate($pages);
+                    $checkVal = collect($waterReturnDetails)->last();
+                    if (!$checkVal || $checkVal == 0)
+                        throw new Exception("Data according to " . $key . " not Found!");
+                    break;
+                case ('userName'):
+                   $waterReturnDetails = $mWaterTrans->getTcDetails($refstring, $paramenter)->paginate($pages);
+                   return $waterReturnDetails;
+                    $checkVal = collect($waterReturnDetails)->last();
+                    if (!$checkVal || $checkVal == 0)
+                        throw new Exception("Data according to " . $key . " not Found!");
+                    break;
+            }
+
+            $returnData["netcollectionSummary"] = [];
+
+            return responseMsgs(true, "tc visit report", remove_null($waterReturnDetails), "", "", "", 'POST', "");
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
+        }
     }
 }

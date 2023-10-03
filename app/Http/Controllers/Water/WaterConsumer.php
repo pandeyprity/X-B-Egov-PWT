@@ -144,11 +144,14 @@ class WaterConsumer extends Controller
         try {
             $mWaterConsumerDemand   = new WaterConsumerDemand();
             $mWaterConsumerMeter    = new WaterConsumerMeter();
+            $mWaterSecondConsumer   = new WaterSecondConsumer(); 
             $mNowDate               = carbon::now()->format('Y-m-d');
             $refConnectionName      = Config::get('waterConstaint.METER_CONN_TYPE');
             $refConsumerId          = $request->ConsumerId;
 
             $refConsumerDemand = $mWaterConsumerDemand->getConsumerDemand($refConsumerId);
+            #basic details
+            $WaterBasicDetails =$mWaterSecondConsumer->fullWaterDetails($refConsumerId)->first();
             $refConsumerDemand = collect($refConsumerDemand)->sortBy('id')->values();
             $consumerDemand['consumerDemands'] = $refConsumerDemand;
             $checkParam = collect($consumerDemand['consumerDemands'])->first();
@@ -157,6 +160,7 @@ class WaterConsumer extends Controller
                 $totalPenalty = collect($consumerDemand['consumerDemands'])->sum('penalty');
                 $consumerDemand['totalSumDemand'] = round($sumDemandAmount, 2);
                 $consumerDemand['totalPenalty'] = round($totalPenalty, 2);
+                
 
                 # meter Details 
                 $refMeterData = $mWaterConsumerMeter->getMeterDetailsByConsumerIdV2($refConsumerId)->first();
@@ -178,7 +182,9 @@ class WaterConsumer extends Controller
 
                 $refMeterData['connectionName'] = $connectionName;
                 $refMeterData['ConnectionTypeName'] = $connectionName;
+                $refMeterData['basicDetails']   = $WaterBasicDetails;
                 $consumerDemand['meterDetails'] = $refMeterData;
+
 
 
                 return responseMsgs(true, "List of Consumer Demand!", remove_null($consumerDemand), "", "01", "ms", "POST", "");

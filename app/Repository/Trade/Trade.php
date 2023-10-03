@@ -336,6 +336,13 @@ class Trade implements ITrade
                     }
 
                     $mnaturOfBusiness = $refOldLicece->nature_of_bussiness;
+                    if(!$mnaturOfBusiness);
+                    {
+                        $mnaturOfBusiness = array_map(function ($val) {
+                            return $val['id'];
+                        }, $request->firmDetails['natureOfBusiness']);
+                        $mnaturOfBusiness = implode(',', $mnaturOfBusiness);
+                    }
                     $wardId = $refOldLicece->ward_mstr_id;
                     $mWardNo = array_filter($data['wardList'], function ($val) use ($wardId) {
                         return $val['id'] == $wardId;
@@ -584,18 +591,18 @@ class Trade implements ITrade
     {
         $refActiveLicense->parent_ids          = trim(($refActiveLicense->trade_id . "," . $refOldLicece->parent_ids), ',');
 
-        $refActiveLicense->firm_type_id        = $refOldLicece->firm_type_id;
-        $refActiveLicense->firm_description    = $refOldLicece->firm_description;
-        $refActiveLicense->category_type_id    = $refOldLicece->category_type_id;
-        $refActiveLicense->ownership_type_id   = $refOldLicece->ownership_type_id;
-        $refActiveLicense->zone_id             = $refOldLicece->zone_id;
-        $refActiveLicense->ward_id             = $refOldLicece->ward_id;
+        $refActiveLicense->firm_type_id        = $refOldLicece->firm_type_id ? $refOldLicece->firm_type_id : ($request->initialBusinessDetails['firmType']??null);
+        $refActiveLicense->firm_description    = $refOldLicece->firm_description ? $refOldLicece->firm_description : ($request->initialBusinessDetails['otherFirmType'] ?? null);
+        $refActiveLicense->category_type_id    = $refOldLicece->category_type_id ? $refOldLicece->category_type_id : ($request->initialBusinessDetails['categoryTypeId'] ?? null);
+        $refActiveLicense->ownership_type_id   = $refOldLicece->ownership_type_id ? $refOldLicece->ownership_type_id : ($request->initialBusinessDetails['ownershipType']??1);
+        $refActiveLicense->zone_id             = $refOldLicece->zone_id == $request->firmDetails['zoneId'] ? $refOldLicece->zone_id : $request->firmDetails['zoneId']  ;
+        $refActiveLicense->ward_id             = $refOldLicece->ward_id ? $refOldLicece->ward_id : $request->firmDetails['wardNo'];
         $refActiveLicense->new_ward_id         = $refOldLicece->new_ward_id;
         $refActiveLicense->holding_no          = $request->firmDetails['holdingNo'];
         $refActiveLicense->nature_of_bussiness = $refOldLicece->nature_of_bussiness;
         $refActiveLicense->firm_name           = $refOldLicece->firm_name;
-        $refActiveLicense->premises_owner_name = $refOldLicece->premises_owner_name;
-        $refActiveLicense->brief_firm_desc     = $refOldLicece->brief_firm_desc;
+        $refActiveLicense->premises_owner_name = $refOldLicece->premises_owner_name ? $refOldLicece->premises_owner_name : $request->firmDetails['premisesOwner'] ?? null;
+        $refActiveLicense->brief_firm_desc     = $refOldLicece->brief_firm_desc ? $refOldLicece->brief_firm_desc : $request->firmDetails['businessDescription'];
         $refActiveLicense->area_in_sqft        = $request->firmDetails['areaSqft'] ? $request->firmDetails['areaSqft']: $refOldLicece->area_in_sqft;
 
         $refActiveLicense->k_no                = $refOldLicece->k_no;
@@ -604,10 +611,10 @@ class Trade implements ITrade
         $refActiveLicense->pan_no              = $refOldLicece->pan_no;
         $refActiveLicense->tin_no              = $refOldLicece->tin_no;
         $refActiveLicense->salestax_no         = $refOldLicece->salestax_no;
-        $refActiveLicense->establishment_date  = $refOldLicece->establishment_date;
+        $refActiveLicense->establishment_date  = $refOldLicece->establishment_date ? $refOldLicece->establishment_date : $request->firmDetails['firmEstdDate'];
         $refActiveLicense->address             = $refOldLicece->address;
-        $refActiveLicense->landmark            = $refOldLicece->landmark;
-        $refActiveLicense->pin_code            = $refOldLicece->pin_code;
+        $refActiveLicense->landmark            = $refOldLicece->landmark ? $refOldLicece->landmark : $request->firmDetails['landmark'] ?? null; 
+        $refActiveLicense->pin_code            = $refOldLicece->pin_code ? $refOldLicece->pin_code : $request->firmDetails['pincode'] ?? null;
         $refActiveLicense->street_name         = $refOldLicece->street_name;
         $refActiveLicense->property_type       = $refOldLicece->property_type;
         $refActiveLicense->valid_from          = $refOldLicece->valid_upto;
@@ -643,11 +650,11 @@ class Trade implements ITrade
         $refOwner->guardian_name_marathi   =  $owners->guardian_name_marathi ;
 
         $refOwner->address         = $owners->address;
-        $refOwner->mobile_no          = $owners->mobile;
+        $refOwner->mobile_no          = $owners->mobile_no;
         $refOwner->city            = $owners->city;
         $refOwner->district        = $owners->district;
         $refOwner->state           = $owners->state;
-        $refOwner->email_id         = $owners->emailid;
+        $refOwner->email_id         = $owners->email_id;
     }
 
     # Serial No : 01.06
@@ -1662,7 +1669,7 @@ class Trade implements ITrade
 
             $validator = Validator::make($request->all(), $rules, $message);
             if ($validator->fails()) {
-                return responseMsg(false, $validator->errors(), $request->all());
+                return responseMsg(false, $validator->errors(), "");
             }
 
             $mApplicationTypeId = $request->applicationType;    //if application type is for new, renewal, amendment or surrender btw 1,2,3,4
@@ -1679,7 +1686,7 @@ class Trade implements ITrade
                 "owner.*",
                 DB::raw("ulb_ward_masters.ward_name as ward_no,'trade_licences' AS tbl")
             )
-                ->join("ulb_ward_masters", "ulb_ward_masters.id", "=", "trade_licences.ward_id")
+                ->leftjoin("ulb_ward_masters", "ulb_ward_masters.id", "=", "trade_licences.ward_id")
                 ->leftjoin(
                     DB::raw("(SELECT temp_id,
                                     string_agg(owner_name,',') as owner_name,
@@ -1705,7 +1712,7 @@ class Trade implements ITrade
                     "owner.*",
                     DB::raw("ulb_ward_masters.ward_name as ward_no,'active_trade_licences' AS tbl")
                 )
-                    ->join("ulb_ward_masters", "ulb_ward_masters.id", "=", "active_trade_licences.ward_id")
+                    ->leftjoin("ulb_ward_masters", "ulb_ward_masters.id", "=", "active_trade_licences.ward_id")
                     ->leftjoin(
                         DB::raw("(SELECT temp_id,
                                 string_agg(owner_name,',') as owner_name,

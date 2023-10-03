@@ -245,4 +245,57 @@ class WaterTran extends Model
                 'penalty_ids' => $penaltyIds
             ]);
     }
+    /**
+     * | Get details of Cash transactions
+     * | According to Fyear
+     * | @param fromDate
+     * | @param toDate
+     */
+    public function getCashReport($fromDate, $toDate)
+    {
+        return WaterTran::select('id', 'amount', 'payment_mode', 'user_type')
+            ->where('status', 1)
+            ->whereBetween('tran_date', [$fromDate, $toDate])
+            ->orderByDesc('id');
+    }
+    /**
+     * get details of tc visit
+     */
+    public function getDetailsOfTc($key, $refNo)
+    {
+        return WaterTran::select(
+            'water_trans.*',
+            'water_second_consumers.*',
+            'water_consumer_demands.*',
+            'users.user_name as TcName'
+        )
+            ->join('water_consumer_owners','water_consumer_owners.consumer_id','water_trans.related_id')
+            ->join('water_second_consumers', 'water_trans.related_id', '=', 'water_second_consumers.id')
+            ->join('water_consumer_demands', 'water_trans.related_id', '=', 'water_consumer_demands.consumer_id')
+            ->leftjoin('water')
+            ->leftjoin('users', 'water_trans.emp_dtl_id', '=', 'users.id')
+            ->where('water_trans.' . $key, 'LIKE', '%' . $refNo . '%')
+            ->where('water_trans.user_type', 'TC');
+            
+    }
+    /**
+     * tc name wise
+     */
+    public function getTcDetails($key, $refNo)
+    {
+        return WaterTran::select(
+            'water_trans.*',
+            'water_second_consumers.consumer_no',
+            'water_consumer_demands.amount',
+            'users.user_name'
+        )
+            ->join('water_consumer_owners','water_consumer_owners.consumer_id','water_trans.related_id')
+            ->join('water_second_consumers', 'water_trans.related_id', '=', 'water_second_consumers.id')
+            ->join('water_consumer_demands', 'water_trans.related_id', '=', 'water_consumer_demands.consumer_id')
+            ->leftjoin('users', 'water_trans.emp_dtl_id','users.id')
+            ->where('users.' . $key, 'LIKE', '%' . $refNo . '%')
+            ->where('water_trans.user_type', 'TC');
+            
+    }
+
 }
