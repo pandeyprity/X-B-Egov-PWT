@@ -116,7 +116,7 @@ class CashVerificationController extends Controller
             $revDailycollection =  RevDailycollection::select('users.id', 'collection_id', 'name', 'deposit_amount', 'module_id', 'tran_no', 'rev_dailycollections.status')
                 ->join('rev_dailycollectiondetails as rdc', 'rdc.collection_id', 'rev_dailycollections.id')
                 ->join('users', 'users.id', 'rev_dailycollections.tc_id')
-                ->groupBy('users.id', 'collection_id', 'name', 'rdc.deposit_amount', 'module_id', 'tran_no')
+                ->groupBy('users.id', 'collection_id', 'name', 'rdc.deposit_amount', 'module_id', 'tran_no', 'rev_dailycollections.status')
                 ->where('rev_dailycollections.status', 1)
                 ->where('deposit_date', $date)
                 ->get();
