@@ -13,6 +13,8 @@ use App\Models\Water\WaterConsumer;
 use Illuminate\Support\Facades\Config;
 use App\Models\Water\WaterConsumerDemand;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Water\WaterSecondConsumer;
+
 
 /**
  * | ----------------------------------------------------------------------------------
@@ -1446,22 +1448,21 @@ class WaterReportController extends Controller
         }
 
         try {
-            $mWaterTrans    = new WaterTran();
+            $mWaterConsumerDemand    = new WaterConsumerDemand();
             $key            = $request->filterBy;
             $paramenter     = $request->parameter;
             $pages          = $request->pages ?? 10;
             $string         = preg_replace("/([A-Z])/", "_$1", $key);
             $refstring      = strtolower($string);
-
             switch ($key) {
-                case ("tranDate"):                                                                        // Static
-                    $waterReturnDetails = $mWaterTrans->getDetailsOfTc($refstring, $paramenter)->paginate($pages);
+                case ("generationDate"):                                                                        // Static
+                    $waterReturnDetails = $mWaterConsumerDemand->getDetailsOfTc($refstring, $paramenter)->paginate($pages);
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
                 case ('userName'):
-                   $waterReturnDetails = $mWaterTrans->getTcDetails($refstring, $paramenter)->paginate($pages);
+                   $waterReturnDetails = $mWaterConsumerDemand->getTcDetails($refstring, $paramenter)->paginate($pages);
                    return $waterReturnDetails;
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)

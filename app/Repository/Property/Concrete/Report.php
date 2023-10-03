@@ -90,8 +90,7 @@ class Report implements IReport
                             prop_owner_detail.owner_name,
                             prop_owner_detail.mobile_no,
                             CONCAT(
-                                prop_transactions.from_fyear, '(', prop_transactions.from_qtr, ')', ' / ', 
-                                prop_transactions.to_fyear, '(', prop_transactions.to_qtr, ')'
+                                prop_transactions.from_fyear, '-',prop_transactions.to_fyear
                             ) AS from_upto_fy_qtr,
                             prop_transactions.tran_date,
                             prop_transactions.payment_mode AS transaction_mode,
