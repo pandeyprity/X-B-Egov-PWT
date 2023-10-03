@@ -714,9 +714,9 @@ class TradeCitizenController extends Controller
                     "licenceId" => "required|digits_between:1,9223372036854775807",
                 ]
             );
-            if(!$this->_COMMON_FUNCTION->checkUsersWithtocken("active_citizens"))
+            if(!$this->_COMMON_FUNCTION->checkUsersWithtocken("users"))
             {
-                throw New Exception("Counter User Not Allowed");
+                throw New Exception("Citizen Not Allowed");
             }
             #------------------------ Declaration-----------------------
             $refUser            = Auth()->user();

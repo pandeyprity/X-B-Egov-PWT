@@ -86,6 +86,7 @@ class Report implements IReport
                             new_holding_no,
                             prop_transactions.id AS tran_id,
                             CONCAT('', prop_properties.holding_no, '') AS holding_no,
+                            prop_properties.property_no,
                             prop_owner_detail.owner_name,
                             prop_owner_detail.mobile_no,
                             CONCAT(
