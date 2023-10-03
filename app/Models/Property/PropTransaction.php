@@ -296,6 +296,7 @@ class PropTransaction extends Model
             ->join('prop_cheque_dtls', 'prop_cheque_dtls.transaction_id', 'prop_transactions.id')
             ->join('users', 'users.id', 'prop_cheque_dtls.user_id')
             ->whereIn('payment_mode', ['CHEQUE', 'DD'])
+            ->where('prop_transactions.status', 1)
             ->where('prop_transactions.ulb_id', $ulbId);
     }
 
@@ -337,6 +338,7 @@ class PropTransaction extends Model
             ),
         )
             ->where('user_id', $userId)
+            ->where('prop_transactions.status', 1)
             ->orderBydesc('id')
             ->take(10)
             ->get();

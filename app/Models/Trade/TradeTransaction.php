@@ -11,9 +11,9 @@ class TradeTransaction extends Model
     use HasFactory;
     public $timestamps = false;
     protected $connection;
-    public function __construct($DB=null)
+    public function __construct($DB = null)
     {
-       $this->connection = $DB ? $DB:"pgsql_trade";
+        $this->connection = $DB ? $DB : "pgsql_trade";
     }
 
     public static function listByLicId($licenseId)
@@ -45,6 +45,7 @@ class TradeTransaction extends Model
             ->leftjoin('trade_cheque_dtls', 'trade_cheque_dtls.tran_id', 'trade_transactions.id')
             ->join('users', 'users.id', 'trade_cheque_dtls.emp_dtl_id')
             ->whereIn('payment_mode', ['CHEQUE', 'DD'])
+            ->where('trade_transactions.status', 1)
             ->where('trade_transactions.ulb_id', $ulbId);
     }
 
@@ -69,6 +70,6 @@ class TradeTransaction extends Model
 
     public function chequeDtl()
     {
-        return $this->belongsTo(TradeChequeDtl::class,"id",'tran_id')->whereNotIn("status",[0,3]);
+        return $this->belongsTo(TradeChequeDtl::class, "id", 'tran_id')->whereNotIn("status", [0, 3]);
     }
 }
