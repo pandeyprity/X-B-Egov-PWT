@@ -2458,12 +2458,12 @@ class WaterPaymentController extends Controller
     public function v2(Request $request)
     {
         $data["data"] = ["afsdf", "sdlfjksld", "dfksdfjk"];
-        // return view('water_consumer_payment', $data);
+        
         # Watsapp pdf sending
         $filename = "1-2-" . time() . '.' . 'pdf';
         $url = "Uploads/water/payment/" . $filename;
-        $customPaper = array(0,0,720,1500);
-        $pdf = PDF::loadView('water_consumer_payment', $data)->setPaper($customPaper,'portrait');
+        // $customPaper = array(0,0,720,1500);
+        $pdf = PDF::loadView('water_consumer_payment', $data);
         $file = $pdf->download($filename . '.' . 'pdf');
         $pdf = Storage::put('public' . '/' . $url, $file);
 
@@ -2482,8 +2482,8 @@ class WaterPaymentController extends Controller
         ));
 
         // $data["test"] = json_encode($whatsapp);
-        $data["test2"] = json_encode($whatsapp2);
-        dd($data);
+        // $data["test2"] = json_encode($whatsapp2);
+        // dd($data);
 
         return view("water_consumer_payment", $data);
     }
