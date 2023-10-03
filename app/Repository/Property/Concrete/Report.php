@@ -3468,10 +3468,19 @@ class Report implements IReport
     /**
      * | Admin Dashboard Report for akola
      */
-    public function adminDashReport()
+    public function adminDashReport(Request $request)
     {
         try {
             $currentFyear = getFY();
+            $fromDate = $toDate = Carbon::now()->format("Y-m-d");
+            if($request->fromDate)
+            {
+                $fromDate = $request->fromDate;
+            }
+            if($request->uptoDate)
+            {
+                $toDate = $request->uptoDate;
+            }
             $query = " SELECT *,
                                 (SELECT COUNT(id) FROM prop_properties) AS total_properties,
                                 (SELECT ROUND(((zone1_collection/zone1_demand)*100),2) as zone1_recovery),
@@ -3649,7 +3658,7 @@ class Report implements IReport
                                                (t.tran_type <> 'Property' AND t.saf_id = p.id)
                                            )
                                            LEFT JOIN zone_masters AS z on z.id=p.zone_mstr_id
-                                           WHERE t.tran_date = CURRENT_DATE AND t.status = 1
+                                           WHERE t.tran_date BETWEEN '$fromDate' AND '$toDate' AND t.status = 1
                                            GROUP BY zone_mstr_id 
                                            ) AS details on details.zone_mstr_id=z.id
                                            
@@ -3666,6 +3675,18 @@ class Report implements IReport
                                            details.rtgs_collection";
             $zoneWiseReport = DB::select($zoneWiseCollectionQuery);
             $report[0]->zoneWiseReport = collect($zoneWiseReport);
+            $report[0]->totalReport = [
+                "total_properties" => collect($zoneWiseReport)->sum("total_properties"),
+                "today_collections" => collect($zoneWiseReport)->sum("today_collections"),
+                "neft_collection" => collect($zoneWiseReport)->sum("neft_collection"),
+                "qr_collection" => collect($zoneWiseReport)->sum("qr_collection"),
+                "cash_collection" => collect($zoneWiseReport)->sum("cash_collection"),
+                "dd_collection" => collect($zoneWiseReport)->sum("dd_collection"),
+                "online_collection" => collect($zoneWiseReport)->sum("online_collection"),
+                "card_collection" => collect($zoneWiseReport)->sum("card_collection"),
+                "chque_collection" => collect($zoneWiseReport)->sum("chque_collection"),
+                "rtgs_collection" => collect($zoneWiseReport)->sum("rtgs_collection"),
+            ];
 
             return responseMsgs(true, "Admin Dashboard Reports", collect($report)->first());
         } catch (Exception $e) {
