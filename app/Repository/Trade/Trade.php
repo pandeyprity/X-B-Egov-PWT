@@ -601,8 +601,8 @@ class Trade implements ITrade
         $refActiveLicense->holding_no          = $request->firmDetails['holdingNo'];
         $refActiveLicense->nature_of_bussiness = $refOldLicece->nature_of_bussiness;
         $refActiveLicense->firm_name           = $refOldLicece->firm_name;
-        $refActiveLicense->premises_owner_name = $refOldLicece->premises_owner_name;
-        $refActiveLicense->brief_firm_desc     = $refOldLicece->brief_firm_desc;
+        $refActiveLicense->premises_owner_name = $refOldLicece->premises_owner_name ? $refOldLicece->premises_owner_name : $request->firmDetails['premisesOwner'] ?? null;
+        $refActiveLicense->brief_firm_desc     = $refOldLicece->brief_firm_desc ? $refOldLicece->brief_firm_desc : $request->firmDetails['businessDescription'];
         $refActiveLicense->area_in_sqft        = $request->firmDetails['areaSqft'] ? $request->firmDetails['areaSqft']: $refOldLicece->area_in_sqft;
 
         $refActiveLicense->k_no                = $refOldLicece->k_no;
@@ -611,10 +611,10 @@ class Trade implements ITrade
         $refActiveLicense->pan_no              = $refOldLicece->pan_no;
         $refActiveLicense->tin_no              = $refOldLicece->tin_no;
         $refActiveLicense->salestax_no         = $refOldLicece->salestax_no;
-        $refActiveLicense->establishment_date  = $refOldLicece->establishment_date;
+        $refActiveLicense->establishment_date  = $refOldLicece->establishment_date ? $refOldLicece->establishment_date : $request->firmDetails['firmEstdDate'];
         $refActiveLicense->address             = $refOldLicece->address;
-        $refActiveLicense->landmark            = $refOldLicece->landmark;
-        $refActiveLicense->pin_code            = $refOldLicece->pin_code;
+        $refActiveLicense->landmark            = $refOldLicece->landmark ? $refOldLicece->landmark : $request->firmDetails['landmark'] ?? null; 
+        $refActiveLicense->pin_code            = $refOldLicece->pin_code ? $refOldLicece->pin_code : $request->firmDetails['pincode'] ?? null;
         $refActiveLicense->street_name         = $refOldLicece->street_name;
         $refActiveLicense->property_type       = $refOldLicece->property_type;
         $refActiveLicense->valid_from          = $refOldLicece->valid_upto;
@@ -650,11 +650,11 @@ class Trade implements ITrade
         $refOwner->guardian_name_marathi   =  $owners->guardian_name_marathi ;
 
         $refOwner->address         = $owners->address;
-        $refOwner->mobile_no          = $owners->mobile;
+        $refOwner->mobile_no          = $owners->mobile_no;
         $refOwner->city            = $owners->city;
         $refOwner->district        = $owners->district;
         $refOwner->state           = $owners->state;
-        $refOwner->email_id         = $owners->emailid;
+        $refOwner->email_id         = $owners->email_id;
     }
 
     # Serial No : 01.06

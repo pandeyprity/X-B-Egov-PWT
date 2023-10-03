@@ -463,4 +463,27 @@ class PropertyController extends Controller
             return responseMsgs(false, $e->getMessage(), "", "", "1.0", responseTime(), "POST", $request->deviceId);
         }
     }
+
+    /**
+     * | Get property detials according to mobile no 
+        | Serial No :
+        | Under Con
+     */
+    public function getPropDetialByMobileNo(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "filterBy" => "required",
+                "parameter" => "nullable|"
+            ]
+        );
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+        try {
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", "1.0", responseTime(), $request->getMethod(), $request->deviceId);
+        }
+    }
 }
