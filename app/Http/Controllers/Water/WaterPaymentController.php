@@ -2462,13 +2462,14 @@ class WaterPaymentController extends Controller
         # Watsapp pdf sending
         $filename = "1-2-" . time() . '.' . 'pdf';
         $url = "Uploads/water/payment/" . $filename;
-        $pdf = PDF::loadView('water_consumer_payment', $data);
+        $customPaper = array(0,0,720,1500);
+        $pdf = PDF::loadView('water_consumer_payment', $data)->setPaper($customPaper,'portrait');
         $file = $pdf->download($filename . '.' . 'pdf');
         $pdf = Storage::put('public' . '/' . $url, $file);
 
-      
+
         $whatsapp2 = (Whatsapp_Send(
-            6206998554,
+            6299068110,
             "file_test",
             [
                 "content_type" => "pdf",
@@ -2481,8 +2482,8 @@ class WaterPaymentController extends Controller
         ));
 
         // $data["test"] = json_encode($whatsapp);
-        // $data["test2"] = json_encode($whatsapp2);
-        // dd($data);
+        $data["test2"] = json_encode($whatsapp2);
+        dd($data);
 
         return view("water_consumer_payment", $data);
     }
