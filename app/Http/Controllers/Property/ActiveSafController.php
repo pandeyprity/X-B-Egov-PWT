@@ -2111,6 +2111,8 @@ class ActiveSafController extends Controller
             $onlineRebate = $rebatePenalMstrs->where('id', 3)->first()['value'];
 
             $safTrans = $transaction->getPropByTranPropId($req->tranNo);
+            if (collect($safTrans)->isEmpty())
+                throw new Exception("Transaction Not Found");
             // Saf Payment
             $safId = $safTrans->saf_id;
             $reqSafId = new Request(['id' => $safId]);
