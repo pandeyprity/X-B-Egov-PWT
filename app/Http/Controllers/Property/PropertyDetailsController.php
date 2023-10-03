@@ -432,7 +432,8 @@ class PropertyDetailsController extends Controller
 
                 case ("ptn"):
                     $data = $mPropProperty->searchProperty($ulbId)
-                        ->where('prop_properties.pt_no', 'LIKE', '%' . $parameter . '%');
+                        // ->where('prop_properties.pt_no', 'LIKE', '%' . $parameter . '%');
+                        ->where('prop_properties.property_no', 'LIKE', '%' . $parameter . '%');
                     break;
 
                 case ("ownerName"):
