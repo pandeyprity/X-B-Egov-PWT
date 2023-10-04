@@ -1687,22 +1687,16 @@ class WaterPaymentController extends Controller
             $transactionNo = $returnValues['transactionNo'];
             $filename = $transactionNo . '.pdf';
             $url = "Uploads/water/payment/" . $filename;
-
-            // Check if the file with the same transaction number already exists
             if (Storage::exists('public/' . $url)) {
-                // The file exists, use the existing file
                 $pdf = Storage::get('public/' . $url);
             } else {
-                // Generate a new PDF
-                $pdf = PDF::loadView('water_consumer_payment', [$returnValues]);
+                $pdf = PDF::loadView('water_consumer_payment', $returnValues);
                 $file = $pdf->download($filename);
-
-                // Store the new PDF
                 Storage::put('public/' . $url, $file);
             }
 
             $whatsapp2 = Whatsapp_Send(
-                6206998554,
+                $returnValues['customerMobile'],
                 "file_test",
                 [
                     "content_type" => "pdf",
@@ -1712,12 +1706,6 @@ class WaterPaymentController extends Controller
                     ]
                 ]
             );
-
-            // $data["test"] = json_encode($whatsapp);
-            //  $data["test2"]=json_encode($whatsapp2);
-            // dd($data);
-
-            // return view("water_consumer_payment", $data);
 
             return responseMsgs(true, "Payment Receipt", remove_null($returnValues, $whatsapp2), "", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
@@ -2458,7 +2446,7 @@ class WaterPaymentController extends Controller
     public function v2(Request $request)
     {
         $data["data"] = ["afsdf", "sdlfjksld", "dfksdfjk"];
-        
+
         # Watsapp pdf sending
         $filename = "1-2-" . time() . '.' . 'pdf';
         $url = "Uploads/water/payment/" . $filename;
@@ -2469,7 +2457,7 @@ class WaterPaymentController extends Controller
 
 
         $whatsapp2 = (Whatsapp_Send(
-            6299068110,
+            6206998554,
             "file_test",
             [
                 "content_type" => "pdf",
@@ -2482,8 +2470,8 @@ class WaterPaymentController extends Controller
         ));
 
         // $data["test"] = json_encode($whatsapp);
-        // $data["test2"] = json_encode($whatsapp2);
-        // dd($data);
+        $data["test2"] = json_encode($whatsapp2);
+        dd($data);
 
         return view("water_consumer_payment", $data);
     }

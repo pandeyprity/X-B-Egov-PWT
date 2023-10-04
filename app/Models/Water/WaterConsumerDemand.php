@@ -319,16 +319,17 @@ class WaterConsumerDemand extends Model
     public function getDetailsOfTc($key, $refNo)
     {
         return WaterConsumerDemand::select(
-            'water_second_consumers.*',
-            'water_consumer_demands.*',
-            'users.user_name as TcName'
+            'water_consumer_demands.amount',
+            'water_consumer_demands.generation_date',
+            'users.user_name',
+            'users.user_type',
+            'water_second_consumers.consumer_no'
         )
-            // ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_trans.related_id')
-            // ->join('water_second_consumers', 'water_trans.related_id', '=', 'water_second_consumers.id')
-            // ->join('water_consumer_demands', 'water_trans.related_id', '=', 'water_consumer_demands.consumer_id')
+            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_consumer_demands.consumer_id')
+            ->join('water_second_consumers', 'water_second_consumers.id', '=', 'water_consumer_demands.consumer_id')
             ->leftjoin('users','users.id','water_consumer_demands.emp_details_id')
             ->where('water_consumer_demands.' . $key, 'LIKE', '%' . $refNo . '%')
-            ->orderByDesc('water_consumer_demands.id')
-            ->where('users.user_type', 'TC');
+            ->orderByDesc('water_consumer_demands.id');
+            // ->where('users.user_type', 'TC');
     }
 }

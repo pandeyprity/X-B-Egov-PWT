@@ -1354,7 +1354,7 @@ class WaterReportController extends Controller
             $fromDate       = $refDate['fromDate'];
             $uptoDate       = $refDate['uptoDate'];
             $transaction    = $mWaterTrans->getCashReport($fromDate, $uptoDate)->get();
-
+            // return $transaction;
             $cash   = $transaction->where('payment_mode', 'Cash');
             $cheque = $transaction->where('payment_mode', 'Cheque');
             $online = $transaction->where('payment_mode', 'Online');
@@ -1364,16 +1364,17 @@ class WaterReportController extends Controller
                 'waterCash'         => $cash->count(),
                 'totaAmountCash'    => $cash->sum('amount'),
                 'waterCheque'       => $cheque->count(),
-                'totalAmountCheque'   => $cheque->sum('amount'),
+                'totalAmountCheque' => $cheque->sum('amount'),
                 'waterOnline'       => $online->count(),
                 'waterAmountOnline' => $online->sum('amount'),
                 'waterDd'           => $DD->count(),
                 'totalAmountDd'     => $DD->sum('amount'),
                 'waterNeft'         => $Neft->count(),
                 'totalAmuntNeft'    => $Neft->sum('amount'),
-                'toatalCollection' => $cash->sum('amount') + $cheque->sum('amount') + $online->sum('amount') + $DD->sum('amount') + $Neft->sum('amount'),
+                'toatalCollection'  => $cash->sum('amount') + $cheque->sum('amount') + $online->sum('amount') + $DD->sum('amount') + $Neft->sum('amount'),
 
             ];
+
 
             $jskCash    = $cash->where('user_type', 'JSK');
             $jskCheque  = $cheque->where('user_type', 'JSK');
@@ -1395,6 +1396,7 @@ class WaterReportController extends Controller
                 'toatalCollection'  => $jskCash->sum('amount') + $jskCheque->sum('amount') + $jskOnline->sum('amount') + $jskDd->sum('amount') + $jskNeft->sum('amount')
 
             ];
+            
 
             # may use where in for tc and tl
             $TcCash     = $cash->where('user_type', 'TC');
@@ -1462,8 +1464,8 @@ class WaterReportController extends Controller
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
                 case ('userName'):
-                   $waterReturnDetails = $mWaterConsumerDemand->getTcDetails($refstring, $paramenter)->paginate($pages);
-                   return $waterReturnDetails;
+                    $waterReturnDetails = $mWaterConsumerDemand->getTcDetails($refstring, $paramenter)->paginate($pages);
+                    return $waterReturnDetails;
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");

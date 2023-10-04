@@ -198,21 +198,19 @@ class WaterSecondConsumer extends Model
     {
         return WaterSecondConsumer::select(
             'water_second_consumers.*',
-            'water_second_consumers.id',
+            // 'water_second_consumers.id',
             'water_second_consumers.consumer_no',
-            // 'water_second_connection_charges.amount',
-            // 'water_second_connection_charges.charge_category',
             'water_consumer_meters.meter_no',
             'water_consumer_meters.connection_type',
             'water_consumer_meters.initial_reading',
             'water_consumer_meters.final_meter_reading',
             'ulb_masters.ulb_name',
-            "water_consumer_owners.applicant_name",
-            "water_consumer_owners.guardian_name",
-            'water_consumer_owners.mobile_no',
-            "water_consumer_owners.email",
+            DB::raw("string_agg(water_consumer_owners.applicant_name,',') as applicant_name"),
+            DB::raw("string_agg(water_consumer_owners.mobile_no::VARCHAR,',') as mobile_no"),
+            DB::raw("string_agg(water_consumer_owners.guardian_name,',') as guardian_name"),
+            DB::raw("string_agg(water_consumer_owners.email,',') as email"),
             "ulb_masters.association_with",
-            DB::raw('ulb_ward_masters.ward_name as ward_number') // Alias the column as "ward_number"
+            DB::raw('ulb_ward_masters.ward_name as ward_number')
         )
             ->join("water_consumer_owners", 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
             ->join('ulb_masters', 'ulb_masters.id', 'water_second_consumers.ulb_id')
@@ -220,7 +218,18 @@ class WaterSecondConsumer extends Model
             ->join('water_consumer_meters', 'water_consumer_meters.consumer_id', 'water_second_consumers.id')
             // ->leftjoin('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.id', $applicationId)
-            ->where('water_second_consumers.status', 1);
+            ->where('water_second_consumers.status', 1)
+            ->groupBy(
+                'water_second_consumers.id',
+                'water_second_consumers.consumer_no',
+                'water_consumer_meters.meter_no',
+                'water_consumer_meters.connection_type',
+                'water_consumer_meters.initial_reading',
+                'water_consumer_meters.final_meter_reading',
+                'ulb_masters.ulb_name',
+                'ulb_masters.association_with',
+                'ulb_ward_masters.ward_name'
+            );
     }
     /**
      * | Get consumer 
@@ -318,5 +327,4 @@ class WaterSecondConsumer extends Model
         $mWaterConsumer->save();
         return $mWaterConsumer->id;
     }
-   
 }
