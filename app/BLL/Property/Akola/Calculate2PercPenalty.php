@@ -27,7 +27,7 @@ class Calculate2PercPenalty
         }
 
         if ($demand->fyear < $currentFy) {
-            $noOfPenalMonths = $currentFyMonths;                                  // Start of the month april(if the fyear is past)
+            $noOfPenalMonths = 1;                                  // Start of the month april(if the fyear is past)
             $monthlyBalance = $demand->balance;
         }
 

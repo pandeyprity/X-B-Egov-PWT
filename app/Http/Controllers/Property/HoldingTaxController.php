@@ -146,6 +146,7 @@ class HoldingTaxController extends Controller
             $mPropOwners = new PropOwner();
             $mUsers = new User();
             $demand = array();
+            $mPropPendingArrear = new PropPendingArrear();
             // $revCalculateByAmt = new RevCalculateByAmt;              
             $demandList = collect();
             $calculate2PercPenalty = new Calculate2PercPenalty;
@@ -165,7 +166,6 @@ class HoldingTaxController extends Controller
             // }
             $demandList = $mPropDemand->getDueDemandByPropId($req->propId);
             $demandList = collect($demandList);
-
 
             if (isset($req->isArrear) && $req->isArrear)                            // If Citizen wants to pay only arrear from Payment function
                 $demandList = $demandList->where('fyear', '<', $fy)->values();
@@ -197,10 +197,18 @@ class HoldingTaxController extends Controller
 
             $demand['arrear'] = $demandList->where('fyear', '<', $fy)->sum('balance');
 
+            if ($demand['arrear'] > 0)
+                $previousInterest = $mPropPendingArrear->getInterestByPropId($req->propId)->total_interest ?? 0;
+            else
+                $previousInterest = 0;
+
             // Monthly Interest Penalty Calculation
-            $demand['arrearMonthlyPenalty'] = $demandList->where('fyear', '<', $fy)->sum('monthlyPenalty');              // Penalty On Arrear
+            $demand['previousInterest'] = $previousInterest;
+            $demand['arrearInterest'] = $demandList->where('fyear', '<', $fy)->sum('monthlyPenalty');
+
+            $demand['arrearMonthlyPenalty'] = $demand['previousInterest'] + $demand['arrearInterest'];                   // Penalty On Arrear
             $demand['monthlyPenalty'] = $demandList->where('fyear', $fy)->sum('monthlyPenalty');                         // Monthly Penalty
-            $demand['totalInterestPenalty'] = $demand['arrearMonthlyPenalty'] + $demand['monthlyPenalty'];          // Total Interest Penalty
+            $demand['totalInterestPenalty'] = $demand['arrearMonthlyPenalty'] + $demand['monthlyPenalty'];              // Total Interest Penalty
             // Read Rebate ❗❗❗ Rebate is pending
             // $firstOwner = $mPropOwners->firstOwner($req->propId);
             // if($firstOwner->is_armed_force)
