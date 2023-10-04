@@ -130,12 +130,13 @@ class WaterTran extends Model
             'water_cheque_dtls.*',
             DB::raw("TO_CHAR(water_cheque_dtls.cheque_date, 'DD-MM-YYYY') as cheque_date"),
             DB::raw("TO_CHAR(water_cheque_dtls.clear_bounce_date, 'DD-MM-YYYY') as clear_bounce_date"),
-            'user_name',
+            "users.name as user_name",
             DB::raw("2 as module_id"),
         )
             ->leftjoin('water_cheque_dtls', 'water_cheque_dtls.transaction_id', 'water_trans.id')
             ->join('users', 'users.id', 'water_cheque_dtls.user_id')
             ->whereIn('payment_mode', ['Cheque', 'DD'])
+            ->where('water_trans.status', 1)
             ->where('water_trans.ulb_id', $ulbId);
     }
 
@@ -269,14 +270,13 @@ class WaterTran extends Model
             'water_consumer_demands.*',
             'users.user_name as TcName'
         )
-            ->join('water_consumer_owners','water_consumer_owners.consumer_id','water_trans.related_id')
+            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_trans.related_id')
             ->join('water_second_consumers', 'water_trans.related_id', '=', 'water_second_consumers.id')
             ->join('water_consumer_demands', 'water_trans.related_id', '=', 'water_consumer_demands.consumer_id')
             ->leftjoin('water')
             ->leftjoin('users', 'water_trans.emp_dtl_id', '=', 'users.id')
             ->where('water_trans.' . $key, 'LIKE', '%' . $refNo . '%')
             ->where('water_trans.user_type', 'TC');
-            
     }
     /**
      * tc name wise
@@ -289,13 +289,11 @@ class WaterTran extends Model
             'water_consumer_demands.amount',
             'users.user_name'
         )
-            ->join('water_consumer_owners','water_consumer_owners.consumer_id','water_trans.related_id')
+            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_trans.related_id')
             ->join('water_second_consumers', 'water_trans.related_id', '=', 'water_second_consumers.id')
             ->join('water_consumer_demands', 'water_trans.related_id', '=', 'water_consumer_demands.consumer_id')
-            ->leftjoin('users', 'water_trans.emp_dtl_id','users.id')
+            ->leftjoin('users', 'water_trans.emp_dtl_id', 'users.id')
             ->where('users.' . $key, 'LIKE', '%' . $refNo . '%')
             ->where('water_trans.user_type', 'TC');
-            
     }
-
 }

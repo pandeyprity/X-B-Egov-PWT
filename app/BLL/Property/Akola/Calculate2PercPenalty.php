@@ -22,13 +22,13 @@ class Calculate2PercPenalty
 
         $demand = (object)$demand;
         if ($demand->fyear == $currentFy) {
-            $noOfPenalMonths = 0;                   // Start of the month april
+            $noOfPenalMonths = 0;                               // Start of the month april
             $monthlyBalance = $demand->balance / 12;
         }
 
         if ($demand->fyear < $currentFy) {
-            $noOfPenalMonths = $currentFyMonths;                                  // Start of the month april(if the fyear is past)
-            $monthlyBalance = $demand->balance / 12;
+            $noOfPenalMonths = 1;                                  // Start of the month april(if the fyear is past)
+            $monthlyBalance = $demand->balance;
         }
 
         if ($demand->fyear > $currentFy) {

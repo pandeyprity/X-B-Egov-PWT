@@ -38,6 +38,7 @@ class TempTransaction extends Model
             ->join('users', 'users.id', 'temp_transactions.user_id')
             ->where('payment_mode', '!=', 'ONLINE')
             ->where('tran_date', $date)
+            ->where('temp_transactions.status', 1)
             ->where('user_id', $userId)
             ->where('temp_transactions.ulb_id', $ulbId)
             ->get();
@@ -48,6 +49,7 @@ class TempTransaction extends Model
         return TempTransaction::select('*')
             ->leftjoin('users', 'users.id', 'temp_transactions.user_id')
             ->where('tran_date', $date)
+            ->where('temp_transactions.status', 1)
             ->where('temp_transactions.ulb_id', $ulbId)
             ->orderByDesc('temp_transactions.id');
     }

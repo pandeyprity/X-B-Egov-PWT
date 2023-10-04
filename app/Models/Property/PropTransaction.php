@@ -42,14 +42,14 @@ class PropTransaction extends Model
             'prop_cheque_dtls.branch_name',
             'prop_cheque_dtls.cheque_no',
             'prop_cheque_dtls.cheque_date',
-            'u.user_name as tc_name',
+            'u.name as tc_name',
             'u.mobile as tc_mobile'
         )
             ->where('tran_no', $tranNo)
             ->leftJoin("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
             ->leftJoin("users as u", "u.id", "prop_transactions.user_id")
             ->where('prop_transactions.status', 1)
-            ->firstorfail();
+            ->first();
     }
 
     // getPropTrans as trait function on current object
@@ -291,11 +291,12 @@ class PropTransaction extends Model
             "bounce_status",
             "cheque_no",
             DB::raw("TO_CHAR(clear_bounce_date, 'DD-MM-YYYY') as clear_bounce_date"),
-            "user_name"
+            "users.name as user_name"
         )
             ->join('prop_cheque_dtls', 'prop_cheque_dtls.transaction_id', 'prop_transactions.id')
             ->join('users', 'users.id', 'prop_cheque_dtls.user_id')
             ->whereIn('payment_mode', ['CHEQUE', 'DD'])
+            ->where('prop_transactions.status', 1)
             ->where('prop_transactions.ulb_id', $ulbId);
     }
 
@@ -306,7 +307,7 @@ class PropTransaction extends Model
     {
         return PropTransaction::select(
             'users.id',
-            'users.user_name',
+            "users.name as user_name",
             DB::raw("sum(amount) as amount"),
         )
             ->join('users', 'users.id', 'prop_transactions.user_id')
@@ -315,7 +316,7 @@ class PropTransaction extends Model
             ->where('payment_mode', '!=', 'ONLINE')
             ->where('verify_status', 1)
             ->where('prop_transactions.ulb_id', $ulbId)
-            ->groupBy(['users.id', 'users.user_name']);
+            ->groupBy(['users.id', "user_name"]);
     }
 
     /**
@@ -337,6 +338,7 @@ class PropTransaction extends Model
             ),
         )
             ->where('user_id', $userId)
+            ->where('prop_transactions.status', 1)
             ->orderBydesc('id')
             ->take(10)
             ->get();
