@@ -10,7 +10,7 @@ class PropPendingArrear extends Model
     use HasFactory;
 
     /**
-     * | Get Property Interest
+     * | Get Property Interest of Previous financial year
      */
     public function getInterestByPropId($propId)
     {
