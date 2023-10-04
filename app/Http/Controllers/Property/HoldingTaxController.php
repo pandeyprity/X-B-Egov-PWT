@@ -193,9 +193,9 @@ class HoldingTaxController extends Controller
             $overDueDemandList = collect($demandList)->where('fyear', '!=', $fy)->values();
             $demand['overdueDemandList'] =  $this->sumTaxHelper($overDueDemandList);
             $demand['grandTaxes'] = $grandTaxes;
-            $demand['currentDemand'] = $demandList->where('fyear', $fy)->first()['balance'] ?? 0;
+            $demand['currentDemand'] = roundFigure($demandList->where('fyear', $fy)->first()['balance'] ?? 0);
 
-            $demand['arrear'] = $demandList->where('fyear', '<', $fy)->sum('balance');
+            $demand['arrear'] = roundFigure($demandList->where('fyear', '<', $fy)->sum('balance'));
 
             if ($demand['arrear'] > 0)
                 $previousInterest = $mPropPendingArrear->getInterestByPropId($req->propId)->total_interest ?? 0;
@@ -207,7 +207,7 @@ class HoldingTaxController extends Controller
             $demand['arrearInterest'] = $demandList->where('fyear', '<', $fy)->sum('monthlyPenalty');
 
             $demand['arrearMonthlyPenalty'] = $demand['previousInterest'] + $demand['arrearInterest'];                   // Penalty On Arrear
-            $demand['monthlyPenalty'] = $demandList->where('fyear', $fy)->sum('monthlyPenalty');                         // Monthly Penalty
+            $demand['monthlyPenalty'] = roundFigure($demandList->where('fyear', $fy)->sum('monthlyPenalty'));                         // Monthly Penalty
             $demand['totalInterestPenalty'] = roundFigure($demand['arrearMonthlyPenalty'] + $demand['monthlyPenalty']);              // Total Interest Penalty
             // Read Rebate ❗❗❗ Rebate is pending
             // $firstOwner = $mPropOwners->firstOwner($req->propId);
