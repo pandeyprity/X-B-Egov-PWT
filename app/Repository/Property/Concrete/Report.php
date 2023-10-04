@@ -94,7 +94,7 @@ class Report implements IReport
                             ) AS from_upto_fy_qtr,
                             prop_transactions.tran_date,
                             prop_transactions.payment_mode AS transaction_mode,
-                            prop_transactions.amount,users.user_name as emp_name,users.id as user_id,
+                            prop_transactions.amount,users.name as emp_name,users.id as user_id,
                             users.mobile as tc_mobile,
                             prop_transactions.tran_no,prop_cheque_dtls.cheque_no,
                             prop_cheque_dtls.bank_name,prop_cheque_dtls.branch_name
@@ -307,7 +307,7 @@ class Report implements IReport
                             ) AS from_upto_fy_qtr,
                             prop_transactions.tran_date,
                             prop_transactions.payment_mode AS transaction_mode,
-                            prop_transactions.amount,users.user_name as emp_name,users.id as user_id,
+                            prop_transactions.amount,users.name as emp_name,users.id as user_id,
                             prop_transactions.tran_no,prop_cheque_dtls.cheque_no,
                             prop_cheque_dtls.bank_name,prop_cheque_dtls.branch_name
                 "),
@@ -361,7 +361,7 @@ class Report implements IReport
                             ) AS from_upto_fy_qtr,
                             prop_transactions.tran_date,
                             prop_transactions.payment_mode AS transaction_mode,
-                            prop_transactions.amount,users.user_name as emp_name,users.id as user_id,
+                            prop_transactions.amount,users.name as emp_name,users.id as user_id,
                             prop_transactions.tran_no,prop_cheque_dtls.cheque_no,
                             prop_cheque_dtls.bank_name,prop_cheque_dtls.branch_name
                 "),
