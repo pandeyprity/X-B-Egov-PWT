@@ -845,12 +845,15 @@ class PropProperty extends Model
             ->select(
                 'p.holding_no as application_no',
                 'p.applicant_name',
+                'p.applicant_marathi',
                 'p.prop_address',
                 'p.ulb_id',
                 'p.property_no',
                 'z.zone_name',
                 'o.owner_name',
+                'o.owner_name_marathi',
                 'o.guardian_name',
+                'o.guardian_name_marathi',
                 'o.mobile_no',
                 'u.ward_name as ward_no'
             )

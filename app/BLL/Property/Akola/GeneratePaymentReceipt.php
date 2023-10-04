@@ -178,9 +178,9 @@ class GeneratePaymentReceipt
             "transactionTime" => $this->_trans->created_at->format('H:i'),
             "verifyStatus" => $this->_trans->verify_status,                     // (0-Not Verified,1-Verified,2-Under Verification,3-Bounce)
             "applicationNo" => $this->_propertyDtls->application_no,
-            "customerName" => $this->_propertyDtls->applicant_name,
-            "ownerName" => $this->_propertyDtls->owner_name,
-            "guardianName" => $this->_propertyDtls->guardian_name,
+            "customerName" => $this->_propertyDtls->applicant_name ?? $this->_propertyDtls->applicant_marathi,
+            "ownerName" => $this->_propertyDtls->owner_name ?? $this->_propertyDtls->owner_name_marathi,
+            "guardianName" => $this->_propertyDtls->guardian_name ?? $this->_propertyDtls->guardian_name_marathi,
             "mobileNo" => $this->_propertyDtls->mobile_no,
             "address" => $this->_propertyDtls->prop_address,
             "zone_name" => $this->_propertyDtls->zone_name,
