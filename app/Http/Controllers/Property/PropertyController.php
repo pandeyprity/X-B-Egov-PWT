@@ -15,6 +15,7 @@ use App\Models\Property\PropOwner;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropSaf;
 use App\Models\Property\PropSafsDemand;
+use App\Models\Property\PropSafsOwner;
 use App\Models\Property\PropTransaction;
 use App\Models\Workflows\WfActiveDocument;
 use App\Pipelines\SearchHolding;
@@ -468,20 +469,57 @@ class PropertyController extends Controller
      * | Get property detials according to mobile no 
         | Serial No :
         | Under Con
+        | PRIOR
      */
     public function getPropDetialByMobileNo(Request $request)
     {
         $validated = Validator::make(
             $request->all(),
             [
-                "filterBy" => "required",
-                "parameter" => "nullable|"
+                "mobileNo" => "required",
+                "filterBy"  => "required"
             ]
         );
         if ($validated->fails()) {
             return validationError($validated);
         }
         try {
+            $mPropOwner                 = new PropOwner();
+            $mPropSafsOwner             = new PropSafsOwner();
+            $mPropProperty              = new PropProperty();
+            $mActiveCitizenUndercare    = new ActiveCitizenUndercare();
+            $filterBy                   = $request->filterBy;
+            $mobileNo                   = $request->mobileNo;
+
+            # For Active Saf
+            if ($filterBy == 'saf') {                                                   // Static
+                $returnData = $mPropSafsOwner->getPropByMobile($mobileNo)->get();
+                $msg = 'Citizen Safs';
+            }
+
+            # For Porperty
+            if ($filterBy == 'holding') {                                               // Static
+                $data                   = $mPropOwner->getOwnerDetailV2($mobileNo)->get();
+                $citizenId              = collect($data)->pluck('citizen_id')->filter();
+                $caretakerProperty      = $mActiveCitizenUndercare->getTaggedPropsByCitizenIdV2(($citizenId)->toArray());
+                $caretakerPropertyIds   = $caretakerProperty->pluck('property_id');
+                $data3                  = $mPropProperty->getPropByPropId($caretakerPropertyIds)->get();
+
+                # If caretaker property exist
+                if (($data3->first())->isNotEmpty()) {
+                    $propertyId = collect($caretakerProperty)->pluck('property_id');
+                    $data2      = $mPropProperty->getNewholding($propertyId);
+                    $data       = $data->merge($data2);
+                }
+
+                # Format the data for returning
+                $data = collect($data)->map(function ($value) {
+                    if (isset($value['new_holding_no'])) {
+                        return $value;
+                    }
+                })->filter()->values();
+                $msg = 'Citizen Holdings';
+            }
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", "1.0", responseTime(), $request->getMethod(), $request->deviceId);
         }

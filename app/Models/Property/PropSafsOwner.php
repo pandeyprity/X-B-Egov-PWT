@@ -39,4 +39,23 @@ class PropSafsOwner extends Model
             ->where('status', 1)
             ->get();
     }
+
+
+    /**
+     * | Get the prop details according to mobile no 
+     */
+    public function getPropByMobile($mobileNo)
+    {
+        return PropSafsOwner::select(
+            'prop_active_safs.id AS safId',
+            'prop_active_safs.saf_no',
+            'prop_active_safs.citizen_id',
+            'prop_active_safs_owners.*'
+        )
+            ->join('prop_active_safs', 'prop_active_safs.id', 'prop_active_safs_owners.saf_id')
+            ->where('prop_active_safs_owners.mobile_no', $mobileNo)
+            ->where('prop_active_safs.status', 1)
+            ->where('prop_active_safs_owners.status', 1)
+            ->orderByDesc('prop_active_safs.id');
+    }
 }

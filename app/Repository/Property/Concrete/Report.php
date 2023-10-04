@@ -90,12 +90,11 @@ class Report implements IReport
                             prop_owner_detail.owner_name,
                             prop_owner_detail.mobile_no,
                             CONCAT(
-                                prop_transactions.from_fyear, '(', prop_transactions.from_qtr, ')', ' / ', 
-                                prop_transactions.to_fyear, '(', prop_transactions.to_qtr, ')'
+                                prop_transactions.from_fyear, '/',prop_transactions.to_fyear
                             ) AS from_upto_fy_qtr,
                             prop_transactions.tran_date,
                             prop_transactions.payment_mode AS transaction_mode,
-                            prop_transactions.amount,users.user_name as emp_name,users.id as user_id,
+                            prop_transactions.amount,users.name as emp_name,users.id as user_id,
                             users.mobile as tc_mobile,
                             prop_transactions.tran_no,prop_cheque_dtls.cheque_no,
                             prop_cheque_dtls.bank_name,prop_cheque_dtls.branch_name
@@ -254,7 +253,7 @@ class Report implements IReport
                             ) AS from_upto_fy_qtr,
                             prop_transactions.tran_date,
                             prop_transactions.payment_mode AS transaction_mode,
-                            prop_transactions.amount,users.user_name as emp_name,users.id as user_id,
+                            prop_transactions.amount,users.name as emp_name,users.id as user_id,
                             prop_transactions.tran_no,prop_cheque_dtls.cheque_no,
                             prop_cheque_dtls.bank_name,prop_cheque_dtls.branch_name
                 "),
@@ -308,7 +307,7 @@ class Report implements IReport
                             ) AS from_upto_fy_qtr,
                             prop_transactions.tran_date,
                             prop_transactions.payment_mode AS transaction_mode,
-                            prop_transactions.amount,users.user_name as emp_name,users.id as user_id,
+                            prop_transactions.amount,users.name as emp_name,users.id as user_id,
                             prop_transactions.tran_no,prop_cheque_dtls.cheque_no,
                             prop_cheque_dtls.bank_name,prop_cheque_dtls.branch_name
                 "),
@@ -362,7 +361,7 @@ class Report implements IReport
                             ) AS from_upto_fy_qtr,
                             prop_transactions.tran_date,
                             prop_transactions.payment_mode AS transaction_mode,
-                            prop_transactions.amount,users.user_name as emp_name,users.id as user_id,
+                            prop_transactions.amount,users.name as emp_name,users.id as user_id,
                             prop_transactions.tran_no,prop_cheque_dtls.cheque_no,
                             prop_cheque_dtls.bank_name,prop_cheque_dtls.branch_name
                 "),
@@ -2311,7 +2310,7 @@ class Report implements IReport
                     GROUP BY prop_properties.ward_mstr_id
                 )demands ON demands.ward_mstr_id = ulb_ward_masters.id   
                 left join(
-                    SELECT prop_properties.ward_mstr_id, SUM(prop_properties.balance)AS balance
+                    SELECT prop_properties.ward_mstr_id, SUM(0)AS balance
                     FROM prop_properties
                     where prop_properties.status = 1 
                         AND prop_properties.ulb_id =$ulbId
@@ -3469,10 +3468,17 @@ class Report implements IReport
     /**
      * | Admin Dashboard Report for akola
      */
-    public function adminDashReport()
+    public function adminDashReport(Request $request)
     {
         try {
             $currentFyear = getFY();
+            $fromDate = $toDate = Carbon::now()->format("Y-m-d");
+            if ($request->fromDate) {
+                $fromDate = $request->fromDate;
+            }
+            if ($request->uptoDate) {
+                $toDate = $request->uptoDate;
+            }
             $query = " SELECT *,
                                 (SELECT COUNT(id) FROM prop_properties) AS total_properties,
                                 (SELECT ROUND(((zone1_collection/zone1_demand)*100),2) as zone1_recovery),
@@ -3650,7 +3656,7 @@ class Report implements IReport
                                                (t.tran_type <> 'Property' AND t.saf_id = p.id)
                                            )
                                            LEFT JOIN zone_masters AS z on z.id=p.zone_mstr_id
-                                           WHERE t.tran_date = CURRENT_DATE AND t.status = 1
+                                           WHERE t.tran_date BETWEEN '$fromDate' AND '$toDate' AND t.status = 1
                                            GROUP BY zone_mstr_id 
                                            ) AS details on details.zone_mstr_id=z.id
                                            
@@ -3667,6 +3673,18 @@ class Report implements IReport
                                            details.rtgs_collection";
             $zoneWiseReport = DB::select($zoneWiseCollectionQuery);
             $report[0]->zoneWiseReport = collect($zoneWiseReport);
+            $report[0]->totalReport = [
+                "total_properties" => collect($zoneWiseReport)->sum("total_properties"),
+                "today_collections" => collect($zoneWiseReport)->sum("today_collections"),
+                "neft_collection" => collect($zoneWiseReport)->sum("neft_collection"),
+                "qr_collection" => collect($zoneWiseReport)->sum("qr_collection"),
+                "cash_collection" => collect($zoneWiseReport)->sum("cash_collection"),
+                "dd_collection" => collect($zoneWiseReport)->sum("dd_collection"),
+                "online_collection" => collect($zoneWiseReport)->sum("online_collection"),
+                "card_collection" => collect($zoneWiseReport)->sum("card_collection"),
+                "chque_collection" => collect($zoneWiseReport)->sum("chque_collection"),
+                "rtgs_collection" => collect($zoneWiseReport)->sum("rtgs_collection"),
+            ];
 
             return responseMsgs(true, "Admin Dashboard Reports", collect($report)->first());
         } catch (Exception $e) {

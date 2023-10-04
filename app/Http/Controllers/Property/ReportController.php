@@ -550,9 +550,23 @@ class ReportController extends Controller
     /**
      * | Admin Dashboard Report
      */
-    public function adminDashReport()
-    {
-        return $this->Repository->adminDashReport();
+    public function adminDashReport(Request $request)
+    {        
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "fromDate" => "nullable|date|date_format:Y-m-d",
+                "uptoDate" => "nullable|date|date_format:Y-m-d",
+            ]
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+        return $this->Repository->adminDashReport($request);
     }
 
     /**
