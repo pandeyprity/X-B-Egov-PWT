@@ -449,6 +449,29 @@ class ReportController extends Controller
         return $this->Repository->previousYearPaidButnotCurrentYear($request);
     }
 
+    public function notPayedFrom(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "fiYear"=>"required|regex:/^\d{4}-\d{4}$/",
+                "ulbId" => "nullable|digits_between:1,9223372036854775807",
+                "wardMstrId" => "nullable|digits_between:1,9223372036854775807",
+                "page" => "nullable|digits_between:1,9223372036854775807",
+                "perPage" => "nullable|digits_between:1,9223372036854775807",
+            ]
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+        $request->merge(["metaData" => ["pr17.1", 1.1, null, $request->getMethod(), null,]]);
+        return $this->Repository->notPayedFrom($request);
+    }
+
     /**
      * | Dcb Pie Chart
      */

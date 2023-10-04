@@ -196,7 +196,7 @@ class HoldingTaxController extends Controller
             $demand['currentDemand'] = roundFigure($demandList->where('fyear', $fy)->first()['balance'] ?? 0);
 
             $demand['arrear'] = roundFigure($demandList->where('fyear', '<', $fy)->sum('balance'));
-            $twentyTwoDemandPaidStatus = $demandList->where('fyear', '=', '2022-2023')->first()->paid_status ?? 1;
+            $twentyTwoDemandPaidStatus = $demandList->where('fyear', '=', '2022-2023')->first()->paid_status ?? 1;   // If We have the unpaid in 2022-2023 the add the interest
 
             if ($twentyTwoDemandPaidStatus == 0)
                 $previousInterest = $mPropPendingArrear->getInterestByPropId($req->propId)->total_interest ?? 0;
@@ -494,6 +494,7 @@ class HoldingTaxController extends Controller
             $postPropPayment->_propCalculation = $propCalculation;
             // Transaction is beginning in Prop Payment Class
             $postPropPayment->postPayment();
+            return ["Testing"];
             DB::commit();
             return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo], "011604", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {

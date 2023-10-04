@@ -101,7 +101,7 @@ class Report implements IReport
                 "),
             )
                 ->JOIN("prop_properties", "prop_properties.id", "prop_transactions.property_id")
-                ->JOIN(
+                ->LEFTJOIN(
                     DB::RAW("(
                         SELECT STRING_AGG(owner_name, ', ') AS owner_name, STRING_AGG(mobile_no::TEXT, ', ') AS mobile_no, prop_owners.property_id 
                             FROM prop_properties 
@@ -3053,6 +3053,112 @@ class Report implements IReport
                 "last_page" => $lastPage
             ];
 
+            $queryRunTime = (collect(DB::getQueryLog($sql, $sql2))->sum("time"));
+            return responseMsgs(true, "", $list, $apiId, $version, $queryRunTime, $action, $deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
+        }
+    }
+
+    public function notPayedFrom(Request $request)
+    {
+        try {
+            $metaData = collect($request->metaData)->all();
+            list($apiId, $version, $queryRunTime, $action, $deviceId) = $metaData;
+            $perPage = $request->perPage ? $request->perPage : 10;
+            $page = $request->page && $request->page > 0 ? $request->page : 1;
+            $limit = $perPage;
+            $offset =  $request->page && $request->page > 0 ? ($request->page * $perPage) : 0;
+            $wardMstrId = NULL;
+            $ulbId = authUser($request)->ulb_id;
+            $fiYear = $request->fiYear;
+            list($fromYear, $toYear) = explode("-", $fiYear);
+            if ($toYear - $fromYear != 1) {
+                throw new Exception("Enter Valide Financial Year");
+            }
+            if ($request->wardMstrId) {
+                $wardMstrId = $request->wardMstrId;
+            }
+            if ($request->ulbId) {
+                $ulbId = $request->ulbId;
+            }
+
+            $sql = "SELECT prop.*
+                    FROM(
+                        SELECT prop_properties.id AS property_id ,new_holding_no,
+                            CASE WHEN new_holding_no IS NULL THEN holding_no ELSE new_holding_no END AS holding_no,
+                            ulb_ward_masters.ward_name,
+                            pt_no,prop_address,owner_name,mobile_no,
+                            SUM (total_tax) AS total_demand,
+                            SUM(CASE WHEN paid_status =0 THEN total_tax ELSE 0 END )AS balance_amount,
+                            SUM(CASE WHEN paid_status =1 THEN total_tax ELSE 0 END )AS paid_amount
+                        FROM prop_properties
+                        JOIN prop_demands ON prop_demands.property_id= prop_properties.id 
+                        LEFT JOIN(
+                            SELECT property_id
+                            FROM prop_demands
+                            WHERE prop_demands.status =1
+                                AND fyear >= '$fiYear'
+                                AND paid_status = 1
+                            GROUP BY property_id 
+                        ) AS o ON o.property_id = prop_demands.property_id 
+                        JOIN (
+                            SELECT property_id,
+                            STRING_AGG(owner_name,',')as owner_name,
+                            STRING_AGG(mobile_no::text,',')as mobile_no
+                                FROM prop_owners
+                                WHERE status =1
+                                GROUP BY property_id 
+                        ) AS ow ON ow.property_id = prop_demands.property_id                            
+                        JOIN ulb_ward_masters ON ulb_ward_masters.id = prop_properties.ward_mstr_id
+                        WHERE  o.property_id IS NULL 
+                            AND prop_demands.status =1 
+                            " . ($wardMstrId ? " AND ulb_ward_masters.id = $wardMstrId" : "") . "  
+                            " . ($ulbId ? " AND prop_properties.ulb_id = $ulbId" : "") . "                      
+                            AND paid_status = 0
+                        GROUP BY prop_properties.id,owner_name,mobile_no,ulb_ward_masters.ward_name
+                    )prop
+                    JOIN prop_properties ON prop_properties.id=prop.property_id
+                    limit $limit offset $offset";
+
+            $sql2 = "SELECT count(distinct prop_properties.id) as total
+                    FROM prop_properties
+                    JOIN prop_demands ON prop_demands.property_id= prop_properties.id 
+                    LEFT JOIN(
+                        SELECT property_id
+                        FROM prop_demands
+                        WHERE prop_demands.status =1
+                            AND fyear >= '$fiYear'
+                            AND paid_status = 1
+                        GROUP BY property_id 
+                    ) AS o ON o.property_id = prop_demands.property_id 
+                    JOIN (
+                        SELECT property_id,
+                        STRING_AGG(owner_name,',')as owner_name,
+                        STRING_AGG(mobile_no::text,',')as mobile_no
+                            FROM prop_owners
+                            WHERE status =1
+                            GROUP BY property_id 
+                    ) AS ow ON ow.property_id = prop_demands.property_id                            
+                    JOIN ulb_ward_masters ON ulb_ward_masters.id = prop_properties.ward_mstr_id
+                    WHERE  o.property_id IS NULL 
+                        AND prop_demands.status =1 
+                        " . ($wardMstrId ? " AND ulb_ward_masters.id = $wardMstrId" : "") . " 
+                        " . ($ulbId ? " AND prop_properties.ulb_id = $ulbId" : "") . "                        
+                        AND paid_status = 0
+                    ";
+
+            $data = DB::select($sql);
+
+            $total = (collect(DB::SELECT($sql2))->first())->total ?? 0;
+            $lastPage = ceil($total / $perPage);
+            $list = [
+                "current_page" => $page,
+                "data" => $data,
+                "total" => $total,
+                "per_page" => $perPage,
+                "last_page" => $lastPage
+            ];
             $queryRunTime = (collect(DB::getQueryLog($sql, $sql2))->sum("time"));
             return responseMsgs(true, "", $list, $apiId, $version, $queryRunTime, $action, $deviceId);
         } catch (Exception $e) {
