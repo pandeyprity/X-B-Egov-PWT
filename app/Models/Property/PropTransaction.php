@@ -291,7 +291,7 @@ class PropTransaction extends Model
             "bounce_status",
             "cheque_no",
             DB::raw("TO_CHAR(clear_bounce_date, 'DD-MM-YYYY') as clear_bounce_date"),
-            "user_name"
+            "users.name as user_name"
         )
             ->join('prop_cheque_dtls', 'prop_cheque_dtls.transaction_id', 'prop_transactions.id')
             ->join('users', 'users.id', 'prop_cheque_dtls.user_id')
@@ -307,7 +307,7 @@ class PropTransaction extends Model
     {
         return PropTransaction::select(
             'users.id',
-            'users.user_name',
+            "users.name as user_name",
             DB::raw("sum(amount) as amount"),
         )
             ->join('users', 'users.id', 'prop_transactions.user_id')
@@ -316,7 +316,7 @@ class PropTransaction extends Model
             ->where('payment_mode', '!=', 'ONLINE')
             ->where('verify_status', 1)
             ->where('prop_transactions.ulb_id', $ulbId)
-            ->groupBy(['users.id', 'users.user_name']);
+            ->groupBy(['users.id', "user_name"]);
     }
 
     /**

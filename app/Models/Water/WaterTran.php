@@ -130,7 +130,7 @@ class WaterTran extends Model
             'water_cheque_dtls.*',
             DB::raw("TO_CHAR(water_cheque_dtls.cheque_date, 'DD-MM-YYYY') as cheque_date"),
             DB::raw("TO_CHAR(water_cheque_dtls.clear_bounce_date, 'DD-MM-YYYY') as clear_bounce_date"),
-            'user_name',
+            "users.name as user_name",
             DB::raw("2 as module_id"),
         )
             ->leftjoin('water_cheque_dtls', 'water_cheque_dtls.transaction_id', 'water_trans.id')

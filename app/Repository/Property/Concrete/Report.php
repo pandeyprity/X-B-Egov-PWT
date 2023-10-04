@@ -2310,7 +2310,7 @@ class Report implements IReport
                     GROUP BY prop_properties.ward_mstr_id
                 )demands ON demands.ward_mstr_id = ulb_ward_masters.id   
                 left join(
-                    SELECT prop_properties.ward_mstr_id, SUM(prop_properties.balance)AS balance
+                    SELECT prop_properties.ward_mstr_id, SUM(0)AS balance
                     FROM prop_properties
                     where prop_properties.status = 1 
                         AND prop_properties.ulb_id =$ulbId
@@ -3473,12 +3473,10 @@ class Report implements IReport
         try {
             $currentFyear = getFY();
             $fromDate = $toDate = Carbon::now()->format("Y-m-d");
-            if($request->fromDate)
-            {
+            if ($request->fromDate) {
                 $fromDate = $request->fromDate;
             }
-            if($request->uptoDate)
-            {
+            if ($request->uptoDate) {
                 $toDate = $request->uptoDate;
             }
             $query = " SELECT *,

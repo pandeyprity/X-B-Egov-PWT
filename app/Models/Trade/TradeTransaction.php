@@ -40,7 +40,7 @@ class TradeTransaction extends Model
             "trade_cheque_dtls.status",
             "cheque_no",
             DB::raw("TO_CHAR(clear_bounce_date, 'DD-MM-YYYY') as clear_bounce_date"),
-            "user_name"
+            "users.name as user_name"
         )
             ->leftjoin('trade_cheque_dtls', 'trade_cheque_dtls.tran_id', 'trade_transactions.id')
             ->join('users', 'users.id', 'trade_cheque_dtls.emp_dtl_id')
