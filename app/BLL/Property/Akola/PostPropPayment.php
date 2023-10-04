@@ -11,6 +11,7 @@ use App\Models\Property\PropPenaltyrebate;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropTranDtl;
 use App\Models\Property\PropTransaction;
+use App\Models\UlbWardMaster;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Config;
@@ -41,6 +42,7 @@ class PostPropPayment
     private $_mPropPenaltyrebates;
     private $_fromFyear = null;
     private $_uptoFyear = null;
+    protected $_gatewayType = null;
 
     /**
      * | Required @param Requests(propertyId as id)
@@ -150,6 +152,7 @@ class PostPropPayment
         $this->_propDetails->save();
 
         $this->_REQ['ulbId'] = $this->_propDetails->ulb_id;
+        // $paymentReceiptNo = $this->generatePaymentReceiptNo();
         $propTrans = $this->_mPropTrans->postPropTransactions($this->_REQ, $this->_demands, $this->_fromFyear, $this->_uptoFyear);
         $this->_propTransaction = $propTrans;
 
@@ -282,5 +285,23 @@ class PostPropPayment
                 $this->_mPropTrans->updateChequeDocInfo($this->_REQ['tranId'], $uploadResponse['data']);     // Cheque dd document upload refernece no update
             }
         }
+    }
+
+    /**
+     * | Work On Process 🔴🔴🔴
+     */
+
+    public function generatePaymentReceiptNo(): array
+    {
+        $wardDetails = UlbWardMaster::find($this->_propDetails->ward_mstr_id);
+        if (collect($wardDetails)->isEmpty())
+            throw new Exception("Ward Details Not Available");
+
+        $fyear = $this->_uptoFyear;
+        $wardNo = $wardDetails->ward_name;
+        return [
+            'bookNo' => '23TA1',
+            'receiptNo' => '01'
+        ];
     }
 }
