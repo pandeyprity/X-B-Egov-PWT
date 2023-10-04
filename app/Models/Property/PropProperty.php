@@ -558,43 +558,43 @@ class PropProperty extends Model
                                     AND p.balance<1
                                         THEN 1 --'all_paid'
                                         -- Current Year unpaid but arrear paid
-                                WHEN 
-                                        COALESCE(d.paid_status,1)=0 
-                                    AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
-                                    AND p.balance<1
-                                        THEN 2 -- 'arrear_paid_but_current_due'
+--                                 WHEN 
+--                                         COALESCE(d.paid_status,1)=0 
+--                                     AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
+--                                     AND p.balance<1
+--                                         THEN 2 -- 'arrear_paid_but_current_due'
                                         
-                                    WHEN 
-                                        -- Current Year unpaid and arrear unpaid
-                                        COALESCE(d.paid_status,1)=0 
-                                    AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
-                                    AND balance>0
-                                        THEN 3 -- 'arrear_and_current_due'
+--                                     WHEN 
+--                                         -- Current Year unpaid and arrear unpaid
+--                                         COALESCE(d.paid_status,1)=0 
+--                                     AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
+--                                     AND balance>0
+--                                         THEN 3 -- 'arrear_and_current_due'
                                         
-                                WHEN 
-                                        -- Current Year unpaid and arrear unpaid
-                                        COALESCE(d.paid_status,1)=0 
-                                    AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
-                                    AND balance>0
-                                        THEN 3 -- 'arrear_and_current_due'
+--                                 WHEN 
+--                                         -- Current Year unpaid and arrear unpaid
+--                                         COALESCE(d.paid_status,1)=0 
+--                                     AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=FALSE 
+--                                     AND balance>0
+--                                         THEN 3 -- 'arrear_and_current_due'
                                         
-                                WHEN 
-                                        -- arrear_overdue
-                                        COALESCE(d.paid_status,1)=1
-                                    AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
-                                    OR balance>0
-                                        THEN 4 -- 'arrear_overdue'
+--                                 WHEN 
+--                                         -- arrear_overdue
+--                                         COALESCE(d.paid_status,1)=1
+--                                     AND ('0' = ANY(string_to_array(string_agg(pd.paid_status::TEXT,','),',')))=TRUE 
+--                                     OR balance>0
+--                                         THEN 4 -- 'arrear_overdue'
 
-                                WHEN 
-                                -- Current Payment done arrear not available
-                                COALESCE(d.paid_status,1)=1
-                                AND string_to_array(string_agg(pd.paid_status::TEXT,','),',') IS NULL
-                                THEN 1 -- 'current_payment_done'
+--                                 WHEN 
+--                                 -- Current Payment done arrear not available
+--                                 COALESCE(d.paid_status,1)=1
+--                                 AND string_to_array(string_agg(pd.paid_status::TEXT,','),',') IS NULL
+--                                 THEN 1 -- 'current_payment_done'
                                         
                             
                                 ELSE 
                                     -- only arrear overdue
-                                    4 --'arrear_overdue'
+                                    2 --'arrear_overdue'
                                         
                         END AS paid_status
                         
