@@ -208,12 +208,12 @@ class HoldingTaxController extends Controller
 
             $demand['arrearMonthlyPenalty'] = $demand['previousInterest'] + $demand['arrearInterest'];                   // Penalty On Arrear
             $demand['monthlyPenalty'] = $demandList->where('fyear', $fy)->sum('monthlyPenalty');                         // Monthly Penalty
-            $demand['totalInterestPenalty'] = $demand['arrearMonthlyPenalty'] + $demand['monthlyPenalty'];              // Total Interest Penalty
+            $demand['totalInterestPenalty'] = roundFigure($demand['arrearMonthlyPenalty'] + $demand['monthlyPenalty']);              // Total Interest Penalty
             // Read Rebate ❗❗❗ Rebate is pending
             // $firstOwner = $mPropOwners->firstOwner($req->propId);
             // if($firstOwner->is_armed_force)
             //     // $rebate=
-
+            $demand['arrearPayableAmt'] = round($demand['arrear'] + $demand['arrearMonthlyPenalty']);
             $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['totalInterestPenalty']);
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
             $holdingType = $propBasicDtls->holding_type;
