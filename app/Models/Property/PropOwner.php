@@ -29,6 +29,24 @@ class PropOwner extends Model
             ->first();
     }
 
+    /**
+     * | Get the detials 
+     */
+    public function getOwnerDetailV2($mobileNo)
+    {
+        return PropOwner::select(
+            'prop_properties.propId',
+            'prop_properties.holding_no',
+            'prop_properties.new_holding_no',
+            'prop_properties.citizen_id',
+            'prop_owners.*'
+        )
+            ->join('prop_properties', 'prop_properties.id', '=', 'prop_owners.property_id')
+            ->where('prop_owners.id', $mobileNo)
+            ->where('prop_owners.status', 1)
+            ->where('prop_properties.status', 1);
+    }
+
     // Get Owners by Property Id
     public function getOwnersByPropId($propertyId)
     {

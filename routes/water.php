@@ -176,10 +176,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('report-cosumer', 'consumerReport');                                                //03
         Route::post('connection-collection', 'connectionCollection');                                   //04
         #akola
-
         Route::post('report/water-dcb', 'WaterdcbReport');
         Route::post('report/water-transaction', 'getTransactionDetail');
-        Route::post('report/tc-visit-report','tCvisitReport');
+        Route::post('report/tc-visit-report', 'tCvisitReport');
     });
 
 

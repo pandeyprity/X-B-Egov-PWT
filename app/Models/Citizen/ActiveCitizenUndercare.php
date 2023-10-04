@@ -98,4 +98,15 @@ class ActiveCitizenUndercare extends Model
             ->where('deactive_status', false)
             ->get();
     }
+
+    /**
+     * | Get Tagged Property by Citizen Id
+     */
+    public function getTaggedPropsByCitizenIdV2($citizenIds)
+    {
+        return ActiveCitizenUndercare::whereIn('citizen_id', $citizenIds)
+            ->where('deactive_status', false)
+            ->whereNotNull('property_id')
+            ->get();
+    }
 }
