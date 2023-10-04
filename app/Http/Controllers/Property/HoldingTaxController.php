@@ -196,8 +196,9 @@ class HoldingTaxController extends Controller
             $demand['currentDemand'] = roundFigure($demandList->where('fyear', $fy)->first()['balance'] ?? 0);
 
             $demand['arrear'] = roundFigure($demandList->where('fyear', '<', $fy)->sum('balance'));
+            $twentyTwoDemandPaidStatus = $demandList->where('fyear', '=', '2022-2023')->first()->paid_status ?? 1;
 
-            if ($demand['arrear'] > 0)
+            if ($twentyTwoDemandPaidStatus == 0)
                 $previousInterest = $mPropPendingArrear->getInterestByPropId($req->propId)->total_interest ?? 0;
             else
                 $previousInterest = 0;
