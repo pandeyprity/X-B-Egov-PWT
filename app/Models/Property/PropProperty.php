@@ -914,4 +914,17 @@ class PropProperty extends Model
             ->where('prop_properties.status', 1)
             ->orderByDesc('id');
     }
+
+    // Get property details according to property id with owner details 
+    public function getPropByPropId($propertyIds)
+    {
+        return PropProperty::select(
+            DB::raw("string_agg(prop_owners.owner_name,',') as owner_name"),
+            DB::raw("string_agg(prop_owners.mobile_no::VARCHAR,',') as mobile_no"),
+        )
+            ->join('prop_owners', 'prop_owners.property_id', 'prop_properties.id')
+            ->whereIn('prop_properties', $propertyIds)
+            ->where('prop_properties.status', 1)
+            ->where('prop_owners.status', 1);
+    }
 }

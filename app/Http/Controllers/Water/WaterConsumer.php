@@ -241,6 +241,8 @@ class WaterConsumer extends Controller
                 throw new Exception("Consumer detail not found!");
             }
             $this->checkDemandGeneration($request, $consumerDetails);                                       // unfinished function
+            
+            # Calling BLL for call
             $returnData = new WaterMonthelyCall($request->consumerId, $request->demandUpto, $request->finalRading); #WaterSecondConsumer::get();
             $calculatedDemand = $returnData->parentFunction($request);
             if ($calculatedDemand['status'] == false) {
@@ -363,6 +365,7 @@ class WaterConsumer extends Controller
         $today                  = Carbon::now();
         $refConsumerId          = $request->consumerId;
         $mWaterConsumerDemand   = new WaterConsumerDemand();
+        $mWaterSecondConsumer   = new WaterSecondConsumer();
 
         $lastDemand = $mWaterConsumerDemand->akolaCheckConsumerDemand($refConsumerId)->first();
         if ($lastDemand) {
@@ -377,10 +380,20 @@ class WaterConsumer extends Controller
                 throw new Exception("demand should be generated generate in next month!");
             }
             $diffMonth = $startDate->diffInMonths($today);
-            if ($diffMonth < 4) {
-                throw new Exception("there should be a difference of 4  month!");
-            }
+            // if ($diffMonth < 1) {
+            //     throw new Exception("there should be a difference of 4  month!");
+            // }
         }
+        else{
+
+            // $uptoMonth  = $startDate;
+            // $todayMonth = $today;
+            // $diffMonth = $startDate->diffInMonths($today);
+            // if ($diffMonth < 4) {
+            //     throw new Exception("there should be a difference of 4  month!");
+            // }
+        }
+
 
         # write the code to check the first meter reading exist and the other 
     }
