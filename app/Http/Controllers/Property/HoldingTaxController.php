@@ -173,7 +173,6 @@ class HoldingTaxController extends Controller
             foreach ($demandList as $list) {
                 $calculate2PercPenalty->calculatePenalty($list);
             }
-
             $demandList = collect($demandList)->sortBy('fyear')->values();
 
             if ($demandList->isEmpty())                              // Check the Payment Status

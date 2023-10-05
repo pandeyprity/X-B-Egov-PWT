@@ -118,6 +118,7 @@ class GeneratePaymentReceipt
                 $this->_GRID['penaltyRebates'] = $this->_mPropPenaltyRebates->getPenaltyRebatesHeads($trans->id, "Saf");
             }
 
+            $this->_GRID['arrearPenalty'] = collect($this->_GRID['penaltyRebates'])->where('head_name', 'Monthly Penalty')->first()->amount ?? 0;
             $currentDemand = $demandsList->where('fyear', $currentFyear);
             $this->_currentDemand = $this->aggregateDemand($currentDemand);
 
@@ -138,6 +139,13 @@ class GeneratePaymentReceipt
     public function aggregateDemand($demandList)
     {
         $aggregate = $demandList->pipe(function ($item) {
+            $totalTax = roundFigure($item->sum('total_tax'));
+
+            if ($totalTax > 0)
+                $totalPayableAmt = roundFigure($this->_trans->amount);
+            else
+                $totalPayableAmt = $totalTax;
+
             return [
                 "general_tax" => roundFigure($item->sum('general_tax')),
                 "road_tax" => roundFigure($item->sum('road_tax')),
@@ -159,7 +167,15 @@ class GeneratePaymentReceipt
                 "drain_cess" => roundFigure($item->sum('drain_cess')),
                 "light_cess" => roundFigure($item->sum('light_cess')),
                 "major_building" => roundFigure($item->sum('major_building')),
-                "total_tax" => roundFigure($item->sum('total_tax')),
+                "totalPayableAmt" => $totalPayableAmt,
+                "total_tax" => $totalTax,
+                "exceptionUnderSAY" => roundFigure(0),
+                "generalTaxException" => roundFigure(0),
+                "payableAfterDeduction" => $totalPayableAmt,
+                "advanceAmt" => roundFigure(0),
+                "totalPayableAfterAdvance" => $totalPayableAmt,
+                "noticeFee" => roundFigure(0),
+                "FinalTax" => $totalPayableAmt
             ];
         });
 
