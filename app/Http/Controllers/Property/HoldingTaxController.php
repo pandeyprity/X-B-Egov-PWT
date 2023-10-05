@@ -501,7 +501,7 @@ class HoldingTaxController extends Controller
             // Transaction is beginning in Prop Payment Class
             $postPropPayment->postPayment();
             DB::commit();
-            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo], "011604", "1.0", responseTime(), "POST", $req->deviceId);
+            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo, 'transactionId' => $postPropPayment->_tranId], "011604", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
             return responseMsgs(false, $e->getMessage(), "", "011604", "1.0", "", "POST", $req->deviceId ?? "");
@@ -617,7 +617,10 @@ class HoldingTaxController extends Controller
     {
         $validated = Validator::make(
             $req->all(),
-            ['tranNo' => 'required']
+            [
+                'tranNo' => 'nullable|string',
+                'tranId' => 'nullable|integer'
+            ]
         );
         if ($validated->fails()) {
             return response()->json([
@@ -629,7 +632,7 @@ class HoldingTaxController extends Controller
 
         try {
             $generatePaymentReceipt = new GeneratePaymentReceipt;
-            $generatePaymentReceipt->generateReceipt($req->tranNo);
+            $generatePaymentReceipt->generateReceipt($req->tranNo, $req->tranId);
             $receipt = $generatePaymentReceipt->_GRID;
             return responseMsgs(true, "Payment Receipt", remove_null($receipt), "011605", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
