@@ -29,4 +29,5 @@ interface IReport
     public function rebateNpenalty($request);
     public function adminDashReport(Request $request);
     public function tcCollectionReport();
+    public function paymentModedealyCollectionRptV1(Request $request);
 }
