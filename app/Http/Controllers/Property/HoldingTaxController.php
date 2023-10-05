@@ -204,7 +204,7 @@ class HoldingTaxController extends Controller
 
             // Monthly Interest Penalty Calculation
             $demand['previousInterest'] = $previousInterest;
-            $demand['arrearInterest'] = $demandList->where('fyear', '<', $fy)->sum('monthlyPenalty');
+            $demand['arrearInterest'] = roundFigure($demandList->where('fyear', '<', $fy)->sum('monthlyPenalty'));
 
             $demand['arrearMonthlyPenalty'] = roundFigure($demand['previousInterest'] + $demand['arrearInterest']);                   // Penalty On Arrear
             $demand['monthlyPenalty'] = roundFigure($demandList->where('fyear', $fy)->sum('monthlyPenalty'));                         // Monthly Penalty
