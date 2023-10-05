@@ -254,7 +254,7 @@ class WaterTran extends Model
      */
     public function getCashReport($fromDate, $toDate)
     {
-        return WaterTran::select('id', 'amount', 'payment_mode', 'user_type')
+        return WaterTran::select('amount', 'payment_mode', 'user_type')
             ->where('status', 1)
             ->whereBetween('tran_date', [$fromDate, $toDate])
             ->orderByDesc('id');

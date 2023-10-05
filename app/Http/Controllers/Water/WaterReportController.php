@@ -1354,7 +1354,8 @@ class WaterReportController extends Controller
             $fromDate       = $refDate['fromDate'];
             $uptoDate       = $refDate['uptoDate'];
             $transaction    = $mWaterTrans->getCashReport($fromDate, $uptoDate)->get();
-            // return $transaction;
+
+            # For Payment Mode 
             $cash   = $transaction->where('payment_mode', 'Cash');
             $cheque = $transaction->where('payment_mode', 'Cheque');
             $online = $transaction->where('payment_mode', 'Online');
@@ -1362,43 +1363,51 @@ class WaterReportController extends Controller
             $Neft   = $transaction->where('payment_mode', 'Neft');
             $returnData["collectionSummery"] = [
                 'waterCash'         => $cash->count(),
-                'totaAmountCash'    => $cash->sum('amount'),
                 'waterCheque'       => $cheque->count(),
-                'totalAmountCheque' => $cheque->sum('amount'),
                 'waterOnline'       => $online->count(),
-                'waterAmountOnline' => $online->sum('amount'),
                 'waterDd'           => $DD->count(),
-                'totalAmountDd'     => $DD->sum('amount'),
                 'waterNeft'         => $Neft->count(),
+
+                'totaAmountCash'    => $cash->sum('amount'),
+                'totalAmountCheque' => $cheque->sum('amount'),
+                'waterAmountOnline' => $online->sum('amount'),
+                'totalAmountDd'     => $DD->sum('amount'),
                 'totalAmuntNeft'    => $Neft->sum('amount'),
-                'toatalCollection'  => $cash->sum('amount') + $cheque->sum('amount') + $online->sum('amount') + $DD->sum('amount') + $Neft->sum('amount'),
-
             ];
+            $returnData["collectionSummery"]["toatalCollection"] = $returnData["collectionSummery"]["totaAmountCash"]
+                + $returnData["collectionSummery"]["totalAmountCheque"]
+                + $returnData["collectionSummery"]["waterAmountOnline"]
+                + $returnData["collectionSummery"]["totalAmountDd"]
+                + $returnData["collectionSummery"]["totalAmuntNeft"];
 
 
+            # For JSK collection
             $jskCash    = $cash->where('user_type', 'JSK');
             $jskCheque  = $cheque->where('user_type', 'JSK');
             $jskOnline  = $online->where('user_type', 'JSK');
             $jskDd      = $DD->where('user_type', 'JSK');
             $jskNeft    = $Neft->where('user_type', 'JSK');
-
             $returnData["jskCollectionSummery"] = [
                 'waterCash'         => $jskCash->count(),
-                'totaAmountCash'    => $jskCash->sum('amount'),
                 'waterCheque'       => $jskCheque->count(),
-                'totalAmountCheque' => round($jskCheque->sum('amount'), 2),
                 'waterOnline'       => $jskOnline->count(),
-                'waterAmountOnline' => $jskOnline->sum('amount'),
                 'waterDd'           => $jskDd->count(),
-                'totaAmountDd'      => $jskDd->sum('amount'),
                 "waterNeft"         => $jskNeft->count(),
+
+                'totaAmountCash'    => $jskCash->sum('amount'),
+                'totalAmountCheque' => $jskCheque->sum('amount'),
+                'waterAmountOnline' => $jskOnline->sum('amount'),
+                'totaAmountDd'      => $jskDd->sum('amount'),
                 'totalAmountNeft'   => $jskNeft->sum('amount'),
-                'toatalCollection'  => $jskCash->sum('amount') + $jskCheque->sum('amount') + $jskOnline->sum('amount') + $jskDd->sum('amount') + $jskNeft->sum('amount')
-
             ];
-            
+            $returnData["jskCollectionSummery"]["toatalCollection"] = $returnData["jskCollectionSummery"]["totaAmountCash"]
+                + $returnData["jskCollectionSummery"]["totaAmountCash"]
+                + $returnData["jskCollectionSummery"]["totaAmountCash"]
+                + $returnData["jskCollectionSummery"]["totaAmountCash"]
+                + $returnData["jskCollectionSummery"]["totaAmountCash"];
 
-            # may use where in for tc and tl
+
+            # May use where in for tc and tl
             $TcCash     = $cash->where('user_type', 'TC');
             $TcCheque   = $cheque->where('user_type', 'TC');
             $TcOnline   = $online->where('user_type', 'TC');
@@ -1406,23 +1415,31 @@ class WaterReportController extends Controller
             $TcNeft     = $Neft->where('user_type', 'TC');
             $returnData["dtdCollectionSummery"] = [
                 'waterCash'         => $TcCash->count(),
-                'totaAmountCash'    => $TcCash->sum('amount'),
                 'waterCheque'       => $TcCheque->count(),
-                'totalAmountCheque' => $TcCheque->sum('amount'),
                 'waterOnline'       => $TcOnline->count(),
-                'waterAmountOnline' => $TcOnline->sum('amount'),
                 'waterDd'           => $TcDd->count(),
-                'totalAmountDd'     => $TcDd->sum('amount'),
                 'waterNeft'         => $TcNeft->count(),
-                'totalAmountNeft'   => $TcNeft->sum('amount'),
-                'toatalCollection'  => $TcCash->sum('amount') + $TcCheque->sum('amount') + $TcOnline->sum('amount') + $TcDd->sum('amount') + $TcNeft->sum('amount')
 
-            ];   #net collection summary 
+                'totaAmountCash'    => $TcCash->sum('amount'),
+                'totalAmountCheque' => $TcCheque->sum('amount'),
+                'waterAmountOnline' => $TcOnline->sum('amount'),
+                'totalAmountDd'     => $TcDd->sum('amount'),
+                'totalAmountNeft'   => $TcNeft->sum('amount'),
+
+                // 'toatalCollection'  => $TcCash->sum('amount') + $TcCheque->sum('amount') + $TcOnline->sum('amount') + $TcDd->sum('amount') + $TcNeft->sum('amount')
+
+            ];
+            $returnData["dtdCollectionSummery"]["toatalCollection"] =  $returnData["dtdCollectionSummery"]["totaAmountCash"]
+                + $returnData["dtdCollectionSummery"]["totalAmountCheque"]
+                + $returnData["dtdCollectionSummery"]["waterAmountOnline"]
+                + $returnData["dtdCollectionSummery"]["totalAmountDd"]
+                + $returnData["dtdCollectionSummery"]["totalAmountNeft"];
+
+            # Net collection summary 
             $returnData["netcollectionSummary"] = [
                 'netTransaction' => $transaction->count(),
-                'netTotalAmount' => round($transaction->sum('amount'), 2)
+                'netTotalAmount' => $returnData["collectionSummery"]["toatalCollection"]
             ];
-
 
             return responseMsgs(true, "water transaction report", remove_null($returnData), "", "", "", 'POST', "");
         } catch (Exception $e) {
