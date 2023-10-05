@@ -336,7 +336,8 @@ class PaymentController extends Controller
                         $objTrade->pinelabResponse($moduleData);
                         break;
                 }
-            }
+            } else
+                throw new Exception("Payment Cancelled");
             return responseMsgs(true, "Data Saved", $data, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
