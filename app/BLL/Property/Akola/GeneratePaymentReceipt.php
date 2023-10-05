@@ -103,6 +103,7 @@ class GeneratePaymentReceipt
 
         $this->_ulbDetails = $this->_mUlbMasters->getUlbDetails($this->_propertyDtls->ulb_id);
 
+        $this->_GRID['penaltyRebates'] = [];
         if (collect($tranDtls)->isNotEmpty()) {
             $this->_isArrearReceipt = false;
             if ($this->_tranType == 'Property') {                                   // Get Property Demands by demand ids

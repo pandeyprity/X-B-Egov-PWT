@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Property\Akola\WhatsappReceiptController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,3 +26,12 @@ Route::get('/whatsappTest', [\App\Http\Controllers\Notice\NoticeController::clas
 Route::get('logs', [\Rap2hpoutre\LaravelLogViewer\LogViewerController::class, 'index']);
 
 Route::get('/water-pdf', [\App\Http\Controllers\Water\WaterPaymentController::class, 'v2']);
+
+// Route::get('property/payment-receipt', function () {
+//     return view('property_payment_reciept');
+// });
+
+// Route::get('property/payment-receipt',WhatsappReceiptController::class)
+Route::controller(WhatsappReceiptController::class)->group(function () {
+    Route::get('property/payment-receipt/{tranNo}', 'sendPaymentReceipt');
+});
