@@ -327,4 +327,16 @@ class WaterSecondConsumer extends Model
         $mWaterConsumer->save();
         return $mWaterConsumer->id;
     }
+    #zone or ward wise consumers
+    public function totalConsumerType($wardId, $zoneId)
+    {
+        return WaterSecondConsumer::select(
+            'water_second_consumers.id as consumerId',
+            'water_consumer_demands.id as demandId'
+        )
+            ->join('water_consumer_demands', 'water_consumer_demands.consumer_id', 'water_second_consumers.id')
+            // ->where('ward_mstr_id',$wardId)
+            // ->where('zone',$zoneId);
+        ;
+    }
 }

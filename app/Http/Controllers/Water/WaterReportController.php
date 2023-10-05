@@ -1496,4 +1496,35 @@ class WaterReportController extends Controller
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
     }
+    /**
+     * total consumer type report
+     Meter/Non-Meter
+     */
+    public function totalConsumerType(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'zoneId'   => 'nullable',
+                'wardId'   => 'nullable',
+                'pages'    => 'nullable',
+            ]
+        );
+
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+        try {
+            $mWaterSecondConsumer = new WaterSecondConsumer();
+            $wardId  = $request->wardId;
+            $zoneId    = $request->zone;
+            return $getConsumer = $mWaterSecondConsumer->totalConsumerType($wardId, $zoneId)->get();
+            
+
+
+            // return responseMsgs(true, "total consumer type", remove_null($waterReturnDetails), "", "", "", 'POST', "");
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
+        }
+    }
 }
