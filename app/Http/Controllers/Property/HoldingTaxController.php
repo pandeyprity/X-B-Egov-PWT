@@ -272,7 +272,7 @@ class HoldingTaxController extends Controller
                 "tax1" => roundFigure($item->sum('tax1')),
                 "tax2" => roundFigure($item->sum('tax2')),
                 "tax3" => roundFigure($item->sum('tax3')),
-                "state_education_tax" => roundFigure($item->sum('sp_education_tax')),
+                "state_education_tax" => roundFigure($item->sum('state_education_tax')),
                 "water_benefit" => roundFigure($item->sum('water_benefit')),
                 "water_bill" => roundFigure($item->sum('water_bill')),
                 "sp_water_cess" => roundFigure($item->sum('sp_water_cess')),
@@ -494,7 +494,6 @@ class HoldingTaxController extends Controller
             $postPropPayment->_propCalculation = $propCalculation;
             // Transaction is beginning in Prop Payment Class
             $postPropPayment->postPayment();
-            return ["Testing"];
             DB::commit();
             return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo], "011604", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
