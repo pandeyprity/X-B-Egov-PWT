@@ -3872,6 +3872,8 @@ class Report implements IReport
                 sum(COALESCE(light_cess,0)::numeric) as light_cess,
                 sum(COALESCE(major_building,0)::numeric) as major_building,
             
+                sum(COALESCE(c1urrent_total_demand,0)::numeric) as c1urrent_total_demand,
+	            sum(COALESCE(c1urrent_total_tax,0)::numeric) as c1urrent_total_tax,
                 sum(COALESCE(current_maintanance_amt,0)::numeric ) as current_maintanance_amt,
                 sum(COALESCE(current_aging_amt,0)::numeric ) as current_aging_amt,
                 sum(COALESCE(current_general_tax,0)::numeric ) as current_general_tax,
@@ -3895,6 +3897,8 @@ class Report implements IReport
                 sum(COALESCE(current_light_cess,0)::numeric ) as current_light_cess,
                 sum(COALESCE(current_major_building,0)::numeric ) as current_major_building,
             
+                sum(COALESCE(a1rear_total_demand,0)::numeric) as a1rear_total_demand,
+	            sum(COALESCE(a1rear_total_tax,0)::numeric) as a1rear_total_tax,
                 sum(COALESCE(arear_maintanance_amt,0)::numeric ) as arear_maintanance_amt,
                 sum(COALESCE(arear_aging_amt,0)::numeric ) as arear_aging_amt,
                 sum(COALESCE(arear_general_tax,0)::numeric ) as arear_general_tax,
@@ -3947,6 +3951,8 @@ class Report implements IReport
                     sum(COALESCE(light_cess,0)::numeric) as light_cess,
                     sum(COALESCE(major_building,0)::numeric) as major_building,
                 
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(total_demand,0)::numeric else 0 end) as c1urrent_total_demand,
+		            sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(total_tax,0)::numeric else 0 end) as c1urrent_total_tax,
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(maintanance_amt,0)::numeric else 0 end) as current_maintanance_amt,
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(aging_amt,0)::numeric else 0 end) as current_aging_amt,
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(general_tax,0)::numeric else 0 end) as current_general_tax,
@@ -3970,6 +3976,8 @@ class Report implements IReport
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(light_cess,0)::numeric else 0 end) as current_light_cess,
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(major_building,0)::numeric else 0 end) as current_major_building,
                 
+                    sum(case when fyear < '$fromFyear' then COALESCE(total_demand,0)::numeric else 0 end) as a1rear_total_demand,
+		            sum(case when fyear < '$fromFyear' then COALESCE(total_tax,0)::numeric else 0 end) as a1rear_total_tax,
                     sum(case when fyear < '$fromFyear' then COALESCE(maintanance_amt,0)::numeric else 0 end) as arear_maintanance_amt,
                     sum(case when fyear < '$fromFyear' then COALESCE(aging_amt,0)::numeric else 0 end) as arear_aging_amt,
                     sum(case when fyear < '$fromFyear' then COALESCE(general_tax,0)::numeric else 0 end) as arear_general_tax,
