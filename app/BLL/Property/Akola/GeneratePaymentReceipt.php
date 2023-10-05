@@ -29,6 +29,7 @@ class GeneratePaymentReceipt
     private $_mPropTranDtl;
     private $_mPropDemands;
     private $_tranNo;
+    private $_tranId;
     private $_tranType;
     private $_currentDemand;
     private $_overDueDemand;
@@ -61,9 +62,10 @@ class GeneratePaymentReceipt
     /**
      * | Generate Payment Receipt
      */
-    public function generateReceipt($tranNo)
+    public function generateReceipt($tranNo, $tranId = null)
     {
         $this->_tranNo = $tranNo;
+        $this->_tranId = $tranId;
         $this->readParams();
         $this->addPropDtls();
     }
@@ -79,7 +81,11 @@ class GeneratePaymentReceipt
 
         $currentFyear = getFY();
 
-        $trans = $this->_mPropTransaction->getPropByTranPropId($this->_tranNo);
+        if (isset($this->_tranId))
+            $trans = $this->_mPropTransaction->getPropByTranId($this->_tranId);
+        else
+            $trans = $this->_mPropTransaction->getPropByTranPropId($this->_tranNo);
+
         $this->_trans = $trans;
         if (collect($trans)->isEmpty())
             throw new Exception("Transaction Not Available for this Transaction No");
@@ -142,7 +148,7 @@ class GeneratePaymentReceipt
             $totalTax = roundFigure($item->sum('total_tax'));
 
             if ($totalTax > 0)
-                $totalPayableAmt = roundFigure($this->_trans->amount);
+                $totalPayableAmt = roundFigure($this->_trans->amount);              // 🔴🔴🔴 Condition Handled in case of other payments Receipt Purpose
             else
                 $totalPayableAmt = $totalTax;
 

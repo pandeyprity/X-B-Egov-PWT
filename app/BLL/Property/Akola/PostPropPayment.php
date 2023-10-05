@@ -43,6 +43,7 @@ class PostPropPayment
     private $_fromFyear = null;
     private $_uptoFyear = null;
     protected $_gatewayType = null;
+    public $_tranId;
 
     /**
      * | Required @param Requests(propertyId as id)
@@ -154,6 +155,7 @@ class PostPropPayment
         $this->_REQ['ulbId'] = $this->_propDetails->ulb_id;
         // $paymentReceiptNo = $this->generatePaymentReceiptNo();
         $propTrans = $this->_mPropTrans->postPropTransactions($this->_REQ, $this->_demands, $this->_fromFyear, $this->_uptoFyear);
+        $this->_tranId = $propTrans['id'];
         $this->_propTransaction = $propTrans;
 
         // Updation of payment status in demand table
