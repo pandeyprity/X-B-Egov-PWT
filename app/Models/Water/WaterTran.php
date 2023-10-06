@@ -252,10 +252,11 @@ class WaterTran extends Model
      * | @param fromDate
      * | @param toDate
      */
-    public function getCashReport($fromDate, $toDate)
+    public function getWaterReport($fromDate, $toDate, $wardId)
     {
         return WaterTran::select('amount', 'payment_mode', 'user_type')
             ->where('status', 1)
+            // ->where('ward_id',$wardId)
             ->whereBetween('tran_date', [$fromDate, $toDate])
             ->orderByDesc('id');
     }
