@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class UlbWardMaster extends Model
 {
@@ -71,5 +73,27 @@ class UlbWardMaster extends Model
             ->orderBy('id')
             ->where('status', 1)
             ->get();
+    }
+
+    public function getTranCounter($id)
+    {
+        try{
+            (DB::connection($this->connection)->statement("ALTER TABLE ".$this->gettable()." ADD COLUMN IF NOT EXISTS prop_tran_counter text "));
+            $test = self::select("*")
+                    ->where("id",$id)
+                    ->first();
+            if(!$test->prop_tran_counter)
+            {
+                
+                (DB::connection($this->connection)->statement("CREATE SEQUENCE IF NOT EXISTS ward_id_".$id."_sequence"));
+                $test->prop_tran_counter = "ward_id_".$id."_sequence";
+                $test->update();
+            }
+            return self::select(DB::raw("nextval('".$test->prop_tran_counter."') AS counter"))->first();
+        }
+        catch(Exception $e)
+        {
+            // return $e->getMessage();
+        }
     }
 }
