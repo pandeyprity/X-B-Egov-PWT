@@ -28,21 +28,21 @@ class WaterConsumerDemand extends Model
      * | @param ConsumerId
      */
     public function getDemandBydemandIds($consumerId)
-{
-    return WaterConsumerDemand::select(
-        'water_consumer_demands.*',
-        'water_second_consumers.*',
-        'water_consumer_owners.applicant_name',
-        'water_consumer_initial_meters.initial_reading'
-    )
-    ->join('water_consumer_owners','water_consumer_owners.consumer_id','water_consumer_demands.consumer_id')
-    ->leftjoin('water_consumer_initial_meters','water_consumer_initial_meters.consumer_id','water_consumer_demands.consumer_id')
-    ->join('water_second_consumers', 'water_second_consumers.id', '=', 'water_consumer_demands.consumer_id')
-    ->where('water_consumer_demands.paid_status',0)
-    ->orderByDesc('water_consumer_demands.id')
-    ->where('water_consumer_demands.consumer_id', $consumerId)
-    ->first();
-}
+    {
+        return WaterConsumerDemand::select(
+            'water_consumer_demands.*',
+            'water_second_consumers.*',
+            'water_consumer_owners.applicant_name',
+            'water_consumer_initial_meters.initial_reading'
+        )
+            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_consumer_demands.consumer_id')
+            ->leftjoin('water_consumer_initial_meters', 'water_consumer_initial_meters.consumer_id', 'water_consumer_demands.consumer_id')
+            ->join('water_second_consumers', 'water_second_consumers.id', '=', 'water_consumer_demands.consumer_id')
+            ->where('water_consumer_demands.paid_status', 0)
+            ->orderByDesc('water_consumer_demands.id')
+            ->where('water_consumer_demands.consumer_id', $consumerId)
+            ->first();
+    }
 
 
     /**
@@ -291,29 +291,31 @@ class WaterConsumerDemand extends Model
     /**
      * get all data of consumer demands
      */
-    public function getALLDemand($fromDate, $uptoDate)
+    public function getALLDemand($fromDate, $uptoDate, $wardId)
     {
         return WaterConsumerDemand::select(
             'water_consumer_demands.amount',
             'water_consumer_demands.paid_status'
         )
-        ->where('water_consumer_demands.demand_from', '>=', $fromDate) 
-        ->where('water_consumer_demands.demand_upto', '<=', $uptoDate) 
-        ->where('status', true);
+            ->where('water_consumer_demands.demand_from', '>=', $fromDate)
+            ->where('water_consumer_demands.demand_upto', '<=', $uptoDate)
+            // ->where('water_consumer_demands.ward_id', $wardId)
+            ->where('status', true);
     }
     #previous year financial 
 
-    public function previousDemand($fromDate, $uptoDate)
+    public function previousDemand($fromDate, $uptoDate, $wardId)
     {
         return WaterConsumerDemand::select(
             'water_consumer_demands.amount',
             'water_consumer_demands.paid_status'
         )
-        ->where('water_consumer_demands.demand_from', '>=', $fromDate) 
-        ->where('water_consumer_demands.demand_upto', '<=', $uptoDate) 
-        ->where('status', true);
+            ->where('water_consumer_demands.demand_from', '>=', $fromDate)
+            ->where('water_consumer_demands.demand_upto', '<=', $uptoDate)
+            // ->where('water_consumer_demands.ward_mstr_id', $wardId)
+            ->where('status', true);
     }
-     /**
+    /**
      * get details of tc visit
      */
     public function getDetailsOfTc($key, $refNo)
@@ -327,9 +329,9 @@ class WaterConsumerDemand extends Model
         )
             ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_consumer_demands.consumer_id')
             ->join('water_second_consumers', 'water_second_consumers.id', '=', 'water_consumer_demands.consumer_id')
-            ->leftjoin('users','users.id','water_consumer_demands.emp_details_id')
+            ->leftjoin('users', 'users.id', 'water_consumer_demands.emp_details_id')
             ->where('water_consumer_demands.' . $key, 'LIKE', '%' . $refNo . '%')
             ->orderByDesc('water_consumer_demands.id');
-            // ->where('users.user_type', 'TC');
+        // ->where('users.user_type', 'TC');
     }
 }
