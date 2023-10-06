@@ -2,6 +2,7 @@
 
 namespace App\BLL\Property;
 
+use App\Models\Payment\TempTransaction;
 use App\Models\Property\PropDemand;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropTranDtl;
@@ -23,11 +24,13 @@ class DeactivateTran
     private $_mPropTranDtl;
     private $_transaction;
     private $_tranDtls;
+    private $_mTempTrans;
 
     public function __construct($tranId)
     {
         $this->_tranId = $tranId;
         $this->_mPropTranDtl = new PropTranDtl();
+        $this->_mTempTrans = new TempTransaction();
     }
 
 
@@ -51,6 +54,8 @@ class DeactivateTran
 
         $this->_transaction->status = 0;                    // Deactivation
         $this->_transaction->save();
+
+        $this->deactivateTempTrans();                       // (1.3) 
     }
 
 
@@ -91,5 +96,15 @@ class DeactivateTran
     {
         if ($this->_transaction->tran_type == 'Saf') {
         }
+    }
+
+    /**
+     * | Deactivate Temp Transactions
+     */
+    public function deactivateTempTrans()
+    {
+        $tempTrans = $this->_mTempTrans->getTempTranByTranId($this->_tranId, 1);                // 1 is the module id for property
+        if ($tempTrans)
+            $tempTrans->update(['status' => 0]);
     }
 }
