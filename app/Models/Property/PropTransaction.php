@@ -52,6 +52,28 @@ class PropTransaction extends Model
             ->first();
     }
 
+
+    /**
+     * | Get PropTran By tranno property id
+     */
+    public function getPropByTranId($tranId)
+    {
+        return PropTransaction::select(
+            'prop_transactions.*',
+            'prop_cheque_dtls.bank_name',
+            'prop_cheque_dtls.branch_name',
+            'prop_cheque_dtls.cheque_no',
+            'prop_cheque_dtls.cheque_date',
+            'u.name as tc_name',
+            'u.mobile as tc_mobile'
+        )
+            ->where('prop_transactions.id', $tranId)
+            ->leftJoin("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
+            ->leftJoin("users as u", "u.id", "prop_transactions.user_id")
+            ->where('prop_transactions.status', 1)
+            ->first();
+    }
+
     // getPropTrans as trait function on current object
     public function getPropTransTrait()
     {

@@ -173,7 +173,6 @@ class HoldingTaxController extends Controller
             foreach ($demandList as $list) {
                 $calculate2PercPenalty->calculatePenalty($list);
             }
-
             $demandList = collect($demandList)->sortBy('fyear')->values();
 
             if ($demandList->isEmpty())                              // Check the Payment Status
@@ -186,7 +185,6 @@ class HoldingTaxController extends Controller
             if ($grandTaxes['balance'] <= 0)
                 $paymentStatus = 1;
 
-            $demand['paymentStatus'] = $paymentStatus;
             $demand['demandList'] = $demandList;
             $currentDemandList = collect($demandList)->where('fyear', $fy)->values();
             $demand['currentDemandList'] = $this->sumTaxHelper($currentDemandList);
@@ -205,17 +203,25 @@ class HoldingTaxController extends Controller
 
             // Monthly Interest Penalty Calculation
             $demand['previousInterest'] = $previousInterest;
-            $demand['arrearInterest'] = $demandList->where('fyear', '<', $fy)->sum('monthlyPenalty');
+            $demand['arrearInterest'] = roundFigure($demandList->where('fyear', '<', $fy)->sum('monthlyPenalty'));
 
-            $demand['arrearMonthlyPenalty'] = $demand['previousInterest'] + $demand['arrearInterest'];                   // Penalty On Arrear
+            $demand['arrearMonthlyPenalty'] = roundFigure($demand['previousInterest'] + $demand['arrearInterest']);                   // Penalty On Arrear
             $demand['monthlyPenalty'] = roundFigure($demandList->where('fyear', $fy)->sum('monthlyPenalty'));                         // Monthly Penalty
             $demand['totalInterestPenalty'] = roundFigure($demand['arrearMonthlyPenalty'] + $demand['monthlyPenalty']);              // Total Interest Penalty
+
+
             // Read Rebate ❗❗❗ Rebate is pending
             // $firstOwner = $mPropOwners->firstOwner($req->propId);
             // if($firstOwner->is_armed_force)
             //     // $rebate=
             $demand['arrearPayableAmt'] = round($demand['arrear'] + $demand['arrearMonthlyPenalty']);
             $demand['payableAmt'] = round($grandTaxes['balance'] + $demand['totalInterestPenalty']);
+
+            if ($demand['payableAmt'] > 0)
+                $paymentStatus = 0;
+
+            $demand['paymentStatus'] = $paymentStatus;
+
             // 🔴🔴 Property Payment and demand adjustments with arrear is pending yet 🔴🔴
             $holdingType = $propBasicDtls->holding_type;
             $ownershipType = $propBasicDtls->ownership_type;
@@ -495,7 +501,7 @@ class HoldingTaxController extends Controller
             // Transaction is beginning in Prop Payment Class
             $postPropPayment->postPayment();
             DB::commit();
-            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo], "011604", "1.0", responseTime(), "POST", $req->deviceId);
+            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo, 'transactionId' => $postPropPayment->_tranId], "011604", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
             return responseMsgs(false, $e->getMessage(), "", "011604", "1.0", "", "POST", $req->deviceId ?? "");
@@ -611,7 +617,10 @@ class HoldingTaxController extends Controller
     {
         $validated = Validator::make(
             $req->all(),
-            ['tranNo' => 'required']
+            [
+                'tranNo' => 'nullable|string',
+                'tranId' => 'nullable|integer'
+            ]
         );
         if ($validated->fails()) {
             return response()->json([
@@ -623,7 +632,7 @@ class HoldingTaxController extends Controller
 
         try {
             $generatePaymentReceipt = new GeneratePaymentReceipt;
-            $generatePaymentReceipt->generateReceipt($req->tranNo);
+            $generatePaymentReceipt->generateReceipt($req->tranNo, $req->tranId);
             $receipt = $generatePaymentReceipt->_GRID;
             return responseMsgs(true, "Payment Receipt", remove_null($receipt), "011605", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {

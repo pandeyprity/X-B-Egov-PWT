@@ -10,6 +10,7 @@ class UlbWardMaster extends Model
 {
     use HasFactory;
     public $timestamps = false;
+    protected $connection = 'pgsql_master';
     /**
      * | Get the Ward No by ward id
      * | @param id $id

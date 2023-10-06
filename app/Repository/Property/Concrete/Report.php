@@ -3824,4 +3824,251 @@ class Report implements IReport
             return responseMsgs(false, $e->getMessage(), [], "", "", "", "POST", "");
         }
     }
+
+    public function paymentModedealyCollectionRptV1(Request $request)
+    {
+        try {
+            $user = Auth()->user();
+            $paymentMode = "";
+            $fromDate = $toDate = Carbon::now()->format("Y-m-d");
+            if ($request->fromDate) {
+                $fromDate = $request->fromDate;
+            }
+            if ($request->uptoDate) {
+                $toDate = $request->uptoDate;
+            }
+            if ($request->paymentMode) {
+                $paymentMode = $request->paymentMode;
+            }
+            $fromFyear = getFy($fromDate);
+            $uptoFyear = getFy($toDate);
+            $query = "
+            select 
+
+                '$paymentMode' AS payment_mode,
+                count(distinct(prop_transactions.id)) as total_tran,	
+                sum(COALESCE(total_demand,0)::numeric) as total_demand,
+                sum(COALESCE(total_tax,0)::numeric) as total_tax,
+                sum(COALESCE(maintanance_amt,0)::numeric) as maintanance_amt,
+                sum(COALESCE(aging_amt,0)::numeric) as aging_amt,
+                sum(COALESCE(general_tax,0)::numeric) as general_tax,
+                sum(COALESCE(road_tax,0)::numeric) as road_tax,
+                sum(COALESCE(firefighting_tax,0)::numeric) as firefighting_tax,
+                sum(COALESCE(education_tax,0)::numeric) as education_tax,
+                sum(COALESCE(water_tax,0)::numeric) as water_tax,
+                sum(COALESCE(cleanliness_tax,0)::numeric) as cleanliness_tax,
+                sum(COALESCE(sewarage_tax,0)::numeric) as sewarage_tax,
+                sum(COALESCE(tree_tax,0)::numeric) as tree_tax,
+                sum(COALESCE(professional_tax,0)::numeric) as professional_tax,
+                sum(COALESCE(adjust_amt,0)::numeric) as adjust_amt,
+                sum(COALESCE(tax1,0)::numeric) as tax1,
+                sum(COALESCE(tax2,0)::numeric) as tax2,
+                sum(COALESCE(tax3,0)::numeric) as tax3,
+                sum(COALESCE(sp_education_tax,0)::numeric) as sp_education_tax,
+                sum(COALESCE(water_benefit,0)::numeric) as water_benefit,
+                sum(COALESCE(water_bill,0)::numeric) as water_bill,
+                sum(COALESCE(sp_water_cess,0)::numeric) as sp_water_cess,
+                sum(COALESCE(drain_cess,0)::numeric) as drain_cess,
+                sum(COALESCE(light_cess,0)::numeric) as light_cess,
+                sum(COALESCE(major_building,0)::numeric) as major_building,
+            
+                sum(COALESCE(c1urrent_total_demand,0)::numeric) as c1urrent_total_demand,
+	            sum(COALESCE(c1urrent_total_tax,0)::numeric) as c1urrent_total_tax,
+                sum(COALESCE(current_maintanance_amt,0)::numeric ) as current_maintanance_amt,
+                sum(COALESCE(current_aging_amt,0)::numeric ) as current_aging_amt,
+                sum(COALESCE(current_general_tax,0)::numeric ) as current_general_tax,
+                sum(COALESCE(current_road_tax,0)::numeric ) as current_road_tax,
+                sum(COALESCE(current_firefighting_tax,0)::numeric ) as current_firefighting_tax,
+                sum(COALESCE(current_education_tax,0)::numeric ) as current_education_tax,
+                sum(COALESCE(current_water_tax,0)::numeric ) as current_water_tax,
+                sum(COALESCE(current_cleanliness_tax,0)::numeric ) as current_cleanliness_tax,
+                sum(COALESCE(current_sewarage_tax,0)::numeric ) as current_sewarage_tax,
+                sum(COALESCE(current_tree_tax,0)::numeric ) as current_tree_tax,
+                sum(COALESCE(current_professional_tax,0)::numeric ) as current_professional_tax,
+                sum(COALESCE(current_adjust_amt,0)::numeric ) as current_adjust_amt,
+                sum(COALESCE(current_tax1,0)::numeric ) as current_tax1,
+                sum(COALESCE(current_tax2,0)::numeric ) as current_tax2,
+                sum(COALESCE(current_tax3,0)::numeric ) as current_tax3,
+                sum(COALESCE(current_sp_education_tax,0)::numeric ) as current_sp_education_tax,
+                sum(COALESCE(current_water_benefit,0)::numeric ) as current_water_benefit,
+                sum(COALESCE(current_water_bill,0)::numeric ) as current_water_bill,
+                sum(COALESCE(current_sp_water_cess,0)::numeric ) as current_sp_water_cess,
+                sum(COALESCE(current_drain_cess,0)::numeric ) as current_drain_cess,
+                sum(COALESCE(current_light_cess,0)::numeric ) as current_light_cess,
+                sum(COALESCE(current_major_building,0)::numeric ) as current_major_building,
+            
+                sum(COALESCE(a1rear_total_demand,0)::numeric) as a1rear_total_demand,
+	            sum(COALESCE(a1rear_total_tax,0)::numeric) as a1rear_total_tax,
+                sum(COALESCE(arear_maintanance_amt,0)::numeric ) as arear_maintanance_amt,
+                sum(COALESCE(arear_aging_amt,0)::numeric ) as arear_aging_amt,
+                sum(COALESCE(arear_general_tax,0)::numeric ) as arear_general_tax,
+                sum(COALESCE(arear_road_tax,0)::numeric ) as arear_road_tax,
+                sum(COALESCE(arear_firefighting_tax,0)::numeric ) as arear_firefighting_tax,
+                sum(COALESCE(arear_education_tax,0)::numeric ) as arear_education_tax,
+                sum(COALESCE(arear_water_tax,0)::numeric ) as arear_water_tax,
+                sum(COALESCE(arear_cleanliness_tax,0)::numeric ) as arear_cleanliness_tax,
+                sum(COALESCE(arear_sewarage_tax,0)::numeric ) as arear_sewarage_tax,
+                sum(COALESCE(arear_tree_tax,0)::numeric ) as arear_tree_tax,
+                sum(COALESCE(arear_professional_tax,0)::numeric ) as arear_professional_tax,
+                sum(COALESCE(arear_adjust_amt,0)::numeric ) as arear_adjust_amt,
+                sum(COALESCE(arear_tax1,0)::numeric ) as arear_tax1,
+                sum(COALESCE(arear_tax2,0)::numeric ) as arear_tax2,
+                sum(COALESCE(arear_tax3,0)::numeric ) as arear_tax3,
+                sum(COALESCE(arear_sp_education_tax,0)::numeric ) as arear_sp_education_tax,
+                sum(COALESCE(arear_water_benefit,0)::numeric ) as arear_water_benefit,
+                sum(COALESCE(arear_water_bill,0)::numeric ) as arear_water_bill,
+                sum(COALESCE(arear_sp_water_cess,0)::numeric ) as arear_sp_water_cess,
+                sum(COALESCE(arear_drain_cess,0)::numeric ) as arear_drain_cess,
+                sum(COALESCE(arear_light_cess,0)::numeric ) as arear_light_cess,
+                sum(COALESCE(arear_major_building,0)::numeric ) as arear_major_building,
+                sum(COALESCE(rebadet,0)::numeric) as rebadet,
+                sum(COALESCE(penalty,0)::numeric) as penalty
+            from prop_transactions
+            join (
+                select distinct(prop_transactions.id)as tran_id ,
+                    sum(COALESCE(total_demand,0)::numeric) as total_demand,
+                    sum(COALESCE(total_tax,0)::numeric) as total_tax,
+                    sum(COALESCE(maintanance_amt,0)::numeric) as maintanance_amt,
+                    sum(COALESCE(aging_amt,0)::numeric) as aging_amt,
+                    sum(COALESCE(general_tax,0)::numeric) as general_tax,
+                    sum(COALESCE(road_tax,0)::numeric) as road_tax,
+                    sum(COALESCE(firefighting_tax,0)::numeric) as firefighting_tax,
+                    sum(COALESCE(education_tax,0)::numeric) as education_tax,
+                    sum(COALESCE(water_tax,0)::numeric) as water_tax,
+                    sum(COALESCE(cleanliness_tax,0)::numeric) as cleanliness_tax,
+                    sum(COALESCE(sewarage_tax,0)::numeric) as sewarage_tax,
+                    sum(COALESCE(tree_tax,0)::numeric) as tree_tax,
+                    sum(COALESCE(professional_tax,0)::numeric) as professional_tax,
+                    sum(COALESCE(adjust_amt,0)::numeric) as adjust_amt,
+                    sum(COALESCE(tax1,0)::numeric) as tax1,
+                    sum(COALESCE(tax2,0)::numeric) as tax2,
+                    sum(COALESCE(tax3,0)::numeric) as tax3,
+                    sum(COALESCE(sp_education_tax,0)::numeric) as sp_education_tax,
+                    sum(COALESCE(water_benefit,0)::numeric) as water_benefit,
+                    sum(COALESCE(water_bill,0)::numeric) as water_bill,
+                    sum(COALESCE(sp_water_cess,0)::numeric) as sp_water_cess,
+                    sum(COALESCE(drain_cess,0)::numeric) as drain_cess,
+                    sum(COALESCE(light_cess,0)::numeric) as light_cess,
+                    sum(COALESCE(major_building,0)::numeric) as major_building,
+                
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(total_demand,0)::numeric else 0 end) as c1urrent_total_demand,
+		            sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(total_tax,0)::numeric else 0 end) as c1urrent_total_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(maintanance_amt,0)::numeric else 0 end) as current_maintanance_amt,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(aging_amt,0)::numeric else 0 end) as current_aging_amt,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(general_tax,0)::numeric else 0 end) as current_general_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(road_tax,0)::numeric else 0 end) as current_road_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(firefighting_tax,0)::numeric else 0 end) as current_firefighting_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(education_tax,0)::numeric else 0 end) as current_education_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(water_tax,0)::numeric else 0 end) as current_water_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(cleanliness_tax,0)::numeric else 0 end) as current_cleanliness_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(sewarage_tax,0)::numeric else 0 end) as current_sewarage_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(tree_tax,0)::numeric else 0 end) as current_tree_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(professional_tax,0)::numeric else 0 end) as current_professional_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(adjust_amt,0)::numeric else 0 end) as current_adjust_amt,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(tax1,0)::numeric else 0 end) as current_tax1,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(tax2,0)::numeric else 0 end) as current_tax2,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(tax3,0)::numeric else 0 end) as current_tax3,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(sp_education_tax,0)::numeric else 0 end) as current_sp_education_tax,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(water_benefit,0)::numeric else 0 end) as current_water_benefit,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(water_bill,0)::numeric else 0 end) as current_water_bill,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(sp_water_cess,0)::numeric else 0 end) as current_sp_water_cess,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(drain_cess,0)::numeric else 0 end) as current_drain_cess,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(light_cess,0)::numeric else 0 end) as current_light_cess,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(major_building,0)::numeric else 0 end) as current_major_building,
+                
+                    sum(case when fyear < '$fromFyear' then COALESCE(total_demand,0)::numeric else 0 end) as a1rear_total_demand,
+		            sum(case when fyear < '$fromFyear' then COALESCE(total_tax,0)::numeric else 0 end) as a1rear_total_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(maintanance_amt,0)::numeric else 0 end) as arear_maintanance_amt,
+                    sum(case when fyear < '$fromFyear' then COALESCE(aging_amt,0)::numeric else 0 end) as arear_aging_amt,
+                    sum(case when fyear < '$fromFyear' then COALESCE(general_tax,0)::numeric else 0 end) as arear_general_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(road_tax,0)::numeric else 0 end) as arear_road_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(firefighting_tax,0)::numeric else 0 end) as arear_firefighting_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(education_tax,0)::numeric else 0 end) as arear_education_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(water_tax,0)::numeric else 0 end) as arear_water_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(cleanliness_tax,0)::numeric else 0 end) as arear_cleanliness_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(sewarage_tax,0)::numeric else 0 end) as arear_sewarage_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(tree_tax,0)::numeric else 0 end) as arear_tree_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(professional_tax,0)::numeric else 0 end) as arear_professional_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(adjust_amt,0)::numeric else 0 end) as arear_adjust_amt,
+                    sum(case when fyear < '$fromFyear' then COALESCE(tax1,0)::numeric else 0 end) as arear_tax1,
+                    sum(case when fyear < '$fromFyear' then COALESCE(tax2,0)::numeric else 0 end) as arear_tax2,
+                    sum(case when fyear < '$fromFyear' then COALESCE(tax3,0)::numeric else 0 end) as arear_tax3,
+                    sum(case when fyear < '$fromFyear' then COALESCE(sp_education_tax,0)::numeric else 0 end) as arear_sp_education_tax,
+                    sum(case when fyear < '$fromFyear' then COALESCE(water_benefit,0)::numeric else 0 end) as arear_water_benefit,
+                    sum(case when fyear < '$fromFyear' then COALESCE(water_bill,0)::numeric else 0 end) as arear_water_bill,
+                    sum(case when fyear < '$fromFyear' then COALESCE(sp_water_cess,0)::numeric else 0 end) as arear_sp_water_cess,
+                    sum(case when fyear < '$fromFyear' then COALESCE(drain_cess,0)::numeric else 0 end) as arear_drain_cess,
+                    sum(case when fyear < '$fromFyear' then COALESCE(light_cess,0)::numeric else 0 end) as arear_light_cess,
+                    sum(case when fyear < '$fromFyear' then COALESCE(major_building,0)::numeric else 0 end) as arear_major_building
+                
+                from prop_tran_dtls
+                join prop_transactions on prop_transactions.id = prop_tran_dtls.tran_id
+                join prop_demands on prop_demands.id = prop_tran_dtls.prop_demand_id
+                where prop_transactions.tran_date between '$fromDate' and '$toDate' 
+                    and prop_transactions.status in(1,2)
+                    and prop_demands.status =1 
+                    and prop_tran_dtls.status =1 
+                    ".($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "")."
+                group by prop_transactions.id
+                    
+            )prop_tran_dtls on prop_tran_dtls.tran_id = prop_transactions.id
+            left join(
+                select distinct(prop_transactions.id)as tran_id ,
+                    sum(case when prop_penaltyrebates.is_rebate =true then COALESCE(prop_penaltyrebates.amount,0) else 0 end) as rebadet,
+                    sum(case when prop_penaltyrebates.is_rebate !=true then COALESCE(prop_penaltyrebates.amount,0) else 0 end) as penalty
+                from prop_penaltyrebates
+                join prop_transactions on prop_transactions.id = prop_penaltyrebates.tran_id
+                where prop_transactions.tran_date between '$fromDate' and '$toDate' 
+                    and prop_transactions.status in(1,2)
+                    and prop_penaltyrebates.status =1 
+                    ".($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "" )."
+                group by prop_transactions.id
+            )fine_rebet on fine_rebet.tran_id = prop_transactions.id
+            where prop_transactions.tran_date between '$fromDate' and '$toDate' 
+                and prop_transactions.status in(1,2)
+                ".($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "" )."
+            ";
+
+            $report = DB::select($query); 
+            $report = collect($report)->first();           
+            $data["report"] = collect($report)->map(function($val,$key){
+                if($key=="payment_mode")
+                {
+                    return $val;
+                }
+                return !is_null($val)?$val:0;
+            });            
+            $arear = 0;
+            $current = 0;
+            $currentPattern = "/current_/i";
+            $arrearPattern = "/arear_/i";
+            foreach($report as $key=>$val){
+                if(preg_match($currentPattern,$key))
+                {
+                    $current+=($val?$val:0);
+                }
+                if(preg_match($arrearPattern,$key))
+                {
+                    $arear+=($val?$val:0);
+                }
+            };
+            $data["total"] = [
+                "arear"=> roundFigure($arear),
+                "current"=> roundFigure($current),
+                "total"=> roundFigure(($arear+$current)),
+            ];
+            $data["headers"] = [
+                "fromDate"=>$fromDate,
+                "uptoDate"=>$toDate,
+                "fromFyear"=>$fromFyear,
+                "uptoFyear"=>$uptoFyear,
+                "paymentMode"=>$paymentMode? $paymentMode :"All",
+                "printDate"=>Carbon::now()->format('d-m-Y H:i:s A'),
+                "printedBy"=>$user->name??"",
+            ];
+            return responseMsgs(true, "Admin Dashboard Reports", remove_null($data));
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), []);
+        } 
+    }
 }

@@ -599,4 +599,9 @@ class ReportController extends Controller
     {
         return $this->Repository->tcCollectionReport();
     }
+
+    public function paymentModedealyCollectionRptV1(Request $request)
+    {
+        return $this->Repository->paymentModedealyCollectionRptV1($request);
+    }
 }
