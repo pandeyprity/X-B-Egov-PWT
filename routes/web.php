@@ -33,5 +33,5 @@ Route::get('/water-pdf', [\App\Http\Controllers\Water\WaterPaymentController::cl
 
 // Route::get('property/payment-receipt',WhatsappReceiptController::class)
 Route::controller(WhatsappReceiptController::class)->group(function () {
-    Route::get('property/payment-receipt/{tranNo}', 'sendPaymentReceipt');
+    Route::get('property/payment-receipt/{tranId}', 'sendPaymentReceipt');
 });
