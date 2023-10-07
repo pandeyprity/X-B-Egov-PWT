@@ -4,8 +4,10 @@ namespace App\Models\Water;
 
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Facades\DB;
 
 class WaterConsumerDemand extends Model
@@ -334,51 +336,5 @@ class WaterConsumerDemand extends Model
             ->orderByDesc('water_consumer_demands.id');
         // ->where('users.user_type', 'TC');
     }
-    /**
-     * search consumer
-     * temp
-     */
-    public function getDetailByConsumerNo($request, $key, $refNo){
-        return WaterConsumerDemand::select([
-    'water_consumer_demands.id',
-    DB::raw("
-        CASE
-            WHEN water_consumer_demands.paid_status = 1 THEN 'Paid'
-            WHEN water_consumer_demands.paid_status = 0 THEN 'Unpaid'
-            ELSE 'unknown'
-        END AS payment_status
-    "),
-    'water_consumer_demands.paid_status',
-    'water_consumer_demands.balance_amount',
-    'water_consumer_demands.amount',
-    'water_consumer_demands.consumer_id',
-    'water_second_consumers.id AS wsc_id',
-    'water_second_consumers.consumer_no',
-    DB::raw("string_agg(water_consumer_owners.applicant_name, ',') as owner_name"),
-])
-    ->leftJoinSub(function ($query) use ($key, $refNo) {
-        $query->distinct()->selectRaw('DISTINCT ON (consumer_id) id, balance_amount, amount, consumer_id, paid_status')
-            ->from('water_consumer_demands')
-            ->where('status', true)
-            ->orderBy('consumer_id')
-            ->orderByDesc('id');
-    }, 'wcd')
-    ->join('water_second_consumers as wsc', 'wsc.id', '=', 'wcd.consumer_id')
-    ->join('water_consumer_owners as wco', 'wsc.id', '=', 'wco.consumer_id')
-    ->where('wsc.status', 1)
-    ->where('wco.status', true)
-    ->whereRaw("UPPER(wsc.$key) ILIKE ?", ['%' . strtoupper($refNo) . '%'])
-    ->groupBy([
-        'water_consumer_demands.id',
-        'water_consumer_demands.paid_status',
-        'water_consumer_demands.balance_amount',
-        'water_consumer_demands.amount',
-        'water_consumer_demands.consumer_id',
-        'water_second_consumers.id',
-        'water_second_consumers.consumer_no',
-    ]);
-
-        
-
-    }
+    
 }

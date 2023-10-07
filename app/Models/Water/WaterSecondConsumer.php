@@ -95,38 +95,47 @@ class WaterSecondConsumer extends Model
      */
     public function getDetailByConsumerNo($req, $key, $refNo)
     {
-        $data = "SELECT wcd.id,
-            CASE
-                  WHEN wcd.paid_status = 1 THEN 'Paid'
-                  WHEN wcd.paid_status = 0 THEN 'Unpaid'
-                  ELSE 'unknown'
-                  END AS payment_status,
-            wcd.paid_status,
-            wcd.balance_amount,
-            wcd.amount,
-            wcd.consumer_id,
-            wsc.id,
-            wsc.consumer_no,
-            string_agg(wco.applicant_name, ',') as owner_name,
-            string_agg(
-            FROM water_second_consumers AS wsc
-            LEFT JOIN (
-                SELECT DISTINCT ON (consumer_id) id,balance_amount,amount,consumer_id,paid_status
-                FROM water_consumer_demands AS wcd
-                    WHERE status = true
-                    ORDER BY consumer_id,id DESC 
-            ) AS wcd ON wsc.id = wcd.consumer_id
-            JOIN water_consumer_owners AS wco ON wsc.id = wco.consumer_id
-            WHERE wsc.status = 1
-            AND wco.status = true
-            AND UPPER wsc." . "$key" . " ILIKE : '" . "$refNo" ."' ".
-            "GROUP BY wcd.id,
-            wcd.paid_status,
-            wcd.balance_amount,
-            wcd.amount,
-            wcd.consumer_id,
-            wsc.id";
-           return DB::connection("pgsql_water")->select($data);
+        return WaterSecondConsumer::select([
+            'water_consumer_demands.id',
+            DB::raw("
+                CASE
+                    WHEN water_consumer_demands.paid_status = 1 THEN 'Paid'
+                    WHEN water_consumer_demands.paid_status = 0 THEN 'Unpaid'
+                    ELSE 'unknown'
+                END AS payment_status
+            "),
+            'water_consumer_demands.paid_status',
+            'water_consumer_demands.balance_amount',
+            'water_consumer_demands.amount',
+            'water_consumer_demands.consumer_id',
+            'water_second_consumers.id AS wsc_id',
+            'water_second_consumers.consumer_no',
+            DB::raw("string_agg(wco.applicant_name, ',') as owner_name"),
+            DB::raw("string_agg(wco.mobile_no, ',') as owner_mobile_no"),
+            DB::raw("string_agg(wco.email, ',') as owner_email"),
+        ])
+            ->JOIN(
+                DB::RAW("(SELECT DISTINCT ON (consumer_id) id,balance_amount,amount,consumer_id,paid_status
+                            FROM water_consumer_demands AS wcd
+                            WHERE status = true
+                            ORDER BY consumer_id,id DESC) AS water_consumer_demands
+                "),
+                function ($join) {
+                    $join->on("water_consumer_demands.consumer_id", "=", "water_second_consumers.id");
+                }
+            )
+            ->join('water_consumer_owners as wco', 'water_second_consumers.id', '=', 'wco.consumer_id')
+            ->where('water_second_consumers.status', 1)
+            ->where('wco.status', true)
+            ->where('water_second_consumers.' . $key, 'LIKE', '%' . $refNo . '%')
+            ->groupBy(
+                'water_consumer_demands.id',
+                'water_consumer_demands.paid_status',
+                'water_consumer_demands.balance_amount',
+                'water_consumer_demands.amount',
+                'water_consumer_demands.consumer_id',
+                'water_second_consumers.id'
+            );
     }
 
     /**
