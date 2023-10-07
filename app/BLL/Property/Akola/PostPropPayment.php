@@ -14,6 +14,7 @@ use App\Models\Property\PropTransaction;
 use App\Models\UlbWardMaster;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
@@ -45,12 +46,14 @@ class PostPropPayment
     private $_uptoFyear = null;
     protected $_gatewayType = null;
     public $_tranId;
+    private $_COMMON_FUNCTION;
 
     /**
      * | Required @param Requests(propertyId as id)
      */
     public function __construct($req)
     {
+        $this->_COMMON_FUNCTION = new \App\Repository\Common\CommonFunction();
         $this->_REQ = $req;
         $this->readGenParams();
     }
@@ -154,7 +157,9 @@ class PostPropPayment
         $this->_propDetails->save();
 
         $this->_REQ['ulbId'] = $this->_propDetails->ulb_id;
-        // $paymentReceiptNo = $this->generatePaymentReceiptNo();
+        $paymentReceiptNo = $this->generatePaymentReceiptNoV2();
+        $this->_REQ['bookNo'] = $paymentReceiptNo["bookNo"];
+        $this->_REQ['receiptNo'] = $paymentReceiptNo["receiptNo"];
         $propTrans = $this->_mPropTrans->postPropTransactions($this->_REQ, $this->_demands, $this->_fromFyear, $this->_uptoFyear);
         $this->_tranId = $propTrans['id'];
         $this->_propTransaction = $propTrans;
@@ -305,6 +310,44 @@ class PostPropPayment
         return [
             'bookNo' => '23TA1',
             'receiptNo' => '01'
+        ];
+    }
+
+    public function generatePaymentReceiptNoV2(): array
+    {
+        $wardDetails = UlbWardMaster::find($this->_propDetails->ward_mstr_id);
+        if (collect($wardDetails)->isEmpty())
+            throw new Exception("Ward Details Not Available");
+
+        $fyear = $this->_uptoFyear;
+        if(!$fyear)
+        {
+            foreach($this->_demands as $val)
+            {
+                if($fyear<$val['fyear'])
+                $fyear=$val['fyear'];
+            }
+        }
+        $wardNo = $wardDetails->ward_name;
+        $counter = (new UlbWardMaster)->getTranCounter($wardDetails->id)->counter??null;
+        $user = Auth()->user();
+        $mUserType = $user->user_type;
+        $type = "O";
+        if($mUserType=="TC")
+        {
+            $type = "T";
+        }
+        elseif($this->_COMMON_FUNCTION->checkUsersWithtocken("users"))
+        {
+            $type = "C";
+        }
+        if(!$counter)
+        {
+            throw new Exception("Unable To Find Counter");
+        }
+        return [
+            'bookNo' => substr($fyear,7,2).$type.$wardNo."-".$counter,
+            'receiptNo' => $counter,
         ];
     }
 }

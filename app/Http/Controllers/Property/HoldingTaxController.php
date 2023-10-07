@@ -501,7 +501,7 @@ class HoldingTaxController extends Controller
             // Transaction is beginning in Prop Payment Class
             $postPropPayment->postPayment();
             DB::commit();
-            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo, 'transactionId' => $postPropPayment->_tranId], "011604", "1.0", responseTime(), "POST", $req->deviceId);
+            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo,'transactionId' => $postPropPayment->_tranId], "011604", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
             return responseMsgs(false, $e->getMessage(), "", "011604", "1.0", "", "POST", $req->deviceId ?? "");
