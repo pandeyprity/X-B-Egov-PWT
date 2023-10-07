@@ -242,7 +242,7 @@ class WaterConsumer extends Controller
                 throw new Exception("Consumer detail not found!");
             }
             $this->checkDemandGeneration($request, $consumerDetails);                                       // unfinished function
-            
+
             # Calling BLL for call
             $returnData = new WaterMonthelyCall($request->consumerId, $request->demandUpto, $request->finalRading); #WaterSecondConsumer::get();
             $calculatedDemand = $returnData->parentFunction($request);
@@ -384,9 +384,7 @@ class WaterConsumer extends Controller
             if ($diffMonth < 4) {
                 throw new Exception("there should be a difference of 4  month!");
             }
-        }
-        else{
-
+        } else {
             // $uptoMonth  = $startDate;
             // $todayMonth = $today;
             // $diffMonth = $startDate->diffInMonths($today);
@@ -394,6 +392,7 @@ class WaterConsumer extends Controller
             //     throw new Exception("there should be a difference of 4  month!");
             // }
         }
+
 
 
         # write the code to check the first meter reading exist and the other 
@@ -2075,17 +2074,19 @@ class WaterConsumer extends Controller
             }
             # meter Details 
             $refMeterData = $mWaterConsumerMeter->getMeterDetailsByConsumerIdV2($refConsumerId)->first();
-            $refMeterData->ref_initial_reading = (float)($refMeterData->ref_initial_reading);
-            switch ($refMeterData['connection_type']) {
-                case (1):
-                    $connectionName = $refConnectionName['1'];
-                    break;
-                case (3):
-                    $connectionName = $refConnectionName['3'];
-                    break;
+            if ($refMeterData) {
+                $refMeterData->ref_initial_reading = (float)($refMeterData->ref_initial_reading);
+                switch ($refMeterData['connection_type']) {
+                    case (1):
+                        $connectionName = $refConnectionName['1'];                                      // Meter 
+                        break;
+                    case (3):
+                        $connectionName = $refConnectionName['3'];                                      // Fixed - Non Meter
+                        break;
+                }
             }
-            $refMeterData['connectionName'] = $connectionName;
-            $refMeterData['ConnectionTypeName'] = $connectionName;
+            $refMeterData['connectionName'] = $connectionName ?? "";
+            $refMeterData['ConnectionTypeName'] = $connectionName ?? "";
             $consumerDemand['meterDetails'] = $refMeterData;
             $returnValues = collect($consumerDetails)->merge($consumerDemand);
             return responseMsgs(true, "Consumer Details!", remove_null($returnValues), "", "01", ".ms", "POST", $req->deviceId);

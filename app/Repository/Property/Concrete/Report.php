@@ -4058,8 +4058,8 @@ class Report implements IReport
                 "total"=> roundFigure(($arear+$current)),
             ];
             $data["headers"] = [
-                "fromDate"=>$fromDate,
-                "uptoDate"=>$toDate,
+                "fromDate"=>Carbon::parse($fromDate)->format('d-m-Y'),
+                "uptoDate"=>Carbon::parse($toDate)->format('d-m-Y'),
                 "fromFyear"=>$fromFyear,
                 "uptoFyear"=>$uptoFyear,
                 "paymentMode"=>$paymentMode? $paymentMode :"All",

@@ -269,63 +269,63 @@
                 <tr>
                     <td class="th"> 12 </td>
                     <td class="th"> &nbsp; State Education Tax </td>
-                    <td class="th">{{($data['overdueDemand']['tax1'])}} </td>
-                    <td class="th"> {{($data['currentDemand']['tax1'])}} </td>
-                    <td class="th"> {{($data['aggregateDemand']['tax1'])}} </td>
+                    <td class="th">{{($data['overdueDemand']['education_tax'])}} </td>
+                    <td class="th"> {{($data['currentDemand']['education_tax'])}} </td>
+                    <td class="th"> {{($data['aggregateDemand']['education_tax'])}} </td>
                 </tr>
                 <tr>
                     <td class="th"> 13 </td>
                     <td class="th"> &nbsp; Water Benefit </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
+                    <td class="th">{{($data['overdueDemand']['water_benefit'])}} </td>
+                    <td class="th"> {{($data['currentDemand']['water_benefit'])}} </td>
+                    <td class="th"> {{($data['aggregateDemand']['water_benefit'])}} </td>
                 </tr>
                 <tr>
                     <td class="th"> 14 </td>
                     <td class="th"> &nbsp; Water Bill </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
+                    <td class="th">{{($data['overdueDemand']['water_bill'])}} </td>
+                    <td class="th"> {{($data['currentDemand']['water_bill'])}} </td>
+                    <td class="th"> {{($data['aggregateDemand']['water_bill'])}} </td>
                 </tr>
                 <tr>
                     <td class="th"> 15 </td>
                     <td class="th"> &nbsp; Sp Water Cess </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
+                    <td class="th">{{($data['overdueDemand']['sp_water_cess'])}} </td>
+                    <td class="th"> {{($data['currentDemand']['sp_water_cess'])}} </td>
+                    <td class="th"> {{($data['aggregateDemand']['sp_water_cess'])}} </td>
                 </tr>
                 <tr>
                     <td class="th"> 16 </td>
                     <td class="th"> &nbsp; Drain Cess</td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
+                    <td class="th">{{($data['overdueDemand']['drain_cess'])}} </td>
+                    <td class="th"> {{($data['currentDemand']['drain_cess'])}} </td>
+                    <td class="th"> {{($data['aggregateDemand']['drain_cess'])}} </td>
                 </tr>
                 <tr>
                     <td class="th"> 17 </td>
                     <td class="th"> &nbsp; Light Cess</td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
+                    <td class="th">{{($data['overdueDemand']['light_cess'])}} </td>
+                    <td class="th"> {{($data['currentDemand']['light_cess'])}} </td>
+                    <td class="th"> {{($data['aggregateDemand']['light_cess'])}} </td>
                 </tr>
 
                 <tr>
                     <td class="th"> 18 </td>
                     <td class="th"> &nbsp; Big Building Tax </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
+                    <td class="th">0.00 </td>
+                    <td class="th"> 0.00 </td>
+                    <td class="th"> 0.00 </td>
                 </tr>
                 <tr>
                     <td class="th"> 19 </td>
                     <td class="th"> &nbsp; Total Tax </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
-                    <td class="th"> 0 </td>
+                    <td class="th">{{($data['overdueDemand']['total_tax'])}} </td>
+                    <td class="th"> {{($data['currentDemand']['total_tax'])}} </td>
+                    <td class="th"> {{($data['aggregateDemand']['total_tax'])}} </td>
                 </tr>
                 <tr style="font-weight: bold;">
                     <td class="th fh" colSpan="4" style="padding: 4px; text-align:left"> Monthly Penalty</td>
-                    <td class="th fh" colSpan="2" style="padding: 4px; "> 0 </td>
+                    <td class="th fh" colSpan="2" style="padding: 4px; ">{{($data['arrearPenalty'])}} </td>
 
                 </tr>
                 <tr style="font-weight: bold;">

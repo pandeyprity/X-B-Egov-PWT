@@ -53,4 +53,15 @@ class TempTransaction extends Model
             ->where('temp_transactions.ulb_id', $ulbId)
             ->orderByDesc('temp_transactions.id');
     }
+
+    /**
+     * | Get Temp Tran by transaction and module id
+     */
+    public function getTempTranByTranId($tranId, $moduleId)
+    {
+        return self::where('transaction_id', $tranId)
+            ->where('module_id', $moduleId)
+            ->where('status', 1)
+            ->first();
+    }
 }
