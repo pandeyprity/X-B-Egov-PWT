@@ -1828,6 +1828,7 @@ class NewConnectionController extends Controller
 
         try {
             $mWaterConsumer = new WaterSecondConsumer();
+            $mWaterConsumerDemand = new WaterConsumerDemand();
             $key            = $request->filterBy;
             $paramenter     = $request->parameter;
             $pages          = $request->pages ?? 10;
@@ -1836,13 +1837,14 @@ class NewConnectionController extends Controller
 
             switch ($key) {
                 case ("consumerNo"):                                                                        // Static
-                    $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
+                    return $waterReturnDetails["data"] = $mWaterConsumerDemand->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
+                    $waterReturnDetails;
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
                 case ("propertyNo"):                                                                             // Static
-                    $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
+                    $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter);
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
