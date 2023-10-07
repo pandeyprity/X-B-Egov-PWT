@@ -1837,8 +1837,7 @@ class NewConnectionController extends Controller
 
             switch ($key) {
                 case ("consumerNo"):                                                                        // Static
-                    return $waterReturnDetails["data"] = $mWaterConsumerDemand->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
-                    $waterReturnDetails;
+                    $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
