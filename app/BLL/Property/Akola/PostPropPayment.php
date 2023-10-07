@@ -157,7 +157,7 @@ class PostPropPayment
         $this->_propDetails->save();
 
         $this->_REQ['ulbId'] = $this->_propDetails->ulb_id;
-        $paymentReceiptNo = $this->generatePaymentReceiptNoV2();return([$paymentReceiptNo]);
+        $paymentReceiptNo = $this->generatePaymentReceiptNoV2();
         $this->_REQ['bookNo'] = $paymentReceiptNo["bookNo"];
         $this->_REQ['receiptNo'] = $paymentReceiptNo["receiptNo"];
         $propTrans = $this->_mPropTrans->postPropTransactions($this->_REQ, $this->_demands, $this->_fromFyear, $this->_uptoFyear);
