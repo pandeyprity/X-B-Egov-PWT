@@ -126,7 +126,8 @@ class GeneratePaymentReceipt
 
             $this->_GRID['arrearPenalty'] = collect($this->_GRID['penaltyRebates'])->where('head_name', 'Monthly Penalty')->first()->amount ?? 0;
             $currentDemand = $demandsList->where('fyear', $currentFyear);
-            $this->_currentDemand = $this->aggregateDemand($currentDemand);
+            $this->_currentDemand = $this->aggregateDemand($currentDemand, true);       // Current Demand true
+            $this->_currentDemand['arrearPenalty'] = 0;
 
             $overdueDemand = $demandsList->where('fyear', '<>', $currentFyear);
             $this->_overDueDemand = $this->aggregateDemand($overdueDemand);
@@ -142,37 +143,82 @@ class GeneratePaymentReceipt
     /**
      * | Aggregate Demand
      */
-    public function aggregateDemand($demandList)
+    public function aggregateDemand($demandList, $isCurrent = false)
     {
-        $aggregate = $demandList->pipe(function ($item) {
+        $aggregate = $demandList->pipe(function ($item) use ($isCurrent) {
             $totalTax = roundFigure($item->sum('total_tax'));
 
-            if ($totalTax > 0)
-                $totalPayableAmt = roundFigure($this->_trans->amount);              // 🔴🔴🔴 Condition Handled in case of other payments Receipt Purpose
+            $generalTax = roundFigure($item->sum('general_tax'));
+            $roadTax = roundFigure($item->sum('road_tax'));
+            $firefightingTax = roundFigure($item->sum('firefighting_tax'));
+            $educationTax = roundFigure($item->sum('education_tax'));
+            $waterTax = roundFigure($item->sum('water_tax'));
+            $cleanlinessTax = roundFigure($item->sum('cleanliness_tax'));
+            $sewarageTax = roundFigure($item->sum('sewarage_tax'));
+            $treeTax = roundFigure($item->sum('tree_tax'));
+            $professionalTax = roundFigure($item->sum('professional_tax'));
+            $adjustAmt = roundFigure($item->sum('adjust_amt'));
+            $tax1 = roundFigure($item->sum('tax1'));
+            $tax2 = roundFigure($item->sum('tax2'));
+            $tax3 = roundFigure($item->sum('tax3'));
+            $spEducation = roundFigure($item->sum('sp_education_tax'));
+            $waterBenefit = roundFigure($item->sum('water_benefit'));
+            $waterBill = roundFigure($item->sum('water_bill'));
+            $spWaterCess = roundFigure($item->sum('sp_water_cess'));
+            $drainCess = roundFigure($item->sum('drain_cess'));
+            $lightCess = roundFigure($item->sum('light_cess'));
+            $majorBuilding = roundFigure($item->sum('major_building'));
+
+            if ($isCurrent == 0)
+                $arrearPenalty = roundFigure($this->_GRID['arrearPenalty']);              // 🔴🔴🔴 Condition Handled in case of other payments Receipt Purpose
             else
-                $totalPayableAmt = $totalTax;
+                $arrearPenalty = roundFigure(0);
+
+            $totalPayableAmt = $generalTax +
+                $roadTax +
+                $firefightingTax +
+                $educationTax +
+                $waterTax +
+                $cleanlinessTax +
+                $sewarageTax +
+                $treeTax +
+                $professionalTax +
+                $adjustAmt +
+                $tax1 +
+                $tax2 +
+                $tax3 +
+                $spEducation +
+                $waterBenefit +
+                $waterBill +
+                $spWaterCess +
+                $drainCess +
+                $lightCess +
+                $majorBuilding + $arrearPenalty;
+
+            $totalPayableAmt = roundFigure($totalPayableAmt);
 
             return [
-                "general_tax" => roundFigure($item->sum('general_tax')),
-                "road_tax" => roundFigure($item->sum('road_tax')),
-                "firefighting_tax" => roundFigure($item->sum('firefighting_tax')),
-                "education_tax" => roundFigure($item->sum('education_tax')),
-                "water_tax" => roundFigure($item->sum('water_tax')),
-                "cleanliness_tax" => roundFigure($item->sum('cleanliness_tax')),
-                "sewarage_tax" => roundFigure($item->sum('sewarage_tax')),
-                "tree_tax" => roundFigure($item->sum('tree_tax')),
-                "professional_tax" => roundFigure($item->sum('professional_tax')),
-                "adjust_amt" => roundFigure($item->sum('adjust_amt')),
-                "tax1" => roundFigure($item->sum('tax1')),
-                "tax2" => roundFigure($item->sum('tax2')),
-                "tax3" => roundFigure($item->sum('tax3')),
-                "sp_education_tax" => roundFigure($item->sum('sp_education_tax')),
-                "water_benefit" => roundFigure($item->sum('water_benefit')),
-                "water_bill" => roundFigure($item->sum('water_bill')),
-                "sp_water_cess" => roundFigure($item->sum('sp_water_cess')),
-                "drain_cess" => roundFigure($item->sum('drain_cess')),
-                "light_cess" => roundFigure($item->sum('light_cess')),
-                "major_building" => roundFigure($item->sum('major_building')),
+                "general_tax" => $generalTax,
+                "road_tax" => $roadTax,
+                "firefighting_tax" => $firefightingTax,
+                "education_tax" => $educationTax,
+                "water_tax" => $waterTax,
+                "cleanliness_tax" => $cleanlinessTax,
+                "sewarage_tax" => $sewarageTax,
+                "tree_tax" => $treeTax,
+                "professional_tax" => $professionalTax,
+                "adjust_amt" => $adjustAmt,
+                "tax1" => $tax1,
+                "tax2" => $tax2,
+                "tax3" => $tax3,
+                "sp_education_tax" => $spEducation,
+                "water_benefit" => $waterBenefit,
+                "water_bill" => $waterBill,
+                "sp_water_cess" => $spWaterCess,
+                "drain_cess" => $drainCess,
+                "light_cess" => $lightCess,
+                "major_building" => $majorBuilding,
+                "arrearPenalty" => $arrearPenalty,
                 "totalPayableAmt" => $totalPayableAmt,
                 "total_tax" => $totalTax,
                 "exceptionUnderSAY" => roundFigure(0),
