@@ -10,6 +10,14 @@ use Illuminate\Http\Request;
 
 class WhatsappReceiptController extends Controller
 {
+
+    /**
+     * | Author - Anshu Kumar
+     * | Date - 06-10-2023 
+     * | Created for the Send Whatsapp Receipt
+     * | Status - Closed
+     */
+
     protected $iSaf;
     private $_holdingTaxController;
 
@@ -19,10 +27,10 @@ class WhatsappReceiptController extends Controller
         $this->_holdingTaxController = new HoldingTaxController($repo);
     }
 
-    public function sendPaymentReceipt($tranNo)
+    public function sendPaymentReceipt($tranId)
     {
         $receiptReq = new Request([
-            'tranNo' => $tranNo
+            'tranId' => $tranId
         ]);
         try {
             $tranDetails = $this->_holdingTaxController->propPaymentReceipt($receiptReq);
@@ -30,6 +38,7 @@ class WhatsappReceiptController extends Controller
             if ($tranDetails->original['status'] == false)
                 throw new Exception($tranDetails->original['message']);
             $data = $tranDetails->original['data'];
+
             return view('property_payment_reciept', ['data' => $data]);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), []);

@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
  * | Created On-18-09-2023 
  * | Created By-Anshu Kumar
  * | Created for handling the Payment for Cheque,Cash,DD, NEFT of Property
+ * | Code - Closed
  */
 class PostPropPayment
 {
