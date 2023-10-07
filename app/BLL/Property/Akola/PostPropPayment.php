@@ -319,6 +319,14 @@ class PostPropPayment
             throw new Exception("Ward Details Not Available");
 
         $fyear = $this->_uptoFyear;
+        if(!$fyear)
+        {
+            foreach($this->_demands as $val)
+            {
+                if($fyear<$val['fyear'])
+                $fyear=$val['fyear'];
+            }
+        }
         $wardNo = $wardDetails->ward_name;
         $counter = (new UlbWardMaster)->getTranCounter($wardDetails->id)->counter??null;
         $user = Auth()->user();
@@ -337,7 +345,7 @@ class PostPropPayment
             throw new Exception("Unable To Find Counter");
         }
         return [
-            'bookNo' => substr($fyear,2,4).$type.$wardNo."-".$counter,
+            'bookNo' => substr($fyear,7,2).$type.$wardNo."-".$counter,
             'receiptNo' => $counter,
         ];
     }
