@@ -578,6 +578,14 @@ class TradeApplication extends Controller
 
     public function approvedButNotPayment(ReqInbox $request)
     {
+        $rules = [
+            "entityValue"   =>  "required",
+            "entityName"    =>  "required",
+        ];
+        $validator = Validator::make($request->all(), $rules,);
+        if ($validator->fails()) {
+            return responseMsg(false, $validator->errors(), "");
+        }
         return $this->_REPOSITORY->approvedButNotPayment($request);
     }
 
