@@ -62,6 +62,7 @@ class PropProperty extends Model
             ->select(
                 'prop_properties.*',
                 DB::raw("REPLACE(prop_properties.holding_type, '_', ' ') AS holding_type"),
+                DB::raw(" CASE WHEN TRIM(applicant_name) <>'' THEN applicant_name ELSE applicant_marathi END AS applicant_name"),
                 'prop_properties.status as active_status',
                 'prop_properties.assessment_type as assessment',
                 'w.ward_name as ward_no',
@@ -645,6 +646,7 @@ class PropProperty extends Model
             'prop_properties.status as active_status',
             'o.mobile_no',
             'o.owner_name',
+            DB::raw("CASE WHEN TRIM(o.owner_name)<>'' THEN o.owner_name ELSE o.owner_name_marathi END AS owner_name"),
             DB::raw("CASE 
                         WHEN 
                                 -- Current Year paid and previous year paid 
