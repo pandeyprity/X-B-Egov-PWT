@@ -6,7 +6,9 @@ use App\EloquentModels\Common\ModelWard;
 use App\Models\Property\PropActiveSaf;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropTransaction;
+use App\Models\Property\ZoneMaster;
 use App\Models\UlbWardMaster;
+use App\Models\User;
 use App\Models\Workflows\WfRole;
 use App\Models\Workflows\WfRoleusermap;
 use App\Models\Workflows\WfWardUser;
@@ -3831,6 +3833,7 @@ class Report implements IReport
             $user = Auth()->user();
             $paymentMode = "";
             $fromDate = $toDate = Carbon::now()->format("Y-m-d");
+            $wardId = $zoneId=$userId=null;
             if ($request->fromDate) {
                 $fromDate = $request->fromDate;
             }
@@ -3839,6 +3842,15 @@ class Report implements IReport
             }
             if ($request->paymentMode) {
                 $paymentMode = $request->paymentMode;
+            }
+            if ($request->wardId) {
+                $wardId = $request->wardId;
+            }
+            if ($request->zoneId) {
+                $zoneId = $request->zoneId;
+            }
+            if ($request->userId) {
+                $userId = $request->userId;
             }
             $fromFyear = getFy($fromDate);
             $uptoFyear = getFy($toDate);
@@ -4001,14 +4013,25 @@ class Report implements IReport
                     sum(case when fyear < '$fromFyear' then COALESCE(light_cess,0)::numeric else 0 end) as arear_light_cess,
                     sum(case when fyear < '$fromFyear' then COALESCE(major_building,0)::numeric else 0 end) as arear_major_building
                 
-                from prop_tran_dtls
+                from prop_tran_dtls                
                 join prop_transactions on prop_transactions.id = prop_tran_dtls.tran_id
+                join (
+                    select prop_properties.id as pid,prop_properties.ward_mstr_id,prop_properties.zone_mstr_id
+                    from prop_properties
+                    join prop_transactions on prop_transactions.property_id = prop_properties.id
+                    where prop_transactions.tran_date between '$fromDate' and '$toDate' 
+                        and prop_transactions.status in(1,2)
+                    group BY prop_properties.id
+                )props on props.pid = prop_transactions.property_id
                 join prop_demands on prop_demands.id = prop_tran_dtls.prop_demand_id
                 where prop_transactions.tran_date between '$fromDate' and '$toDate' 
                     and prop_transactions.status in(1,2)
                     and prop_demands.status =1 
                     and prop_tran_dtls.status =1 
                     ".($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "")."
+                    ".($wardId ? "AND props.ward_mstr_id = $wardId" : "")."
+                    ".($zoneId ? "AND props.zone_mstr_id = $zoneId" : "")."
+                    ".($userId ? "AND prop_transactions.user_id = $userId" : "")."
                 group by prop_transactions.id
                     
             )prop_tran_dtls on prop_tran_dtls.tran_id = prop_transactions.id
@@ -4018,10 +4041,21 @@ class Report implements IReport
                     sum(case when prop_penaltyrebates.is_rebate !=true then COALESCE(prop_penaltyrebates.amount,0) else 0 end) as penalty
                 from prop_penaltyrebates
                 join prop_transactions on prop_transactions.id = prop_penaltyrebates.tran_id
+                join (
+                    select prop_properties.id as pid,prop_properties.ward_mstr_id,prop_properties.zone_mstr_id
+                    from prop_properties
+                    join prop_transactions on prop_transactions.property_id = prop_properties.id
+                    where prop_transactions.tran_date between '$fromDate' and '$toDate' 
+                        and prop_transactions.status in(1,2)
+                    group BY prop_properties.id
+                )props on props.pid = prop_transactions.property_id
                 where prop_transactions.tran_date between '$fromDate' and '$toDate' 
                     and prop_transactions.status in(1,2)
                     and prop_penaltyrebates.status =1 
                     ".($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "" )."
+                    ".($wardId ? "AND props.ward_mstr_id = $wardId" : "")."
+                    ".($zoneId ? "AND props.zone_mstr_id = $zoneId" : "")."
+                    ".($userId ? "AND prop_transactions.user_id = $userId" : "")."
                 group by prop_transactions.id
             )fine_rebet on fine_rebet.tran_id = prop_transactions.id
             where prop_transactions.tran_date between '$fromDate' and '$toDate' 
@@ -4040,6 +4074,8 @@ class Report implements IReport
             });            
             $arear = 0;
             $current = 0;
+            $penalty = $report->penalty;
+            $rebate  = $report->rebadet;
             $currentPattern = "/current_/i";
             $arrearPattern = "/arear_/i";
             foreach($report as $key=>$val){
@@ -4052,6 +4088,8 @@ class Report implements IReport
                     $arear+=($val?$val:0);
                 }
             };
+            $arear = $arear+$penalty;
+            $current = $current-$rebate;
             $data["total"] = [
                 "arear"=> roundFigure($arear),
                 "current"=> roundFigure($current),
@@ -4062,6 +4100,9 @@ class Report implements IReport
                 "uptoDate"=>Carbon::parse($toDate)->format('d-m-Y'),
                 "fromFyear"=>$fromFyear,
                 "uptoFyear"=>$uptoFyear,
+                "tcName"=>$userId? User::find($userId)->name??"":"All",
+                "WardName"=>$wardId? ulbWardMaster::find($wardId)->ward_name??"":"All",
+                "zoneName"=>$zoneId? (new ZoneMaster)->createZoneName($zoneId)??"":"East/Weast/North/South",
                 "paymentMode"=>$paymentMode? $paymentMode :"All",
                 "printDate"=>Carbon::now()->format('d-m-Y H:i:s A'),
                 "printedBy"=>$user->name??"",

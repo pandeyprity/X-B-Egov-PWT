@@ -7,6 +7,7 @@ use App\BLL\Payment\PineLabPayment;
 use App\BLL\Property\Akola\Calculate2PercPenalty;
 use App\BLL\Property\Akola\GeneratePaymentReceipt;
 use App\BLL\Property\Akola\PostPropPayment;
+use App\BLL\Property\Akola\PostPropPaymentV2;
 use App\BLL\Property\Akola\RevCalculateByAmt;
 use App\BLL\Property\PaymentReceiptHelper;
 use App\BLL\Property\PostRazorPayPenaltyRebate;
@@ -487,6 +488,7 @@ class HoldingTaxController extends Controller
             ], 401);
         }
         $postPropPayment = new PostPropPayment($req);
+        // $postPropPayment = new PostPropPaymentV2($req);
         $propCalReq = new Request([                                                 // Request from payment
             'propId' => $req['id'],
             'isArrear' => $req['isArrear'] ?? null
@@ -501,7 +503,7 @@ class HoldingTaxController extends Controller
             // Transaction is beginning in Prop Payment Class
             $postPropPayment->postPayment();
             DB::commit();
-            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo,'transactionId' => $postPropPayment->_tranId], "011604", "1.0", responseTime(), "POST", $req->deviceId);
+            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo, 'transactionId' => $postPropPayment->_tranId], "011604", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             DB::rollBack();
             return responseMsgs(false, $e->getMessage(), "", "011604", "1.0", "", "POST", $req->deviceId ?? "");

@@ -2558,6 +2558,50 @@ class Trade implements ITrade
                 });
             }
 
+            if (isset($mInputs['entityValue']) && trim($mInputs['entityValue']) && isset($mInputs['entityName']) && trim($mInputs['entityName'])) {
+                $key = trim($mInputs['entityValue']);
+                $column = strtoupper(trim($mInputs['entityName']));
+                $ApprovedLicence = $ApprovedLicence->where(function ($query) use ($key, $column) {
+                    if ($column == "FIRM") {
+                        $query->orwhere('licences.firm_name', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "APPLICATION") {
+                        $query->orwhere('licences.application_no', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "LICENSE") {
+                        $query->orwhere('licences.license_no', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "PROVISIONAL") {
+                        $query->orwhere('licences.provisional_license_no', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "OWNER") {
+                        $query->orwhere('owner.owner_name', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "GUARDIAN") {
+                        $query->orwhere('owner.guardian_name', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "MOBILE") {
+                        $query->orwhere('owner.mobile_no', 'ILIKE', '%' . $key . '%');
+                    } else {
+                        $query->orwhere('licences.application_no', 'ILIKE', '%' . $key . '%');
+                    }
+                });
+
+                $ActiveLicence = $ActiveLicence->where(function ($query) use ($key, $column) {
+                    if ($column == "FIRM") {
+                        $query->orwhere('licences.firm_name', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "APPLICATION") {
+                        $query->orwhere('licences.application_no', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "LICENSE") {
+                        $query->orwhere('licences.license_no', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "PROVISIONAL") {
+                        $query->orwhere('licences.provisional_license_no', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "OWNER") {
+                        $query->orwhere('owner.owner_name', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "GUARDIAN") {
+                        $query->orwhere('owner.guardian_name', 'ILIKE', '%' . $key . '%');
+                    } elseif ($column == "MOBILE") {
+                        $query->orwhere('owner.mobile_no', 'ILIKE', '%' . $key . '%');
+                    } else {
+                        $query->orwhere('licences.application_no', 'ILIKE', '%' . $key . '%');
+                    }
+                });
+            }
+
             if ($request->wardNo && $request->wardNo != "ALL") {
                 $mWardIds = [$request->wardNo];
             }
