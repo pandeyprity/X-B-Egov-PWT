@@ -25,7 +25,7 @@ Route::get('/whatsappTest', [\App\Http\Controllers\Notice\NoticeController::clas
 // Laravel Logging
 Route::get('logs', [\Rap2hpoutre\LaravelLogViewer\LogViewerController::class, 'index']);
 
-Route::get('/water-pdf', [\App\Http\Controllers\Water\WaterPaymentController::class, 'v2']);
+Route::get('/water-pdf', [\App\Http\Controllers\Water\WaterPaymentController::class, 'whatsAppSend']);
 
 // Route::get('property/payment-receipt', function () {
 //     return view('property_payment_reciept');

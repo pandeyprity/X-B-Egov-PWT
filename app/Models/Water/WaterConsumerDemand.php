@@ -336,5 +336,20 @@ class WaterConsumerDemand extends Model
             ->orderByDesc('water_consumer_demands.id');
         // ->where('users.user_type', 'TC');
     }
-    
+
+    /**
+     * | Get Consumer Demand 
+     *   and demand date 
+     * | @param ConsumerId
+     */
+    public function getConsumerDetailById($consumerId)
+    {
+        // Execute the query and select the columns
+        return  WaterConsumerDemand::select(
+            'water_consumer_demands.demand_from',
+            'water_consumer_demands.demand_upto'
+        )
+            ->where('consumer_id', $consumerId)
+            ->where('paid_status', 1);
+    }
 }

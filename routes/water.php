@@ -113,6 +113,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         # for grievance
         Route::post('grievance/get-user-transactions', 'getUserTransactions');
         Route::post('application/citizen-application-list', 'getCitizenApplicationList');
+
+        # test api
+        Route::post('testv2', 'testv2');
     });
 
     /**
@@ -180,7 +183,6 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('report/water-transaction', 'getTransactionDetail');
         Route::post('report/tc-visit-report', 'tCvisitReport');
         Route::post('report/total-water-consumer', 'totalConsumerType');
-
     });
 
 

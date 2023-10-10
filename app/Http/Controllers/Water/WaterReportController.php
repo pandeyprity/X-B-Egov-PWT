@@ -1246,8 +1246,8 @@ class WaterReportController extends Controller
             $previousUptoDate = $refDate['uptoDate'];
 
             #curent year demands 
-            $demand                 = $mWaterConsumerDemand->getAllDemand($fromDate, $uptoDate,$wardId)->get();
-            $previousDemand         = $mWaterConsumerDemand->previousDemand($previousFromDate, $previousUptoDate,$wardId)->get();
+            $demand                 = $mWaterConsumerDemand->getAllDemand($fromDate, $uptoDate, $wardId)->get();
+            $previousDemand         = $mWaterConsumerDemand->previousDemand($previousFromDate, $previousUptoDate, $wardId)->get();
 
             $totalCurrentDemands    = round($demand->sum('amount'), 2);  // Format the sum to two decimal places
             $balanceAmount          = round($demand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal places
@@ -1343,7 +1343,7 @@ class WaterReportController extends Controller
             [
                 "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
                 "wardId" => "nullable|int"
-                
+
             ]
         );
         if ($validated->fails())
@@ -1358,7 +1358,7 @@ class WaterReportController extends Controller
             $refDate        = $this->getFyearDate($currentFyear);
             $fromDate       = $refDate['fromDate'];
             $uptoDate       = $refDate['uptoDate'];
-            $transaction    = $mWaterTrans->getWaterReport($fromDate, $uptoDate,$wardId)->get();
+            $transaction    = $mWaterTrans->getWaterReport($fromDate, $uptoDate, $wardId)->get();
 
             # For Payment Mode 
             $cash   = $transaction->where('payment_mode', 'Cash');
@@ -1376,7 +1376,7 @@ class WaterReportController extends Controller
                 'totaAmountCash'    => $cash->sum('amount'),
                 'totalAmountCheque' => $cheque->sum('amount'),
                 'waterAmountOnline' => $online->sum('amount'),
-                ' '     => $DD->sum('amount'),
+                'totalAmountDd'     => $DD->sum('amount'),
                 'totalAmuntNeft'    => $Neft->sum('amount'),
             ];
             $returnData["collectionSummery"]["toatalCollection"] = $returnData["collectionSummery"]["totaAmountCash"]
@@ -1524,7 +1524,7 @@ class WaterReportController extends Controller
             $wardId  = $request->wardId;
             $zoneId    = $request->zone;
             return $getConsumer = $mWaterSecondConsumer->totalConsumerType($wardId, $zoneId)->get();
-            
+
 
 
             // return responseMsgs(true, "total consumer type", remove_null($waterReturnDetails), "", "", "", 'POST', "");
