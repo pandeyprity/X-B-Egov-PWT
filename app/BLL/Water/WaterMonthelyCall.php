@@ -6,6 +6,7 @@ use App\Models\Water\WaterApplication;
 use App\Models\Water\WaterConsumer;
 use App\Models\Water\WaterConsumerDemand;
 use App\Models\Water\WaterConsumerInitialMeter;
+use App\Models\Water\WaterConsumerMeter;
 use App\Models\Water\WaterParamDemandCharge;
 use App\Models\Water\WaterParamFreeUnit;
 use App\Models\Water\WaterSecondConsumer;
@@ -44,6 +45,8 @@ class WaterMonthelyCall
     private $_consumerLastMeterReding;
     private $_catagoryType;
     private $_meterStatus;
+    private $_mWaterConsumerMeter;
+    private $_consuemrMeterDetails;
     # Class cons
     public function __construct(int $consumerId, $toDate, $unitConsumed)
     {
@@ -57,6 +60,7 @@ class WaterMonthelyCall
         $this->_mWaterParamFreeUnit     = new WaterParamFreeUnit();
         $this->_mWaterConsumerDemand    = new WaterConsumerDemand();
         $this->_mWaterConsumerInitialMeter = new WaterConsumerInitialMeter();
+        $this->_mWaterConsumerMeter     = new WaterConsumerMeter();
     }
 
 
@@ -103,11 +107,13 @@ class WaterMonthelyCall
         $this->_consumerFeeUnits        = $this->_mWaterParamFreeUnit->getFeeUnits($chargesParams);
         $this->_consumerLastDemand      = $this->_mWaterConsumerDemand->akolaCheckConsumerDemand($this->_consumerId)->first();
         $this->_consumerLastMeterReding = $this->_mWaterConsumerInitialMeter->getmeterReadingAndDetails($this->_consumerId)->orderByDesc('id')->first();
+        $this->_consuemrMeterDetails    = $this->_mWaterConsumerMeter->getMeterDetailsByConsumerId($this->_consumerId)->firest();
     }
 
     /**
      * | Consumer calculation 
      * | Checking the params before calculation
+        | Check the meter status for meter and non meter  
      */
     public function monthelyDemandCall()
     {
@@ -139,13 +145,17 @@ class WaterMonthelyCall
                 throw new Exception("demand is generated till $lastDemandDate!");
             }
         }
-        if ($this->_consuemrDetails->is_meter_working == 1) {
+        # ❗❗ Check the connection type for the consumer ❗❗
+        if (!$this->_consuemrMeterDetails) {
+            throw new Exception("update Connection detials!");
+        }
+        if ($this->_consuemrMeterDetails->connection_type == 1) {
             $this->_meterStatus = "Meter";                                                                                          // Static
             if ($this->_unitConsumed < ($this->_consumerLastMeterReding->initial_reading ?? 0)) {                                   // Static
                 throw new Exception("finalRading should be grater than previous reading!");
             }
         }
-        if ($this->_consuemrDetails->is_meter_working == 0) {
+        if ($this->_consuemrMeterDetails->connection_type == 3) {
             $this->_meterStatus = "Fixed";                                                                                          // Static
         }
     }
@@ -330,11 +340,11 @@ class WaterMonthelyCall
                 }
                 break;
 
-            case ("Fixed"):                                                                 // Static
+            case ("Fixed"):                                                                         // Static
                 if ($this->_consumerLastDemand) {
                     $monthsArray        = [];
                     $endDate            = Carbon::parse($this->_now->copy())->endOfMonth();
-                    $startDate          = ((Carbon::parse("2023-08-31"))->firstOfMonth())->addMonth(); //$this->_consumerLastDemand->demand_from
+                    $startDate          = ((Carbon::parse($this->_consumerLastDemand->demand_from))->firstOfMonth())->addMonth();
 
                     # get all the month between dates
                     $currentDate = $startDate->copy();
@@ -346,7 +356,7 @@ class WaterMonthelyCall
                     # demand generation
                     $returnData = collect($monthsArray)->map(function ($values, $key) {
                         $lastDateOfMonth = Carbon::parse($values)->endOfMonth();
-                        $amount = $this->_consumerCharges->amount;                                      // look over here
+                        $amount = $this->_consumerCharges->amount;                                  // look over here
                         return [
                             "generation_date"       => $this->_now,
                             "amount"                => $amount,

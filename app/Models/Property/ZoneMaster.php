@@ -15,4 +15,22 @@ class ZoneMaster extends Model
             ->where('status', 1)
             ->get();
     }
+    public function createZoneName($zoneId)
+    {
+        $name="";
+        switch($zoneId)
+        {
+            case(1) : $name="East";
+                      break;
+            case(2): $name="Weast";
+                      break;
+            case(3): $name="North";
+                      break;
+            case(4): $name="South";
+                      break;
+        }
+        return $name;
+        
+        
+    }
 }

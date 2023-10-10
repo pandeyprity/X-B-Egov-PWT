@@ -19,12 +19,12 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 /**
- * | Created On-18-09-2023 
- * | Created By-Anshu Kumar
- * | Created for handling the Payment for Cheque,Cash,DD, NEFT of Property
+ * | Created On-07-10-2023 
+ * | Created By-Anshu Kumar 
+ * | Created for handling the Payment for Cheque,Cash,DD, NEFT of Property and Part Payment Integration
  * | Code - Closed
  */
-class PostPropPayment
+class PostPropPaymentV2
 {
     public $_REQ;
     public $_propCalculation;
@@ -160,6 +160,21 @@ class PostPropPayment
         $paymentReceiptNo = $this->generatePaymentReceiptNoV2();
         $this->_REQ['bookNo'] = $paymentReceiptNo["bookNo"];
         $this->_REQ['receiptNo'] = $paymentReceiptNo["receiptNo"];
+
+        // Part Payment
+        if ($this->_REQ->paidAmount < $this->_propCalculation->original['data']['payableAmt']) {   // Adjust Demand on Part Payment
+
+            if ($this->_REQ->paidAmount > $this->_propCalculation->original['data']['arrearPayableAmt']) {          // We have to adjust current demand
+                $adjustableAmount = $this->_propCalculation->original['data']['payableAmt'] - $this->_REQ->paidAmount;
+                return $this->currentAdjust();
+                return (["This is Current Demand Adjustment Amount $adjustableAmount"]);
+            }
+
+            return (["This is the part payment"]);
+        }
+
+        return (["Full Payment"]);
+
         $propTrans = $this->_mPropTrans->postPropTransactions($this->_REQ, $this->_demands, $this->_fromFyear, $this->_uptoFyear);
         $this->_tranId = $propTrans['id'];
         $this->_propTransaction = $propTrans;
@@ -345,6 +360,93 @@ class PostPropPayment
         return [
             'bookNo' => substr($fyear, 7, 2) . $type . $wardNo . "-" . $counter,
             'receiptNo' => $counter,
+        ];
+    }
+
+    public function penaltyAdjust()
+    {
+    }
+    public function arrearAdjust()
+    {
+    }
+    public function currentAdjust()
+    {
+        $currentTax = $this->_propCalculation->original['data']["demandList"]->where("fyear", getFY());
+        $totaTax = $currentTax->sum("total_tax");
+        $perPecOfTax =  $totaTax / 100;
+
+        $generalTaxPerc = ($currentTax->sum('general_tax') / $totaTax) * 100;
+        $roadTaxPerc = ($currentTax->sum('road_tax') / $totaTax) * 100;
+        $firefightingTaxPerc = ($currentTax->sum('firefighting_tax') / $totaTax) * 100;
+        $educationTaxPerc = ($currentTax->sum('education_tax') / $totaTax) * 100;
+        $waterTaxPerc = ($currentTax->sum('water_tax') / $totaTax) * 100;
+        $cleanlinessTaxPerc = ($currentTax->sum('cleanliness_tax') / $totaTax) * 100;
+        $sewarageTaxPerc = ($currentTax->sum('sewarage_tax') / $totaTax) * 100;
+        $treeTaxPerc = ($currentTax->sum('tree_tax') / $totaTax) * 100;
+        $professionalTaxPerc = ($currentTax->sum('professional_tax') / $totaTax) * 100;
+        $tax1Perc = ($currentTax->sum('tax1') / $totaTax) * 100;
+        $tax2Perc = ($currentTax->sum('tax2') / $totaTax) * 100;
+        $tax3Perc = ($currentTax->sum('tax3') / $totaTax) * 100;
+        $stateEducationTaxPerc = ($currentTax->sum('state_education_tax') / $totaTax) * 100;
+        $waterBenefitPerc = ($currentTax->sum('water_benefit') / $totaTax) * 100;
+        $waterBillPerc = ($currentTax->sum('water_bill') / $totaTax) * 100;
+        $spWaterCessPerc = ($currentTax->sum('sp_water_cess') / $totaTax) * 100;
+        $drainCessPerc = ($currentTax->sum('drain_cess') / $totaTax) * 100;
+        $lightCessPerc = ($currentTax->sum('light_cess') / $totaTax) * 100;
+        $majorBuildingPerc = ($currentTax->sum('major_building') / $totaTax) * 100;
+
+        $totalPerc = $generalTaxPerc + $roadTaxPerc + $firefightingTaxPerc + $educationTaxPerc +
+            $waterTaxPerc + $cleanlinessTaxPerc + $sewarageTaxPerc + $treeTaxPerc
+            + $professionalTaxPerc + $tax1Perc + $tax2Perc + $tax3Perc
+            + $stateEducationTaxPerc + $waterBenefitPerc + $waterBillPerc +
+            $spWaterCessPerc + $drainCessPerc + $lightCessPerc + $majorBuildingPerc;
+
+        $taxBifurcation = [
+            'generalTaxPerc' => $generalTaxPerc,
+            'roadTaxPerc' => $roadTaxPerc,
+            'firefightingTaxPerc' => $firefightingTaxPerc,
+            'educationTaxPerc' => $educationTaxPerc,
+            'waterTaxPerc' => $waterTaxPerc,
+            'cleanlinessTaxPerc' => $cleanlinessTaxPerc,
+            'sewarageTaxPerc' => $sewarageTaxPerc,
+            'treeTaxPerc' => $treeTaxPerc,
+            'professionalTaxPerc' => $professionalTaxPerc,
+            'tax1Perc' => $tax1Perc,
+            'tax2Perc' => $tax2Perc,
+            'tax3Perc' => $tax3Perc,
+            'stateEducationTaxPerc' => $stateEducationTaxPerc,
+            'waterBenefitPerc' => $waterBenefitPerc,
+            'waterBillPerc' => $waterBillPerc,
+            'spWaterCessPerc' => $spWaterCessPerc,
+            'drainCessPerc' => $drainCessPerc,
+            'lightCessPerc' => $lightCessPerc,
+            'majorBuildingPerc' => $majorBuildingPerc,
+            'totalTax' => $totaTax,
+            'percTax' => $perPecOfTax,
+            'totalPerc' => $totalPerc
+        ];
+
+        $paidTaxesBifurcation = [
+            'generalTax' => $this->_REQ->paidAmount * $generalTaxPerc,
+            'roadTax' => $this->_REQ->paidAmount * $roadTaxPerc,
+            'firefightingTax' => $this->_REQ->paidAmount * $firefightingTaxPerc,
+            'educationTax' => $this->_REQ->paidAmount * $educationTaxPerc,
+            'waterTax' => $this->_REQ->paidAmount * $waterTaxPerc,
+            'cleanlinessTax' => $this->_REQ->paidAmount * $cleanlinessTaxPerc,
+            'sewarageTax' => $this->_REQ->paidAmount * $sewarageTaxPerc,
+            'treeTax' => $this->_REQ->paidAmount * $treeTaxPerc,
+            'professionalTax' => $this->_REQ->paidAmount * $professionalTaxPerc,
+            'tax1' => $this->_REQ->paidAmount * $tax1Perc,
+            'tax2' => $this->_REQ->paidAmount * $tax2Perc,
+            'tax3' => $this->_REQ->paidAmount * $tax3Perc,
+            'stateEducationTax' => $this->_REQ->paidAmount * $generalTaxPerc,
+            'waterBenefit' => $this->_REQ->paidAmount * $generalTaxPerc,
+            'waterBill' => $this->_REQ->paidAmount * $generalTaxPerc,
+            'spWaterCess' => $this->_REQ->paidAmount * $generalTaxPerc,
+            'drainCess' => $this->_REQ->paidAmount * $generalTaxPerc,
+            'lightCess' => $this->_REQ->paidAmount * $generalTaxPerc,
+            'majorBuilding' => $this->_REQ->paidAmount * $generalTaxPerc,
+            'totalTax' => $this->_REQ->paidAmount * $generalTaxPerc,
         ];
     }
 }

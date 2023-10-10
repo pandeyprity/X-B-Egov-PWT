@@ -40,22 +40,22 @@ class PaymentController extends Controller
         $this->_safRepo = $safRepo;
     }
 
-    // Generation of Referal url for payment for Testing
+    // Generation of Referal url for payment for Testing for ICICI payent gateway
     public function getReferalUrl(Request $req)
     {
-        $getRefUrl = new GetRefUrl;
-        $mIciciPaymentReq = new IciciPaymentReq();
+        $getRefUrl          = new GetRefUrl;
+        $mIciciPaymentReq   = new IciciPaymentReq();
         try {
             $url = $getRefUrl->generateRefUrl();
             $paymentReq = [
-                "user_id" => $req->userId,
-                "workflow_id" => $req->workflowId,
-                "req_ref_no" => $getRefUrl->_refNo,
-                "amount" => $req->amount,
-                "application_id" => $req->applicationId,
-                "module_id" => $req->moduleId,
-                "ulb_id" => $req->ulbId,
-                "referal_url" => $url['encryptUrl']
+                "user_id"           => $req->userId,
+                "workflow_id"       => $req->workflowId,
+                "req_ref_no"        => $getRefUrl->_refNo,
+                "amount"            => $req->amount,
+                "application_id"    => $req->applicationId,
+                "module_id"         => $req->moduleId,
+                "ulb_id"            => $req->ulbId,
+                "referal_url"       => $url['encryptUrl']
             ];
             $mIciciPaymentReq->create($paymentReq);
             return responseMsgs(true,  ["plainUrl" => $url['plainUrl'], "req_ref_no" => $getRefUrl->_refNo], $url['encryptUrl']);
@@ -87,11 +87,11 @@ class PaymentController extends Controller
                 DB::connection('pgsql_master')->beginTransaction();
                 $paymentReqsData->update($updReqs);                 // Table Updation
                 $resPayReqs = [
-                    "payment_req_id" => $paymentReqsData->id,
-                    "req_ref_id" => $reqRefNo,
-                    "res_ref_id" => $resRefNo,
-                    "icici_signature" => $req->signature,
-                    "payment_status" => 1
+                    "payment_req_id"    => $paymentReqsData->id,
+                    "req_ref_id"        => $reqRefNo,
+                    "res_ref_id"        => $resRefNo,
+                    "icici_signature"   => $req->signature,
+                    "payment_status"    => 1
                 ];
                 $mIciciPaymentRes->create($resPayReqs);             // Response Data 
             }
