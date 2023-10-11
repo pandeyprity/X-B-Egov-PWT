@@ -74,6 +74,74 @@ class PropDemand extends Model
             ->get();
     }
 
+
+    /**
+     * | Get Property Dues Demand by Property Id
+     */
+    public function getDueDemandByPropIdV2($propId)
+    {
+        return PropDemand::select(
+            'id',
+            'property_id',
+            "alv",
+            "maintanance_amt",
+            "aging_amt",
+            "general_tax",
+            "road_tax",
+            "firefighting_tax",
+            "education_tax",
+            "water_tax",
+            "cleanliness_tax",
+            "sewarage_tax",
+            "tree_tax",
+            "professional_tax",
+            "total_tax",
+            "balance",
+            "paid_status",
+            "fyear",
+            "adjust_type",
+            "adjust_amt",
+            "tax1",
+            "tax2",
+            "tax3",
+            "sp_education_tax as state_education_tax",
+            "water_benefit",
+            "water_bill",
+            "sp_water_cess",
+            "drain_cess",
+            "light_cess",
+            "major_building",
+            "is_full_paid",
+
+            "paid_general_tax",
+            "paid_road_tax",
+            "paid_firefighting_tax",
+            "paid_education_tax",
+            "paid_water_tax",
+            "paid_cleanliness_tax",
+            "paid_sewarage_tax",
+            "paid_tree_tax",
+            "paid_professional_tax",
+            "paid_total_tax",
+            "paid_tax1",
+            "paid_tax2",
+            "paid_tax3",
+            "paid_sp_education_tax as paid_state_education_tax",
+            "paid_water_benefit",
+            "paid_water_bill",
+            "paid_sp_water_cess",
+            "paid_drain_cess",
+            "paid_light_cess",
+            "paid_major_building",
+        )
+            ->where('property_id', $propId)
+            ->where('paid_status', 0)
+            ->orWhere('is_full_paid', false)
+            ->where('status', 1)
+            ->orderByDesc('fyear')
+            ->get();
+    }
+
     /**
      * | Get Property Demand by Property ID
      */

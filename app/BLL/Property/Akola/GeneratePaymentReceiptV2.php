@@ -17,12 +17,12 @@ use Illuminate\Support\Facades\Config;
 
 /**
  * | Author -Anshu Kumar
- * | Created On-09-09-2023 
- * | Created for - Payment Receipt for SAF Payment and Property Payment
+ * | Created On-11-10-2023 
+ * | Created for - Payment Receipt for SAF Payment and Property Payment Version 2
  * | Status-Closed
  */
 
-class GeneratePaymentReceipt
+class GeneratePaymentReceiptV2
 {
     private $_mPropProperty;
     private $_mPropTransaction;
@@ -115,6 +115,32 @@ class GeneratePaymentReceipt
             if ($this->_tranType == 'Property') {                                   // Get Property Demands by demand ids
                 $demandIds = collect($tranDtls)->pluck('prop_demand_id')->toArray();
                 $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
+                foreach ($demandsList as $list) {
+                    if ($list->is_full_paid == false) {                             // In Case of Part Payment Get the Paid demand by transaction paid Amount
+                        $paidTranDemands = collect($tranDtls)->where('prop_demand_id', $list->id)->first();
+                        $list->general_tax = $paidTranDemands->paid_general_tax;
+                        $list->road_tax = $paidTranDemands->paid_road_tax;
+                        $list->firefighting_tax = $paidTranDemands->paid_firefighting_tax;
+                        $list->education_tax = $paidTranDemands->paid_education_tax;
+                        $list->water_tax = $paidTranDemands->paid_water_tax;
+                        $list->cleanliness_tax = $paidTranDemands->paid_cleanliness_tax;
+                        $list->sewarage_tax = $paidTranDemands->paid_sewarage_tax;
+                        $list->tree_tax = $paidTranDemands->paid_tree_tax;
+                        $list->professional_tax = $paidTranDemands->paid_professional_tax;
+                        $list->total_tax = $paidTranDemands->paid_total_tax;
+                        $list->balance = $paidTranDemands->paid_balance;
+                        $list->tax1 = $paidTranDemands->paid_tax1;
+                        $list->tax2 = $paidTranDemands->paid_tax2;
+                        $list->tax3 = $paidTranDemands->paid_tax3;
+                        $list->sp_education_tax = $paidTranDemands->paid_sp_education_tax;
+                        $list->water_benefit = $paidTranDemands->paid_water_benefit;
+                        $list->water_bill = $paidTranDemands->paid_water_bill;
+                        $list->sp_water_cess = $paidTranDemands->paid_sp_water_cess;
+                        $list->drain_cess = $paidTranDemands->paid_drain_cess;
+                        $list->light_cess = $paidTranDemands->paid_light_cess;
+                        $list->major_building = $paidTranDemands->paid_major_building;
+                    }
+                }
                 $this->_GRID['penaltyRebates'] = $this->_mPropPenaltyRebates->getPenaltyRebatesHeads($trans->id, "Property");
             }
 

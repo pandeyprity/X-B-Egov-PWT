@@ -206,13 +206,13 @@ class PostPropPaymentV2
 
         // Part Payment
         if ($this->_REQ->isPartPayment && $this->_REQ->paidAmount < $this->_propCalculation->original['data']['payableAmt']) {                    // Adjust Demand on Part Payment
-
+            $this->_REQ->merge(['amount' => $this->_REQ->paidAmount]);
             if ($this->_REQ->paidAmount > $this->_propCalculation->original['data']['arrearPayableAmt']) {          // We have to adjust current demand
                 // $adjustableAmount = $this->_propCalculation->original['data']['payableAmt'] - $this->_REQ->paidAmount;
                 $this->currentDemandAdjust();
                 // return (["This is Current Demand Adjustment Amount $adjustableAmount"]);
-            }
-
+            } else
+                throw new Exception("Part Payment in Arrear Not Available");
             // return (["This is the part payment"]);
         }
 

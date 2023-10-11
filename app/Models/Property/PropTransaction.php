@@ -199,6 +199,7 @@ class PropTransaction extends Model
         $propTrans->verify_status = $req['verifyStatus'];
         $propTrans->arrear_settled_amt = $req['arrearSettledAmt'];
         $propTrans->is_arrear_settled = $req['isArrearSettled'];
+        $propTrans->book_no = $req['bookNo'] ?? null;
         $propTrans->save();
 
         return [
