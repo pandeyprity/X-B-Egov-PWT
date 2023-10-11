@@ -265,8 +265,8 @@ class WaterPaymentController extends Controller
             $transactions           = array();
 
             # consumer Details
-            $waterDtls = $mWaterConsumer->getConsumerDetailById($request->consumerId);
-            if (!$waterDtls)
+            $demandDetails = $mWaterConsumerDemand->getConsumerDetailById($request->consumerId)->get();
+            if (!$demandDetails)
                 throw new Exception("Water Consumer Not Found!");
 
             # if demand transactions exist
@@ -274,21 +274,7 @@ class WaterPaymentController extends Controller
             $connectionTran = collect($connectionTran)->sortByDesc('id')->values();
             if (!$connectionTran->first() || is_null($connectionTran))
                 throw new Exception("Water Application's Transaction Details not Found!!");
-
-            # Application transactions
-            // $waterTrans = $mWaterTran->getTransNo($request->consumerId, NULL)->get();         // Water Consumer Payment History
-            // $waterTrans = collect($waterTrans)->map(function ($value) use ($mWaterConsumerDemand, $mWaterTranDetail) {
-            //     $demandId = $mWaterTranDetail->getDetailByTranId($value['id']);
-            //     if ($demandId->first()) {
-            //         $demandIds = ($demandId->pluck('demand_id'))->toArray();
-            //         $value['demand'] = $mWaterConsumerDemand->getDemandBydemandId($demandIds)->get();
-            //         return $value;
-            //     }
-            //     $value['demand'] = [];
-            //     return $value;
-            // })->filter()->values();
             $transactions['Consumer'] = $connectionTran;
-            // $transactions['connection'] = $waterTrans;
 
             return responseMsgs(true, "", remove_null($transactions), "", "01", "ms", "POST", $request->deviceId ?? "");
         } catch (Exception $e) {
@@ -1640,7 +1626,7 @@ class WaterPaymentController extends Controller
             $fixedUpto = $consumerTaxes->where("connection_type", "Fixed")                      // Static
                 ->max("demand_upto");
 
-            $returnValues = [
+            return  $returnValues = [
                 "departmentSection"     => $mDepartmentSection,
                 "accountDescription"    => $mAccDescription,
                 "transactionDate"       => $transactionDetails['tran_date'],
@@ -1652,6 +1638,7 @@ class WaterPaymentController extends Controller
                 "paidFrom"              => $startingDate->format('Y-m-d'),
                 "paidUpto"              => $endingDate->format('Y-m-d'),
                 "holdingNo"             => $consumerDetails['holding_no'],
+                "propertyNo"            => $consumerDetails['property_no'],
                 "safNo"                 => $consumerDetails['saf_no'],
                 "paymentMode"           => $transactionDetails['payment_mode'],
                 "bankName"              => $chequeDetails['bank_name']   ?? null,                                    // in case of cheque,dd,nfts
@@ -1683,31 +1670,9 @@ class WaterPaymentController extends Controller
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
 
             ];
-            # Watsapp pdf sending
-            $transactionNo = $returnValues['transactionNo'];
-            $filename = $transactionNo . '.pdf';
-            $url = "Uploads/water/payment/" . $filename;
-            if (Storage::exists('public/' . $url)) {
-                $pdf = Storage::get('public/' . $url);
-            } else {
-                $pdf = PDF::loadView('water_consumer_payment', $returnValues);
-                $file = $pdf->download($filename);
-                Storage::put('public/' . $url, $file);
-            }
-
-            $whatsapp2 = Whatsapp_Send(
-                $returnValues['customerMobile'],
-                "file_test",
-                [
-                    "content_type" => "pdf",
-                    [
-                        "link" => config('app.url') . "/getImageLink?path=" . $url,
-                        "filename" => "TEST_PDF" . ".pdf"
-                    ]
-                ]
-            );
-
-            return responseMsgs(true, "Payment Receipt", remove_null($returnValues, $whatsapp2), "", "1.0", "", "POST", $req->deviceId ?? "");
+            # sending pdf of demand rerceipt via whatsapp
+            //   $this->whatsAppSend($returnValues);
+            return responseMsgs(true, "Payment Receipt", remove_null($returnValues), "", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
@@ -2443,19 +2408,16 @@ class WaterPaymentController extends Controller
             return responseMsgs(false, $e->getMessage(), [], "", "03", responseTime(), $request->getMethod(), $request->deviceId);
         }
     }
-    public function v2(Request $request)
+    public function whatsAppSend($returnValues)
     {
         $data["data"] = ["afsdf", "sdlfjksld", "dfksdfjk"];
-
         # Watsapp pdf sending
         $filename = "1-2-" . time() . '.' . 'pdf';
         $url = "Uploads/water/payment/" . $filename;
-        // $customPaper = array(0,0,720,1500);
-        $pdf = PDF::loadView('water_consumer_payment', $data);
+        $customPaper = array(0, 0, 720, 1440);
+        $pdf = PDF::loadView('water_consumer_payment',  ['returnValues' => $returnValues])->setPaper($customPaper, 'portrait');
         $file = $pdf->download($filename . '.' . 'pdf');
         $pdf = Storage::put('public' . '/' . $url, $file);
-
-
         $whatsapp2 = (Whatsapp_Send(
             6206998554,
             "file_test",
@@ -2466,13 +2428,12 @@ class WaterPaymentController extends Controller
                     "filename" => "TEST_PDF" . ".pdf"
                 ]
             ],
-            // "en_Us"
         ));
 
         // $data["test"] = json_encode($whatsapp);
-        $data["test2"] = json_encode($whatsapp2);
-        dd($data);
+        // $data["test2"] = json_encode($whatsapp2);
+        // dd($url, $file);
 
-        return view("water_consumer_payment", $data);
+        // return view("water_consumer_payment", $data);
     }
 }

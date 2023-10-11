@@ -244,7 +244,7 @@ class GeneratePaymentReceipt
             "accountDescription" => $this->_mAccDescription,
             "transactionDate" => Carbon::parse($this->_trans->tran_date)->format('d-m-Y'),
             "transactionNo" => $this->_trans->tran_no,
-            "transactionTime" => $this->_trans->created_at->format('H:i'),
+            "transactionTime" => $this->_trans->created_at->format('H:i A'),
             "verifyStatus" => $this->_trans->verify_status,                     // (0-Not Verified,1-Verified,2-Under Verification,3-Bounce)
             "applicationNo" => $this->_propertyDtls->application_no,
             "customerName" => trim($this->_propertyDtls->applicant_name) ? $this->_propertyDtls->applicant_name : $this->_propertyDtls->applicant_marathi,
@@ -274,7 +274,9 @@ class GeneratePaymentReceipt
             "tcName" => $this->_trans->tc_name,
             "tcMobile" => $this->_trans->tc_mobile,
             "ulbDetails" => $this->_ulbDetails,
-            "isArrearReceipt" => $this->_isArrearReceipt
+            "isArrearReceipt" => $this->_isArrearReceipt,
+            "bookNo" => $this->_trans->book_no ?? "",
+            "receiptNo" => isset($this->_trans->book_no) ? explode('-', $this->_trans->book_no)[1] : ""
         ];
 
         $this->_GRID['receiptDtls'] = $receiptDtls;

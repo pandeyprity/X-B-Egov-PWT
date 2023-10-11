@@ -201,6 +201,7 @@ class PropOwner extends Model
     {
         return PropOwner::select(
             'owner_name',
+            'owner_name_marathi',
             'mobile_no',
             'is_armed_force'
         )
