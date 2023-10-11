@@ -214,15 +214,15 @@ class NewConnectionController extends Controller
                 return $value->wf_role_id;
             });
 
-            $refWard = $mWfWardUser->getWardsByUserId($userId);
-            $wardId = $refWard->map(function ($value) {
-                return $value->ward_id;
-            });
+            // $refWard = $mWfWardUser->getWardsByUserId($userId);
+            // $wardId = $refWard->map(function ($value) {
+            //     return $value->ward_id;
+            // });
 
             $workflowIds = $mWfWorkflowRoleMaps->getWfByRoleId($roleId)->pluck('workflow_id');
             $waterList = $this->getWaterApplicatioList($workflowIds, $ulbId)
                 ->whereNotIn('water_applications.current_role', $roleId)
-                ->whereIn('water_applications.ward_id', $wardId)
+                // ->whereIn('water_applications.ward_id', $wardId)
                 ->orderByDesc('water_applications.id')
                 ->get();
             $filterWaterList = collect($waterList)->unique('id')->values();
