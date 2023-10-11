@@ -186,6 +186,8 @@ class HoldingTaxController extends Controller
             if ($grandTaxes['balance'] <= 0)
                 $paymentStatus = 1;
 
+            $demand['fromFyear'] = collect($demandList)->first()['fyear'] ?? "";
+            $demand['uptoFyear'] = collect($demandList)->last()['fyear'] ?? "";
             $demand['demandList'] = $demandList;
             $currentDemandList = collect($demandList)->where('fyear', $fy)->values();
             $demand['currentDemandList'] = $this->sumTaxHelper($currentDemandList);
@@ -212,7 +214,7 @@ class HoldingTaxController extends Controller
 
 
             // Read Rebate ❗❗❗ Rebate is pending
-            // $firstOwner = $mPropOwners->firstOwner($req->propId);
+            $firstOwner = $mPropOwners->firstOwner($req->propId);
             // if($firstOwner->is_armed_force)
             //     // $rebate=
             $demand['arrearPayableAmt'] = round($demand['arrear'] + $demand['arrearMonthlyPenalty']);
@@ -251,6 +253,8 @@ class HoldingTaxController extends Controller
             $basicDtls["ownership_type"] = $ownershipType;
             $basicDtls["demand_receipt_date"] = Carbon::now()->format('d-m-Y');
             $basicDtls["tc_name"] = $userDtls->name ?? null;
+            $basicDtls["owner_name"] = $firstOwner->owner_name ?? null;
+            $basicDtls["owner_name_marathi"] = $firstOwner->owner_name_marathi ?? null;
 
             $demand['basicDetails'] = $basicDtls;
 
@@ -502,6 +506,7 @@ class HoldingTaxController extends Controller
             $postPropPayment->_propCalculation = $propCalculation;
             // Transaction is beginning in Prop Payment Class
             $postPropPayment->postPayment();
+            // return ["Test Payment"];
             DB::commit();
             return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo, 'transactionId' => $postPropPayment->_tranId], "011604", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {

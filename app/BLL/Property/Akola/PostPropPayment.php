@@ -108,7 +108,7 @@ class PostPropPayment
         $payableAmount = $this->_propCalculation->original['data']['payableAmt'];
 
         if ($payableAmount <= 0)
-            throw new Exception("Payment Amount should be greater than 0");
+            throw new Exception("No Dues Available for this Property");
 
         // Property Transactions
         $tranBy = auth()->user()->user_type;
