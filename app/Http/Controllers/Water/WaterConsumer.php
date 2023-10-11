@@ -150,8 +150,9 @@ class WaterConsumer extends Controller
             $refConsumerId          = $request->ConsumerId;
 
             $refConsumerDemand = $mWaterConsumerDemand->getConsumerDemand($refConsumerId);
-            if (!$refConsumerDemand) {
-                throw new Exception("consumer demands not found!");
+            if (!($refConsumerDemand->first())) {
+                $consumerDemand['demandStatus'] = 0;                                    // Static
+                return responseMsgs(false,"consumer demands not found!",$consumerDemand, "", "01", "ms", "POST", "");
             }
             #basic details
             $WaterBasicDetails = $mWaterSecondConsumer->fullWaterDetails($refConsumerId)->first();
@@ -188,6 +189,7 @@ class WaterConsumer extends Controller
                 $refMeterData['ConnectionTypeName'] = $connectionName;
                 $refMeterData['basicDetails']   = $WaterBasicDetails;
                 $consumerDemand['meterDetails'] = $refMeterData;
+                $consumerDemand['demandStatus'] = 1;                        // Static / to represent existence of demand
                 return responseMsgs(true, "List of Consumer Demand!", remove_null($consumerDemand), "", "01", "ms", "POST", "");
             }
             throw new Exception("There is no demand!");
@@ -221,7 +223,7 @@ class WaterConsumer extends Controller
             [
                 'consumerId'       => "required|digits_between:1,9223372036854775807",
                 "demandUpto"       => "nullable|date|date_format:Y-m-d|before_or_equal:$mNowDate",
-                'finalRading'      => "required|numeric",
+                'finalRading'      => "nullable|numeric",
             ]
         );
         if ($validated->fails())

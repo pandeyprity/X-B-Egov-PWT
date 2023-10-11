@@ -38,11 +38,11 @@ class WaterApplicant extends Model
     {
         return WaterApplicant::select(
             'water_applicants.applicant_name as owner_name',
-            'guardian_name',
-            'mobile_no',
-            'email',
-            'city',
-            'district'
+            'water_applicants.guardian_name',
+            'water_applicants.mobile_no',
+            'water_applicants.email',
+            'water_applicants.city',
+            'water_applicants.district'
         )
             ->join('water_applications', 'water_applications.id', '=', 'water_applicants.application_id')
             ->where('water_applications.id', $request->applicationId)

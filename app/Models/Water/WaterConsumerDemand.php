@@ -134,7 +134,7 @@ class WaterConsumerDemand extends Model
      */
     public function getFirstConsumerDemand($consumerId)
     {
-        $this->impos_penalty($consumerId);
+        // $this->impos_penalty($consumerId);
         return WaterConsumerDemand::where('consumer_id', $consumerId)
             ->where('paid_status', 0)
             ->where('status', true)
