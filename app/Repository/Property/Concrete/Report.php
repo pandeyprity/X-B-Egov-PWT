@@ -3833,7 +3833,7 @@ class Report implements IReport
             $user = Auth()->user();
             $paymentMode = "";
             $fromDate = $toDate = Carbon::now()->format("Y-m-d");
-            $wardId = $zoneId=$userId=null;
+            $wardId = $zoneId = $userId = null;
             if ($request->fromDate) {
                 $fromDate = $request->fromDate;
             }
@@ -4028,10 +4028,10 @@ class Report implements IReport
                     and prop_transactions.status in(1,2)
                     and prop_demands.status =1 
                     and prop_tran_dtls.status =1 
-                    ".($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "")."
-                    ".($wardId ? "AND props.ward_mstr_id = $wardId" : "")."
-                    ".($zoneId ? "AND props.zone_mstr_id = $zoneId" : "")."
-                    ".($userId ? "AND prop_transactions.user_id = $userId" : "")."
+                    " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "") . "
+                    " . ($wardId ? "AND props.ward_mstr_id = $wardId" : "") . "
+                    " . ($zoneId ? "AND props.zone_mstr_id = $zoneId" : "") . "
+                    " . ($userId ? "AND prop_transactions.user_id = $userId" : "") . "
                 group by prop_transactions.id
                     
             )prop_tran_dtls on prop_tran_dtls.tran_id = prop_transactions.id
@@ -4052,64 +4052,61 @@ class Report implements IReport
                 where prop_transactions.tran_date between '$fromDate' and '$toDate' 
                     and prop_transactions.status in(1,2)
                     and prop_penaltyrebates.status =1 
-                    ".($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "" )."
-                    ".($wardId ? "AND props.ward_mstr_id = $wardId" : "")."
-                    ".($zoneId ? "AND props.zone_mstr_id = $zoneId" : "")."
-                    ".($userId ? "AND prop_transactions.user_id = $userId" : "")."
+                    " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "") . "
+                    " . ($wardId ? "AND props.ward_mstr_id = $wardId" : "") . "
+                    " . ($zoneId ? "AND props.zone_mstr_id = $zoneId" : "") . "
+                    " . ($userId ? "AND prop_transactions.user_id = $userId" : "") . "
                 group by prop_transactions.id
             )fine_rebet on fine_rebet.tran_id = prop_transactions.id
             where prop_transactions.tran_date between '$fromDate' and '$toDate' 
                 and prop_transactions.status in(1,2)
-                ".($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "" )."
+                " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "") . "
             ";
 
-            $report = DB::select($query); 
-            $report = collect($report)->first();           
-            $data["report"] = collect($report)->map(function($val,$key){
-                if($key=="payment_mode")
-                {
+            $report = DB::select($query);
+            $report = collect($report)->first();
+            $data["report"] = collect($report)->map(function ($val, $key) {
+                if ($key == "payment_mode") {
                     return $val;
                 }
-                return !is_null($val)?$val:0;
-            });            
+                return !is_null($val) ? $val : 0;
+            });
             $arear = 0;
             $current = 0;
             $penalty = $report->penalty;
             $rebate  = $report->rebadet;
             $currentPattern = "/current_/i";
             $arrearPattern = "/arear_/i";
-            foreach($report as $key=>$val){
-                if(preg_match($currentPattern,$key))
-                {
-                    $current+=($val?$val:0);
+            foreach ($report as $key => $val) {
+                if (preg_match($currentPattern, $key)) {
+                    $current += ($val ? $val : 0);
                 }
-                if(preg_match($arrearPattern,$key))
-                {
-                    $arear+=($val?$val:0);
+                if (preg_match($arrearPattern, $key)) {
+                    $arear += ($val ? $val : 0);
                 }
             };
-            $arear = $arear+$penalty;
-            $current = $current-$rebate;
+            $arear = $arear + $penalty;
+            $current = $current - $rebate;
             $data["total"] = [
-                "arear"=> roundFigure($arear),
-                "current"=> roundFigure($current),
-                "total"=> roundFigure(($arear+$current)),
+                "arear" => roundFigure($arear),
+                "current" => roundFigure($current),
+                "total" => roundFigure(($arear + $current)),
             ];
             $data["headers"] = [
-                "fromDate"=>Carbon::parse($fromDate)->format('d-m-Y'),
-                "uptoDate"=>Carbon::parse($toDate)->format('d-m-Y'),
-                "fromFyear"=>$fromFyear,
-                "uptoFyear"=>$uptoFyear,
-                "tcName"=>$userId? User::find($userId)->name??"":"All",
-                "WardName"=>$wardId? ulbWardMaster::find($wardId)->ward_name??"":"All",
-                "zoneName"=>$zoneId? (new ZoneMaster)->createZoneName($zoneId)??"":"East/Weast/North/South",
-                "paymentMode"=>$paymentMode? $paymentMode :"All",
-                "printDate"=>Carbon::now()->format('d-m-Y H:i:s A'),
-                "printedBy"=>$user->name??"",
+                "fromDate" => Carbon::parse($fromDate)->format('d-m-Y'),
+                "uptoDate" => Carbon::parse($toDate)->format('d-m-Y'),
+                "fromFyear" => $fromFyear,
+                "uptoFyear" => $uptoFyear,
+                "tcName" => $userId ? User::find($userId)->name ?? "" : "All",
+                "WardName" => $wardId ? ulbWardMaster::find($wardId)->ward_name ?? "" : "All",
+                "zoneName" => $zoneId ? (new ZoneMaster)->createZoneName($zoneId) ?? "" : "East/West/North/South",
+                "paymentMode" => $paymentMode ? $paymentMode : "All",
+                "printDate" => Carbon::now()->format('d-m-Y H:i:s A'),
+                "printedBy" => $user->name ?? "",
             ];
             return responseMsgs(true, "Admin Dashboard Reports", remove_null($data));
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), []);
-        } 
+        }
     }
 }

@@ -107,7 +107,7 @@ class WaterMonthelyCall
         $this->_consumerFeeUnits        = $this->_mWaterParamFreeUnit->getFeeUnits($chargesParams);
         $this->_consumerLastDemand      = $this->_mWaterConsumerDemand->akolaCheckConsumerDemand($this->_consumerId)->first();
         $this->_consumerLastMeterReding = $this->_mWaterConsumerInitialMeter->getmeterReadingAndDetails($this->_consumerId)->orderByDesc('id')->first();
-        $this->_consuemrMeterDetails    = $this->_mWaterConsumerMeter->getMeterDetailsByConsumerId($this->_consumerId)->firest();
+        $this->_consuemrMeterDetails    = $this->_mWaterConsumerMeter->getMeterDetailsByConsumerId($this->_consumerId)->first();
     }
 
     /**
@@ -164,6 +164,7 @@ class WaterMonthelyCall
      * | Generta demand 
      * | Actual calculation
         | Check the comment 
+        | check the demand generation process according to days
      */
     public function generateDemand()
     {
@@ -173,9 +174,18 @@ class WaterMonthelyCall
                 # If the consumer demand exist the following process will continue with respective of last demand
                 if ($this->_consumerLastDemand) {
                     $monthsArray        = [];
-                    $startDate          = Carbon::parse($this->_consumerLastDemand->demand_upto);
+                    $startDate          = Carbon::parse("2023-06-03"); //$this->_consumerLastDemand->demand_upto
                     $endDate            = Carbon::parse($this->_now);
-                    $monthsDifference   = $startDate->diffInMonths($endDate);
+                    $refEndDate         = $endDate;
+                    $refStartDate       = $startDate;
+                    $startDateCount     = 0;
+
+                    # Check if the date diff in starting month
+                    if ($startDate->copy()->format('d') != "01") {                                                  // Static
+                        $startDateCount = $startDate->diffInDays($startDate->copy()->endOfMonth());
+                        $refStartDate   = ($startDate->copy())->firstOfMonth()->addMonth();
+                    }
+                    $monthsDifference   = $refStartDate->diffInMonths($endDate);
                     $dateDifference     = $startDate->diffInDays($endDate);
                     $daysInEndMonth     = $endDate->copy()->endOfMonth()->day;
 
@@ -185,12 +195,13 @@ class WaterMonthelyCall
                         $dateCount = 0;
                     } else {
                         $dateCount = $endDate->day;
+                        $refEndDate = ($endDate->copy()->subMonth())->lastOfMonth();
                     }
 
                     # get all the month between dates
                     if ($monthsDifference != 0) {
-                        $currentDate = $startDate->copy();
-                        while ($currentDate->lt($endDate)) {
+                        $currentDate = $refStartDate->copy();
+                        while ($currentDate->lt($refEndDate)) {
                             $monthsArray[] = $currentDate->format('Y-m-01');
                             $currentDate->addMonth();
                         }
@@ -198,6 +209,24 @@ class WaterMonthelyCall
 
                     # daly consumed unit
                     $dalyUnitConsumed = ($this->_unitConsumed - $this->_consumerLastMeterReding->initial_reading) / $dateDifference;
+
+                    # If the statrt day diff exist
+                    if ($startDateCount > 0) {
+                        $amount = $this->_consumerFeeUnits->unit_fee * ($startDateCount * $dalyUnitConsumed);
+                        if ($amount < 0) {
+                            $amount = 0;
+                        }
+                        $startDateWiseCall[] = [
+                            "generation_date"       => $this->_now,
+                            "amount"                => $amount,
+                            "current_meter_reading" => $this->_unitConsumed,
+                            "unit_amount"           => 1,                                               // Static
+                            "demand_from"           => $startDate->format('Y-m-d'),                                     // Static
+                            "demand_upto"           => $startDate->copy()->endOfMonth()->format('Y-m-d'),
+                            "connection_type"       => $this->_meterStatus,
+                        ];
+                        $refReturnData = collect($startDateWiseCall);
+                    }
 
                     # Monthely demand generation 
                     $returnData = collect($monthsArray)->map(function ($values, $key)
@@ -218,6 +247,11 @@ class WaterMonthelyCall
                             "connection_type"       => $this->_meterStatus,
                         ];
                     });
+
+                    # If the statrt day diff exist
+                    if ($startDateCount > 0) {
+                        $returnData = $refReturnData->merge($returnData);
+                    }
 
                     # If the day diff exist
                     if ($dateCount > 0) {
@@ -243,6 +277,7 @@ class WaterMonthelyCall
                         "status" => true,
                         "consumer_tax" => [
                             [
+                                "fee_unit"          => $this->_consumerFeeUnits->unit_fee,                              // the fee unit 
                                 "charge_type"       => $this->_meterStatus,
                                 "rate_id"           => $this->_consumerCharges->id,
                                 "effective_from"    => $startDate->format('Y-m-d'),
