@@ -1219,7 +1219,8 @@ class WaterReportController extends Controller
             $request->all(),
             [
                 "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
-                "wardId" => "nullable|int"
+                "wardId" => "nullable|int",
+                "zoneId" => "nullable|int"
             ]
         );
         if ($validated->fails())
@@ -1229,6 +1230,7 @@ class WaterReportController extends Controller
             $mWaterConsumerDemand       = new WaterConsumerDemand();
             $currentDate                = $now->format('Y-m-d');
             $wardId                     = $request->wardId;
+            $zoneId                     = $request->zoneId;
             $currentYear                = collect(explode('-', $request->fiYear))->first() ?? $now->year;
             $currentFyear               = $request->fiYear ?? getFinancialYear($currentDate);
             $startOfCurrentYear         = Carbon::createFromDate($currentYear, 4, 1);           // Start date of current financial year
@@ -1246,7 +1248,7 @@ class WaterReportController extends Controller
             $previousUptoDate = $refDate['uptoDate'];
 
             #curent year demands 
-            $demand                 = $mWaterConsumerDemand->getAllDemand($fromDate, $uptoDate, $wardId)->get();
+            $demand                 = $mWaterConsumerDemand->getAllDemand($fromDate, $uptoDate, $wardId,$zoneId)->get();
             $previousDemand         = $mWaterConsumerDemand->previousDemand($previousFromDate, $previousUptoDate, $wardId)->get();
 
             $totalCurrentDemands    = round($demand->sum('amount'), 2);  // Format the sum to two decimal places
@@ -1334,7 +1336,7 @@ class WaterReportController extends Controller
 
     /**
      * |get transaction lis by year 
-     |under wo
+       |under wo
      */
     public function getTransactionDetail(Request $request)
     {
@@ -1342,7 +1344,8 @@ class WaterReportController extends Controller
             $request->all(),
             [
                 "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
-                "wardId" => "nullable|int"
+                "wardId" => "nullable|int",
+                "zoneId" => "nullable|int"
 
             ]
         );
@@ -1352,101 +1355,118 @@ class WaterReportController extends Controller
             $mWaterTrans    = new WaterTran();
             $currentDate    = Carbon::now()->format('Y-m-d');
             $wardId         = $request->wardId;
+            $zoneId         = $request->zoneId;
             $currentFyear   = $request->fiYear ?? getFinancialYear($currentDate);
 
             #get financial  year 
             $refDate        = $this->getFyearDate($currentFyear);
             $fromDate       = $refDate['fromDate'];
             $uptoDate       = $refDate['uptoDate'];
-            $transaction    = $mWaterTrans->getWaterReport($fromDate, $uptoDate, $wardId)->get();
-
-            # For Payment Mode 
-            $cash   = $transaction->where('payment_mode', 'Cash');
-            $cheque = $transaction->where('payment_mode', 'Cheque');
-            $online = $transaction->where('payment_mode', 'Online');
-            $DD     = $transaction->where('payment_mode', 'DD');
-            $Neft   = $transaction->where('payment_mode', 'Neft');
-            $returnData["collectionSummery"] = [
-                'waterCash'         => $cash->count(),
-                'waterCheque'       => $cheque->count(),
-                'waterOnline'       => $online->count(),
-                'waterDd'           => $DD->count(),
-                'waterNeft'         => $Neft->count(),
-
-                'totaAmountCash'    => $cash->sum('amount'),
-                'totalAmountCheque' => $cheque->sum('amount'),
-                'waterAmountOnline' => $online->sum('amount'),
-                'totalAmountDd'     => $DD->sum('amount'),
-                'totalAmuntNeft'    => $Neft->sum('amount'),
-            ];
-            $returnData["collectionSummery"]["toatalCollection"] = $returnData["collectionSummery"]["totaAmountCash"]
-                + $returnData["collectionSummery"]["totalAmountCheque"]
-                + $returnData["collectionSummery"]["waterAmountOnline"]
-                + $returnData["collectionSummery"]["totalAmountDd"]
-                + $returnData["collectionSummery"]["totalAmuntNeft"];
-
-
-            # For JSK collection
-            $jskCash    = $cash->where('user_type', 'JSK');
-            $jskCheque  = $cheque->where('user_type', 'JSK');
-            $jskOnline  = $online->where('user_type', 'JSK');
-            $jskDd      = $DD->where('user_type', 'JSK');
-            $jskNeft    = $Neft->where('user_type', 'JSK');
-            $returnData["jskCollectionSummery"] = [
-                'waterCash'         => $jskCash->count(),
-                'waterCheque'       => $jskCheque->count(),
-                'waterOnline'       => $jskOnline->count(),
-                'waterDd'           => $jskDd->count(),
-                "waterNeft"         => $jskNeft->count(),
-
-                'totaAmountCash'    => $jskCash->sum('amount'),
-                'totalAmountCheque' => $jskCheque->sum('amount'),
-                'waterAmountOnline' => $jskOnline->sum('amount'),
-                'totaAmountDd'      => $jskDd->sum('amount'),
-                'totalAmountNeft'   => $jskNeft->sum('amount'),
-            ];
-            $returnData["jskCollectionSummery"]["toatalCollection"] = $returnData["jskCollectionSummery"]["totaAmountCash"]
-                + $returnData["jskCollectionSummery"]["totaAmountCash"]
-                + $returnData["jskCollectionSummery"]["totaAmountCash"]
-                + $returnData["jskCollectionSummery"]["totaAmountCash"]
-                + $returnData["jskCollectionSummery"]["totaAmountCash"];
-
-
-            # May use where in for tc and tl
-            $TcCash     = $cash->where('user_type', 'TC');
-            $TcCheque   = $cheque->where('user_type', 'TC');
-            $TcOnline   = $online->where('user_type', 'TC');
-            $TcDd       = $DD->where('user_type', 'TC');
-            $TcNeft     = $Neft->where('user_type', 'TC');
-            $returnData["dtdCollectionSummery"] = [
-                'waterCash'         => $TcCash->count(),
-                'waterCheque'       => $TcCheque->count(),
-                'waterOnline'       => $TcOnline->count(),
-                'waterDd'           => $TcDd->count(),
-                'waterNeft'         => $TcNeft->count(),
-
-                'totaAmountCash'    => $TcCash->sum('amount'),
-                'totalAmountCheque' => $TcCheque->sum('amount'),
-                'waterAmountOnline' => $TcOnline->sum('amount'),
-                'totalAmountDd'     => $TcDd->sum('amount'),
-                'totalAmountNeft'   => $TcNeft->sum('amount'),
-
-                // 'toatalCollection'  => $TcCash->sum('amount') + $TcCheque->sum('amount') + $TcOnline->sum('amount') + $TcDd->sum('amount') + $TcNeft->sum('amount')
-
-            ];
-            $returnData["dtdCollectionSummery"]["toatalCollection"] =  $returnData["dtdCollectionSummery"]["totaAmountCash"]
-                + $returnData["dtdCollectionSummery"]["totalAmountCheque"]
-                + $returnData["dtdCollectionSummery"]["waterAmountOnline"]
-                + $returnData["dtdCollectionSummery"]["totalAmountDd"]
-                + $returnData["dtdCollectionSummery"]["totalAmountNeft"];
-
-            # Net collection summary 
-            $returnData["netcollectionSummary"] = [
-                'netTransaction' => $transaction->count(),
-                'netTotalAmount' => $returnData["collectionSummery"]["toatalCollection"]
-            ];
-
-            return responseMsgs(true, "water transaction report", remove_null($returnData), "", "", "", 'POST', "");
+            $dataraw = "SELECT
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Cash'  THEN water_trans.id ELSE NULL END
+         ) AS waterCash,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Cheque'  THEN water_trans.id ELSE NULL END
+         ) AS waterCheque,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Online'  THEN water_trans.id ELSE NULL END
+         ) AS waterOnline,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'DD'  THEN water_trans.id ELSE NULL END
+         ) AS waterDd,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Neft'  THEN water_trans.id ELSE NULL END
+         ) AS waterNeft,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'RTGS'  THEN water_trans.id ELSE NULL END
+         ) AS waterRtgs,
+         COUNT(
+            CASE WHEN water_trans.status=1 THEN water_trans.id ELSE NULL END
+         ) AS NetTotalTransaction,
+         
+         
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Cash' AND  water_trans.user_type = 'TC'  THEN water_trans.id ELSE NULL END
+         ) AS TcCashCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Cheque'AND  water_trans.user_type = 'TC'  THEN water_trans.id ELSE NULL END
+         ) AS TcChequeCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Online' AND  water_trans.user_type = 'TC'  THEN water_trans.id ELSE NULL END
+         ) AS TcOnlineCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'DD' AND  water_trans.user_type = 'TC'  THEN water_trans.id ELSE NULL END
+         ) AS TcDdCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Neft' AND  water_trans.user_type = 'TC'  THEN water_trans.id ELSE NULL END
+         ) AS TcNeftCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'RTGS' AND  water_trans.user_type = 'TC'  THEN water_trans.id ELSE NULL END
+         ) AS TcRtgsCount,
+         
+         
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Cash' AND  water_trans.user_type = 'JSK'  THEN water_trans.id ELSE NULL END
+         ) AS JskCashCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Cheque'AND  water_trans.user_type = 'JSK'  THEN water_trans.id ELSE NULL END
+         ) AS JskChequeCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Online' AND  water_trans.user_type = 'JSK'  THEN water_trans.id ELSE NULL END
+         ) AS JskOnlineCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'DD' AND  water_trans.user_type = 'JSK'  THEN water_trans.id ELSE NULL END
+         ) AS JskDdCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'Neft' AND  water_trans.user_type = 'JSK'  THEN water_trans.id ELSE NULL END
+         ) AS JskNeftCount,
+            COUNT(
+             CASE WHEN water_trans.payment_mode = 'RTGS' AND  water_trans.user_type = 'JSK'  THEN water_trans.id ELSE NULL END
+         ) AS JskRtgsCount,
+         
+         -- Sum of amount for diff payment mode 
+         SUM(CASE WHEN water_trans.payment_mode = 'Cash' THEN amount ELSE 0 END) AS CashTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'Cheque' THEN amount ELSE 0 END) AS ChequeTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'DD' THEN amount ELSE 0 END) AS DdTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'Online' THEN amount ELSE 0 END ) AS OnlineTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'Neft' THEN amount ELSE 0 END ) AS NeftTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'RTGS' THEN amount ELSE 0 END ) AS RtgsTotalAmount,
+         SUM(amount) AS TotalPaymentModeAmount,
+         -- Sum of amount of TC for diff payament mode 
+         SUM(CASE WHEN water_trans.payment_mode = 'Cash' AND   water_trans.user_type = 'TC' THEN amount ELSE 0 END) AS TcCasTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'Cheque' AND  water_trans.user_type = 'TC' THEN amount ELSE 0 END) AS TcChequeTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'DD' AND  water_trans.user_type = 'TC' THEN amount ELSE 0 END) AS TcDdTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'Online' AND  water_trans.user_type = 'TC' THEN amount ELSE 0 END ) AS TcOnlineTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'Neft' AND  water_trans.user_type = 'TC' THEN amount ELSE 0 END ) AS TcNeftTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'RTGS' AND  water_trans.user_type = 'TC' THEN amount ELSE 0 END ) AS TcRtgsTotalAmount,
+         SUM(CASE WHEN  water_trans.user_type = 'TC' THEN amount ELSE 0 END) AS tc_total_amount,
+           -- Sum of amount of JSK for diff payament mode 
+         SUM(CASE WHEN water_trans.payment_mode = 'Cash' AND  water_trans.user_type = 'JSK' THEN amount ELSE 0 END) AS JskCashTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'Cheque' AND  water_trans.user_type = 'JSK' THEN amount ELSE 0 END) AS JskChequeTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'DD' AND  water_trans.user_type = 'JSK' THEN amount ELSE 0 END) AS JskDdTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'Online' AND  water_trans.user_type = 'JSK' THEN amount ELSE 0 END ) AS JskOnlineTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'Neft' AND  water_trans.user_type = 'JSK' THEN amount ELSE 0 END ) AS JskNeftTotalAmount,
+         SUM(CASE WHEN water_trans.payment_mode = 'RTGS' AND  water_trans.user_type = 'JSK' THEN amount ELSE 0 END ) AS JskRtgsTotalAmount,
+         SUM(CASE WHEN  water_trans.user_type = 'JSK' THEN amount ELSE 0 END) AS JskTotalAmount
+        
+        FROM water_trans
+     LEFT JOIN water_second_consumers on water_trans.related_id = water_second_consumers.id
+     LEFT JOIN zone_masters ON zone_masters.id = water_second_consumers.zone_mstr_id
+        WHERE water_trans.payment_mode IN ('Cash', 'Cheque', 'DD', 'Neft', 'RTGS', 'Online')
+        AND water_trans.status = 1
+        AND water_trans.tran_date >= '$fromDate'
+        AND water_trans.tran_date <= '$uptoDate'
+         "
+                . ($wardId ? " AND water_second_consumers.ward_mstr_id = '$wardId' 
+                                AND water_trans.tran_type = 'Demand Collection' " : "")
+                . ($zoneId ? " AND water_second_consumers.zone_mstr_id = '$zoneId' 
+                                AND water_trans.tran_type = 'Demand Collection' " : "")
+                . "
+         ";
+            $results = DB::connection('pgsql_water')->select($dataraw);
+            $resultObject = (object) $results[0];
+            return responseMsgs(true, "water Dcb report", remove_null($resultObject), "", "", "", 'POST', "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }

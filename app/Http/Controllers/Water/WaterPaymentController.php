@@ -265,7 +265,7 @@ class WaterPaymentController extends Controller
             $transactions           = array();
 
             # consumer Details
-            $demandDetails = $mWaterConsumerDemand->getConsumerDetailById($request->consumerId)->get();
+            $demandDetails = $mWaterConsumerDemand->getConsumerDetailById($request->consumerId)->take(1)->get();
             if (!$demandDetails)
                 throw new Exception("Water Consumer Not Found!");
 
@@ -275,12 +275,14 @@ class WaterPaymentController extends Controller
             if (!$connectionTran->first() || is_null($connectionTran))
                 throw new Exception("Water Application's Transaction Details not Found!!");
             $transactions['Consumer'] = $connectionTran;
+            // $transactions['consumerDemands']=$demandDetails;
 
             return responseMsgs(true, "", remove_null($transactions), "", "01", "ms", "POST", $request->deviceId ?? "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
     }
+
 
 
     /**
@@ -1626,7 +1628,7 @@ class WaterPaymentController extends Controller
             $fixedUpto = $consumerTaxes->where("connection_type", "Fixed")                      // Static
                 ->max("demand_upto");
 
-            return  $returnValues = [
+            $returnValues = [
                 "departmentSection"     => $mDepartmentSection,
                 "accountDescription"    => $mAccDescription,
                 "transactionDate"       => $transactionDetails['tran_date'],

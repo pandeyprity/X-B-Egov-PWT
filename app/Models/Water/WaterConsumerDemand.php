@@ -293,7 +293,7 @@ class WaterConsumerDemand extends Model
     /**
      * get all data of consumer demands
      */
-    public function getALLDemand($fromDate, $uptoDate, $wardId)
+    public function getALLDemand($fromDate, $uptoDate, $wardId,$zoneId)
     {
         return WaterConsumerDemand::select(
             'water_consumer_demands.amount',
@@ -301,7 +301,7 @@ class WaterConsumerDemand extends Model
         )
             ->where('water_consumer_demands.demand_from', '>=', $fromDate)
             ->where('water_consumer_demands.demand_upto', '<=', $uptoDate)
-            // ->where('water_consumer_demands.ward_id', $wardId)
+            ->where('water_consumer_demands.ward_id', $wardId)
             ->where('status', true);
     }
     #previous year financial 
@@ -345,11 +345,8 @@ class WaterConsumerDemand extends Model
     public function getConsumerDetailById($consumerId)
     {
         // Execute the query and select the columns
-        return  WaterConsumerDemand::select(
-            'water_consumer_demands.demand_from',
-            'water_consumer_demands.demand_upto'
-        )
-            ->where('consumer_id', $consumerId)
-            ->where('paid_status', 1);
+        return  WaterConsumerDemand::where('consumer_id', $consumerId)
+            ->where('paid_status', 1)
+            ->orderbydesc('id');
     }
 }

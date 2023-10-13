@@ -115,6 +115,7 @@ class WaterSecondConsumer extends Model
             DB::raw("string_agg(wco.applicant_name, ',') as owner_name"),
             DB::raw("string_agg(wco.mobile_no, ',') as mobile_no"),
             DB::raw("string_agg(wco.email, ',') as owner_email"),
+            DB::raw("ulb_ward_masters.ward_name AS ward_mstr_id"),
         ])
             ->LEFTJOIN(
                 DB::RAW("(SELECT DISTINCT ON (consumer_id) id,balance_amount,amount,consumer_id,paid_status
@@ -126,6 +127,7 @@ class WaterSecondConsumer extends Model
                     $join->on("water_consumer_demands.consumer_id", "=", "water_second_consumers.id");
                 }
             )
+            ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
             ->join('water_consumer_owners as wco', 'water_second_consumers.id', '=', 'wco.consumer_id')
             ->where('water_second_consumers.status', 1)
             ->where('wco.status', true)
@@ -136,7 +138,8 @@ class WaterSecondConsumer extends Model
                 'water_consumer_demands.balance_amount',
                 'water_consumer_demands.amount',
                 'water_consumer_demands.consumer_id',
-                'water_second_consumers.id'
+                'water_second_consumers.id',
+                'ulb_ward_masters.ward_name',
             );
     }
 
@@ -216,7 +219,6 @@ class WaterSecondConsumer extends Model
     {
         return WaterSecondConsumer::select(
             'water_second_consumers.*',
-            // 'water_second_consumers.id',
             'water_second_consumers.consumer_no',
             'water_consumer_meters.meter_no',
             'water_consumer_meters.connection_type',
@@ -225,6 +227,8 @@ class WaterSecondConsumer extends Model
             'water_consumer_initial_meters.initial_reading as finalReading',
             'ulb_masters.ulb_name',
             'water_second_consumers.property_no',
+            'water_property_type_mstrs.property_type',
+            'zone_masters.zone_name',
             DB::raw("string_agg(water_consumer_owners.applicant_name,',') as applicant_name"),
             DB::raw("string_agg(water_consumer_owners.mobile_no::VARCHAR,',') as mobile_no"),
             DB::raw("string_agg(water_consumer_owners.guardian_name,',') as guardian_name"),
@@ -232,7 +236,9 @@ class WaterSecondConsumer extends Model
             "ulb_masters.association_with",
             DB::raw('ulb_ward_masters.ward_name as ward_number')
         )
-            ->join('water_consumer_initial_meters','water_consumer_initial_meters.consumer_id','water_second_consumers.id')
+            ->join('zone_masters','zone_masters.id','water_second_consumers.zone_mstr_id')
+            ->leftjoin('water_property_type_mstrs', 'water_property_type_mstrs.id', 'water_second_consumers.property_type_id')
+            ->join('water_consumer_initial_meters', 'water_consumer_initial_meters.consumer_id', 'water_second_consumers.id')
             ->join("water_consumer_owners", 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
             ->join('ulb_masters', 'ulb_masters.id', 'water_second_consumers.ulb_id')
             ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
@@ -250,7 +256,9 @@ class WaterSecondConsumer extends Model
                 'ulb_masters.ulb_name',
                 'ulb_masters.association_with',
                 'ulb_ward_masters.ward_name',
-                'water_consumer_initial_meters.initial_reading'
+                'water_consumer_initial_meters.initial_reading',
+                'water_property_type_mstrs.property_type',
+                'zone_masters.zone_name'
             );
     }
     /**
