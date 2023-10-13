@@ -26,7 +26,8 @@ use Illuminate\Support\Facades\Validator;
 /**
  * | Created On-27-09-2023 
  * | Author - Anshu Kumar
- * | Status-Closed
+ * | Updated - Sam kerketta
+ * | Status-Open
  */
 
 class PaymentController extends Controller
@@ -64,7 +65,92 @@ class PaymentController extends Controller
         }
     }
 
-    // Module Referal Urls
+    /**
+     * | Collect callback url details for payment
+        | Under con  
+     */
+    public function getCallbackDetial(Request $req)
+    {
+        $mIciciPaymentReq = new IciciPaymentReq();
+        $mIciciPaymentRes = new IciciPaymentResponse();
+
+        try {
+
+            $reqBody = [
+                "Response_Code"         => "E000",               // Payment status
+                "Unique_Ref_Number"     => "2310131666814",      // Tran no
+                "Service_Tax_Amount"    => "0.0",
+                "Processing_Fee_Amount" => "0.00",
+                "Total_Amount"          => "100",
+                "Transaction_Amount"    => "100",
+                "Transaction_Date"      => "13-10-2023 12:34:35",
+                "Interchange_Value"     => null,
+                "TDR"                   => null,
+                "Payment_Mode"          => "NET_BANKING",
+                "SubMerchantId"         => "45",
+                "ReferenceNo"           => "1697180633788010986", // Refno
+                "ID"                    => "136082",
+                "RS"                    => "73b4de05181599bf5809e4bc37edc9c32612e0bbedff71f09f8db68d5a0f9e29bc44be8d8fc7d9d5a5446c9b07674bdf6093a90b18a75b1758dc1ee77d044a6d",
+                "TPS"                   => "Y",
+                "mandatory_fields"      => "1697180633788010986|45|100|13/Oct/2023|0123456789|xy|xy",
+                "optional_fields"       => "X|X|X",
+                "RSV"                   => "8c988a820acc67ee8b0ebd2c525e3e4c88575cc2fef7f9c7dc1f2dbbad9002c86471ed446500deb4b6f1e25b11b091f7575469c0d603bccf1ba361c30f83f1a7",
+
+
+            ];
+
+            $dbData = [
+                "response_code",
+                "unique_ref_number",
+                "service_tax_amount",
+                "processing_fee_amount",
+                "total_amount",
+                "transaction_amount",
+                "transaction_date",
+                "interchange_value",
+                "tdr",
+                "payment_mode",
+                "sub_merchant_id",
+                "reference_no",
+                "icici_id",
+                "rs",
+                "tps",
+                "mandatory_fields",
+                "optional_fields",
+                "rsv",
+            ];
+
+
+
+            Storage::disk('public')->put('icici/webhook/' . "testV1" . '.json', json_encode($req->all()));
+            $reqRefNo           = $req->ReferenceNo;
+            $paymentReqsData    = $mIciciPaymentReq->findByReqRefNoV2($reqRefNo);
+            if (!$paymentReqsData) {
+                throw new Exception("Payment request dont exist for $reqRefNo");
+            }
+
+            if ($req->Response_Code == 'E000')  // Status of success
+            {
+                # Update the icici request table data for payamet success
+                $updReqs = [
+                    'payment_status' => 1
+                ];
+                $paymentReqsData->update($updReqs);
+
+                # Save the request data to the icici resposne table 
+                // $resPayReqs = [
+                //     "payment_req_id"    => $paymentReqsData->id,
+                //     "req_ref_id"        => $reqRefNo,
+                //     "res_ref_id"        => $resRefNo,
+                //     "icici_signature"   => $req->signature,
+                //     "payment_status"    => 1
+                // ];
+                // $mIciciPaymentRes->create($resPayReqs);
+            }
+        } catch (Exception $e) {
+        }
+    }
+
 
     /**
      * | Get Webhook data
@@ -110,6 +196,7 @@ class PaymentController extends Controller
             return responseMsgs(false, $e->getMessage(), []);
         }
     }
+
 
     /**
      * | Get data by reference no 
@@ -358,4 +445,3 @@ class PaymentController extends Controller
         }
     }
 }
-
