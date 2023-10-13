@@ -121,7 +121,7 @@ class GetHoldingDues
             'land_occupation_date',
             'citizen_id',
             'user_id',
-            'applicant_name',
+            'applicant_marathi as applicant_name',
             'property_no'
         ]);
         $basicDtls['moduleId'] = 1;
@@ -130,7 +130,7 @@ class GetHoldingDues
         $basicDtls["ownership_type"] = $ownershipType;
         $basicDtls["demand_receipt_date"] = Carbon::now()->format('d-m-Y');
         $basicDtls["tc_name"] = $userDtls->name ?? null;
-        $basicDtls["owner_name"] = $firstOwner->owner_name ?? null;
+        $basicDtls["owner_name"] = $firstOwner->owner_name_marathi ?? null; //$firstOwner->owner_name ?? null;
         $basicDtls["owner_name_marathi"] = $firstOwner->owner_name_marathi ?? null;
 
         $demand['basicDetails'] = $basicDtls;
