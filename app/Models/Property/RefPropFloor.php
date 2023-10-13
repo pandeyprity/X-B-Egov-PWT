@@ -20,6 +20,7 @@ class RefPropFloor extends Model
             DB::raw('INITCAP(floor_name) as floor_name')
         )
             ->where('status', 1)
+            ->orderBy("id","ASC")
             ->get();
     }
 }
