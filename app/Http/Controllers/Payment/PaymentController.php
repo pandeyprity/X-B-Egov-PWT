@@ -75,14 +75,19 @@ class PaymentController extends Controller
         $mIciciPaymentRes = new IciciPaymentResponse();
 
         try {
-            $data = $req->all();
-            $reqRefNo = $req->reqRefNo;
+            Storage::disk('public')->put('icici/webhook/' . $req->reqRefNo . '.json', json_encode($req->all()));
+            $data               = $req->all();
+            $reqRefNo           = $req->reqRefNo;
+            $resRefNo           = $req->resRefNo;
+            $paymentReqsData    = $mIciciPaymentReq->findByReqRefNoV2($reqRefNo);
+            if (!$paymentReqsData) {
+                throw new Exception("Payment request dont exist for $reqRefNo");
+            }
+
             if ($req->Status == 'Success') {
-                $resRefNo = $req->resRefNo;
-                $paymentReqsData = $mIciciPaymentReq->findByReqRefNo($reqRefNo);
                 $updReqs = [
-                    'res_ref_no' => $resRefNo,
-                    'payment_status' => 1
+                    'res_ref_no'        => $resRefNo,
+                    'payment_status'    => 1
                 ];
                 DB::connection('pgsql_master')->beginTransaction();
                 $paymentReqsData->update($updReqs);                 // Table Updation
@@ -95,8 +100,7 @@ class PaymentController extends Controller
                 ];
                 $mIciciPaymentRes->create($resPayReqs);             // Response Data 
             }
-            // ❗❗ Pending for Module Specific Table Updation ❗❗
-
+            // ❗❗ Pending for Module Specific Table Updation / Dont user to transfer data to module ❗❗
             $filename = time() . "webhook.json";
             Storage::disk('local')->put($filename, json_encode($data));
             DB::connection('pgsql_master')->commit();
@@ -109,8 +113,10 @@ class PaymentController extends Controller
 
     /**
      * | Get data by reference no 
+     * | Used to verify the payment and to transfer data to module
+        | Under Cons
      */
-    public function getPaymentDataByRefNo(Request $req)
+    public function getPaymentDataByRefNo(Request $req)     // Request body will give ref no
     {
         $getPayemntDetails  = new GetRefUrl;
         $mIciciPaymentReq   = new IciciPaymentReq();
@@ -125,6 +131,7 @@ class PaymentController extends Controller
             }
 
             $paymentJsonData = $this->filterReqReqData($req);
+
             # Get the payment req for refNo
             switch ($paymentReqData->payment_status) {
                 case ($confPaymentStatus['PENDING']):
@@ -146,6 +153,8 @@ class PaymentController extends Controller
 
     /**
      * | filter the string data into json
+        | Under Con
+        | Make this a Helper or in microservice 
      */
     public function filterReqReqData($req)
     {
@@ -169,6 +178,8 @@ class PaymentController extends Controller
 
     /**
      * | Generate Order Id
+        | Close
+        | Make this a Helper or in microservice 
      */
     protected function getOrderId(int $modeuleId)
     {
@@ -185,6 +196,7 @@ class PaymentController extends Controller
 
     /**
      * | Save Pine lab Request
+        | Close
      */
     public function initiatePayment(Request $req)
     {
@@ -193,20 +205,20 @@ class PaymentController extends Controller
             "amount"        => "required|numeric",
             "moduleId"      => "nullable|int",
             "applicationId" => "required|int",
+            "paymentType"   => "nullable|"
         ]);
-
         if ($validator->fails())
             return validationError($validator);
 
         try {
-            $mPinelabPaymentReq =  new PinelabPaymentReq();
-            $propertyModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
-            $moduleId = $req->moduleId;
+            $mPinelabPaymentReq = new PinelabPaymentReq();
+            $propertyModuleId   = Config::get('module-constants.PROPERTY_MODULE_ID');
+            $moduleId           = $req->moduleId;
+            $user               = authUser($req);
 
             if ($req->paymentType == 'Property' || 'Saf')
                 $moduleId = $propertyModuleId;
 
-            $user = authUser($req);
             $mReqs = [
                 "ref_no"          => $this->getOrderId($moduleId),
                 "user_id"         => $user->id,
@@ -219,7 +231,6 @@ class PaymentController extends Controller
 
             ];
             $data = $mPinelabPaymentReq->store($mReqs);
-
             return responseMsgs(true, "Bill id is", ['billRefNo' => $data->ref_no], "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
@@ -230,26 +241,27 @@ class PaymentController extends Controller
      * | Save Pine lab Response
      * | Code by Mrinal Kumar
      * | Edited By-Anshu Kumar(27-09-2023)
+        | Close
      */
     public function savePinelabResponse(Request $req)
     {
         $idGeneration = new IdGeneration;
         try {
             Storage::disk('public')->put($req->billRefNo . '.json', json_encode($req->all()));
-            $mPinelabPaymentReq      =  new PinelabPaymentReq();
-            $mPinelabPaymentResponse = new PinelabPaymentResponse();
-            $responseCode            = Config::get('payment-constants.PINELAB_RESPONSE_CODE');
-            $propertyModuleId        = Config::get('module-constants.PROPERTY_MODULE_ID');
-            $user                    = authUser($req);
-            $pinelabData             = $req->pinelabResponseBody;
-            $detail                  = (object)($req->pinelabResponseBody['Detail'] ?? []);
+            $mPinelabPaymentReq         = new PinelabPaymentReq();
+            $mPinelabPaymentResponse    = new PinelabPaymentResponse();
+            $responseCode               = Config::get('payment-constants.PINELAB_RESPONSE_CODE');
+            $propertyModuleId           = Config::get('module-constants.PROPERTY_MODULE_ID');
+            $user                       = authUser($req);
+            $pinelabData                = $req->pinelabResponseBody;
+            $detail                     = (object)($req->pinelabResponseBody['Detail'] ?? []);
+            $actualTransactionNo        = $idGeneration->generateTransactionNo($user->ulb_id);
 
-
-            $actualTransactionNo = $idGeneration->generateTransactionNo($user->ulb_id);
-
+            # Distribution of modules
             if (in_array($req->paymentType, ['Property', 'Saf']))
                 $moduleId = $propertyModuleId;
 
+            # Pos payment request data 
             $paymentData = $mPinelabPaymentReq->getPaymentRecord($req);
 
             if (collect($paymentData)->isEmpty())
@@ -269,47 +281,49 @@ class PaymentController extends Controller
 
             # data transfer to the respective module's database 
             $moduleData = [
-                'id'                => $req->applicationId,
-                'billRefNo'         => $req->billRefNo,
-                'amount'            => $req->amount,
-                'workflowId'        => $req->workflowId,
-                'userId'            => $user->id,
-                'ulbId'             => $user->ulb_id,
-                'departmentId'      => $moduleId,         #_Module Id
-                'gatewayType'       => "Pinelab",         #_Pinelab Id
-                'transactionNo'     => $actualTransactionNo,
-                'TransactionDate'   => $detail->TransactionDate ?? null,
-                'HostResponse'      => $detail->HostResponse ?? null,
-                'CardEntryMode'     => $detail->CardEntryMode ?? null,
-                'ExpiryDate'        => $detail->ExpiryDate ?? null,
-                'InvoiceNumber'     => $detail->InvoiceNumber ?? null,
-                'MerchantAddress'   => $detail->MerchantAddress ?? null,
-                'TransactionTime'   => $detail->TransactionTime ?? null,
-                'TerminalId'        => $detail->TerminalId ?? null,
-                'TransactionType'   => $detail->TransactionType ?? null,
-                'CardNumber'        => $detail->CardNumber ?? null,
-                'MerchantId'        => $detail->MerchantId ?? null,
-                'PlutusVersion'     => $detail->PlutusVersion ?? null,
-                'PosEntryMode'      => $detail->PosEntryMode ?? null,
-                'RetrievalReferenceNumber' => $detail->RetrievalReferenceNumber ?? null,
-                'BillingRefNo'             => $detail->BillingRefNo ?? null,
-                'BatchNumber'              => $detail->BatchNumber ?? null,
-                'Remark'                   => $detail->Remark ?? null,
-                'AcquiringBankCode'        => $detail->AcquiringBankCode ?? null,
-                'MerchantName'             => $detail->MerchantName ?? null,
-                'MerchantCity'             => $detail->MerchantCity ?? null,
-                'ApprovalCode'             => $detail->ApprovalCode ?? null,
-                'CardType'                 => $detail->CardType ?? null,
-                'PrintCardholderName'      => $detail->PrintCardholderName ?? null,
-                'AcquirerName'             => $detail->AcquirerName ?? null,
-                'LoyaltyPointsAwarded'     => $detail->LoyaltyPointsAwarded ?? null,
-                'CardholderName'           => $detail->CardholderName ?? null,
-                'AuthAmoutPaise'           => $detail->AuthAmoutPaise ?? null,
-                'PlutusTransactionLogID'   => $detail->PlutusTransactionLogID ?? null
+                'id'                        => $req->applicationId,
+                'billRefNo'                 => $req->billRefNo,
+                'amount'                    => $req->amount,
+                'workflowId'                => $req->workflowId,
+                'userId'                    => $user->id,
+                'ulbId'                     => $user->ulb_id,
+                'departmentId'              => $moduleId,         #_Module Id
+                'gatewayType'               => "Pinelab",         #_Pinelab Id
+                'transactionNo'             => $actualTransactionNo,
+                'TransactionDate'           => $detail->TransactionDate ?? null,
+                'HostResponse'              => $detail->HostResponse ?? null,
+                'CardEntryMode'             => $detail->CardEntryMode ?? null,
+                'ExpiryDate'                => $detail->ExpiryDate ?? null,
+                'InvoiceNumber'             => $detail->InvoiceNumber ?? null,
+                'MerchantAddress'           => $detail->MerchantAddress ?? null,
+                'TransactionTime'           => $detail->TransactionTime ?? null,
+                'TerminalId'                => $detail->TerminalId ?? null,
+                'TransactionType'           => $detail->TransactionType ?? null,
+                'CardNumber'                => $detail->CardNumber ?? null,
+                'MerchantId'                => $detail->MerchantId ?? null,
+                'PlutusVersion'             => $detail->PlutusVersion ?? null,
+                'PosEntryMode'              => $detail->PosEntryMode ?? null,
+                'RetrievalReferenceNumber'  => $detail->RetrievalReferenceNumber ?? null,
+                'BillingRefNo'              => $detail->BillingRefNo ?? null,
+                'BatchNumber'               => $detail->BatchNumber ?? null,
+                'Remark'                    => $detail->Remark ?? null,
+                'AcquiringBankCode'         => $detail->AcquiringBankCode ?? null,
+                'MerchantName'              => $detail->MerchantName ?? null,
+                'MerchantCity'              => $detail->MerchantCity ?? null,
+                'ApprovalCode'              => $detail->ApprovalCode ?? null,
+                'CardType'                  => $detail->CardType ?? null,
+                'PrintCardholderName'       => $detail->PrintCardholderName ?? null,
+                'AcquirerName'              => $detail->AcquirerName ?? null,
+                'LoyaltyPointsAwarded'      => $detail->LoyaltyPointsAwarded ?? null,
+                'CardholderName'            => $detail->CardholderName ?? null,
+                'AuthAmoutPaise'            => $detail->AuthAmoutPaise ?? null,
+                'PlutusTransactionLogID'    => $detail->PlutusTransactionLogID ?? null
             ];
 
 
             if ($pinelabData['Response']['ResponseCode'] == 00) {                           // Success Response code(00)
+
+                # Updating the payment request data 
                 $paymentData->payment_status = 1;
                 $paymentData->save();
 
@@ -344,3 +358,4 @@ class PaymentController extends Controller
         }
     }
 }
+

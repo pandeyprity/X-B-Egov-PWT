@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Http;
  * | Created On-02-09-2023 
  * | Author-Anshu Kumar
  * | Status - Closed
- * | Final Url-https://eazypayuat.icicibank.com/EazyPGVerify?ezpaytranid=2309111661222&amount=&paymentmode=&merchantid=136082&trandate=&pgreferenceno=  // tranid is ref no
+ * | Final Url-https://eazypayuat.icicibank.com/EazyPGVerify?ezpaytranid=2309111661222&amount=&paymentmode=&merchantid=136082&trandate=&pgreferenceno=16945076411108222585  // tranid is ref no
  */
 class GetRefUrl
 {
@@ -21,7 +21,7 @@ class GetRefUrl
     private static $subMerchantId = 45;
     private static $paymentMode = 9;
     private static $baseUrl = "https://eazypayuat.icicibank.com";
-    private static $returnUrl = "http://203.129.217.244:8081/property";
+    private static $returnUrl = "http://203.129.217.244:8081/property";                 // 
     private static $ciphering = "aes-128-ecb";                                          // Store the cipher method for encryption
     public $_tranAmt;
     public $_refNo;
@@ -32,18 +32,18 @@ class GetRefUrl
      */
     public function generateRefUrl()
     {
-        $todayDate = Carbon::now()->format('d/M/Y');
-        $refNo = time() . rand();
-        $this->_refNo = $refNo;
-        $tranAmt = $this->_tranAmt;
-        $mandatoryField = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
-        $eMandatoryField = $this->encryptAes($mandatoryField);
-        $optionalField = $this->encryptAes("X|X|X");
-        $returnUrl = $this->encryptAes(self::$returnUrl);
-        $eRefNo = $this->encryptAes($refNo);
-        $subMerchantId = $this->encryptAes(self::$subMerchantId);
-        $eTranAmt = $this->encryptAes($tranAmt);
-        $paymentMode = $this->encryptAes(self::$paymentMode);
+        $todayDate          = Carbon::now()->format('d/M/Y');
+        $refNo              = time() . rand();
+        $this->_refNo       = $refNo;
+        $tranAmt            = $this->_tranAmt ?? 1;                                                                            // Remove the static amount
+        $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
+        $eMandatoryField    = $this->encryptAes($mandatoryField);
+        $optionalField      = $this->encryptAes("X|X|X");
+        $returnUrl          = $this->encryptAes(self::$returnUrl);
+        $eRefNo             = $this->encryptAes($refNo);
+        $subMerchantId      = $this->encryptAes(self::$subMerchantId);
+        $eTranAmt           = $this->encryptAes($tranAmt);
+        $paymentMode        = $this->encryptAes(self::$paymentMode);
 
         $plainUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $mandatoryField . "&optional fields=X|X|X" . '&returnurl=' . self::$returnUrl . '&Reference No=' . $refNo
             . '&submerchantid=' . self::$subMerchantId . '&transaction amount=' . "$tranAmt" . '&paymode=' . self::$paymentMode;
@@ -52,8 +52,8 @@ class GetRefUrl
             . '&submerchantid=' . $subMerchantId . '&transaction amount=' . $eTranAmt . '&paymode=' . $paymentMode;
         $this->_refUrl = $encryptUrl;
         return [
-            'plainUrl' => $plainUrl,
-            'encryptUrl' => $encryptUrl
+            'plainUrl'      => $plainUrl,
+            'encryptUrl'    => $encryptUrl
         ];
     }
 
@@ -83,12 +83,14 @@ class GetRefUrl
     {
         # calling the http request for Payment request
         // https://eazypayuat.icicibank.com/EazyPGVerify?ezpaytranid=2309111661222
-        // // &amount=
-        // // &paymentmode=
-        // // &merchantid=136082
-        // // &trandate=
-        // // &pgreferenceno=16945076411108222585
+        // &amount=
+        // &paymentmode=
+        // &merchantid=136082
+        // &trandate=
+        // &pgreferenceno=16945076411108222585
 
-        // // Http::->post("$petApi->end_point", $transfer);
+        // Http::->post("$petApi->end_point", $transfer);
+
+        // https://eazypayuat.icicibank.com/EazyPG?merchantid=136082&mandatory fields=8+zD9Frb3bx+M8s1/1y//ymDXvTCLhON9Sxi1KftfI/6jiy1PPavcxwnhOLwTYlRgeyF3rsKUcias1KbX4wJiQ==&optional fields=h4UMk/cXKHxuF078YudPmA==&returnurl=p8HR4AwfAUB/HLkeYYSwhK/JM3Y1K/NyWYDWX8UwKpphWIcOauBRZo13tlLA1KAu&Reference No=8+zD9Frb3bx+M8s1/1y///L6yuC9oo312vy8Fu8HkMI=&submerchantid=EJpmy96shfiIc7fg4quxtQ==&transaction amount=TspCx9wbUIG3AHm40YYwjA==&paymode=FsAVZXp0rTj81r6v2bzn1w==
     }
 }
