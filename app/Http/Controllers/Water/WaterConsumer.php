@@ -149,25 +149,30 @@ class WaterConsumer extends Controller
             $refConnectionName      = Config::get('waterConstaint.METER_CONN_TYPE');
             $refConsumerId          = $request->ConsumerId;
 
-            $refConsumerDemand = $mWaterConsumerDemand->getConsumerDemand($refConsumerId);
-            if (!($refConsumerDemand->first())) {
-                $consumerDemand['demandStatus'] = 0;                                    // Static
-                return responseMsgs(false,"consumer demands not found!",$consumerDemand, "", "01", "ms", "POST", "");
-            }
-            #basic details
+            # Basic consumer details
             $WaterBasicDetails = $mWaterSecondConsumer->fullWaterDetails($refConsumerId)->first();
             if (!$WaterBasicDetails) {
                 throw new Exception("consumer detail not found ");
             }
+
+            # Get demand details 
+            $refConsumerDemand = $mWaterConsumerDemand->getConsumerDemand($refConsumerId);
+            if (!($refConsumerDemand->first())) {
+                $consumerDemand['demandStatus'] = 0;                                    // Static / to represent existence of demand
+                return responseMsgs(false, "consumer demands not found!", $consumerDemand, "", "01", responseTime(), $request->getMethod(), $request->deviceId);
+            }
+
             $refConsumerDemand = collect($refConsumerDemand)->sortBy('id')->values();
             $consumerDemand['consumerDemands'] = $refConsumerDemand;
             $checkParam = collect($consumerDemand['consumerDemands'])->first();
+        
+            # Check the details 
             if (isset($checkParam)) {
                 $sumDemandAmount = collect($consumerDemand['consumerDemands'])->sum('balance_amount');
                 $totalPenalty = collect($consumerDemand['consumerDemands'])->sum('penalty');
                 $consumerDemand['totalSumDemand'] = round($sumDemandAmount, 2);
                 $consumerDemand['totalPenalty'] = round($totalPenalty, 2);
-                # meter Details 
+                # Meter Details 
                 $refMeterData = $mWaterConsumerMeter->getMeterDetailsByConsumerIdV2($refConsumerId)->first();
                 $refMeterData->ref_initial_reading = (float)($refMeterData->ref_initial_reading);
                 switch ($refMeterData['connection_type']) {
@@ -180,16 +185,15 @@ class WaterConsumer extends Controller
                 }
                 if ($checkParam['demand_from'] == null && $checkParam['paid_status'] == 0 && $checkParam['demand_upto'] == null) {
                     // return('last demand is not available');
-
-                    $checkParam['demand_from'] =   $checkParam['generation_date'];
-                    $checkParam['demand_upto'] =   $mNowDate;
+                    $checkParam['demand_from'] = $checkParam['generation_date'];
+                    $checkParam['demand_upto'] = $mNowDate;
                 }
 
-                $refMeterData['connectionName'] = $connectionName;
+                $refMeterData['connectionName']     = $connectionName;
                 $refMeterData['ConnectionTypeName'] = $connectionName;
-                $refMeterData['basicDetails']   = $WaterBasicDetails;
-                $consumerDemand['meterDetails'] = $refMeterData;
-                $consumerDemand['demandStatus'] = 1;                        // Static / to represent existence of demand
+                $refMeterData['basicDetails']       = $WaterBasicDetails;
+                $consumerDemand['meterDetails']     = $refMeterData;
+                $consumerDemand['demandStatus']     = 1;                                // Static / to represent existence of demand
                 return responseMsgs(true, "List of Consumer Demand!", remove_null($consumerDemand), "", "01", "ms", "POST", "");
             }
             throw new Exception("There is no demand!");
