@@ -21,8 +21,8 @@ class GetRefUrl
     private static $subMerchantId = 45;
     private static $paymentMode = 9;
     private static $baseUrl = "https://eazypayuat.icicibank.com";
-    private static $returnUrl = "http://203.129.217.244:8081/property";                 // 
-    private static $ciphering = "aes-128-ecb";                                          // Store the cipher method for encryption
+    private static $returnUrl = "http://203.129.217.62:82/api/payment/v1/collect-callback-data";                   // http://203.129.217.244:8081/property
+    private static $ciphering = "aes-128-ecb";                                                                  // Store the cipher method for encryption
     public $_tranAmt;
     public $_refNo;
     public $_refUrl;
@@ -35,7 +35,7 @@ class GetRefUrl
         $todayDate          = Carbon::now()->format('d/M/Y');
         $refNo              = time() . rand();
         $this->_refNo       = $refNo;
-        $tranAmt            = $this->_tranAmt ?? 1;                                                                            // Remove the static amount
+        $tranAmt            = $this->_tranAmt ?? 100;                                                                            // Remove the static amount
         $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
         $eMandatoryField    = $this->encryptAes($mandatoryField);
         $optionalField      = $this->encryptAes("X|X|X");
@@ -92,5 +92,19 @@ class GetRefUrl
         // Http::->post("$petApi->end_point", $transfer);
 
         // https://eazypayuat.icicibank.com/EazyPG?merchantid=136082&mandatory fields=8+zD9Frb3bx+M8s1/1y//ymDXvTCLhON9Sxi1KftfI/6jiy1PPavcxwnhOLwTYlRgeyF3rsKUcias1KbX4wJiQ==&optional fields=h4UMk/cXKHxuF078YudPmA==&returnurl=p8HR4AwfAUB/HLkeYYSwhK/JM3Y1K/NyWYDWX8UwKpphWIcOauBRZo13tlLA1KAu&Reference No=8+zD9Frb3bx+M8s1/1y///L6yuC9oo312vy8Fu8HkMI=&submerchantid=EJpmy96shfiIc7fg4quxtQ==&transaction amount=TspCx9wbUIG3AHm40YYwjA==&paymode=FsAVZXp0rTj81r6v2bzn1w==
+
+
+        # Sms Process
+        // http://nimbusit.biz/api/SmsApi/SendSingleApi?
+        // UserID=SwatiIndbiz
+        // &Password=txif7813TX
+        // &SenderID=TECSSP
+        // &Phno=7319867430
+        // &Msg=Dear Student, Get confirmed admission in ABC in TOP medical colleges/Deemed Universities under management quota at low cost. Call-9999999999 TECSSP
+        // &EntityID=1201159409941345107
+        // &TemplateID=1707169477672412036
+
+
+
     }
 }
