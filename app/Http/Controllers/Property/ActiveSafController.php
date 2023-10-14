@@ -1622,7 +1622,7 @@ class ActiveSafController extends Controller
             $tax = $data["fyearWiseTaxes"];
             $correntTax = collect($tax)->where("fyear",'=',getFy());
             $arrearTax = collect($tax)->where("fyear",'<',getFy());
-            $data["correntTax"]= [
+            $data["currentTax"]= [
                 "alv"                   => $correntTax->sum("alv"),
                 "maintancePerc"         => $correntTax->sum("maintancePerc"),
                 "maintantance10Perc"    => $correntTax->sum("maintantance10Perc"),
