@@ -11,6 +11,7 @@ use App\Models\Property\PropActiveHarvesting;
 use App\Models\Property\PropActiveObjection;
 use App\Models\Property\PropActiveSaf;
 use App\Models\Property\PropDemand;
+use App\Models\Property\PropFloor;
 use App\Models\Property\PropOwner;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropSaf;
@@ -20,6 +21,7 @@ use App\Models\Property\PropTransaction;
 use App\Models\Workflows\WfActiveDocument;
 use App\Pipelines\SearchHolding;
 use App\Pipelines\SearchPtn;
+use App\Traits\Property\SAF;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -38,6 +40,7 @@ use Illuminate\Support\Facades\Validator;
 
 class PropertyController extends Controller
 {
+    use SAF;
     /**
      * | Send otp for caretaker property
      */
@@ -522,6 +525,59 @@ class PropertyController extends Controller
             }
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", "1.0", responseTime(), $request->getMethod(), $request->deviceId);
+        }
+    }
+
+
+    /**
+     * | Get The property copy report
+     */
+    public function getHoldingCopy(Request $req)
+    {
+        $validated = Validator::make(
+            $req->all(),
+            [
+                "propId" => "required|integer",
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+
+        $mPropProperty = new PropProperty();
+        $mPropFloors = new PropFloor();
+        $mPropOwner = new PropOwner();
+        $mPropDemands = new PropDemand();
+
+        try {
+            $propDetails = $mPropProperty->getPropBasicDtls($req->propId);
+            $propFloors = $mPropFloors->getPropFloors($req->propId);
+            $propOwner = $mPropOwner->getfirstOwner($req->propId);
+
+            $floorTypes = $propFloors->implode('floor_name', ',');
+            $usageTypes = $propFloors->implode('usage_type', ',');
+            $maxBuildupArea = $propFloors->pluck('builtup_area')->max();
+            $propUsageTypes = $this->propHoldingType($propFloors);
+            $propDemand = $mPropDemands->getDemandByPropId($req->propId)->first();
+
+            $responseDetails = [
+                'zone_no' => $propDetails->zone_name,
+                'survey_no' => "",
+                'ward_no' => $propDetails->ward_no,
+                'plot_no' => $propDetails->plot_no,
+                'old_property_no' => $propDetails->property_no,
+                'old_ward_no' => "",
+                'property_usage_type' => $propUsageTypes,
+                'floor_types' => $floorTypes,
+                'floor_usage_types' => $usageTypes,
+                'max_buildup_area' => $maxBuildupArea,
+                'area_of_plot' => $propDetails->area_of_plot,
+                'primary_owner_name' => $propOwner->owner_name_marathi,
+                'applicant_name' => $propDetails->applicant_marathi,
+                'demands' => $propDemand
+            ];
+            return responseMsgs(true, "Property Details", remove_null($responseDetails));
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), []);
         }
     }
 }

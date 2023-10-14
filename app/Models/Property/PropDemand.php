@@ -2,6 +2,7 @@
 
 namespace App\Models\Property;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -112,32 +113,43 @@ class PropDemand extends Model
             "light_cess",
             "major_building",
             "is_full_paid",
+            "has_partwise_paid",
 
-            "paid_general_tax",
-            "paid_road_tax",
-            "paid_firefighting_tax",
-            "paid_education_tax",
-            "paid_water_tax",
-            "paid_cleanliness_tax",
-            "paid_sewarage_tax",
-            "paid_tree_tax",
-            "paid_professional_tax",
-            "paid_total_tax",
-            "paid_tax1",
-            "paid_tax2",
-            "paid_tax3",
-            "paid_sp_education_tax as paid_state_education_tax",
-            "paid_water_benefit",
-            "paid_water_bill",
-            "paid_sp_water_cess",
-            "paid_drain_cess",
-            "paid_light_cess",
-            "paid_major_building",
+            "due_general_tax",
+            "due_road_tax",
+            "due_firefighting_tax",
+            "due_education_tax",
+            "due_water_tax",
+            "due_cleanliness_tax",
+            "due_sewarage_tax",
+            "due_tree_tax",
+            "due_professional_tax",
+            "due_total_tax",
+            "due_balance",
+            "due_tax1",
+            "due_tax2",
+            "due_tax3",
+            "due_sp_education_tax as due_state_education_tax",
+            "due_water_benefit",
+            "due_water_bill",
+            "due_sp_water_cess",
+            "due_drain_cess",
+            "due_light_cess",
+            "due_major_building",
         )
-            ->where('property_id', $propId)
-            ->where('paid_status', 0)
-            ->orWhere('is_full_paid', false)
             ->where('status', 1)
+            ->where('property_id', $propId)
+
+            ->whereIn('paid_status', [0, 1])
+
+            ->where(function ($query) {                         // conditional case when paid status is 1 then get the result of part paid amount only
+                $query->where(function ($query) {
+                    $query->where('paid_status', 1)->where('is_full_paid', false);
+                })->orWhere(function ($query) {
+                    $query->where('paid_status', 0)->where('is_full_paid', true);
+                });
+            })
+
             ->orderByDesc('fyear')
             ->get();
     }
@@ -150,7 +162,7 @@ class PropDemand extends Model
         return PropDemand::where('property_id', $propId)
             ->where('paid_status', 0)
             ->where('status', 1)
-            ->orderByDesc('due_date')
+            ->orderByDesc('fyear')
             ->get();
     }
 

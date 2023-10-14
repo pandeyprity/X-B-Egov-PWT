@@ -116,7 +116,7 @@ class GeneratePaymentReceiptV2
                 $demandIds = collect($tranDtls)->pluck('prop_demand_id')->toArray();
                 $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
                 foreach ($demandsList as $list) {
-                    if ($list->is_full_paid == false) {                             // In Case of Part Payment Get the Paid demand by transaction paid Amount
+                    if ($list->is_full_paid == false || $list->has_partwise_paid == true) {                             // In Case of Part Payment Get the Paid demand by transaction paid Amount
                         $paidTranDemands = collect($tranDtls)->where('prop_demand_id', $list->id)->first();
                         $list->general_tax = $paidTranDemands->paid_general_tax;
                         $list->road_tax = $paidTranDemands->paid_road_tax;

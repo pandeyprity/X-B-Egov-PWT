@@ -78,6 +78,48 @@ class DeactivateTran
                 $tranDtl = PropTranDtl::find($tranDtl->id);
                 $tranDtl->status = 0;               // Deactivation of tran Details
                 $tranDtl->save();
+
+                /**
+                 * | Condition for Reverting in case of Part wise Payment
+                 */
+                if ($demand->is_full_paid == false) {
+                    $demand->due_alv = $demand->due_alv + $tranDtl->paid_alv;
+                    $demand->due_maintanance_amt = $demand->due_maintanance_amt + $tranDtl->paid_maintanance_amt;
+                    $demand->due_aging_amt = $demand->due_aging_amt + $tranDtl->paid_aging_amt;
+                    $demand->due_general_tax = $demand->due_general_tax + $tranDtl->paid_general_tax;
+                    $demand->due_road_tax = $demand->due_road_tax + $tranDtl->paid_road_tax;
+                    $demand->due_firefighting_tax = $demand->due_firefighting_tax + $tranDtl->paid_firefighting_tax;
+                    $demand->due_education_tax = $demand->due_education_tax + $tranDtl->paid_education_tax;
+                    $demand->due_water_tax = $demand->due_water_tax + $tranDtl->paid_water_tax;
+                    $demand->due_cleanliness_tax = $demand->due_cleanliness_tax + $tranDtl->paid_cleanliness_tax;
+                    $demand->due_sewarage_tax = $demand->due_sewarage_tax + $tranDtl->paid_sewarage_tax;
+                    $demand->due_tree_tax = $demand->due_tree_tax + $tranDtl->paid_tree_tax;
+                    $demand->due_professional_tax = $demand->due_professional_tax + $tranDtl->paid_professional_tax;
+                    $demand->due_total_tax = $demand->due_total_tax + $tranDtl->paid_total_tax;
+                    $demand->due_balance = $demand->due_balance + $tranDtl->paid_balance;
+                    $demand->due_adjust_amt = $demand->due_adjust_amt + $tranDtl->paid_adjust_amt;
+                    $demand->due_tax1 = $demand->due_tax1 + $tranDtl->paid_tax1;
+                    $demand->due_tax2 = $demand->due_tax2 + $tranDtl->paid_tax2;
+                    $demand->due_tax3 = $demand->due_tax3 + $tranDtl->paid_tax3;
+                    $demand->due_sp_education_tax = $demand->due_sp_education_tax + $tranDtl->paid_sp_education_tax;
+                    $demand->due_water_benefit = $demand->due_water_benefit + $tranDtl->paid_water_benefit;
+                    $demand->due_water_bill = $demand->due_water_bill + $tranDtl->paid_water_bill;
+                    $demand->due_sp_water_cess = $demand->due_sp_water_cess + $tranDtl->paid_sp_water_cess;
+                    $demand->due_drain_cess = $demand->due_drain_cess + $tranDtl->paid_drain_cess;
+                    $demand->due_light_cess = $demand->due_light_cess + $tranDtl->paid_light_cess;
+                    $demand->due_major_building = $demand->due_major_building + $tranDtl->paid_major_building;
+                    $demand->paid_total_tax = $demand->paid_total_tax - $tranDtl->paid_total_tax;
+                    $demand->paid_status = 1;
+
+                    // Check the condition of first part payment We have to make it revertable as previous
+                    if ($demand->paid_total_tax == 0) {
+                        $demand->paid_status = 0;
+                        $demand->is_full_paid = true;
+                        $demand->has_partwise_paid = false;
+                    }
+
+                    $demand->save();
+                }
             }
         }
 
