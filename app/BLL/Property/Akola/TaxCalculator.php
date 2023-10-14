@@ -90,7 +90,7 @@ class TaxCalculator
         }
 
         $this->_calculatorParams = [
-            'areaOfPlot' => $this->_REQUEST->areaOfPlot * 0.092903,
+            'areaOfPlot' => $this->_REQUEST->areaOfPlot * 0.092903,                         // Square feet to square meter conversion
             'category' => $this->_REQUEST->category,
             'dateOfPurchase' => $this->_REQUEST->dateOfPurchase,
             'floors' => $this->_REQUEST->floor
@@ -136,9 +136,14 @@ class TaxCalculator
 
                 $isCommercial = ($item->usageType == $this->_residentialUsageType) ? false : true;                    // Residential usage type id
 
-                $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes(2.3)
+                $stateTaxes = $this->readStateTaxes($floorBuildupArea, $isCommercial);                   // Read State Taxes(2.3)
 
                 $this->_floorsTaxes[$key] = [
+                    'usageType' => $item->usageType,
+                    'constructionType' => $item->constructionType,
+                    'constructionTypeVal' => Config::get("PropertyConstaint.CONSTRUCTION-TYPE.".$item->constructionType),
+                    'occupancyType' => $item->occupancyType,
+                    'occupancyTypeVal' => Config::get("PropertyConstaint.OCCUPANCY-TYPE.".$item->occupancyType),
                     'dateFrom' => $item->dateFrom,
                     'appliedFrom' => getFY($item->dateFrom),
                     'rate' => $rate,
@@ -242,7 +247,7 @@ class TaxCalculator
 
             $isCommercial = false;
 
-            $stateTaxes = $this->readStateTaxes($alv, $isCommercial);                   // Read State Taxes(3.1)
+            $stateTaxes = $this->readStateTaxes($this->_calculatorParams['areaOfPlot'], $isCommercial);                   // Read State Taxes(3.1)
 
             $this->_floorsTaxes[0] = [
                 'rate' => $rate,
@@ -277,42 +282,42 @@ class TaxCalculator
     /**
      * | read State Taxes (2.3) && (3.1)
      */
-    public function readStateTaxes($alv, $isCommercial)
+    public function readStateTaxes($floorBuildupArea, $isCommercial)
     {
         // State Taxes
-        if (is_between($alv, 0, 151)) {
+        if (is_between($floorBuildupArea, 0, 151)) {
             $stateEducationTaxPerc = $isCommercial ? 4 : 2;
-            $stateEducationTax = roundFigure(($alv * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 1 : 0;
-            $professionalTax = roundFigure(($alv * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
         }
 
-        if (is_between($alv, 150, 301)) {
+        if (is_between($floorBuildupArea, 150, 301)) {
             $stateEducationTaxPerc = $isCommercial ? 6 : 3;
-            $stateEducationTax = roundFigure(($alv * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 1.5 : 0;
-            $professionalTax = roundFigure(($alv * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
         }
 
-        if (is_between($alv, 300, 3001)) {
+        if (is_between($floorBuildupArea, 300, 3001)) {
             $stateEducationTaxPerc = $isCommercial ? 8 : 4;
-            $stateEducationTax = roundFigure(($alv * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 2 : 0;
-            $professionalTax = roundFigure(($alv * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
         }
 
-        if (is_between($alv, 3000, 6001)) {
+        if (is_between($floorBuildupArea, 3000, 6001)) {
             $stateEducationTaxPerc = $isCommercial ? 10 : 5;
-            $stateEducationTax = roundFigure(($alv * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 2.5 : 0;
-            $professionalTax = roundFigure(($alv * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
         }
 
-        if ($alv > 6000) {
+        if ($floorBuildupArea > 6000) {
             $stateEducationTaxPerc = $isCommercial ? 12 : 6;
-            $stateEducationTax = roundFigure(($alv * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 3 : 0;
-            $professionalTax = roundFigure(($alv * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
         }
 
         return [

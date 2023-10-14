@@ -506,6 +506,7 @@ Route::controller(ActiveSafController::class)->group(function () {
   Route::post('saf/calculate-by-saf-id', 'calculateSafBySafId');                                      // Calculate SAF By SAF ID From Citizen(13)
   Route::post('saf/independent/generate-order-id', 'generateOrderId');                                // Generate Order ID(14)
   Route::post('saf/payment-receipt', 'generatePaymentReceipt');                                       // Generate payment Receipt(16)
+  Route::post('saf/akola-fam', 'AkolaFam');
 });
 
 /**

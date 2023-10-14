@@ -23,6 +23,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Mockery\CountValidator\Exact;
+use Illuminate\Support\Str;
 
 class Report implements IReport
 {
@@ -3841,7 +3842,17 @@ class Report implements IReport
                 $toDate = $request->uptoDate;
             }
             if ($request->paymentMode) {
-                $paymentMode = $request->paymentMode;
+                if(!is_array($request->paymentMode))
+                    $paymentMode = Str::upper($request->paymentMode);
+                else
+                {
+
+                    foreach($request->paymentMode as $val)
+                    {
+                        $paymentMode .= Str::upper($val).",";
+                    }
+                    $paymentMode =  trim($paymentMode,",");
+                }
             }
             if ($request->wardId) {
                 $wardId = $request->wardId;
@@ -4028,7 +4039,7 @@ class Report implements IReport
                     and prop_transactions.status in(1,2)
                     and prop_demands.status =1 
                     and prop_tran_dtls.status =1 
-                    " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "") . "
+                    " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = ANY (UPPER('{".$paymentMode."}')::TEXT[])" : "") . "
                     " . ($wardId ? "AND props.ward_mstr_id = $wardId" : "") . "
                     " . ($zoneId ? "AND props.zone_mstr_id = $zoneId" : "") . "
                     " . ($userId ? "AND prop_transactions.user_id = $userId" : "") . "
@@ -4052,7 +4063,7 @@ class Report implements IReport
                 where prop_transactions.tran_date between '$fromDate' and '$toDate' 
                     and prop_transactions.status in(1,2)
                     and prop_penaltyrebates.status =1 
-                    " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "") . "
+                    " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = ANY (UPPER('{".$paymentMode."}')::TEXT[])" : "") . "
                     " . ($wardId ? "AND props.ward_mstr_id = $wardId" : "") . "
                     " . ($zoneId ? "AND props.zone_mstr_id = $zoneId" : "") . "
                     " . ($userId ? "AND prop_transactions.user_id = $userId" : "") . "
@@ -4060,7 +4071,7 @@ class Report implements IReport
             )fine_rebet on fine_rebet.tran_id = prop_transactions.id
             where prop_transactions.tran_date between '$fromDate' and '$toDate' 
                 and prop_transactions.status in(1,2)
-                " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = UPPER('$paymentMode')" : "") . "
+                " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = ANY (UPPER('{".$paymentMode."}')::TEXT[])" : "") . "
             ";
 
             $report = DB::select($query);
@@ -4100,7 +4111,7 @@ class Report implements IReport
                 "tcName" => $userId ? User::find($userId)->name ?? "" : "All",
                 "WardName" => $wardId ? ulbWardMaster::find($wardId)->ward_name ?? "" : "All",
                 "zoneName" => $zoneId ? (new ZoneMaster)->createZoneName($zoneId) ?? "" : "East/West/North/South",
-                "paymentMode" => $paymentMode ? $paymentMode : "All",
+                "paymentMode" => $paymentMode ? str::replace(",","/",$paymentMode) : "All",
                 "printDate" => Carbon::now()->format('d-m-Y H:i:s A'),
                 "printedBy" => $user->name ?? "",
             ];

@@ -1598,6 +1598,208 @@ class ActiveSafController extends Controller
         }
     }
 
+    #create By Sandeep Bara
+    # Date 14-10-2023
+    #========Fam Reciept Data========
+    public function AkolaFam(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'safId' => 'required|digits_between:1,9223372036854775807'
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try{
+            $request->merge(["id"=>$request->safId]);
+            $response = $this->calculateSafBySafId($request);
+            if(!$response->original["status"])
+            {
+                throw new Exception($response->original["message"]);
+            }
+            $data = $response->original["data"];
+            $tax = $data["fyearWiseTaxes"];
+            $correntTax = collect($tax)->where("fyear",'=',getFy());
+            $arrearTax = collect($tax)->where("fyear",'<',getFy());
+            $data["correntTax"]= [
+                "alv"                   => $correntTax->sum("alv"),
+                "maintancePerc"         => $correntTax->sum("maintancePerc"),
+                "maintantance10Perc"    => $correntTax->sum("maintantance10Perc"),
+                "valueAfterMaintance"   => $correntTax->sum("valueAfterMaintance"),
+                "agingPerc"             => $correntTax->sum("agingPerc"),
+                "agingAmt"              => $correntTax->sum("agingAmt"),
+                "taxValue"              => $correntTax->sum("taxValue"),
+                "generalTax"            => $correntTax->sum("generalTax"),
+                "roadTax"               => $correntTax->sum("roadTax"),
+                "firefightingTax"       => $correntTax->sum("firefightingTax"),
+                "educationTax"          => $correntTax->sum("educationTax"),
+                "waterTax"              => $correntTax->sum("waterTax"),
+                "cleanlinessTax"        => $correntTax->sum("cleanlinessTax"),
+                "sewerageTax"           => $correntTax->sum("sewerageTax"),
+                "treeTax"               => $correntTax->sum("treeTax"),
+                "stateEducationTaxPerc" => $correntTax->sum("stateEducationTaxPerc"),
+                "stateEducationTax"     => $correntTax->sum("stateEducationTax"),
+                "professionalTaxPerc"   => $correntTax->sum("professionalTaxPerc"),
+                "professionalTax"       => $correntTax->sum("professionalTax"),
+                "totalTax"              => $correntTax->sum("totalTax"),
+                "wardNo"                => $data['basicDetails']["ward_no"],
+                "propertyNo"            => $data['basicDetails']["property_no"]??"",
+                "partNo"                => $data['basicDetails']["part_no"]??"",
+                "propertyType"          => $data['basicDetails']["INDEPENDENT BUILDING"]??"",
+			    "holdingType"           => $data['basicDetails']["PURE COMMERCIAL"]??"",
+            ];
+            $data["arrearTax"]= [
+                "alv"                   => $arrearTax->sum("alv"),
+                "maintancePerc"         => $arrearTax->sum("maintancePerc"),
+                "maintantance10Perc"    => $arrearTax->sum("maintantance10Perc"),
+                "valueAfterMaintance"   => $arrearTax->sum("valueAfterMaintance"),
+                "agingPerc"             => $arrearTax->sum("agingPerc"),
+                "agingAmt"              => $arrearTax->sum("agingAmt"),
+                "taxValue"              => $arrearTax->sum("taxValue"),
+                "generalTax"            => $arrearTax->sum("generalTax"),
+                "roadTax"               => $arrearTax->sum("roadTax"),
+                "firefightingTax"       => $arrearTax->sum("firefightingTax"),
+                "educationTax"          => $arrearTax->sum("educationTax"),
+                "waterTax"              => $arrearTax->sum("waterTax"),
+                "cleanlinessTax"        => $arrearTax->sum("cleanlinessTax"),
+                "sewerageTax"           => $arrearTax->sum("sewerageTax"),
+                "treeTax"               => $arrearTax->sum("treeTax"),
+                "stateEducationTaxPerc" => $arrearTax->sum("stateEducationTaxPerc"),
+                "stateEducationTax"     => $arrearTax->sum("stateEducationTax"),
+                "professionalTaxPerc"   => $arrearTax->sum("professionalTaxPerc"),
+                "professionalTax"       => $arrearTax->sum("professionalTax"),
+                "totalTax"              => $arrearTax->sum("totalTax"),
+                "wardNo"                => $data['basicDetails']["ward_no"],
+                "propertyNo"            => $data['basicDetails']["property_no"]??"",
+                "partNo"                => $data['basicDetails']["part_no"]??"",
+                "propertyType"          => $data['basicDetails']["INDEPENDENT BUILDING"]??"",
+			    "holdingType"           => $data['basicDetails']["PURE COMMERCIAL"]??"",
+            ];
+            $data["images"]=[
+                "photograph"=>"",
+                "naksha"    =>""
+            ]; 
+            $floorsTaxes = collect($data["floorsTaxes"]??[]);
+            $data["grandFloorsTaxes"] =[
+                "totalFloors"       => $floorsTaxes->count("floorNo")??0,
+                "dateFrom"          => $floorsTaxes->min("dateFrom")??"",
+                "appliedFrom"       => $floorsTaxes->min("appliedFrom")??"",
+                "rate"              => $floorsTaxes->sum("rate")??0,
+                "floorKey"          => $floorsTaxes->max("floorKey")??"",
+                "floorNo"           => $floorsTaxes->max("floorNo")??"",
+                "buildupAreaInSqmt" => $floorsTaxes->sum("buildupAreaInSqmt")??"0",
+                "alv"               => $floorsTaxes->sum("alv")??"0",
+                "maintancePerc"     => $floorsTaxes->sum("maintancePerc")??"0",
+                "maintantance10Perc"=> $floorsTaxes->sum("maintantance10Perc")??"0",
+                "valueAfterMaintance"=>$floorsTaxes->sum("valueAfterMaintance")??"0",
+                "agingPerc"         => $floorsTaxes->sum("agingPerc")??"0",
+                "agingAmt"          => $floorsTaxes->sum("agingAmt")??"0",
+                "taxValue"          => $floorsTaxes->sum("taxValue")??"0",
+                "generalTax"        => $floorsTaxes->sum("generalTax")??"0",
+                "roadTax"           => $floorsTaxes->sum("roadTax")??"0",
+                "firefightingTax"   => $floorsTaxes->sum("firefightingTax")??"0",
+                "educationTax"      => $floorsTaxes->sum("educationTax")??"0",
+                "waterTax"          => $floorsTaxes->sum("waterTax")??"0",
+                "cleanlinessTax"    => $floorsTaxes->sum("cleanlinessTax")??"0",
+                "sewerageTax"       => $floorsTaxes->sum("sewerageTax")??"0",
+                "treeTax"           => $floorsTaxes->sum("treeTax")??"0",
+                "isCommercial"      => ($floorsTaxes->where("isCommercial",true)->count()>1?true:false)??false,
+                "stateEducationTaxPerc" => $floorsTaxes->sum("stateEducationTaxPerc")??"0",
+                "stateEducationTax" => $floorsTaxes->sum("stateEducationTax")??"0",
+                "professionalTaxPerc"=> $floorsTaxes->sum("professionalTaxPerc")??"0",
+                "professionalTax"   => $floorsTaxes->sum("professionalTax")??"0",
+                "totalTax"          => roundFigure($floorsTaxes->sum("generalTax") + $floorsTaxes->sum("roadTax") + $floorsTaxes->sum("firefightingTax") + 
+                                        $floorsTaxes->sum("educationTax") + $floorsTaxes->sum("waterTax") + $floorsTaxes->sum("cleanlinessTax") + 
+                                        $floorsTaxes->sum("sewerageTax") + $floorsTaxes->sum("treeTax") + $floorsTaxes->sum("stateEducationTax") + 
+                                        $floorsTaxes->sum("professionalTax") 
+                                    ),
+            ]; 
+            $residentFloor = $floorsTaxes->where("occupancyType",1);
+            $nonResidentFloor = $floorsTaxes->where("occupancyType","!=",1);
+            $data["usageTypeTax"]=[
+                "new"=>[
+                    "residence"=>[
+                        "taxValue"=>$residentFloor->sum("taxValue")??0,
+                        "totalTax"=>roundFigure($residentFloor->sum("generalTax") + $residentFloor->sum("roadTax") + $residentFloor->sum("firefightingTax") + 
+                                        $residentFloor->sum("educationTax") + $residentFloor->sum("waterTax") + 
+                                        $residentFloor->sum("cleanlinessTax") + $residentFloor->sum("sewerageTax") + $residentFloor->sum("treeTax") + 
+                                        $residentFloor->sum("stateEducationTax") +  $residentFloor->sum("professionalTax")
+                                    ),
+                                ],
+                    "nonResidence"=>[
+                        "taxValue"=>$nonResidentFloor->sum("taxValue")??0,
+                        "totalTax"=>roundFigure($nonResidentFloor->sum("generalTax") + $nonResidentFloor->sum("roadTax") + 
+                                        $nonResidentFloor->sum("firefightingTax") + $nonResidentFloor->sum("educationTax") + $nonResidentFloor->sum("waterTax") + 
+                                        $nonResidentFloor->sum("cleanlinessTax") + $nonResidentFloor->sum("sewerageTax") + $nonResidentFloor->sum("treeTax") + 
+                                        $nonResidentFloor->sum("stateEducationTax") +  $nonResidentFloor->sum("professionalTax")
+                                    ),
+                    ]
+                ]
+            ]; 
+            $data["usageTypeTaxBifur"]=[                
+                "residence"=>[
+                    "alv"               => $residentFloor->sum("alv")??"0",
+                    "maintancePerc"     => $residentFloor->sum("maintancePerc")??"0",
+                    "maintantance10Perc"=> $residentFloor->sum("maintantance10Perc")??"0",
+                    "valueAfterMaintance"=>$residentFloor->sum("valueAfterMaintance")??"0",
+                    "agingPerc"         => $residentFloor->sum("agingPerc")??"0",
+                    "agingAmt"          => $residentFloor->sum("agingAmt")??"0",
+                    "taxValue"          => $residentFloor->sum("taxValue")??"0",
+                    "generalTax"        => $residentFloor->sum("generalTax")??"0",
+                    "roadTax"           => $residentFloor->sum("roadTax")??"0",
+                    "firefightingTax"   => $residentFloor->sum("firefightingTax")??"0",
+                    "educationTax"      => $residentFloor->sum("educationTax")??"0",
+                    "waterTax"          => $residentFloor->sum("waterTax")??"0",
+                    "cleanlinessTax"    => $residentFloor->sum("cleanlinessTax")??"0",
+                    "sewerageTax"       => $residentFloor->sum("sewerageTax")??"0",
+                    "treeTax"           => $residentFloor->sum("treeTax")??"0",
+                    "isCommercial"      => ($residentFloor->where("isCommercial",true)->count()>1?true:false)??false,
+                    "stateEducationTaxPerc" => $residentFloor->sum("stateEducationTaxPerc")??"0",
+                    "stateEducationTax" => $residentFloor->sum("stateEducationTax")??"0",
+                    "professionalTaxPerc"=> $residentFloor->sum("professionalTaxPerc")??"0",
+                    "professionalTax"   => $residentFloor->sum("professionalTax")??"0",
+                    "totalTax"          => roundFigure($residentFloor->sum("generalTax") + $residentFloor->sum("roadTax") + $residentFloor->sum("firefightingTax") + 
+                                            $residentFloor->sum("educationTax") + $residentFloor->sum("waterTax") + $residentFloor->sum("cleanlinessTax") + 
+                                            $residentFloor->sum("sewerageTax") + $residentFloor->sum("treeTax") + $residentFloor->sum("stateEducationTax") + 
+                                            $residentFloor->sum("professionalTax") 
+                                        ),
+                            ],
+                "nonResidence"=>[
+                    "alv"               => $nonResidentFloor->sum("alv")??"0",
+                    "maintancePerc"     => $nonResidentFloor->sum("maintancePerc")??"0",
+                    "maintantance10Perc"=> $nonResidentFloor->sum("maintantance10Perc")??"0",
+                    "valueAfterMaintance"=>$nonResidentFloor->sum("valueAfterMaintance")??"0",
+                    "agingPerc"         => $nonResidentFloor->sum("agingPerc")??"0",
+                    "agingAmt"          => $nonResidentFloor->sum("agingAmt")??"0",
+                    "taxValue"          => $nonResidentFloor->sum("taxValue")??"0",
+                    "generalTax"        => $nonResidentFloor->sum("generalTax")??"0",
+                    "roadTax"           => $nonResidentFloor->sum("roadTax")??"0",
+                    "firefightingTax"   => $nonResidentFloor->sum("firefightingTax")??"0",
+                    "educationTax"      => $nonResidentFloor->sum("educationTax")??"0",
+                    "waterTax"          => $nonResidentFloor->sum("waterTax")??"0",
+                    "cleanlinessTax"    => $nonResidentFloor->sum("cleanlinessTax")??"0",
+                    "sewerageTax"       => $nonResidentFloor->sum("sewerageTax")??"0",
+                    "treeTax"           => $nonResidentFloor->sum("treeTax")??"0",
+                    "isCommercial"      => ($nonResidentFloor->where("isCommercial",true)->count()>1?true:false)??false,
+                    "stateEducationTaxPerc" => $nonResidentFloor->sum("stateEducationTaxPerc")??"0",
+                    "stateEducationTax" => $nonResidentFloor->sum("stateEducationTax")??"0",
+                    "professionalTaxPerc"=> $nonResidentFloor->sum("professionalTaxPerc")??"0",
+                    "professionalTax"   => $nonResidentFloor->sum("professionalTax")??"0",
+                    "totalTax"          => roundFigure($nonResidentFloor->sum("generalTax") + $nonResidentFloor->sum("roadTax") + $nonResidentFloor->sum("firefightingTax") + 
+                                            $nonResidentFloor->sum("educationTax") + $nonResidentFloor->sum("waterTax") + $nonResidentFloor->sum("cleanlinessTax") + 
+                                            $nonResidentFloor->sum("sewerageTax") + $nonResidentFloor->sum("treeTax") + $nonResidentFloor->sum("stateEducationTax") + 
+                                            $nonResidentFloor->sum("professionalTax") 
+                                        ),                    
+                ]
+            ];    
+            return responseMsgs(true, "Demand Details", remove_null($data), "", "1.1", responseTime(), "POST", $request->deviceId);
+        }
+        catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", "1.1", responseTime(), "POST", $request->deviceId);
+        }
+    }
+
     /**
      * | One Percent Penalty Calculation(13.1)
      */
