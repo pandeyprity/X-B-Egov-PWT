@@ -562,8 +562,11 @@ class PropertyController extends Controller
             $minFloorFromDate = $propFloors->min('date_from');
             $propUsageTypes = $this->propHoldingType($propFloors);
             $propDemand = $mPropDemands->getDemandByPropId($req->propId)->first();
-            if (collect($propDemand)->isNotEmpty())
-                $propDemand->tax_value = $propDemand->alv - ($propDemand->maintanance_amt + $propDemand->aging_amt);
+
+            if (collect($propDemand)->isNotEmpty()) {
+                $propDemand->maintanance_amt = roundFigure($propDemand->alv * 0.10);
+                $propDemand->tax_value = roundFigure($propDemand->alv - ($propDemand->maintanance_amt + $propDemand->aging_amt));
+            }
 
             $responseDetails = [
                 'zone_no' => $propDetails->zone_name,
