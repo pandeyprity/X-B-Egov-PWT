@@ -555,6 +555,7 @@ class PropertyController extends Controller
 
             $floorTypes = $propFloors->implode('floor_name', ',');
             $usageTypes = $propFloors->implode('usage_type', ',');
+            $constTypes = $propFloors->implode('construction_type', ',');
             $totalBuildupArea = $propFloors->pluck('builtup_area')->sum();
             $minFloorFromDate = $propFloors->min('date_from');
             $propUsageTypes = $this->propHoldingType($propFloors);
@@ -573,6 +574,7 @@ class PropertyController extends Controller
                 'property_usage_type' => $propUsageTypes,
                 'floor_types' => $floorTypes,
                 'floor_usage_types' => $usageTypes,
+                'floor_const_types' => $constTypes,
                 'total_buildup_area' => $totalBuildupArea,
                 'area_of_plot' => $propDetails->area_of_plot,
                 'primary_owner_name' => $propOwner->owner_name_marathi,
