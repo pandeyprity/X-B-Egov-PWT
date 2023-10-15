@@ -140,10 +140,10 @@ class TaxCalculator
 
                 $this->_floorsTaxes[$key] = [
                     'usageType' => $item->usageType,
-                    'constructionType' => $item->constructionType,
-                    'constructionTypeVal' => Config::get("PropertyConstaint.CONSTRUCTION-TYPE.".$item->constructionType),
-                    'occupancyType' => $item->occupancyType,
-                    'occupancyTypeVal' => Config::get("PropertyConstaint.OCCUPANCY-TYPE.".$item->occupancyType),
+                    'constructionType' => $item->constructionType??"",
+                    'constructionTypeVal' => Config::get("PropertyConstaint.CONSTRUCTION-TYPE.".$item->constructionType??""),
+                    'occupancyType' => $item->occupancyType??"",
+                    'occupancyTypeVal' => Config::get("PropertyConstaint.OCCUPANCY-TYPE.".$item->occupancyType??""),
                     'dateFrom' => $item->dateFrom,
                     'appliedFrom' => getFY($item->dateFrom),
                     'rate' => $rate,
