@@ -555,7 +555,8 @@ class PropertyController extends Controller
 
             $floorTypes = $propFloors->implode('floor_name', ',');
             $usageTypes = $propFloors->implode('usage_type', ',');
-            $maxBuildupArea = $propFloors->pluck('builtup_area')->max();
+            $totalBuildupArea = $propFloors->pluck('builtup_area')->sum();
+            $minFloorFromDate = $propFloors->min('date_from');
             $propUsageTypes = $this->propHoldingType($propFloors);
             $propDemand = $mPropDemands->getDemandByPropId($req->propId)->first();
 
@@ -565,14 +566,16 @@ class PropertyController extends Controller
                 'ward_no' => $propDetails->ward_no,
                 'plot_no' => $propDetails->plot_no,
                 'old_property_no' => $propDetails->property_no,
+                'partition_no' => explode('-', $propDetails->property_no)[1] ?? "",
                 'old_ward_no' => "",
                 'property_usage_type' => $propUsageTypes,
                 'floor_types' => $floorTypes,
                 'floor_usage_types' => $usageTypes,
-                'max_buildup_area' => $maxBuildupArea,
+                'total_buildup_area' => $totalBuildupArea,
                 'area_of_plot' => $propDetails->area_of_plot,
                 'primary_owner_name' => $propOwner->owner_name_marathi,
                 'applicant_name' => $propDetails->applicant_marathi,
+                'property_from' => $minFloorFromDate,
                 'demands' => $propDemand
             ];
             return responseMsgs(true, "Property Details", remove_null($responseDetails));
