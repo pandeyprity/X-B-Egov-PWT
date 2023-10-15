@@ -560,7 +560,7 @@ class PropertyController extends Controller
             $constCode = $propFloors->implode('construction_code', '-');
             $totalBuildupArea = $propFloors->pluck('builtup_area')->sum();
             $minFloorFromDate = $propFloors->min('date_from');
-            $propUsageTypes = $this->propHoldingType($propFloors);
+            $propUsageTypes = ($this->propHoldingType($propFloors) == 'PURE_RESIDENTIAL') ? 'निवासी' : 'अनिवासी';
             $propDemand = $mPropDemands->getDemandByPropId($req->propId)->first();
 
             if (collect($propDemand)->isNotEmpty()) {
