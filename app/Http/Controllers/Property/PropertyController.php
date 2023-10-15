@@ -561,7 +561,7 @@ class PropertyController extends Controller
             $totalBuildupArea = $propFloors->pluck('builtup_area')->sum();
             $minFloorFromDate = $propFloors->min('date_from');
             $propUsageTypes = ($this->propHoldingType($propFloors) == 'PURE_RESIDENTIAL') ? 'निवासी' : 'अनिवासी';
-            $propDemand = $mPropDemands->getDemandByPropId($req->propId)->first();
+            $propDemand = $mPropDemands->getDemandByPropIdV2($req->propId)->first();
 
             if (collect($propDemand)->isNotEmpty()) {
                 $propDemand->maintanance_amt = roundFigure($propDemand->alv * 0.10);

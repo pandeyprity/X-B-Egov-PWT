@@ -166,6 +166,18 @@ class PropDemand extends Model
             ->get();
     }
 
+
+    /**
+     * | Get Property Demand by Property ID
+     */
+    public function getDemandByPropIdV2($propId)
+    {
+        return PropDemand::where('property_id', $propId)
+            ->where('status', 1)
+            ->orderByDesc('fyear')
+            ->get();
+    }
+
     /**
      * | Get First Prop Demand by propID
      */
