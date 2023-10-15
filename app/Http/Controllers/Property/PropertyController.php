@@ -554,8 +554,10 @@ class PropertyController extends Controller
             $propOwner = $mPropOwner->getfirstOwner($req->propId);
 
             $floorTypes = $propFloors->implode('floor_name', ',');
+            $floorCode = $propFloors->implode('floor_code', '-');
             $usageTypes = $propFloors->implode('usage_type', ',');
             $constTypes = $propFloors->implode('construction_type', ',');
+            $constCode = $propFloors->implode('construction_code', '-');
             $totalBuildupArea = $propFloors->pluck('builtup_area')->sum();
             $minFloorFromDate = $propFloors->min('date_from');
             $propUsageTypes = $this->propHoldingType($propFloors);
@@ -573,8 +575,10 @@ class PropertyController extends Controller
                 'old_ward_no' => "",
                 'property_usage_type' => $propUsageTypes,
                 'floor_types' => $floorTypes,
+                'floor_code' => $floorCode,
                 'floor_usage_types' => $usageTypes,
                 'floor_const_types' => $constTypes,
+                'floor_const_code' => $constCode,
                 'total_buildup_area' => $totalBuildupArea,
                 'area_of_plot' => $propDetails->area_of_plot,
                 'primary_owner_name' => $propOwner->owner_name_marathi,

@@ -22,7 +22,8 @@ class PropFloor extends Model
                 'f.floor_name',
                 'u.usage_type',
                 'o.occupancy_type',
-                'c.construction_type'
+                'c.construction_type',
+                DB::raw('c.code AS construction_code , f.code AS floor_code'),
             )
             ->join('ref_prop_floors as f', 'f.id', '=', 'prop_floors.floor_mstr_id')
             ->join('ref_prop_usage_types as u', 'u.id', '=', 'prop_floors.usage_type_mstr_id')
