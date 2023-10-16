@@ -567,6 +567,7 @@ class PropertyController extends Controller
                 $propDemand->maintanance_amt = roundFigure($propDemand->alv * 0.10);
                 $propDemand->tax_value = roundFigure($propDemand->alv - ($propDemand->maintanance_amt + $propDemand->aging_amt));
             }
+            $propUsageTypes = collect($propDemand)->isNotEmpty() && $propDemand->professional_tax==0 ? 'निवासी' : 'अनिवासी';
 
             $responseDetails = [
                 'zone_no' => $propDetails->zone_name,
