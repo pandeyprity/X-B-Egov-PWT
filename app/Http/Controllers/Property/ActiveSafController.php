@@ -2915,13 +2915,19 @@ class ActiveSafController extends Controller
             $size = sizeOf($floars) >= sizeOf($verifications_detals) ? $floars : $verifications_detals;
             $keys = sizeOf($floars) >= sizeOf($verifications_detals) ? "floars" : "detals";
             $floors_compais = array();
-            $floors_compais = $size->map(function ($val, $key) use ($floars, $verifications_detals, $keys) {
-                if ($keys == "floars") {
+            $floors_compais = $size->map(function ($val, $key) use ($floars, $verifications_detals, $keys) {                
+                if(sizeOf($floars) == sizeOf($verifications_detals))
+                {
+                    $saf_data = collect(array_values(objToArray(($floars)->values())))->all();
+                    $verification = collect(array_values(objToArray(($verifications_detals)->values())))->all();
+                } 
+                elseif ($keys == "floars") {
                     // $saf_data=($floars->where("id",$val->id))->values();
                     // $verification=($verifications_detals->where("saf_floor_id",$val->id))->values();
                     $saf_data = collect(array_values(objToArray(($floars->where("id", $val->id))->values())))->all();
                     $verification = collect(array_values(objToArray(($verifications_detals->where("saf_floor_id", $val->id))->values())))->all();
-                } else {
+                }
+                else {
                     // $saf_data=($floars->where("id",$val->saf_floor_id))->values();
                     // $verification=($verifications_detals->where("id",$val->id))->values();
                     $saf_data = collect(array_values(objToArray(($floars->where("id", $val->saf_floor_id))->values())))->all();
@@ -2934,7 +2940,7 @@ class ActiveSafController extends Controller
                             "key" => "Usage Type",
                             "values" => ($saf_data[0]->usage_type_mstr_id ?? "") == ($verification[0]['usage_type_id'] ?? ""),
                             "according_application" => $saf_data[0]->usage_type ?? "",
-                            "according_verification" => $verification[0]['usage_type_id'] ?? "",
+                            "according_verification" => $verification[0]['usage_type'] ?? "",
                         ],
                         [
                             "key" => "Occupancy Type",
