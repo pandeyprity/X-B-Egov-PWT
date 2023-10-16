@@ -383,7 +383,7 @@ class HoldingTaxController extends Controller
             $req->all(),
             [
                 'paymentType' => 'required|In:isFullPayment,isArrearPayment,isPartPayment',
-                'paidAmount' => 'required_if:paymentType,==,isPartPayment|integer'
+                'paidAmount' => 'required_if:paymentType,==,isPartPayment'
             ]
         );
         if ($validated->fails()) {
