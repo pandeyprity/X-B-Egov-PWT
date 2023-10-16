@@ -1627,11 +1627,10 @@ class ActiveSafController extends Controller
             $tax = $data["fyearWiseTaxes"];
             $correntTax = collect($tax)->where("fyear",'=',getFy());
             $arrearTax = collect($tax)->where("fyear",'<',getFy());  
-            $floarTax = $data["floorsTaxes"]->map(function($val){
+            $data["floorsTaxes"]->map(function($val){
                 $val["quaterly"] = roundFigure(($val["taxValue"]??0)/4);
                 return $val;
-            }); 
-            $data["floorsTaxes"] = $floarTax;         
+            });                  
             $data["ownersDtls"]=[
                 "ownerName"         => $fullSafDtls["owners"]->implode("owner_name",","),
                 "guardianName"      => $fullSafDtls["owners"]->implode("guardian_name",","),
