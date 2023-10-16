@@ -3403,7 +3403,7 @@ class ActiveSafController extends Controller
                     'totalTax'          => roundFigure($collection->sum('totalTax')),
                 ]);
             });
-            $finalResponse['details'] = $reviewCalculation;
+            $finalResponse['details'] = $reviewCalculation->values();
             return responseMsg(true, "", $finalResponse);
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
@@ -3520,7 +3520,7 @@ class ActiveSafController extends Controller
                 ]);
             });
             $finalResponse2['demand'] = $demand;
-            $finalResponse2['details'] = $reviewCalculation;
+            $finalResponse2['details'] = $reviewCalculation->values();
             return responseMsg(true, "", $finalResponse2);
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
