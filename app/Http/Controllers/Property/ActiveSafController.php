@@ -2944,6 +2944,12 @@ class ActiveSafController extends Controller
                 $safDetails['floors'] = $floars;
                 $safDetails['owners'] = $owners;
 
+                #===============
+                $req = $safDetails;
+                $array = $this->generateSafRequest($req); 
+                $calculater = new \App\Http\Controllers\Property\Akola\AkolaCalculationController();
+                $safTaxes = $calculater->calculate(new \App\Http\Requests\Property\Akola\ApplySafReq($array));
+                #===============
                 $safDetails2 = json_decode(json_encode($verifications), true);
 
                 $safDetails2["ward_mstr_id"] = $safDetails2["ward_id"];
@@ -2985,6 +2991,38 @@ class ActiveSafController extends Controller
 
 
                 $safDetails2['owners'] = $owners;
+
+                #======================================
+
+                $array2 = $this->generateSafRequest($safDetails2);
+                // dd($array);
+                $request2 = new Request($array2);
+                $calculater2 = new \App\Http\Controllers\Property\Akola\AkolaCalculationController();
+                $safTaxes2 = $calculater2->calculate(new \App\Http\Requests\Property\Akola\ApplySafReq($array2));
+                // $taxCalculator = new \App\BLL\Property\Akola\TaxCalculator($request2);
+                // $taxCalculator->calculateTax();
+                // $safTaxes2 = $taxCalculator->_GRID;
+                // dd($safTaxes,$array);
+                if (!$safTaxes->original["status"]) {
+                    throw new Exception($safTaxes->original["message"]);
+                }
+                if (!$safTaxes2->original["status"]) {
+                    throw new Exception($safTaxes2->original["message"]);
+                }
+                $safTaxes3 = $this->reviewTaxCalculationV2($safTaxes);
+                $safTaxes4 = $this->reviewTaxCalculationV2($safTaxes2);
+                // dd(json_decode(json_encode($safTaxes), true),json_decode(json_encode($safTaxes2), true));
+                $compairTax = $this->reviewTaxCalculationComV2($safTaxes, $safTaxes2);
+
+                $safTaxes2 = json_decode(json_encode($safTaxes4), true);
+                $safTaxes = json_decode(json_encode($safTaxes3), true);
+                $compairTax = json_decode(json_encode($compairTax), true);
+
+                $data["Tax"]["according_application"] = $safTaxes["original"]["data"];
+                $data["Tax"]["according_verification"] = $safTaxes2["original"]["data"];
+                $data["Tax"]["compairTax"] = $compairTax["original"]["data"];
+
+                #======================================
             }
             $data["saf_details"] = $saf;
             $data["employee_details"] = ["user_name" => $verifications->user_name, "date" => ymdToDmyDate($verifications->created_at)];
@@ -3251,6 +3289,198 @@ class ActiveSafController extends Controller
                     return $quaters;
                 });
             });
+            $finalResponse2['details'] = $reviewCalculation;
+            return responseMsg(true, "", $finalResponse2);
+        } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+    #========= for Akola Tax Compair=============
+
+    private function reviewTaxCalculationV2(object $response)
+    {
+        try {
+            $finalResponse['demand'] = $response->original['data']['grandTaxes'];
+            $reviewDetails = collect($response->original['data']['fyearWiseTaxes'])->groupBy(['fyear']);            
+            $finalTaxReview = collect();
+            $review = collect($reviewDetails)->map(function ($reviewDetail) use ($finalTaxReview) {                
+                $table = collect($reviewDetail)->map(function ($floors) use ($finalTaxReview) {   
+                        $first = collect($floors);
+                        $response = $first->only([
+                            'alv',
+                            'maintancePerc',
+                            'maintantance10Perc',
+                            'valueAfterMaintance',
+                            'agingPerc',
+                            'agingAmt',
+                            'taxValue',
+                            'generalTax',
+                            'roadTax',
+                            'firefightingTax',
+                            'educationTax',
+                            'waterTax',
+                            'cleanlinessTax',
+                            'sewerageTax',
+                            'treeTax',
+                            'stateEducationTaxPerc',
+                            'stateEducationTax',
+                            'professionalTaxPerc',
+                            'professionalTax',
+                            'totalTax',
+                            'fyear',
+                        ]);
+                        $finalTaxReview->push($response);
+                        return $response;
+                    // });
+                    // return $usageType;
+                });
+                return $table;
+            });
+            $ruleSetCollections = collect($finalTaxReview)->groupBy(['fyear']);            
+            $reviewCalculation = collect($ruleSetCollections)->map(function ($collection) {   
+                $first = $collection->first();
+                return collect([
+                    'key' => $first['fyear'],
+                    'alv'               => roundFigure($collection->sum('alv')),
+                    'maintancePerc'     => roundFigure($collection->sum('maintancePerc')),
+                    'maintantance10Perc'=> roundFigure($collection->sum('maintantance10Perc')),
+                    'valueAfterMaintance'=> roundFigure($collection->sum('valueAfterMaintance')),
+                    'agingPerc'         => roundFigure($collection->sum('agingPerc')),
+                    'agingAmt'          => roundFigure($collection->sum('agingAmt')),
+                    'taxValue'          => roundFigure($collection->sum('taxValue')),
+                    'generalTax'        => roundFigure($collection->sum('generalTax')),
+                    'roadTax'           => roundFigure($collection->sum('roadTax')),
+                    'firefightingTax'   => roundFigure($collection->sum('firefightingTax')),
+                    'educationTax'      => roundFigure($collection->sum('educationTax')),
+                    'waterTax'          => roundFigure($collection->sum('waterTax')),
+                    'cleanlinessTax'    => roundFigure($collection->sum('cleanlinessTax')),
+                    'sewerageTax'       => roundFigure($collection->sum('sewerageTax')),
+                    'treeTax'           => roundFigure($collection->sum('treeTax')),
+                    'stateEducationTaxPerc'=> roundFigure($collection->sum('stateEducationTaxPerc')),
+                    'stateEducationTax' => roundFigure($collection->sum('stateEducationTax')),
+                    'professionalTaxPerc'=> roundFigure($collection->sum('professionalTaxPerc')),
+                    'professionalTax'   => roundFigure($collection->sum('professionalTax')),
+                    'totalTax'          => roundFigure($collection->sum('totalTax')),
+                ]);
+            });
+            $finalResponse['details'] = $reviewCalculation;
+            return responseMsg(true, "", $finalResponse);
+        } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+    private function reviewTaxCalculationComV2(object $response, object $response2)
+    {
+
+        try {            
+            $finalResponse['demand'] = $response->original['data']['grandTaxes'];
+            $finalResponse2['demand'] = $response2->original['data']['grandTaxes'];            
+            $reviewDetails = collect($response->original['data']['fyearWiseTaxes'])->groupBy(['fyear']);
+            $reviewDetails2 = collect($response2->original['data']['fyearWiseTaxes'])->groupBy(['fyear']);
+
+            $finalTaxReview = collect();
+            $finalTaxReview2 = collect();
+            
+            $review = collect($reviewDetails)->map(function ($reviewDetail) use ($finalTaxReview) {                
+                $table = collect($reviewDetail)->map(function ($floors) use ($finalTaxReview) {   
+                        $first = collect($floors);
+                        $response = $first->only([
+                            'alv',
+                            'maintancePerc',
+                            'maintantance10Perc',
+                            'valueAfterMaintance',
+                            'agingPerc',
+                            'agingAmt',
+                            'taxValue',
+                            'generalTax',
+                            'roadTax',
+                            'firefightingTax',
+                            'educationTax',
+                            'waterTax',
+                            'cleanlinessTax',
+                            'sewerageTax',
+                            'treeTax',
+                            'stateEducationTaxPerc',
+                            'stateEducationTax',
+                            'professionalTaxPerc',
+                            'professionalTax',
+                            'totalTax',
+                            'fyear',
+                        ]);
+                        $finalTaxReview->push($response);
+                        return $response;
+                });
+                return $table;
+            });
+
+            $review2 = collect($reviewDetails2)->map(function ($reviewDetail) use ($finalTaxReview2) {                
+                $table = collect($reviewDetail)->map(function ($floors) use ($finalTaxReview2) {   
+                        $first = collect($floors);
+                        $response = $first->only([
+                            'alv',
+                            'maintancePerc',
+                            'maintantance10Perc',
+                            'valueAfterMaintance',
+                            'agingPerc',
+                            'agingAmt',
+                            'taxValue',
+                            'generalTax',
+                            'roadTax',
+                            'firefightingTax',
+                            'educationTax',
+                            'waterTax',
+                            'cleanlinessTax',
+                            'sewerageTax',
+                            'treeTax',
+                            'stateEducationTaxPerc',
+                            'stateEducationTax',
+                            'professionalTaxPerc',
+                            'professionalTax',
+                            'totalTax',
+                            'fyear',
+                        ]);
+                        $finalTaxReview2->push($response);
+                        return $response;                    
+                });
+                return $table;
+            });
+            $safDemand =$finalResponse['demand'];
+            $demand = collect($finalResponse2['demand'])->map(function($val,$key)use ($safDemand){
+                return(roundFigure($val - $safDemand[$key]));
+            });
+            $ruleSetCollections = collect($finalTaxReview)->groupBy(['fyear']);
+            $ruleSetCollections2 = collect($finalTaxReview2)->groupBy(['fyear']);
+
+            $reviewCalculation = collect($ruleSetCollections2)->map(function ($collection,$key) use ($ruleSetCollections) {   
+                $first = $collection->first();
+                $tax2 = $ruleSetCollections[$key];
+                return collect([
+                    'key' => $first['fyear'],
+                    'alv'               => roundFigure($collection->sum('alv') - $tax2->sum('alv')),
+                    'maintancePerc'     => roundFigure($collection->sum('maintancePerc') - $tax2->sum('maintancePerc')),
+                    'maintantance10Perc'=> roundFigure($collection->sum('maintantance10Perc') - $tax2->sum('maintantance10Perc')),
+                    'valueAfterMaintance'=> roundFigure($collection->sum('valueAfterMaintance') - $tax2->sum('valueAfterMaintance')),
+                    'agingPerc'         => roundFigure($collection->sum('agingPerc') - $tax2->sum('agingPerc')),
+                    'agingAmt'          => roundFigure($collection->sum('agingAmt') - $tax2->sum('agingAmt')),
+                    'taxValue'          => roundFigure($collection->sum('taxValue') - $tax2->sum('taxValue')),
+                    'generalTax'        => roundFigure($collection->sum('generalTax') - $tax2->sum('generalTax')),
+                    'roadTax'           => roundFigure($collection->sum('roadTax') - $tax2->sum('roadTax')),
+                    'firefightingTax'   => roundFigure($collection->sum('firefightingTax') - $tax2->sum('firefightingTax')),
+                    'educationTax'      => roundFigure($collection->sum('educationTax') - $tax2->sum('educationTax')),
+                    'waterTax'          => roundFigure($collection->sum('waterTax') - $tax2->sum('waterTax')),
+                    'cleanlinessTax'    => roundFigure($collection->sum('cleanlinessTax'))  - roundFigure($tax2->sum('cleanlinessTax')),
+                    'sewerageTax'       => roundFigure($collection->sum('sewerageTax') - $tax2->sum('sewerageTax')) ,
+                    'treeTax'           => roundFigure($collection->sum('treeTax'))  - roundFigure($tax2->sum('treeTax')) ,
+                    'stateEducationTaxPerc'=> roundFigure($collection->sum('stateEducationTaxPerc') - $tax2->sum('stateEducationTaxPerc')),
+                    'stateEducationTax' => roundFigure($collection->sum('stateEducationTax') - $tax2->sum('stateEducationTax')),
+                    'professionalTaxPerc'=> roundFigure($collection->sum('professionalTaxPerc') - $tax2->sum('professionalTaxPerc')),
+                    'professionalTax'   => roundFigure($collection->sum('professionalTax') - $tax2->sum('professionalTax')),
+                    'totalTax'          => roundFigure($collection->sum('totalTax') - $tax2->sum('totalTax')),
+                ]);
+            });
+            $finalResponse2['demand'] = $demand;
             $finalResponse2['details'] = $reviewCalculation;
             return responseMsg(true, "", $finalResponse2);
         } catch (Exception $e) {

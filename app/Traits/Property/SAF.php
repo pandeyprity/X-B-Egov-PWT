@@ -235,6 +235,7 @@ trait SAF
                 $refFloor = json_decode(json_encode($refFloor), true);
             $array['floor'][$key]['floorNo'] = $refFloor['floor_mstr_id'];
             $array['floor'][$key]['useType'] = $refFloor['usage_type_mstr_id'];
+            $array['floor'][$key]['usageType']= $refFloor['usage_type_mstr_id'];
             $array['floor'][$key]['constructionType'] = $refFloor['const_type_mstr_id'];
             $array['floor'][$key]['occupancyType'] = $refFloor['occupancy_type_mstr_id'];
             $array['floor'][$key]['buildupArea'] = $refFloor['builtup_area'];
