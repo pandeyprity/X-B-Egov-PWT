@@ -293,29 +293,33 @@ class WaterConsumerDemand extends Model
     /**
      * get all data of consumer demands
      */
-    public function getALLDemand($fromDate, $uptoDate, $wardId,$zoneId)
+    public function getALLDemand($fromDate, $uptoDate, $wardId, $zoneId)
     {
         return WaterConsumerDemand::select(
             'water_consumer_demands.amount',
             'water_consumer_demands.paid_status'
         )
+            ->join('water_second_consumers', 'water_second_consumers.id', 'water_consumer_demands.consumer_id')
             ->where('water_consumer_demands.demand_from', '>=', $fromDate)
             ->where('water_consumer_demands.demand_upto', '<=', $uptoDate)
-            ->where('water_consumer_demands.ward_id', $wardId)
-            ->where('status', true);
+            ->where('water_second_consumers.ward_mstr_id', $wardId)
+            ->where('water_second_consumers.zone_mstr_id', $zoneId)
+            ->where('water_consumer_demands.status', true);
     }
     #previous year financial 
 
-    public function previousDemand($fromDate, $uptoDate, $wardId)
+    public function previousDemand($fromDate, $uptoDate, $wardId, $zoneId)
     {
         return WaterConsumerDemand::select(
             'water_consumer_demands.amount',
             'water_consumer_demands.paid_status'
         )
+            ->join('water_second_consumers', 'water_second_consumers.id', 'water_consumer_demands.consumer_id')
             ->where('water_consumer_demands.demand_from', '>=', $fromDate)
             ->where('water_consumer_demands.demand_upto', '<=', $uptoDate)
-            // ->where('water_consumer_demands.ward_mstr_id', $wardId)
-            ->where('status', true);
+            ->where('water_second_consumers.ward_mstr_id', $wardId)
+            ->where('water_second_consumers.zone_mstr_id', $zoneId)
+            ->where('water_consumer_demands.status', true);
     }
     /**
      * get details of tc visit

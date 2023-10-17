@@ -165,7 +165,7 @@ class WaterConsumer extends Controller
             $refConsumerDemand = collect($refConsumerDemand)->sortBy('id')->values();
             $consumerDemand['consumerDemands'] = $refConsumerDemand;
             $checkParam = collect($consumerDemand['consumerDemands'])->first();
-        
+
             # Check the details 
             if (isset($checkParam)) {
                 $sumDemandAmount = collect($consumerDemand['consumerDemands'])->sum('balance_amount');

@@ -46,6 +46,7 @@ class WaterMonthelyCall
     private $_catagoryType;
     private $_meterStatus;
     private $_mWaterConsumerMeter;
+    private $_ConsumerMeters;
     private $_consuemrMeterDetails;
     # Class cons
     public function __construct(int $consumerId, $toDate, $unitConsumed)
@@ -88,6 +89,9 @@ class WaterMonthelyCall
         $this->_consuemrDetails = $this->_mWaterConsumer->getConsumerDetailsById($this->_consumerId)
             ->where('status', 1)                                                                            // Static
             ->first();
+         $this->_ConsumerMeters = $this->_mWaterConsumerMeter->getConsumerMeterDetails($this->_consumerId)  
+        ->where('status', 1)                                                                            // Static
+        ->first();;
         if ($this->_consuemrDetails->category == $catagory['1']) {
             $catagoryId = $this->_catagoryType['Slum'];
         } else {
@@ -99,7 +103,7 @@ class WaterMonthelyCall
             "propertyType"      => $this->_consuemrDetails->property_type_id,
             "areaCatagory"      => $catagoryId,
             "connectionSize"    => $this->_consuemrDetails->tab_size,
-            "meterState"        => $this->_consuemrDetails->is_meter_working
+            "meterState"        => $this->_ConsumerMeters->connection_type,            
         ]);
 
         # Assigning the global var 

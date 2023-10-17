@@ -138,10 +138,10 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('consumer/generate-memo', 'generateMemo');                      // Here             // Admin / Citizen
         Route::post('consumer/search-fixed-connections', 'searchFixedConsumers');   // Here             // Admin / Not used
         Route::post('consumer/add-advance', 'addAdvance');                                              // Admin
-        Route::post('check-doc', 'checkDoc'); // testing document service
+        Route::post('check-doc', 'checkDoc');                                       // testing document service
 
         # Deactivation
-        Route::post('admin/consumer/apply-deactivation', 'applyDeactivation');                          // Admin / Not Used
+        Route::post('admin/consumer/apply-deactivation', 'applyDeactivation');                           // Admin / Not Used
         Route::post('admin/consumer/demand-deactivation', 'consumerDemandDeactivation');  // Here       // Admin / Not used
         Route::post('get-listed-fee', 'test');
 
@@ -183,6 +183,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('report/water-transaction', 'getTransactionDetail');
         Route::post('report/tc-visit-report', 'tCvisitReport');
         Route::post('report/total-water-consumer', 'totalConsumerType');
+        Route::post('report/billing-summary', 'billingSummary');
     });
 
 

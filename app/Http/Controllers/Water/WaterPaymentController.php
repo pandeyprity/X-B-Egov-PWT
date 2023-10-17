@@ -233,7 +233,7 @@ class WaterPaymentController extends Controller
      * | Collect All the transaction relate to the respective Consumer 
      * | @param request
      * | @var mWaterTran
-     * | @var mWaterConsumer
+     * | @var mWaterSecondConsumer
      * | @var mWaterConsumerDemand
      * | @var mWaterTranDetail
      * | @var transactions
@@ -259,24 +259,22 @@ class WaterPaymentController extends Controller
 
         try {
             $mWaterTran             = new WaterTran();
-            $mWaterConsumer         = new WaterSecondConsumer();
+            $mWaterSecondConsumer         = new WaterSecondConsumer();
             $mWaterConsumerDemand   = new WaterConsumerDemand();
             $mWaterTranDetail       = new WaterTranDetail();
             $transactions           = array();
 
             # consumer Details
-            $demandDetails = $mWaterConsumerDemand->getConsumerDetailById($request->consumerId)->take(1)->get();
+            $demandDetails = $mWaterConsumerDemand->getConsumerDetailById($request->consumerId)->get();
             if (!$demandDetails)
                 throw new Exception("Water Consumer Not Found!");
-
             # if demand transactions exist
             $connectionTran = $mWaterTran->ConsumerTransaction($request->consumerId, null)->get();                        // Water Connection payment History
             $connectionTran = collect($connectionTran)->sortByDesc('id')->values();
             if (!$connectionTran->first() || is_null($connectionTran))
                 throw new Exception("Water Application's Transaction Details not Found!!");
             $transactions['Consumer'] = $connectionTran;
-            // $transactions['consumerDemands']=$demandDetails;
-
+            $transactions['demands'] = $demandDetails;
             return responseMsgs(true, "", remove_null($transactions), "", "01", "ms", "POST", $request->deviceId ?? "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
@@ -1573,6 +1571,7 @@ class WaterPaymentController extends Controller
             $mWaterTran             = new WaterTran();
             $mWaterConsumerMeter    = new WaterConsumerMeter();
             $mWaterConsumerTax      = new WaterConsumerTax();
+            $mWaterConsumerInitial  = new WaterConsumerInitialMeter();
 
             $mTowardsDemand     = Config::get("waterConstaint.TOWARDS_DEMAND");
             $mTranType          = Config::get("waterConstaint.PAYMENT_FOR");
@@ -1616,17 +1615,22 @@ class WaterPaymentController extends Controller
             # consumer meter details 
             $consumerMeterDetails = $mWaterConsumerMeter->getMeterDetailsByConsumerId($consumerDetails->id)
                 ->first();
+            # consumer initial meter details 
+            $consumerInitialMeters = $mWaterConsumerInitial->calculateUnitsConsumed($consumerDetails->id);
+            $finalReading = $consumerInitialMeters->first()->initial_reading;
+            $initialReading = $consumerInitialMeters->last()->initial_reading ?? 0;
+
 
             # water consumer consumed
-            $consumerTaxes = $mWaterConsumerDemand->getConsumerTax($demandIds);
-            $initialReading = $consumerTaxes->wherein("connection_type", ["Meter", "Metered"])  // Static
-                ->min("initial_reading");
-            $finalReading = $consumerTaxes->wherein("connection_type", ["Meter", "Metered"])    // Static
-                ->max("final_reading");
-            $fixedFrom = $consumerTaxes->where("connection_type", "Fixed")                      // Static
-                ->min("demand_from");
-            $fixedUpto = $consumerTaxes->where("connection_type", "Fixed")                      // Static
-                ->max("demand_upto");
+            // $consumerTaxes = $mWaterConsumerDemand->getConsumerTax($demandIds);
+            // $initialReading = $consumerTaxes->wherein("connection_type", ["Meter", "Metered"])  // Static
+            //     ->min("initial_reading");
+            // $finalReading = $consumerTaxes->wherein("connection_type", ["Meter", "Metered"])    // Static
+            //     ->max("final_reading");
+            // $fixedFrom = $consumerTaxes->where("connection_type", "Fixed")                      // Static
+            //     ->min("demand_from");
+            // $fixedUpto = $consumerTaxes->where("connection_type", "Fixed")                      // Static
+            //     ->max("demand_upto");
 
             $returnValues = [
                 "departmentSection"     => $mDepartmentSection,
@@ -1636,6 +1640,11 @@ class WaterPaymentController extends Controller
                 "consumerNo"            => $consumerDetails['consumer_no'],
                 "customerName"          => $consumerDetails['applicant_name'],
                 "customerMobile"        => $consumerDetails['mobile_no'],
+                "bindBookNo"            => $consumerDetails['bind_book_no'],
+                "bookNo"                => $consumerDetails['book_no'],
+                'unitConsumed'          => ($finalReading - $initialReading),
+                'initialReading'        => (int)$initialReading,
+                'finalReading'          => (int)$finalReading,
                 "address"               => $consumerDetails['address'],
                 "paidFrom"              => $startingDate->format('Y-m-d'),
                 "paidUpto"              => $endingDate->format('Y-m-d'),
@@ -1663,8 +1672,8 @@ class WaterPaymentController extends Controller
                 "waterConsumed"         => (($finalReading ?? 0.00) - ($initialReading ?? 0.00)),
                 "initialReding"         => $initialReading ?? null,
                 "finalReading"          => $finalReading ?? null,
-                "fixedPaidFrom"         => ($fixedFrom) ? Carbon::createFromFormat('Y-m-d',  $fixedFrom)->startOfMonth() : null,
-                "fixedPaidUpto"         => ($fixedUpto) ? (Carbon::createFromFormat('Y-m-d',  $fixedUpto)->endOfMonth()) : null,
+                // "fixedPaidFrom"         => ($fixedFrom) ? Carbon::createFromFormat('Y-m-d',  $fixedFrom)->startOfMonth() : null,
+                // "fixedPaidUpto"         => ($fixedUpto) ? (Carbon::createFromFormat('Y-m-d',  $fixedUpto)->endOfMonth()) : null,
                 "lastMeterReadingDate"    => $fromDate ?? null,
                 "currentMeterReadingDate" => $uptoDate ?? null,
                 "lastMeterReading"      => $lastDemand ?? null,

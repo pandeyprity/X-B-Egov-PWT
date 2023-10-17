@@ -1837,7 +1837,7 @@ class NewConnectionController extends Controller
 
             switch ($key) {
                 case ("consumerNo"):                                                                        // Static
-                    $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
+                    $waterReturnDetails = $mWaterConsumer->getConsumerByItsDetails($request, $refstring, $paramenter)->paginate($pages);
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
@@ -1848,15 +1848,15 @@ class NewConnectionController extends Controller
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
-                case ("meterNo"):                                                                        // Static
-                    $waterReturnDetails = $mWaterConsumer->getDetailByMeterNo($refstring, $paramenter)->paginate($pages);
-                    $checkVal = collect($waterReturnDetails)->last();
-                    if (!$checkVal || $checkVal == 0)
-                        throw new Exception("Data according to " . $key . " not Found!");
-                    break;
                 case ("applicantName"):
                     $paramenter = strtoupper($paramenter);
                     $waterReturnDetails = $mWaterConsumer->getDetailByOwnerDetails($refstring, $paramenter)->paginate($pages);
+                    if (!$waterReturnDetails)
+                        throw new Exception("Data according to " . $key . " not Found!");
+                    break;
+                case ("mobileNo"):
+                    $paramenter = strtoupper($paramenter);
+                    $waterReturnDetails = $mWaterConsumer->getConsumerByItsDetails($request, $refstring, $paramenter)->paginate($pages);
                     if (!$waterReturnDetails)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;

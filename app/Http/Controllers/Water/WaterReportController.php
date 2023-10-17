@@ -1246,44 +1246,25 @@ class WaterReportController extends Controller
             $refDate = $this->getFyearDate($previousFinancialYear);
             $previousFromDate = $refDate['fromDate'];
             $previousUptoDate = $refDate['uptoDate'];
-
-            #curent year demands 
-            $demand                 = $mWaterConsumerDemand->getAllDemand($fromDate, $uptoDate, $wardId,$zoneId)->get();
-            $previousDemand         = $mWaterConsumerDemand->previousDemand($previousFromDate, $previousUptoDate, $wardId)->get();
-
-            $totalCurrentDemands    = round($demand->sum('amount'), 2);  // Format the sum to two decimal places
-            $balanceAmount          = round($demand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal places
-            $totalCollection        = round($demand->where('paid_status', 1)->sum('amount'), 2);  // Format to two decimal places 
-            // sum of collection amount 
-            $financialYear = [
-                'balanceAmount'  => round($balanceAmount ?? 0),
-                'collections'    => round($totalCollection ?? 0),
-                'totalDemand'    => round($totalCurrentDemands ?? 0),
-            ];
-
-            #previous year demands 
-            $totalPreviousDemands   = round($previousDemand->sum('amount'), 2);  // Format the sum to two decimal places
-            $previousCollection     = round($previousDemand->where('paid_status', 1)->sum('amount'), 2);  // Format to two decimal places
-            $totalPreviousBalance   = round($previousDemand->where('paid_status', 0)->sum('amount'), 2);  // Format to two decimal place
-
-            $previousYear = [
-                'balanceAmountPrevious' => round($totalPreviousBalance ?? 0),
-                'collectionsPrevious'   => round($previousCollection ?? 0),
-                "totalDemandPrevious"   => round($totalPreviousDemands ?? 0)
-            ];
-            # Arrear Balance
-            $arrearBalance = $totalPreviousDemands - $previousCollection;
-            $currentBalance = round($totalCurrentDemands - $totalCollection, 2);
-            $totalDcb = [
-                'totalDemands'      => round($totalCurrentDemands + $totalPreviousDemands),
-                'totalCollections'  => round($totalCollection + $previousCollection),
-                "arrearBalance"     => round($arrearBalance),
-                "currentBalance"    => round($currentBalance)
-            ];
-            $totalDcb["totalBalance"] = round($arrearBalance + $currentBalance);
-
-            $returnValues = collect($financialYear)->merge($previousYear)->merge($totalDcb);
-            return responseMsgs(true, "water demand report", remove_null($returnValues), "", "", "", 'POST', "");
+            $dataraw =  "SELECT 
+            SUM (CASE WHEN demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) AS previous_year_demands,
+            SUM (CASE WHEN demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) AS current_demands,
+            SUM (CASE WHEN paid_status = 0 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) AS current_year_balance_amount,
+            SUM (CASE WHEN paid_status = 0 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) AS previous_year_balance_amount,
+            SUM (CASE WHEN paid_status = 1 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) AS current_year_collection_amount,
+            SUM (CASE WHEN paid_status = 1 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) AS previous_year_collection_amount,
+            (SUM (CASE WHEN demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) - SUM (CASE WHEN paid_status = 1 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END)) AS arrear_balance,
+            (SUM (CASE WHEN demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) - SUM (CASE WHEN paid_status = 1 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END)) AS current_balance,
+            (SUM (CASE WHEN demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) + SUM (CASE WHEN status = TRUE AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END)) AS total_demand,
+            (SUM (CASE WHEN paid_status = 1 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) + SUM (CASE WHEN paid_status = 1 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END)) AS total_collection
+        FROM water_consumer_demands
+        WHERE 
+            (demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date AND status = TRUE)
+            OR (demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date AND status = TRUE)
+        ";
+         $results = DB::connection('pgsql_water')->select($dataraw);
+            $resultObject = (object) $results[0];
+            return responseMsgs(true, "water demand report", remove_null($resultObject), "", "", "", 'POST', "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
         }
@@ -1343,9 +1324,11 @@ class WaterReportController extends Controller
         $validated = Validator::make(
             $request->all(),
             [
-                "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
-                "wardId" => "nullable|int",
-                "zoneId" => "nullable|int"
+                "fiYear"    => "nullable|regex:/^\d{4}-\d{4}$/",
+                "wardId"    => "nullable|int",
+                "zoneId"    => "nullable|int",
+                "dateFrom"  => "nullable|date",
+                "dateUpto"  => "nullable|date"
 
             ]
         );
@@ -1356,6 +1339,8 @@ class WaterReportController extends Controller
             $currentDate    = Carbon::now()->format('Y-m-d');
             $wardId         = $request->wardId;
             $zoneId         = $request->zoneId;
+            $dateFrom       = $request->dateFrom;
+            $dateUpto       = $request->dateUpto;
             $currentFyear   = $request->fiYear ?? getFinancialYear($currentDate);
 
             #get financial  year 
@@ -1462,6 +1447,8 @@ class WaterReportController extends Controller
                                 AND water_trans.tran_type = 'Demand Collection' " : "")
                 . ($zoneId ? " AND water_second_consumers.zone_mstr_id = '$zoneId' 
                                 AND water_trans.tran_type = 'Demand Collection' " : "")
+                . ($dateFrom ? " AND water_trans.tran_date >= '$dateFrom'" : "")
+                . ($dateUpto ? " AND water_trans.tran_date <= '$dateUpto'" : "")
                 . "
          ";
             $results = DB::connection('pgsql_water')->select($dataraw);

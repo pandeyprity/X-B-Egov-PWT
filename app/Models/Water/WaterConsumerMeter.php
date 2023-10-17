@@ -129,4 +129,12 @@ class WaterConsumerMeter extends Model
         $mWaterConsumerMeter->save();
         return $mWaterConsumerMeter;
     }
+     /**
+     * | Get consumer by consumer Id
+     */
+    public function getConsumerMeterDetails($consumerId)
+    {
+        return WaterConsumerMeter::where('consumer_id', $consumerId);
+    }
+
 }

@@ -93,7 +93,7 @@ class WaterSecondConsumer extends Model
      * | @var 
      * | @return 
      */
-    public function getDetailByConsumerNo($req, $key, $refNo)
+    public function getConsumerByItsDetails($req, $key, $refNo)
     {
         return WaterSecondConsumer::select([
             'water_consumer_demands.id AS demand_id',
@@ -211,7 +211,7 @@ class WaterSecondConsumer extends Model
     }
 
     /**
-     * |----------------------- Get Water Application detals With all Relation ------------------|
+     * |----------------------- Get Water Consumer detals With all Relation ------------------|
      * | @param request
      * | @return 
      */
@@ -246,6 +246,7 @@ class WaterSecondConsumer extends Model
             // ->leftjoin('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.id', $applicationId)
             ->where('water_second_consumers.status', 1)
+            ->orderBy('water_consumer_initial_meters.id', 'DESC')
             ->groupBy(
                 'water_second_consumers.id',
                 'water_second_consumers.consumer_no',
@@ -258,7 +259,8 @@ class WaterSecondConsumer extends Model
                 'ulb_ward_masters.ward_name',
                 'water_consumer_initial_meters.initial_reading',
                 'water_property_type_mstrs.property_type',
-                'zone_masters.zone_name'
+                'zone_masters.zone_name',
+                'water_consumer_initial_meters.id'
             );
     }
     /**
