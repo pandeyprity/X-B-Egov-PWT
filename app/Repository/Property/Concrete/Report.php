@@ -2294,15 +2294,15 @@ class Report implements IReport
                                             END)                        
                                 ) as current_collection_hh,  
                         SUM(              
-                                CASE WHEN prop_demands.fyear = '$fiYear' and prop_demands.paid_status =1 then prop_demands.total_tax           
+                                CASE WHEN prop_demands.fyear = '$fiYear' and prop_demands.paid_status =1 then prop_demands.paid_total_tax           
                                 ELSE 0                                   
                                 END                        
                             ) AS current_collection,
                         COUNT(DISTINCT ( CASE WHEN prop_demands.fyear < '$fiYear' and prop_demands.paid_status =1 then prop_demands.property_id 
                                             END)                            
                                 ) as arrear_collection_hh, 
-                        SUM(CASE WHEN prop_demands.fyear < '$fiYear' and prop_demands.paid_status =1  then prop_demands.total_tax ELSE 0 END ) AS arrear_collection,
-                        SUM(CASE WHEN prop_demands.paid_status =1  then prop_demands.total_tax ELSE 0 END) AS total_collection,
+                        SUM(CASE WHEN prop_demands.fyear < '$fiYear' and prop_demands.paid_status =1  then prop_demands.paid_total_tax ELSE 0 END ) AS arrear_collection,
+                        SUM(CASE WHEN prop_demands.paid_status =1  then prop_demands.paid_total_tax ELSE 0 END) AS total_collection,
                         COUNT(DISTINCT(CASE WHEN prop_demands.paid_status =1  then prop_properties.id end)) AS collection_from_no_of_hh 
                     FROM prop_demands                    
                     JOIN prop_properties ON prop_properties.id = prop_demands.property_id
