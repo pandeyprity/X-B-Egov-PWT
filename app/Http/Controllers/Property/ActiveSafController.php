@@ -1618,10 +1618,26 @@ class ActiveSafController extends Controller
             {
                 throw new Exception($response->original["message"]);
             }
+            $mProperties = new PropProperty();
             $data = $response->original["data"];
+            $fullSafDtls = $this->details($request);
+            $property = (array)$mProperties->getPropDtls()
+                        ->where('prop_properties.id', $fullSafDtls["property_id"]??0)
+                        ->first();
             $tax = $data["fyearWiseTaxes"];
             $correntTax = collect($tax)->where("fyear",'=',getFy());
-            $arrearTax = collect($tax)->where("fyear",'<',getFy());
+            $arrearTax = collect($tax)->where("fyear",'<',getFy());  
+            $data["floorsTaxes"]->map(function($val){
+                $val["quaterly"] = roundFigure(($val["taxValue"]??0)/4);
+                return $val;
+            });                  
+            $data["ownersDtls"]=[
+                "ownerName"         => $fullSafDtls["owners"]->implode("owner_name",","),
+                "guardianName"      => $fullSafDtls["owners"]->implode("guardian_name",","),
+                "mobileNo"          => $fullSafDtls["owners"]->implode("mobile_no",","),
+                "ownerNameMarathi"  => $fullSafDtls["owners"]->implode("owner_name_marathi",","),
+                "guardianNameMarathi"=> $fullSafDtls["owners"]->implode("guardian_name_marathi",","),
+            ];
             $data["currentTax"]= [
                 "alv"                   => $correntTax->sum("alv"),
                 "maintancePerc"         => $correntTax->sum("maintancePerc"),
@@ -1643,11 +1659,15 @@ class ActiveSafController extends Controller
                 "professionalTaxPerc"   => $correntTax->sum("professionalTaxPerc"),
                 "professionalTax"       => $correntTax->sum("professionalTax"),
                 "totalTax"              => $correntTax->sum("totalTax"),
-                "wardNo"                => $data['basicDetails']["ward_no"],
-                "propertyNo"            => $data['basicDetails']["property_no"]??"",
-                "partNo"                => $data['basicDetails']["part_no"]??"",
-                "propertyType"          => $data['basicDetails']["INDEPENDENT BUILDING"]??"",
-			    "holdingType"           => $data['basicDetails']["PURE COMMERCIAL"]??"",
+                "plotArea"              => $fullSafDtls["area_of_plot"]??"",
+                "plotAreaSQTM"          => sqFtToSqMt($fullSafDtls["area_of_plot"]??"0"),
+                "floorsCount"           => ($fullSafDtls["floors"]->count()??"0"),
+                "wardNo"                => $fullSafDtls["old_ward_no"]??"",
+                "propertyNo"            => $property["property_no"]??"",
+                "toilet"                => 0,
+                "partNo"                => $fullSafDtls["part_no"]??"",
+                "propertyType"          => $fullSafDtls["INDEPENDENT BUILDING"]??"",
+			    "holdingType"           => $fullSafDtls["PURE COMMERCIAL"]??"",
             ];
             $data["arrearTax"]= [
                 "alv"                   => $arrearTax->sum("alv"),
@@ -1670,15 +1690,24 @@ class ActiveSafController extends Controller
                 "professionalTaxPerc"   => $arrearTax->sum("professionalTaxPerc"),
                 "professionalTax"       => $arrearTax->sum("professionalTax"),
                 "totalTax"              => $arrearTax->sum("totalTax"),
-                "wardNo"                => $data['basicDetails']["ward_no"],
-                "propertyNo"            => $data['basicDetails']["property_no"]??"",
-                "partNo"                => $data['basicDetails']["part_no"]??"",
-                "propertyType"          => $data['basicDetails']["INDEPENDENT BUILDING"]??"",
-			    "holdingType"           => $data['basicDetails']["PURE COMMERCIAL"]??"",
+                "plotArea"              => $fullSafDtls["area_of_plot"]??"",
+                "plotAreaSQTM"          => sqFtToSqMt($fullSafDtls["area_of_plot"]??"0"),
+                "floorsCount"           => ($fullSafDtls["floors"]->count()??"0"),
+                "wardNo"                => $fullSafDtls["old_ward_no"]??"",
+                "propertyNo"            => $property["property_no"]??"",
+                "toilet"                => 0,
+                "partNo"                => $fullSafDtls["part_no"]??"",
+                "propertyType"          => $fullSafDtls["INDEPENDENT BUILDING"]??"",
+			    "holdingType"           => $fullSafDtls["PURE COMMERCIAL"]??"",
             ];
+            $geoTagging = PropSafGeotagUpload::where("saf_id", $request->safId)->orderBy("id","ASC")->get()->map(function ($val) {
+                $val->paths = (config('app.url')."/".$val->relative_path . "/" . $val->image_path);
+                return $val;
+            });
+            $data["geoTagging"] = $geoTagging;
             $data["images"]=[
-                "photograph"=>"",
-                "naksha"    =>""
+                "photograph"=>collect($data["geoTagging"])->where("direction_type","Front") ? (collect($data["geoTagging"])->where("direction_type","Front"))->pluck("paths")->first()??"" : (collect($data["geoTagging"])->where("direction_type","<>","naksha")->first() ? (collect($data["geoTagging"])->where("direction_type","<>","naksha")->first())->pluck("paths") : "") ,
+                "naksha"    =>collect($data["geoTagging"])->where("direction_type","naksha")->first()? (collect($data["geoTagging"])->where("direction_type","naksha")->first())->pluck("paths") : "",
             ]; 
             $floorsTaxes = collect($data["floorsTaxes"]??[]);
             $data["grandFloorsTaxes"] =[
@@ -1735,7 +1764,17 @@ class ActiveSafController extends Controller
                                         $nonResidentFloor->sum("stateEducationTax") +  $nonResidentFloor->sum("professionalTax")
                                     ),
                     ]
-                ]
+                ],
+                "old"=>[
+                    "residence"=>[
+                        "taxValue"=>0,
+                        "totalTax"=>0,
+                                ],
+                    "nonResidence"=>[
+                        "taxValue"=>0,
+                        "totalTax"=>0,
+                    ]
+                ],
             ]; 
             $data["usageTypeTaxBifur"]=[                
                 "residence"=>[
@@ -2876,13 +2915,19 @@ class ActiveSafController extends Controller
             $size = sizeOf($floars) >= sizeOf($verifications_detals) ? $floars : $verifications_detals;
             $keys = sizeOf($floars) >= sizeOf($verifications_detals) ? "floars" : "detals";
             $floors_compais = array();
-            $floors_compais = $size->map(function ($val, $key) use ($floars, $verifications_detals, $keys) {
-                if ($keys == "floars") {
+            $floors_compais = $size->map(function ($val, $key) use ($floars, $verifications_detals, $keys) {                
+                if(sizeOf($floars) == sizeOf($verifications_detals))
+                {
+                    $saf_data = collect(array_values(objToArray(($floars)->values())))->all();
+                    $verification = collect(array_values(objToArray(($verifications_detals)->values())))->all();
+                } 
+                elseif ($keys == "floars") {
                     // $saf_data=($floars->where("id",$val->id))->values();
                     // $verification=($verifications_detals->where("saf_floor_id",$val->id))->values();
                     $saf_data = collect(array_values(objToArray(($floars->where("id", $val->id))->values())))->all();
                     $verification = collect(array_values(objToArray(($verifications_detals->where("saf_floor_id", $val->id))->values())))->all();
-                } else {
+                }
+                else {
                     // $saf_data=($floars->where("id",$val->saf_floor_id))->values();
                     // $verification=($verifications_detals->where("id",$val->id))->values();
                     $saf_data = collect(array_values(objToArray(($floars->where("id", $val->saf_floor_id))->values())))->all();
@@ -2895,7 +2940,7 @@ class ActiveSafController extends Controller
                             "key" => "Usage Type",
                             "values" => ($saf_data[0]->usage_type_mstr_id ?? "") == ($verification[0]['usage_type_id'] ?? ""),
                             "according_application" => $saf_data[0]->usage_type ?? "",
-                            "according_verification" => $verification[0]['usage_type_id'] ?? "",
+                            "according_verification" => $verification[0]['usage_type'] ?? "",
                         ],
                         [
                             "key" => "Occupancy Type",
@@ -3364,7 +3409,7 @@ class ActiveSafController extends Controller
                     'totalTax'          => roundFigure($collection->sum('totalTax')),
                 ]);
             });
-            $finalResponse['details'] = $reviewCalculation;
+            $finalResponse['details'] = $reviewCalculation->values();
             return responseMsg(true, "", $finalResponse);
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
@@ -3481,7 +3526,7 @@ class ActiveSafController extends Controller
                 ]);
             });
             $finalResponse2['demand'] = $demand;
-            $finalResponse2['details'] = $reviewCalculation;
+            $finalResponse2['details'] = $reviewCalculation->values();
             return responseMsg(true, "", $finalResponse2);
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
