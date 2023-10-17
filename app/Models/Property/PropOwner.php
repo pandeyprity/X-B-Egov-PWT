@@ -105,7 +105,8 @@ class PropOwner extends Model
     {
         return PropOwner::select(
             'owner_name as applicant_name',
-            'mobile_no'
+            'mobile_no',
+            'owner_name_marathi'
         )
             ->where('property_id', $propertyId)
             ->orderBy('id')

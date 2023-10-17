@@ -19,6 +19,8 @@ class Calculate2PercPenalty
         $currentFy = getFY();
         $currentMonth = Carbon::now()->format('m');
         $currentFyMonths = $currentMonth - 4;                   // Start of the month april
+        $monthlyBalance = 0;
+        $noOfPenalMonths = 0;
 
         $demand = (object)$demand;
         if ($demand->fyear == $currentFy) {
@@ -26,7 +28,7 @@ class Calculate2PercPenalty
             $monthlyBalance = $demand->balance / 12;
         }
 
-        if ($demand->fyear < $currentFy) {
+        if ($demand->fyear < $currentFy && $demand->has_partwise_paid == false) {               // if the citizen has paid the tax part wise then avert the one percent penalty Calculation
             $noOfPenalMonths = 1;                                  // Start of the month april(if the fyear is past)
             $monthlyBalance = $demand->balance;
         }

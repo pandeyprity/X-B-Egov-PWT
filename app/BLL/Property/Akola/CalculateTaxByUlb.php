@@ -83,6 +83,7 @@ class CalculateTaxByUlb extends TaxCalculator
                 $floorReq =  [
                     "floorNo" => $floor->floor_mstr_id,
                     "constructionType" =>  $floor->construction_type_id,
+                    "occupancyType" =>  $floor->occupancy_type_mstr_id??"",
                     "usageType" => $floor->usage_type_id,
                     "buildupArea" =>  $floor->builtup_area,
                     "dateFrom" =>  $floor->date_from

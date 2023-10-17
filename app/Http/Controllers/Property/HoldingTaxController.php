@@ -145,8 +145,8 @@ class HoldingTaxController extends Controller
         }
 
         try {
-            $getHoldingDues = new GetHoldingDues;
-            // $getHoldingDues = new GetHoldingDuesV2;
+            // $getHoldingDues = new GetHoldingDues;
+            $getHoldingDues = new GetHoldingDuesV2;
             $demand = $getHoldingDues->getDues($req);
             return responseMsgs(true, "Demand Details", remove_null($demand), "011602", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
@@ -350,8 +350,19 @@ class HoldingTaxController extends Controller
                 'errors' => $validated->errors()
             ], 401);
         }
-        $postPropPayment = new PostPropPayment($req);
-        // $postPropPayment = new PostPropPaymentV2($req);
+        // $postPropPayment = new PostPropPayment($req);
+        $postPropPayment = new PostPropPaymentV2($req);
+
+        if ($req->isArrear == false)
+            $req->merge(['paymentType' => 'isArrearPayment']);
+        else
+            $req->merge(['paymentType' => 'isFullPayment']);
+
+        $propCalReq = new Request([                                                 // Request from payment
+            'propId' => $req['id'],
+            'isArrear' => $req['isArrear'] ?? null
+        ]);
+
         $propCalReq = new Request([                                                 // Request from payment
             'propId' => $req['id'],
             'isArrear' => $req['isArrear'] ?? null
@@ -370,6 +381,57 @@ class HoldingTaxController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             return responseMsgs(false, $e->getMessage(), "", "011604", "1.0", "", "POST", $req->deviceId ?? "");
+        }
+    }
+
+
+    /**
+     * | Offline Payment Saf Version 2
+     */
+    public function offlinePaymentHoldingV2(ReqPayment $req)
+    {
+        $validated = Validator::make(
+            $req->all(),
+            [
+                'paymentType' => 'required|In:isFullPayment,isArrearPayment,isPartPayment',
+                'paidAmount' => 'nullable|required_if:paymentType,==,isPartPayment|integer'
+            ]
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ], 401);
+        }
+
+        $postPropPayment = new PostPropPaymentV2($req);
+
+        if ($req->paymentType == 'isFullPayment')
+            $req->merge(['isArrear' => false]);
+        elseif ($req->paymentType == 'isArrearPayment')
+            $req->merge(['isArrear' => true]);
+        else
+            $req->merge(['isArrear' => false]);
+
+        $propCalReq = new Request([                                                 // Request from payment
+            'propId' => $req['id'],
+            'isArrear' => $req['isArrear'] ?? null
+        ]);
+
+        try {
+            $propCalculation = $this->getHoldingDues($propCalReq);                    // Calculation of Holding
+            if ($propCalculation->original['status'] == false)
+                throw new Exception($propCalculation->original['message']);
+
+            $postPropPayment->_propCalculation = $propCalculation;
+            // Transaction is beginning in Prop Payment Class
+            $postPropPayment->postPayment();
+            DB::commit();
+            return responseMsgs(true, "Payment Successfully Done", ['TransactionNo' => $postPropPayment->_tranNo, 'transactionId' => $postPropPayment->_tranId], "011604", "2.0", responseTime(), "POST", $req->deviceId);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return responseMsgs(false, $e->getMessage(), "", "011604", "2.0", "", "POST", $req->deviceId ?? "");
         }
     }
 
@@ -496,8 +558,8 @@ class HoldingTaxController extends Controller
         }
 
         try {
-            $generatePaymentReceipt = new GeneratePaymentReceipt;
-            // $generatePaymentReceipt = new GeneratePaymentReceiptV2;                     // Version 2 Receipt
+            // $generatePaymentReceipt = new GeneratePaymentReceipt;
+            $generatePaymentReceipt = new GeneratePaymentReceiptV2;                     // Version 2 Receipt
             $generatePaymentReceipt->generateReceipt($req->tranNo, $req->tranId);
             $receipt = $generatePaymentReceipt->_GRID;
             return responseMsgs(true, "Payment Receipt", remove_null($receipt), "011605", "1.0", "", "POST", $req->deviceId ?? "");

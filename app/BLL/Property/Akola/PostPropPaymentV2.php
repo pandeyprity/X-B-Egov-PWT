@@ -118,6 +118,7 @@ class PostPropPaymentV2
 
         // Property Transactions
         $tranBy = auth()->user()->user_type;
+
         $this->_REQ->merge([
             'userId' => $this->_userId,
             'todayDate' => $this->_todayDate->format('Y-m-d'),
@@ -139,7 +140,7 @@ class PostPropPaymentV2
         if (collect($demands)->isEmpty() && $arrear <= 0)
             throw new Exception("No Dues For this Property");
 
-        if (collect($demands)->isEmpty() && $arrear > 0) {
+        if (collect($demands)->isEmpty() && $arrear > 0) {                                          // This option is not in used right now from 14-10-2023
             $arrearDate = Carbon::now()->addYear(-1)->format('Y-m-d');
             $arrearFyear = getFY($arrearDate);
             $this->_fromFyear = $arrearFyear;
@@ -203,18 +204,21 @@ class PostPropPaymentV2
         $paymentReceiptNo = $this->generatePaymentReceiptNoV2();
         $this->_REQ['bookNo'] = $paymentReceiptNo["bookNo"];
         $this->_REQ['receiptNo'] = $paymentReceiptNo["receiptNo"];
-
+        $isPartWisePaid = null;
         // Part Payment
-        if ($this->_REQ->isPartPayment && $this->_REQ->paidAmount < $this->_propCalculation->original['data']['payableAmt']) {                    // Adjust Demand on Part Payment
+        if ($this->_REQ->paymentType == 'isPartPayment' && $this->_REQ->paidAmount < $this->_propCalculation->original['data']['payableAmt']) {                    // Adjust Demand on Part Payment
+            $isPartWisePaid = true;                                                                                 // Flag has been kept for showing the partial payment receipt
             $this->_REQ->merge(['amount' => $this->_REQ->paidAmount]);
-            if ($this->_REQ->paidAmount > $this->_propCalculation->original['data']['arrearPayableAmt']) {          // We have to adjust current demand
-                // $adjustableAmount = $this->_propCalculation->original['data']['payableAmt'] - $this->_REQ->paidAmount;
+            if ($this->_REQ->paidAmount > $this->_propCalculation->original['data']['arrearPayableAmt'])           // We have to adjust current demand
                 $this->currentDemandAdjust();
-                // return (["This is Current Demand Adjustment Amount $adjustableAmount"]);
-            } else
-                throw new Exception("Part Payment in Arrear Not Available");
-            // return (["This is the part payment"]);
+            elseif ($this->_REQ->paidAmount < $this->_propCalculation->original['data']['arrearPayableAmt'] && $this->_REQ->paidAmount > $this->_propCalculation->original['data']['totalInterestPenalty'])           // We have to adjust Arrear demand
+                $this->arrearDemandAdjust();
+            else
+                throw new Exception("Part Payment in Monthly Interest Not Available");
         }
+
+        if ($this->_REQ->paymentType == 'isPartPayment' && $this->_REQ->paidAmount > $this->_propCalculation->original['data']['payableAmt'])                     // Adjust Demand on Part Payment
+            throw new Exception("Amount should be less then the payable amount");
 
         // return (["Full Payment"]);
 
@@ -236,28 +240,36 @@ class PostPropPaymentV2
                 $fullPaidStatus = ($tblDemand->fyear == $this->_fy) ? $this->_currentFullPaid : $this->_arrearFullPaid;
                 $tblDemand->is_full_paid = $fullPaidStatus;
                 // Update Paid Taxes
+
+                /**
+                 * | due taxes = paid_taxes-due Taxes
+                 */
                 $paidTaxes = (object)$paidTaxes;
-                $tblDemand->paid_general_tax = $tblDemand->paid_general_tax + $paidTaxes->paidGeneralTax;
-                $tblDemand->paid_road_tax = $tblDemand->paid_road_tax + $paidTaxes->paidRoadTax;
-                $tblDemand->paid_firefighting_tax = $tblDemand->paid_firefighting_tax + $paidTaxes->paidFirefightingTax;
-                $tblDemand->paid_education_tax = $tblDemand->paid_education_tax + $paidTaxes->paidEducationTax;
-                $tblDemand->paid_water_tax = $tblDemand->paid_water_tax + $paidTaxes->paidWaterTax;
-                $tblDemand->paid_cleanliness_tax = $tblDemand->paid_cleanliness_tax + $paidTaxes->paidCleanlinessTax;
-                $tblDemand->paid_sewarage_tax = $tblDemand->paid_sewarage_tax + $paidTaxes->paidSewarageTax;
-                $tblDemand->paid_tree_tax = $tblDemand->paid_tree_tax + $paidTaxes->paidTreeTax;
-                $tblDemand->paid_professional_tax = $tblDemand->paid_professional_tax + $paidTaxes->paidProfessionalTax;
-                $tblDemand->paid_total_tax = $tblDemand->paid_total_tax + $paidTaxes->paidTotalTax;
-                $tblDemand->paid_balance = $tblDemand->paid_balance + $paidTaxes->paidTotalTax;
-                $tblDemand->paid_tax1 = $tblDemand->paid_tax1 + $paidTaxes->paidTax1;
-                $tblDemand->paid_tax2 = $tblDemand->paid_tax2 + $paidTaxes->paidTax2;
-                $tblDemand->paid_tax3 = $tblDemand->paid_tax3 + $paidTaxes->paidTax3;
-                $tblDemand->paid_sp_education_tax = $tblDemand->paid_sp_education_tax + $paidTaxes->paidStateEducationTax;
-                $tblDemand->paid_water_benefit = $tblDemand->paid_water_benefit + $paidTaxes->paidWaterBenefit;
-                $tblDemand->paid_water_bill = $tblDemand->paid_water_bill + $paidTaxes->paidWaterBill;
-                $tblDemand->paid_sp_water_cess = $tblDemand->paid_sp_water_cess + $paidTaxes->paidSpWaterCess;
-                $tblDemand->paid_drain_cess = $tblDemand->paid_drain_cess + $paidTaxes->paidDrainCess;
-                $tblDemand->paid_light_cess = $tblDemand->paid_light_cess + $paidTaxes->paidLightCess;
-                $tblDemand->paid_major_building = $tblDemand->paid_major_building + $paidTaxes->paidMajorBuilding;
+                $tblDemand->due_general_tax = $tblDemand->due_general_tax - $paidTaxes->paidGeneralTax;
+                $tblDemand->due_road_tax = $tblDemand->due_road_tax - $paidTaxes->paidRoadTax;
+                $tblDemand->due_firefighting_tax = $tblDemand->due_firefighting_tax - $paidTaxes->paidFirefightingTax;
+                $tblDemand->due_education_tax = $tblDemand->due_education_tax - $paidTaxes->paidEducationTax;
+                $tblDemand->due_water_tax = $tblDemand->due_water_tax - $paidTaxes->paidWaterTax;
+                $tblDemand->due_cleanliness_tax = $tblDemand->due_cleanliness_tax - $paidTaxes->paidCleanlinessTax;
+                $tblDemand->due_sewarage_tax = $tblDemand->due_sewarage_tax - $paidTaxes->paidSewarageTax;
+                $tblDemand->due_tree_tax = $tblDemand->due_tree_tax - $paidTaxes->paidTreeTax;
+                $tblDemand->due_professional_tax = $tblDemand->due_professional_tax - $paidTaxes->paidProfessionalTax;
+                $tblDemand->due_total_tax = $tblDemand->due_total_tax - $paidTaxes->paidTotalTax;
+                $tblDemand->due_balance = $tblDemand->due_total_tax;
+                $tblDemand->due_tax1 = $tblDemand->due_tax1 - $paidTaxes->paidTax1;
+                $tblDemand->due_tax2 = $tblDemand->due_tax2 - $paidTaxes->paidTax2;
+                $tblDemand->due_tax3 = $tblDemand->due_tax3 - $paidTaxes->paidTax3;
+                $tblDemand->due_sp_education_tax = $tblDemand->due_sp_education_tax - $paidTaxes->paidStateEducationTax;
+                $tblDemand->due_water_benefit = $tblDemand->due_water_benefit - $paidTaxes->paidWaterBenefit;
+                $tblDemand->due_water_bill = $tblDemand->due_water_bill - $paidTaxes->paidWaterBill;
+                $tblDemand->due_sp_water_cess = $tblDemand->due_sp_water_cess - $paidTaxes->paidSpWaterCess;
+                $tblDemand->due_drain_cess = $tblDemand->due_drain_cess - $paidTaxes->paidDrainCess;
+                $tblDemand->due_light_cess = $tblDemand->due_light_cess - $paidTaxes->paidLightCess;
+                $tblDemand->due_major_building = $tblDemand->due_major_building - $paidTaxes->paidMajorBuilding;
+                $tblDemand->paid_total_tax = $paidTaxes->paidTotalTax + $tblDemand->paid_total_tax;
+
+                if (isset($isPartWisePaid))
+                    $tblDemand->has_partwise_paid = $isPartWisePaid;
 
                 $tblDemand->save();
             }
@@ -482,6 +494,7 @@ class PostPropPaymentV2
 
         $currentTax = $this->_propCalculation->original['data']["demandList"]->where("fyear", getFY());
         $totaTax = $currentTax->sum("total_tax");
+
         $perPecOfTax =  $totaTax / 100;
 
         $generalTaxPerc = ($currentTax->sum('general_tax') / $totaTax) * 100;
@@ -564,5 +577,110 @@ class PostPropPaymentV2
         ];
 
         return $this->_paidCurrentTaxesBifurcation = $this->readPaidTaxes($paidDemandBifurcation);
+    }
+
+
+    /**
+     * | Part Payment On Arrear Demand
+     */
+    public function arrearDemandAdjust()
+    {
+        $arrearPayableAmount = $this->_REQ->paidAmount - $this->_propCalculation->original['data']['totalInterestPenalty'];
+
+        if ($arrearPayableAmount > 0)
+            $this->_arrearFullPaid = false;
+
+        $this->_propCalculation->original['data']["demandList"] = $this->_propCalculation->original['data']["demandList"]->where("fyear", "<>", $this->_fy);    // In Case of part payment is less then the arrear payment and the user select is arrear false then this will handle this case
+        $this->_demands = $this->_propCalculation->original['data']["demandList"];
+        $arrearTax = $this->_propCalculation->original['data']["demandList"];
+        $totaTax = collect($arrearTax)->sum("total_tax");
+
+        $this->_REQ->merge([
+            'demandAmt' => $totaTax,                                            // Demandable Amount
+            'arrearSettledAmt' => $totaTax,
+        ]);
+
+        $perPecOfTax =  $totaTax / 100;
+
+        $generalTaxPerc = ($arrearTax->sum('general_tax') / $totaTax) * 100;
+        $roadTaxPerc = ($arrearTax->sum('road_tax') / $totaTax) * 100;
+        $firefightingTaxPerc = ($arrearTax->sum('firefighting_tax') / $totaTax) * 100;
+        $educationTaxPerc = ($arrearTax->sum('education_tax') / $totaTax) * 100;
+        $waterTaxPerc = ($arrearTax->sum('water_tax') / $totaTax) * 100;
+        $cleanlinessTaxPerc = ($arrearTax->sum('cleanliness_tax') / $totaTax) * 100;
+        $sewarageTaxPerc = ($arrearTax->sum('sewarage_tax') / $totaTax) * 100;
+        $treeTaxPerc = ($arrearTax->sum('tree_tax') / $totaTax) * 100;
+        $professionalTaxPerc = ($arrearTax->sum('professional_tax') / $totaTax) * 100;
+        $tax1Perc = ($arrearTax->sum('tax1') / $totaTax) * 100;
+        $tax2Perc = ($arrearTax->sum('tax2') / $totaTax) * 100;
+        $tax3Perc = ($arrearTax->sum('tax3') / $totaTax) * 100;
+        $stateEducationTaxPerc = ($arrearTax->sum('state_education_tax') / $totaTax) * 100;
+        $waterBenefitPerc = ($arrearTax->sum('water_benefit') / $totaTax) * 100;
+        $waterBillPerc = ($arrearTax->sum('water_bill') / $totaTax) * 100;
+        $spWaterCessPerc = ($arrearTax->sum('sp_water_cess') / $totaTax) * 100;
+        $drainCessPerc = ($arrearTax->sum('drain_cess') / $totaTax) * 100;
+        $lightCessPerc = ($arrearTax->sum('light_cess') / $totaTax) * 100;
+        $majorBuildingPerc = ($arrearTax->sum('major_building') / $totaTax) * 100;
+
+        $totalPerc = $generalTaxPerc + $roadTaxPerc + $firefightingTaxPerc + $educationTaxPerc +
+            $waterTaxPerc + $cleanlinessTaxPerc + $sewarageTaxPerc + $treeTaxPerc
+            + $professionalTaxPerc + $tax1Perc + $tax2Perc + $tax3Perc
+            + $stateEducationTaxPerc + $waterBenefitPerc + $waterBillPerc +
+            $spWaterCessPerc + $drainCessPerc + $lightCessPerc + $majorBuildingPerc;
+
+        // $taxBifurcation = [                                      // Tax Bifurcations for References
+        //     'generalTaxPerc' => $generalTaxPerc,
+        //     'roadTaxPerc' => $roadTaxPerc,
+        //     'firefightingTaxPerc' => $firefightingTaxPerc,
+        //     'educationTaxPerc' => $educationTaxPerc,
+        //     'waterTaxPerc' => $waterTaxPerc,
+        //     'cleanlinessTaxPerc' => $cleanlinessTaxPerc,
+        //     'sewarageTaxPerc' => $sewarageTaxPerc,
+        //     'treeTaxPerc' => $treeTaxPerc,
+        //     'professionalTaxPerc' => $professionalTaxPerc,
+        //     'tax1Perc' => $tax1Perc,
+        //     'tax2Perc' => $tax2Perc,
+        //     'tax3Perc' => $tax3Perc,
+        //     'stateEducationTaxPerc' => $stateEducationTaxPerc,
+        //     'waterBenefitPerc' => $waterBenefitPerc,
+        //     'waterBillPerc' => $waterBillPerc,
+        //     'spWaterCessPerc' => $spWaterCessPerc,
+        //     'drainCessPerc' => $drainCessPerc,
+        //     'lightCessPerc' => $lightCessPerc,
+        //     'majorBuildingPerc' => $majorBuildingPerc,
+        //     'totalTax' => $totaTax,
+        //     'percTax' => $perPecOfTax,
+        //     'totalPerc' => $totalPerc
+        // ];
+
+        /**
+         * | 100 % = Payable Amount
+         * | 1 % = Payable Amount/100  (Hence We Have devided the taxes by hundred)
+         */
+
+        $paidDemandBifurcation = [
+            'general_tax' => roundFigure(($arrearPayableAmount * $generalTaxPerc) / 100),
+            'road_tax' => roundFigure(($arrearPayableAmount * $roadTaxPerc) / 100),
+            'firefighting_tax' => roundFigure(($arrearPayableAmount * $firefightingTaxPerc) / 100),
+            'education_tax' => roundFigure(($arrearPayableAmount * $educationTaxPerc) / 100),
+            'water_tax' => roundFigure(($arrearPayableAmount * $waterTaxPerc) / 100),
+            'cleanliness_tax' => roundFigure(($arrearPayableAmount * $cleanlinessTaxPerc) / 100),
+            'sewarage_tax' => roundFigure(($arrearPayableAmount * $sewarageTaxPerc) / 100),
+            'tree_tax' => roundFigure(($arrearPayableAmount * $treeTaxPerc) / 100),
+            'professional_tax' => roundFigure(($arrearPayableAmount * $professionalTaxPerc) / 100),
+            'tax1' => roundFigure(($arrearPayableAmount * $tax1Perc) / 100),
+            'tax2' => roundFigure(($arrearPayableAmount * $tax2Perc) / 100),
+            'tax3' => roundFigure(($arrearPayableAmount * $tax3Perc) / 100),
+            'state_education_tax' => roundFigure(($arrearPayableAmount * $stateEducationTaxPerc) / 100),
+            'water_benefit' => roundFigure(($arrearPayableAmount * $waterBenefitPerc) / 100),
+            'water_bill' => roundFigure(($arrearPayableAmount * $waterBillPerc) / 100),
+            'sp_water_cess' => roundFigure(($arrearPayableAmount * $spWaterCessPerc) / 100),
+            'drain_cess' => roundFigure(($arrearPayableAmount * $drainCessPerc) / 100),
+            'light_cess' => roundFigure(($arrearPayableAmount * $lightCessPerc) / 100),
+            'major_building' => roundFigure(($arrearPayableAmount * $majorBuildingPerc) / 100),
+            'total_tax' => roundFigure(($arrearPayableAmount * $totalPerc) / 100)
+        ];
+
+        return $this->_paidArrearTaxesBifurcation = $this->readPaidTaxes($paidDemandBifurcation);
     }
 }

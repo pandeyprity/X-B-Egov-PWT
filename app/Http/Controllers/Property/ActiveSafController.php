@@ -1598,6 +1598,247 @@ class ActiveSafController extends Controller
         }
     }
 
+    #create By Sandeep Bara
+    # Date 14-10-2023
+    #========Fam Reciept Data========
+    public function AkolaFam(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'safId' => 'required|digits_between:1,9223372036854775807'
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+        try{
+            $request->merge(["id"=>$request->safId]);
+            $response = $this->calculateSafBySafId($request);
+            if(!$response->original["status"])
+            {
+                throw new Exception($response->original["message"]);
+            }
+            $mProperties = new PropProperty();
+            $data = $response->original["data"];
+            $fullSafDtls = $this->details($request);
+            $property = (array)$mProperties->getPropDtls()
+                        ->where('prop_properties.id', $fullSafDtls["property_id"]??0)
+                        ->first();
+            $tax = $data["fyearWiseTaxes"];
+            $correntTax = collect($tax)->where("fyear",'=',getFy());
+            $arrearTax = collect($tax)->where("fyear",'<',getFy());  
+            $data["floorsTaxes"]->map(function($val){
+                $val["quaterly"] = roundFigure(($val["taxValue"]??0)/4);
+                return $val;
+            });                  
+            $data["ownersDtls"]=[
+                "ownerName"         => $fullSafDtls["owners"]->implode("owner_name",","),
+                "guardianName"      => $fullSafDtls["owners"]->implode("guardian_name",","),
+                "mobileNo"          => $fullSafDtls["owners"]->implode("mobile_no",","),
+                "ownerNameMarathi"  => $fullSafDtls["owners"]->implode("owner_name_marathi",","),
+                "guardianNameMarathi"=> $fullSafDtls["owners"]->implode("guardian_name_marathi",","),
+            ];
+            $data["currentTax"]= [
+                "alv"                   => $correntTax->sum("alv"),
+                "maintancePerc"         => $correntTax->sum("maintancePerc"),
+                "maintantance10Perc"    => $correntTax->sum("maintantance10Perc"),
+                "valueAfterMaintance"   => $correntTax->sum("valueAfterMaintance"),
+                "agingPerc"             => $correntTax->sum("agingPerc"),
+                "agingAmt"              => $correntTax->sum("agingAmt"),
+                "taxValue"              => $correntTax->sum("taxValue"),
+                "generalTax"            => $correntTax->sum("generalTax"),
+                "roadTax"               => $correntTax->sum("roadTax"),
+                "firefightingTax"       => $correntTax->sum("firefightingTax"),
+                "educationTax"          => $correntTax->sum("educationTax"),
+                "waterTax"              => $correntTax->sum("waterTax"),
+                "cleanlinessTax"        => $correntTax->sum("cleanlinessTax"),
+                "sewerageTax"           => $correntTax->sum("sewerageTax"),
+                "treeTax"               => $correntTax->sum("treeTax"),
+                "stateEducationTaxPerc" => $correntTax->sum("stateEducationTaxPerc"),
+                "stateEducationTax"     => $correntTax->sum("stateEducationTax"),
+                "professionalTaxPerc"   => $correntTax->sum("professionalTaxPerc"),
+                "professionalTax"       => $correntTax->sum("professionalTax"),
+                "totalTax"              => $correntTax->sum("totalTax"),
+                "plotArea"              => $fullSafDtls["area_of_plot"]??"",
+                "plotAreaSQTM"          => sqFtToSqMt($fullSafDtls["area_of_plot"]??"0"),
+                "floorsCount"           => ($fullSafDtls["floors"]->count()??"0"),
+                "wardNo"                => $fullSafDtls["old_ward_no"]??"",
+                "propertyNo"            => $property["property_no"]??"",
+                "toilet"                => 0,
+                "partNo"                => $fullSafDtls["part_no"]??"",
+                "propertyType"          => $fullSafDtls["INDEPENDENT BUILDING"]??"",
+			    "holdingType"           => $fullSafDtls["PURE COMMERCIAL"]??"",
+            ];
+            $data["arrearTax"]= [
+                "alv"                   => $arrearTax->sum("alv"),
+                "maintancePerc"         => $arrearTax->sum("maintancePerc"),
+                "maintantance10Perc"    => $arrearTax->sum("maintantance10Perc"),
+                "valueAfterMaintance"   => $arrearTax->sum("valueAfterMaintance"),
+                "agingPerc"             => $arrearTax->sum("agingPerc"),
+                "agingAmt"              => $arrearTax->sum("agingAmt"),
+                "taxValue"              => $arrearTax->sum("taxValue"),
+                "generalTax"            => $arrearTax->sum("generalTax"),
+                "roadTax"               => $arrearTax->sum("roadTax"),
+                "firefightingTax"       => $arrearTax->sum("firefightingTax"),
+                "educationTax"          => $arrearTax->sum("educationTax"),
+                "waterTax"              => $arrearTax->sum("waterTax"),
+                "cleanlinessTax"        => $arrearTax->sum("cleanlinessTax"),
+                "sewerageTax"           => $arrearTax->sum("sewerageTax"),
+                "treeTax"               => $arrearTax->sum("treeTax"),
+                "stateEducationTaxPerc" => $arrearTax->sum("stateEducationTaxPerc"),
+                "stateEducationTax"     => $arrearTax->sum("stateEducationTax"),
+                "professionalTaxPerc"   => $arrearTax->sum("professionalTaxPerc"),
+                "professionalTax"       => $arrearTax->sum("professionalTax"),
+                "totalTax"              => $arrearTax->sum("totalTax"),
+                "plotArea"              => $fullSafDtls["area_of_plot"]??"",
+                "plotAreaSQTM"          => sqFtToSqMt($fullSafDtls["area_of_plot"]??"0"),
+                "floorsCount"           => ($fullSafDtls["floors"]->count()??"0"),
+                "wardNo"                => $fullSafDtls["old_ward_no"]??"",
+                "propertyNo"            => $property["property_no"]??"",
+                "toilet"                => 0,
+                "partNo"                => $fullSafDtls["part_no"]??"",
+                "propertyType"          => $fullSafDtls["INDEPENDENT BUILDING"]??"",
+			    "holdingType"           => $fullSafDtls["PURE COMMERCIAL"]??"",
+            ];
+            $geoTagging = PropSafGeotagUpload::where("saf_id", $request->safId)->orderBy("id","ASC")->get()->map(function ($val) {
+                $val->paths = (config('app.url')."/".$val->relative_path . "/" . $val->image_path);
+                return $val;
+            });
+            $data["geoTagging"] = $geoTagging;
+            $data["images"]=[
+                "photograph"=>collect($data["geoTagging"])->where("direction_type","Front") ? (collect($data["geoTagging"])->where("direction_type","Front"))->pluck("paths")->first()??"" : (collect($data["geoTagging"])->where("direction_type","<>","naksha")->first() ? (collect($data["geoTagging"])->where("direction_type","<>","naksha")->first())->pluck("paths") : "") ,
+                "naksha"    =>collect($data["geoTagging"])->where("direction_type","naksha")->first()? (collect($data["geoTagging"])->where("direction_type","naksha")->first())->pluck("paths") : "",
+            ]; 
+            $floorsTaxes = collect($data["floorsTaxes"]??[]);
+            $data["grandFloorsTaxes"] =[
+                "totalFloors"       => $floorsTaxes->count("floorNo")??0,
+                "dateFrom"          => $floorsTaxes->min("dateFrom")??"",
+                "appliedFrom"       => $floorsTaxes->min("appliedFrom")??"",
+                "rate"              => $floorsTaxes->sum("rate")??0,
+                "floorKey"          => $floorsTaxes->max("floorKey")??"",
+                "floorNo"           => $floorsTaxes->max("floorNo")??"",
+                "buildupAreaInSqmt" => $floorsTaxes->sum("buildupAreaInSqmt")??"0",
+                "alv"               => $floorsTaxes->sum("alv")??"0",
+                "maintancePerc"     => $floorsTaxes->sum("maintancePerc")??"0",
+                "maintantance10Perc"=> $floorsTaxes->sum("maintantance10Perc")??"0",
+                "valueAfterMaintance"=>$floorsTaxes->sum("valueAfterMaintance")??"0",
+                "agingPerc"         => $floorsTaxes->sum("agingPerc")??"0",
+                "agingAmt"          => $floorsTaxes->sum("agingAmt")??"0",
+                "taxValue"          => $floorsTaxes->sum("taxValue")??"0",
+                "generalTax"        => $floorsTaxes->sum("generalTax")??"0",
+                "roadTax"           => $floorsTaxes->sum("roadTax")??"0",
+                "firefightingTax"   => $floorsTaxes->sum("firefightingTax")??"0",
+                "educationTax"      => $floorsTaxes->sum("educationTax")??"0",
+                "waterTax"          => $floorsTaxes->sum("waterTax")??"0",
+                "cleanlinessTax"    => $floorsTaxes->sum("cleanlinessTax")??"0",
+                "sewerageTax"       => $floorsTaxes->sum("sewerageTax")??"0",
+                "treeTax"           => $floorsTaxes->sum("treeTax")??"0",
+                "isCommercial"      => ($floorsTaxes->where("isCommercial",true)->count()>1?true:false)??false,
+                "stateEducationTaxPerc" => $floorsTaxes->sum("stateEducationTaxPerc")??"0",
+                "stateEducationTax" => $floorsTaxes->sum("stateEducationTax")??"0",
+                "professionalTaxPerc"=> $floorsTaxes->sum("professionalTaxPerc")??"0",
+                "professionalTax"   => $floorsTaxes->sum("professionalTax")??"0",
+                "totalTax"          => roundFigure($floorsTaxes->sum("generalTax") + $floorsTaxes->sum("roadTax") + $floorsTaxes->sum("firefightingTax") + 
+                                        $floorsTaxes->sum("educationTax") + $floorsTaxes->sum("waterTax") + $floorsTaxes->sum("cleanlinessTax") + 
+                                        $floorsTaxes->sum("sewerageTax") + $floorsTaxes->sum("treeTax") + $floorsTaxes->sum("stateEducationTax") + 
+                                        $floorsTaxes->sum("professionalTax") 
+                                    ),
+            ]; 
+            $residentFloor = $floorsTaxes->where("occupancyType",1);
+            $nonResidentFloor = $floorsTaxes->where("occupancyType","!=",1);
+            $data["usageTypeTax"]=[
+                "new"=>[
+                    "residence"=>[
+                        "taxValue"=>$residentFloor->sum("taxValue")??0,
+                        "totalTax"=>roundFigure($residentFloor->sum("generalTax") + $residentFloor->sum("roadTax") + $residentFloor->sum("firefightingTax") + 
+                                        $residentFloor->sum("educationTax") + $residentFloor->sum("waterTax") + 
+                                        $residentFloor->sum("cleanlinessTax") + $residentFloor->sum("sewerageTax") + $residentFloor->sum("treeTax") + 
+                                        $residentFloor->sum("stateEducationTax") +  $residentFloor->sum("professionalTax")
+                                    ),
+                                ],
+                    "nonResidence"=>[
+                        "taxValue"=>$nonResidentFloor->sum("taxValue")??0,
+                        "totalTax"=>roundFigure($nonResidentFloor->sum("generalTax") + $nonResidentFloor->sum("roadTax") + 
+                                        $nonResidentFloor->sum("firefightingTax") + $nonResidentFloor->sum("educationTax") + $nonResidentFloor->sum("waterTax") + 
+                                        $nonResidentFloor->sum("cleanlinessTax") + $nonResidentFloor->sum("sewerageTax") + $nonResidentFloor->sum("treeTax") + 
+                                        $nonResidentFloor->sum("stateEducationTax") +  $nonResidentFloor->sum("professionalTax")
+                                    ),
+                    ]
+                ],
+                "old"=>[
+                    "residence"=>[
+                        "taxValue"=>0,
+                        "totalTax"=>0,
+                                ],
+                    "nonResidence"=>[
+                        "taxValue"=>0,
+                        "totalTax"=>0,
+                    ]
+                ],
+            ]; 
+            $data["usageTypeTaxBifur"]=[                
+                "residence"=>[
+                    "alv"               => $residentFloor->sum("alv")??"0",
+                    "maintancePerc"     => $residentFloor->sum("maintancePerc")??"0",
+                    "maintantance10Perc"=> $residentFloor->sum("maintantance10Perc")??"0",
+                    "valueAfterMaintance"=>$residentFloor->sum("valueAfterMaintance")??"0",
+                    "agingPerc"         => $residentFloor->sum("agingPerc")??"0",
+                    "agingAmt"          => $residentFloor->sum("agingAmt")??"0",
+                    "taxValue"          => $residentFloor->sum("taxValue")??"0",
+                    "generalTax"        => $residentFloor->sum("generalTax")??"0",
+                    "roadTax"           => $residentFloor->sum("roadTax")??"0",
+                    "firefightingTax"   => $residentFloor->sum("firefightingTax")??"0",
+                    "educationTax"      => $residentFloor->sum("educationTax")??"0",
+                    "waterTax"          => $residentFloor->sum("waterTax")??"0",
+                    "cleanlinessTax"    => $residentFloor->sum("cleanlinessTax")??"0",
+                    "sewerageTax"       => $residentFloor->sum("sewerageTax")??"0",
+                    "treeTax"           => $residentFloor->sum("treeTax")??"0",
+                    "isCommercial"      => ($residentFloor->where("isCommercial",true)->count()>1?true:false)??false,
+                    "stateEducationTaxPerc" => $residentFloor->sum("stateEducationTaxPerc")??"0",
+                    "stateEducationTax" => $residentFloor->sum("stateEducationTax")??"0",
+                    "professionalTaxPerc"=> $residentFloor->sum("professionalTaxPerc")??"0",
+                    "professionalTax"   => $residentFloor->sum("professionalTax")??"0",
+                    "totalTax"          => roundFigure($residentFloor->sum("generalTax") + $residentFloor->sum("roadTax") + $residentFloor->sum("firefightingTax") + 
+                                            $residentFloor->sum("educationTax") + $residentFloor->sum("waterTax") + $residentFloor->sum("cleanlinessTax") + 
+                                            $residentFloor->sum("sewerageTax") + $residentFloor->sum("treeTax") + $residentFloor->sum("stateEducationTax") + 
+                                            $residentFloor->sum("professionalTax") 
+                                        ),
+                            ],
+                "nonResidence"=>[
+                    "alv"               => $nonResidentFloor->sum("alv")??"0",
+                    "maintancePerc"     => $nonResidentFloor->sum("maintancePerc")??"0",
+                    "maintantance10Perc"=> $nonResidentFloor->sum("maintantance10Perc")??"0",
+                    "valueAfterMaintance"=>$nonResidentFloor->sum("valueAfterMaintance")??"0",
+                    "agingPerc"         => $nonResidentFloor->sum("agingPerc")??"0",
+                    "agingAmt"          => $nonResidentFloor->sum("agingAmt")??"0",
+                    "taxValue"          => $nonResidentFloor->sum("taxValue")??"0",
+                    "generalTax"        => $nonResidentFloor->sum("generalTax")??"0",
+                    "roadTax"           => $nonResidentFloor->sum("roadTax")??"0",
+                    "firefightingTax"   => $nonResidentFloor->sum("firefightingTax")??"0",
+                    "educationTax"      => $nonResidentFloor->sum("educationTax")??"0",
+                    "waterTax"          => $nonResidentFloor->sum("waterTax")??"0",
+                    "cleanlinessTax"    => $nonResidentFloor->sum("cleanlinessTax")??"0",
+                    "sewerageTax"       => $nonResidentFloor->sum("sewerageTax")??"0",
+                    "treeTax"           => $nonResidentFloor->sum("treeTax")??"0",
+                    "isCommercial"      => ($nonResidentFloor->where("isCommercial",true)->count()>1?true:false)??false,
+                    "stateEducationTaxPerc" => $nonResidentFloor->sum("stateEducationTaxPerc")??"0",
+                    "stateEducationTax" => $nonResidentFloor->sum("stateEducationTax")??"0",
+                    "professionalTaxPerc"=> $nonResidentFloor->sum("professionalTaxPerc")??"0",
+                    "professionalTax"   => $nonResidentFloor->sum("professionalTax")??"0",
+                    "totalTax"          => roundFigure($nonResidentFloor->sum("generalTax") + $nonResidentFloor->sum("roadTax") + $nonResidentFloor->sum("firefightingTax") + 
+                                            $nonResidentFloor->sum("educationTax") + $nonResidentFloor->sum("waterTax") + $nonResidentFloor->sum("cleanlinessTax") + 
+                                            $nonResidentFloor->sum("sewerageTax") + $nonResidentFloor->sum("treeTax") + $nonResidentFloor->sum("stateEducationTax") + 
+                                            $nonResidentFloor->sum("professionalTax") 
+                                        ),                    
+                ]
+            ];    
+            return responseMsgs(true, "Demand Details", remove_null($data), "", "1.1", responseTime(), "POST", $request->deviceId);
+        }
+        catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", "1.1", responseTime(), "POST", $request->deviceId);
+        }
+    }
+
     /**
      * | One Percent Penalty Calculation(13.1)
      */
@@ -2674,13 +2915,19 @@ class ActiveSafController extends Controller
             $size = sizeOf($floars) >= sizeOf($verifications_detals) ? $floars : $verifications_detals;
             $keys = sizeOf($floars) >= sizeOf($verifications_detals) ? "floars" : "detals";
             $floors_compais = array();
-            $floors_compais = $size->map(function ($val, $key) use ($floars, $verifications_detals, $keys) {
-                if ($keys == "floars") {
+            $floors_compais = $size->map(function ($val, $key) use ($floars, $verifications_detals, $keys) {                
+                if(sizeOf($floars) == sizeOf($verifications_detals))
+                {
+                    $saf_data = collect(array_values(objToArray(($floars)->values())))->all();
+                    $verification = collect(array_values(objToArray(($verifications_detals)->values())))->all();
+                } 
+                elseif ($keys == "floars") {
                     // $saf_data=($floars->where("id",$val->id))->values();
                     // $verification=($verifications_detals->where("saf_floor_id",$val->id))->values();
                     $saf_data = collect(array_values(objToArray(($floars->where("id", $val->id))->values())))->all();
                     $verification = collect(array_values(objToArray(($verifications_detals->where("saf_floor_id", $val->id))->values())))->all();
-                } else {
+                }
+                else {
                     // $saf_data=($floars->where("id",$val->saf_floor_id))->values();
                     // $verification=($verifications_detals->where("id",$val->id))->values();
                     $saf_data = collect(array_values(objToArray(($floars->where("id", $val->saf_floor_id))->values())))->all();
@@ -2693,7 +2940,7 @@ class ActiveSafController extends Controller
                             "key" => "Usage Type",
                             "values" => ($saf_data[0]->usage_type_mstr_id ?? "") == ($verification[0]['usage_type_id'] ?? ""),
                             "according_application" => $saf_data[0]->usage_type ?? "",
-                            "according_verification" => $verification[0]['usage_type_id'] ?? "",
+                            "according_verification" => $verification[0]['usage_type'] ?? "",
                         ],
                         [
                             "key" => "Occupancy Type",
@@ -2742,6 +2989,12 @@ class ActiveSafController extends Controller
                 $safDetails['floors'] = $floars;
                 $safDetails['owners'] = $owners;
 
+                #===============
+                $req = $safDetails;
+                $array = $this->generateSafRequest($req); 
+                $calculater = new \App\Http\Controllers\Property\Akola\AkolaCalculationController();
+                $safTaxes = $calculater->calculate(new \App\Http\Requests\Property\Akola\ApplySafReq($array));
+                #===============
                 $safDetails2 = json_decode(json_encode($verifications), true);
 
                 $safDetails2["ward_mstr_id"] = $safDetails2["ward_id"];
@@ -2783,6 +3036,38 @@ class ActiveSafController extends Controller
 
 
                 $safDetails2['owners'] = $owners;
+
+                #======================================
+
+                $array2 = $this->generateSafRequest($safDetails2);
+                // dd($array);
+                $request2 = new Request($array2);
+                $calculater2 = new \App\Http\Controllers\Property\Akola\AkolaCalculationController();
+                $safTaxes2 = $calculater2->calculate(new \App\Http\Requests\Property\Akola\ApplySafReq($array2));
+                // $taxCalculator = new \App\BLL\Property\Akola\TaxCalculator($request2);
+                // $taxCalculator->calculateTax();
+                // $safTaxes2 = $taxCalculator->_GRID;
+                // dd($safTaxes,$array);
+                if (!$safTaxes->original["status"]) {
+                    throw new Exception($safTaxes->original["message"]);
+                }
+                if (!$safTaxes2->original["status"]) {
+                    throw new Exception($safTaxes2->original["message"]);
+                }
+                $safTaxes3 = $this->reviewTaxCalculationV2($safTaxes);
+                $safTaxes4 = $this->reviewTaxCalculationV2($safTaxes2);
+                // dd(json_decode(json_encode($safTaxes), true),json_decode(json_encode($safTaxes2), true));
+                $compairTax = $this->reviewTaxCalculationComV2($safTaxes, $safTaxes2);
+
+                $safTaxes2 = json_decode(json_encode($safTaxes4), true);
+                $safTaxes = json_decode(json_encode($safTaxes3), true);
+                $compairTax = json_decode(json_encode($compairTax), true);
+
+                $data["Tax"]["according_application"] = $safTaxes["original"]["data"];
+                $data["Tax"]["according_verification"] = $safTaxes2["original"]["data"];
+                $data["Tax"]["compairTax"] = $compairTax["original"]["data"];
+
+                #======================================
             }
             $data["saf_details"] = $saf;
             $data["employee_details"] = ["user_name" => $verifications->user_name, "date" => ymdToDmyDate($verifications->created_at)];
@@ -3050,6 +3335,198 @@ class ActiveSafController extends Controller
                 });
             });
             $finalResponse2['details'] = $reviewCalculation;
+            return responseMsg(true, "", $finalResponse2);
+        } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+    #========= for Akola Tax Compair=============
+
+    private function reviewTaxCalculationV2(object $response)
+    {
+        try {
+            $finalResponse['demand'] = $response->original['data']['grandTaxes'];
+            $reviewDetails = collect($response->original['data']['fyearWiseTaxes'])->groupBy(['fyear']);            
+            $finalTaxReview = collect();
+            $review = collect($reviewDetails)->map(function ($reviewDetail) use ($finalTaxReview) {                
+                $table = collect($reviewDetail)->map(function ($floors) use ($finalTaxReview) {   
+                        $first = collect($floors);
+                        $response = $first->only([
+                            'alv',
+                            'maintancePerc',
+                            'maintantance10Perc',
+                            'valueAfterMaintance',
+                            'agingPerc',
+                            'agingAmt',
+                            'taxValue',
+                            'generalTax',
+                            'roadTax',
+                            'firefightingTax',
+                            'educationTax',
+                            'waterTax',
+                            'cleanlinessTax',
+                            'sewerageTax',
+                            'treeTax',
+                            'stateEducationTaxPerc',
+                            'stateEducationTax',
+                            'professionalTaxPerc',
+                            'professionalTax',
+                            'totalTax',
+                            'fyear',
+                        ]);
+                        $finalTaxReview->push($response);
+                        return $response;
+                    // });
+                    // return $usageType;
+                });
+                return $table;
+            });
+            $ruleSetCollections = collect($finalTaxReview)->groupBy(['fyear']);            
+            $reviewCalculation = collect($ruleSetCollections)->map(function ($collection) {   
+                $first = $collection->first();
+                return collect([
+                    'key' => $first['fyear'],
+                    'alv'               => roundFigure($collection->sum('alv')),
+                    'maintancePerc'     => roundFigure($collection->sum('maintancePerc')),
+                    'maintantance10Perc'=> roundFigure($collection->sum('maintantance10Perc')),
+                    'valueAfterMaintance'=> roundFigure($collection->sum('valueAfterMaintance')),
+                    'agingPerc'         => roundFigure($collection->sum('agingPerc')),
+                    'agingAmt'          => roundFigure($collection->sum('agingAmt')),
+                    'taxValue'          => roundFigure($collection->sum('taxValue')),
+                    'generalTax'        => roundFigure($collection->sum('generalTax')),
+                    'roadTax'           => roundFigure($collection->sum('roadTax')),
+                    'firefightingTax'   => roundFigure($collection->sum('firefightingTax')),
+                    'educationTax'      => roundFigure($collection->sum('educationTax')),
+                    'waterTax'          => roundFigure($collection->sum('waterTax')),
+                    'cleanlinessTax'    => roundFigure($collection->sum('cleanlinessTax')),
+                    'sewerageTax'       => roundFigure($collection->sum('sewerageTax')),
+                    'treeTax'           => roundFigure($collection->sum('treeTax')),
+                    'stateEducationTaxPerc'=> roundFigure($collection->sum('stateEducationTaxPerc')),
+                    'stateEducationTax' => roundFigure($collection->sum('stateEducationTax')),
+                    'professionalTaxPerc'=> roundFigure($collection->sum('professionalTaxPerc')),
+                    'professionalTax'   => roundFigure($collection->sum('professionalTax')),
+                    'totalTax'          => roundFigure($collection->sum('totalTax')),
+                ]);
+            });
+            $finalResponse['details'] = $reviewCalculation->values();
+            return responseMsg(true, "", $finalResponse);
+        } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+    private function reviewTaxCalculationComV2(object $response, object $response2)
+    {
+
+        try {            
+            $finalResponse['demand'] = $response->original['data']['grandTaxes'];
+            $finalResponse2['demand'] = $response2->original['data']['grandTaxes'];            
+            $reviewDetails = collect($response->original['data']['fyearWiseTaxes'])->groupBy(['fyear']);
+            $reviewDetails2 = collect($response2->original['data']['fyearWiseTaxes'])->groupBy(['fyear']);
+
+            $finalTaxReview = collect();
+            $finalTaxReview2 = collect();
+            
+            $review = collect($reviewDetails)->map(function ($reviewDetail) use ($finalTaxReview) {                
+                $table = collect($reviewDetail)->map(function ($floors) use ($finalTaxReview) {   
+                        $first = collect($floors);
+                        $response = $first->only([
+                            'alv',
+                            'maintancePerc',
+                            'maintantance10Perc',
+                            'valueAfterMaintance',
+                            'agingPerc',
+                            'agingAmt',
+                            'taxValue',
+                            'generalTax',
+                            'roadTax',
+                            'firefightingTax',
+                            'educationTax',
+                            'waterTax',
+                            'cleanlinessTax',
+                            'sewerageTax',
+                            'treeTax',
+                            'stateEducationTaxPerc',
+                            'stateEducationTax',
+                            'professionalTaxPerc',
+                            'professionalTax',
+                            'totalTax',
+                            'fyear',
+                        ]);
+                        $finalTaxReview->push($response);
+                        return $response;
+                });
+                return $table;
+            });
+
+            $review2 = collect($reviewDetails2)->map(function ($reviewDetail) use ($finalTaxReview2) {                
+                $table = collect($reviewDetail)->map(function ($floors) use ($finalTaxReview2) {   
+                        $first = collect($floors);
+                        $response = $first->only([
+                            'alv',
+                            'maintancePerc',
+                            'maintantance10Perc',
+                            'valueAfterMaintance',
+                            'agingPerc',
+                            'agingAmt',
+                            'taxValue',
+                            'generalTax',
+                            'roadTax',
+                            'firefightingTax',
+                            'educationTax',
+                            'waterTax',
+                            'cleanlinessTax',
+                            'sewerageTax',
+                            'treeTax',
+                            'stateEducationTaxPerc',
+                            'stateEducationTax',
+                            'professionalTaxPerc',
+                            'professionalTax',
+                            'totalTax',
+                            'fyear',
+                        ]);
+                        $finalTaxReview2->push($response);
+                        return $response;                    
+                });
+                return $table;
+            });
+            $safDemand =$finalResponse['demand'];
+            $demand = collect($finalResponse2['demand'])->map(function($val,$key)use ($safDemand){
+                return(roundFigure($val - $safDemand[$key]));
+            });
+            $ruleSetCollections = collect($finalTaxReview)->groupBy(['fyear']);
+            $ruleSetCollections2 = collect($finalTaxReview2)->groupBy(['fyear']);
+
+            $reviewCalculation = collect($ruleSetCollections2)->map(function ($collection,$key) use ($ruleSetCollections) {   
+                $first = $collection->first();
+                $tax2 = $ruleSetCollections[$key];
+                return collect([
+                    'key' => $first['fyear'],
+                    'alv'               => roundFigure($collection->sum('alv') - $tax2->sum('alv')),
+                    'maintancePerc'     => roundFigure($collection->sum('maintancePerc') - $tax2->sum('maintancePerc')),
+                    'maintantance10Perc'=> roundFigure($collection->sum('maintantance10Perc') - $tax2->sum('maintantance10Perc')),
+                    'valueAfterMaintance'=> roundFigure($collection->sum('valueAfterMaintance') - $tax2->sum('valueAfterMaintance')),
+                    'agingPerc'         => roundFigure($collection->sum('agingPerc') - $tax2->sum('agingPerc')),
+                    'agingAmt'          => roundFigure($collection->sum('agingAmt') - $tax2->sum('agingAmt')),
+                    'taxValue'          => roundFigure($collection->sum('taxValue') - $tax2->sum('taxValue')),
+                    'generalTax'        => roundFigure($collection->sum('generalTax') - $tax2->sum('generalTax')),
+                    'roadTax'           => roundFigure($collection->sum('roadTax') - $tax2->sum('roadTax')),
+                    'firefightingTax'   => roundFigure($collection->sum('firefightingTax') - $tax2->sum('firefightingTax')),
+                    'educationTax'      => roundFigure($collection->sum('educationTax') - $tax2->sum('educationTax')),
+                    'waterTax'          => roundFigure($collection->sum('waterTax') - $tax2->sum('waterTax')),
+                    'cleanlinessTax'    => roundFigure($collection->sum('cleanlinessTax'))  - roundFigure($tax2->sum('cleanlinessTax')),
+                    'sewerageTax'       => roundFigure($collection->sum('sewerageTax') - $tax2->sum('sewerageTax')) ,
+                    'treeTax'           => roundFigure($collection->sum('treeTax'))  - roundFigure($tax2->sum('treeTax')) ,
+                    'stateEducationTaxPerc'=> roundFigure($collection->sum('stateEducationTaxPerc') - $tax2->sum('stateEducationTaxPerc')),
+                    'stateEducationTax' => roundFigure($collection->sum('stateEducationTax') - $tax2->sum('stateEducationTax')),
+                    'professionalTaxPerc'=> roundFigure($collection->sum('professionalTaxPerc') - $tax2->sum('professionalTaxPerc')),
+                    'professionalTax'   => roundFigure($collection->sum('professionalTax') - $tax2->sum('professionalTax')),
+                    'totalTax'          => roundFigure($collection->sum('totalTax') - $tax2->sum('totalTax')),
+                ]);
+            });
+            $finalResponse2['demand'] = $demand;
+            $finalResponse2['details'] = $reviewCalculation->values();
             return responseMsg(true, "", $finalResponse2);
         } catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");

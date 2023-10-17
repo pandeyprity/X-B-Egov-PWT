@@ -336,6 +336,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('v1/get-referal-url', 'getReferalUrl');                            // (03) Generate Referal url
     // Route::post('generate-prop-orderid', 'generateOrderId');                     // (03) Generate Property Order ID
     Route::post('offline-payment-holding', 'offlinePaymentHolding');              // (04) Payment Holding
+    Route::post('v2/offline-payment-holding', 'offlinePaymentHoldingV2');
     Route::post('prop/get-cluster-holding-due', 'getClusterHoldingDues');         // (11) Property Cluster Dues
     Route::post('prop/cluster-payment', 'clusterPayment');                        // (12) Cluster Payment
     Route::post('prop-dues', 'propertyDues');                                     // (13) Property Dues Dynamic
@@ -367,6 +368,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('citizen-holding-saf', 'citizenHoldingSaf');                  // 03
     Route::post('basic-edit', 'basicPropertyEdit');
     Route::post('check-property', 'CheckProperty');
+    Route::post('v1/holding-copy', 'getHoldingCopy');                         // 04
   });
 
   /**
@@ -506,6 +508,8 @@ Route::controller(ActiveSafController::class)->group(function () {
   Route::post('saf/calculate-by-saf-id', 'calculateSafBySafId');                                      // Calculate SAF By SAF ID From Citizen(13)
   Route::post('saf/independent/generate-order-id', 'generateOrderId');                                // Generate Order ID(14)
   Route::post('saf/payment-receipt', 'generatePaymentReceipt');                                       // Generate payment Receipt(16)
+  #created by Sandeep Akola fme
+  Route::post('saf/akola-fam', 'AkolaFam');
 });
 
 /**

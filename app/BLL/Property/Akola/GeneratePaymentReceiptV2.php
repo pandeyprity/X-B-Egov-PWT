@@ -116,7 +116,7 @@ class GeneratePaymentReceiptV2
                 $demandIds = collect($tranDtls)->pluck('prop_demand_id')->toArray();
                 $demandsList = $this->_mPropDemands->getDemandsListByIds($demandIds);
                 foreach ($demandsList as $list) {
-                    if ($list->is_full_paid == false) {                             // In Case of Part Payment Get the Paid demand by transaction paid Amount
+                    if ($list->is_full_paid == false || $list->has_partwise_paid == true) {                             // In Case of Part Payment Get the Paid demand by transaction paid Amount
                         $paidTranDemands = collect($tranDtls)->where('prop_demand_id', $list->id)->first();
                         $list->general_tax = $paidTranDemands->paid_general_tax;
                         $list->road_tax = $paidTranDemands->paid_road_tax;
@@ -273,8 +273,8 @@ class GeneratePaymentReceiptV2
             "transactionTime" => $this->_trans->created_at->format('g:i A'),
             "verifyStatus" => $this->_trans->verify_status,                     // (0-Not Verified,1-Verified,2-Under Verification,3-Bounce)
             "applicationNo" => $this->_propertyDtls->application_no,
-            "customerName" => trim($this->_propertyDtls->applicant_name) ? $this->_propertyDtls->applicant_name : $this->_propertyDtls->applicant_marathi,
-            "ownerName" => trim($this->_propertyDtls->owner_name) ? $this->_propertyDtls->owner_name : $this->_propertyDtls->owner_name_marathi,
+            "customerName" => $this->_propertyDtls->applicant_marathi ?? "", //trim($this->_propertyDtls->applicant_name) ? $this->_propertyDtls->applicant_name : $this->_propertyDtls->applicant_marathi,
+            "ownerName" => $this->_propertyDtls->owner_name_marathi ?? "", //trim($this->_propertyDtls->owner_name) ? $this->_propertyDtls->owner_name : $this->_propertyDtls->owner_name_marathi,
             "guardianName" => trim($this->_propertyDtls->guardian_name) ? $this->_propertyDtls->guardian_name : $this->_propertyDtls->guardian_name_marathi,
             "mobileNo" => $this->_propertyDtls->mobile_no,
             "address" => $this->_propertyDtls->prop_address,

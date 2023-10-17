@@ -59,6 +59,7 @@ class CalculatePropTaxByPropId extends TaxCalculator
                 $floorReq =  [
                     "floorNo" => $floor->floor_mstr_id,
                     "constructionType" =>  $floor->const_type_mstr_id,
+                    "occupancyType" =>  $floor->occupancy_type_mstr_id??"",
                     "usageType" => $floor->usage_type_mstr_id,
                     "buildupArea" =>  $floor->builtup_area,
                     "dateFrom" =>  $floor->date_from

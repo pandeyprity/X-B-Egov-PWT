@@ -45,29 +45,28 @@ class GetHoldingDuesV2
         // }
         $demandList = $mPropDemand->getDueDemandByPropIdV2($req->propId);
         foreach ($demandList as $list) {
-            $overDueTotalTax = $list->total_tax - $list->paid_total_tax;
             if ($list->is_full_paid == false) {                                // In Case of Part Payment Get the Dues Payable amount
-                $list->general_tax = $list->general_tax - $list->paid_general_tax;
-                $list->road_tax = $list->road_tax - $list->paid_road_tax;
-                $list->firefighting_tax = $list->firefighting_tax - $list->paid_firefighting_tax;
-                $list->education_tax = $list->education_tax - $list->paid_education_tax;
-                $list->water_tax = $list->water_tax - $list->paid_water_tax;
-                $list->cleanliness_tax = $list->cleanliness_tax - $list->paid_cleanliness_tax;
-                $list->sewarage_tax = $list->sewarage_tax - $list->paid_sewarage_tax;
-                $list->tree_tax = $list->tree_tax - $list->paid_tree_tax;
-                $list->professional_tax = $list->professional_tax - $list->paid_professional_tax;
-                $list->total_tax = $overDueTotalTax;
-                $list->balance = $overDueTotalTax;
-                $list->tax1 = $list->tax1 - $list->paid_tax1;
-                $list->tax2 = $list->tax2 - $list->paid_tax2;
-                $list->tax3 = $list->tax3 - $list->paid_tax3;
-                $list->sp_education_tax = $list->sp_education_tax - $list->paid_sp_education_tax;
-                $list->water_benefit = $list->water_benefit - $list->paid_water_benefit;
-                $list->water_bill = $list->water_bill - $list->paid_water_bill;
-                $list->sp_water_cess = $list->sp_water_cess - $list->paid_sp_water_cess;
-                $list->drain_cess = $list->drain_cess - $list->paid_drain_cess;
-                $list->light_cess = $list->light_cess - $list->paid_light_cess;
-                $list->major_building = $list->major_building - $list->paid_major_building;
+                $list->general_tax = $list->due_general_tax;
+                $list->road_tax = $list->due_road_tax;
+                $list->firefighting_tax = $list->due_firefighting_tax;
+                $list->education_tax = $list->due_education_tax;
+                $list->water_tax = $list->due_water_tax;
+                $list->cleanliness_tax = $list->due_cleanliness_tax;
+                $list->sewarage_tax = $list->due_sewarage_tax;
+                $list->tree_tax = $list->due_tree_tax;
+                $list->professional_tax = $list->due_professional_tax;
+                $list->total_tax = $list->due_total_tax;
+                $list->balance = $list->due_balance;
+                $list->tax1 = $list->due_tax1;
+                $list->tax2 = $list->due_tax2;
+                $list->tax3 = $list->due_tax3;
+                $list->state_education_tax = $list->due_state_education_tax;
+                $list->water_benefit = $list->due_water_benefit;
+                $list->water_bill = $list->due_water_bill;
+                $list->sp_water_cess = $list->due_sp_water_cess;
+                $list->drain_cess = $list->due_drain_cess;
+                $list->light_cess = $list->due_light_cess;
+                $list->major_building = $list->due_major_building;
             }
         }
 
@@ -79,6 +78,7 @@ class GetHoldingDuesV2
         foreach ($demandList as $list) {
             $calculate2PercPenalty->calculatePenalty($list);
         }
+
         $demandList = collect($demandList)->sortBy('fyear')->values();
 
         if ($demandList->isEmpty())                              // Check the Payment Status
