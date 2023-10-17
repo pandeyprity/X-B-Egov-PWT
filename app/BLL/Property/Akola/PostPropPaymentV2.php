@@ -255,7 +255,7 @@ class PostPropPaymentV2
                 $tblDemand->due_tree_tax = $tblDemand->due_tree_tax - $paidTaxes->paidTreeTax;
                 $tblDemand->due_professional_tax = $tblDemand->due_professional_tax - $paidTaxes->paidProfessionalTax;
                 $tblDemand->due_total_tax = $tblDemand->due_total_tax - $paidTaxes->paidTotalTax;
-                $tblDemand->due_balance = $tblDemand->due_balance - $paidTaxes->paidTotalTax;
+                $tblDemand->due_balance = $tblDemand->due_total_tax;
                 $tblDemand->due_tax1 = $tblDemand->due_tax1 - $paidTaxes->paidTax1;
                 $tblDemand->due_tax2 = $tblDemand->due_tax2 - $paidTaxes->paidTax2;
                 $tblDemand->due_tax3 = $tblDemand->due_tax3 - $paidTaxes->paidTax3;

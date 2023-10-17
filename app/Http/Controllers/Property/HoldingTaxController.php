@@ -350,8 +350,19 @@ class HoldingTaxController extends Controller
                 'errors' => $validated->errors()
             ], 401);
         }
-        $postPropPayment = new PostPropPayment($req);
-        // $postPropPayment = new PostPropPaymentV2($req);
+        // $postPropPayment = new PostPropPayment($req);
+        $postPropPayment = new PostPropPaymentV2($req);
+
+        if ($req->isArrear == false)
+            $req->merge(['paymentType' => 'isArrearPayment']);
+        else
+            $req->merge(['paymentType' => 'isFullPayment']);
+
+        $propCalReq = new Request([                                                 // Request from payment
+            'propId' => $req['id'],
+            'isArrear' => $req['isArrear'] ?? null
+        ]);
+
         $propCalReq = new Request([                                                 // Request from payment
             'propId' => $req['id'],
             'isArrear' => $req['isArrear'] ?? null
