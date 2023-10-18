@@ -70,7 +70,7 @@ class  PropActiveSaf extends Model
 
             'is_water_harvesting' => $req->isWaterHarvesting,
             'rwh_date_from' => ($req->isWaterHarvesting == 1) ? $req->rwhDateFrom : null,
-            'land_occupation_date' => $req->landOccupationDate,
+            'land_occupation_date' => $req->landOccupationDate?$req->landOccupationDate:$req->dateOfPurchase,
             'doc_verify_cancel_remarks' => $req->docVerifyCancelRemark,
             'application_date' =>  Carbon::now()->format('Y-m-d'),
             'assessment_type' => $req->assessmentType,
