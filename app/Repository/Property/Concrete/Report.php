@@ -4341,8 +4341,8 @@ class Report implements IReport
             )prop_tran_dtls on prop_tran_dtls.tran_id = prop_transactions.id
             left join(
                 select distinct(prop_transactions.id)as tran_id ,
-                    sum(case when prop_penaltyrebates.is_rebate =true then COALESCE(prop_penaltyrebates.amount,0) else 0 end) as rebadet,
-                    sum(case when prop_penaltyrebates.is_rebate !=true then COALESCE(prop_penaltyrebates.amount,0) else 0 end) as penalty
+                    sum(case when prop_penaltyrebates.is_rebate =true then COALESCE(round(prop_penaltyrebates.amount),0) else 0 end) as rebadet,
+                    sum(case when prop_penaltyrebates.is_rebate !=true then COALESCE(round(prop_penaltyrebates.amount),0) else 0 end) as penalty
                 from prop_penaltyrebates
                 join prop_transactions on prop_transactions.id = prop_penaltyrebates.tran_id
                 join (
