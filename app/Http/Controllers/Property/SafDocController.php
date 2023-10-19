@@ -9,6 +9,7 @@ use App\Models\Property\PropActiveSafsOwner;
 use App\Models\Property\PropSaf;
 use App\Models\Workflows\WfActiveDocument;
 use App\Models\Workflows\WfRoleusermap;
+use App\Traits\Property\AkolaSafDoc;
 use App\Traits\Property\SafDoc;
 use Exception;
 use Illuminate\Http\Request;
@@ -24,7 +25,8 @@ use Illuminate\Support\Facades\Facade;
  */
 class SafDocController extends Controller
 {
-    use SafDoc;
+    // use SafDoc;
+    use AkolaSafDoc;
     /**
      * | Get Document Lists
      */
@@ -66,7 +68,7 @@ class SafDocController extends Controller
     public function getSafDocLists($refSafs)
     {
         $documentList = $this->getPropTypeDocList($refSafs);
-        $filteredDocs = $this->filterDocument($documentList, $refSafs);                            // function(1.2)
+        $filteredDocs = $this->filterDocumentV2($documentList, $refSafs);                            // function(1.2)
         return $filteredDocs;
     }
 
@@ -428,9 +430,13 @@ class SafDocController extends Controller
             return $collectUploadDocList->push($item['doc_code']);
         });
         $mPropDocs = collect($docList['propDocs']);
+        
         // Property List Documents
         $flag = 1;
         foreach ($mPropDocs as $item) {
+            if(!$item){
+                continue;
+            }
             $explodeDocs = explode(',', $item);
             array_shift($explodeDocs);
             foreach ($explodeDocs as $explodeDoc) {

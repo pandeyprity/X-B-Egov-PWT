@@ -379,6 +379,22 @@ class TaxCalculator
             $this->_GRID['demandPendingYrs'] = 6;
             $this->_calculationDateFrom = Carbon::now()->addYears(-5)->format('Y-m-d');
         }
+        #======added by Sandeep Bara========
+        /**
+         * for if vacand land apply New Assessment then teck tax from privisus 6 year
+         */
+        $privFiveYear = Carbon::now()->addYears(-5)->format('Y-m-d');
+        if($this->_REQUEST->applyDate)
+        {
+            $privFiveYear = Carbon::parse($this->_REQUEST->applyDate)->addYears(-5)->format('Y-m-d');
+        }
+        
+        if(Config::get("PropertyConstaint.ASSESSMENT-TYPE.".$this->_REQUEST->assessmentType)=='New Assessment' && $privFiveYear<$this->_calculationDateFrom)
+        {
+            $this->_GRID['demandPendingYrs'] = 6;
+            $this->_calculationDateFrom = $privFiveYear;
+        } 
+        #=======end========       
         // Act Of Limitations end
         while ($this->_calculationDateFrom <= $currentFyearEndDate) {
             $annualTaxes = collect($this->_floorsTaxes)->where('dateFrom', '<=', $this->_calculationDateFrom);

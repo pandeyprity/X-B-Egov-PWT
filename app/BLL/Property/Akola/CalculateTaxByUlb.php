@@ -10,6 +10,7 @@ use App\Models\Property\PropSafVerification;
 use App\Models\Property\PropSafVerificationDtl;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -68,6 +69,8 @@ class CalculateTaxByUlb extends TaxCalculator
             "areaOfPlot" => $this->_propVerifications->area_of_plot,
             "category" => $this->_propVerifications->category_id,
             "dateOfPurchase" => $this->_safs->land_occupation_date,
+            "applyDate" => $this->_safs->application_date??null,
+            "assessmentType" =>(flipConstants(Config::get("PropertyConstaint.ASSESSMENT-TYPE"))[$this->_safs->assessment_type]??''),
             "floor" => [],
             "owner" => []
         ];

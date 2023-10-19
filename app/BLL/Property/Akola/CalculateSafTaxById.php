@@ -8,6 +8,7 @@ use App\Models\Property\PropSafsFloor;
 use App\Models\Property\PropSafsOwner;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 
 /**
  * | Created by-Anshu Kumar
@@ -45,6 +46,8 @@ class CalculateSafTaxById extends TaxCalculator
             "areaOfPlot" => $this->_safDtls->area_of_plot,
             "category" => $this->_safDtls->category_id,
             "dateOfPurchase" => $this->_safDtls->land_occupation_date,
+            "applyDate" => $this->_safDtls->application_date??null,
+            "assessmentType" =>(flipConstants(Config::get("PropertyConstaint.ASSESSMENT-TYPE"))[$this->_safDtls->assessment_type]??''),
             "floor" => [],
             "owner" => []
         ];
