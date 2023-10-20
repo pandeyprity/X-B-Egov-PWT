@@ -4373,12 +4373,12 @@ class Report implements IReport
                 if ($key == "payment_mode") {
                     return $val;
                 }
-                return !is_null($val) ? round($val) : 0;
+                return !is_null($val) ? ($val) : 0;
             });
-            $penalty = $report->penalty;
-            $rebate  = $report->rebadet;
-            $arear = $report->a1rear_total_tax + $penalty;
-            $current = $report->c1urrent_total_tax - $rebate;
+            // $penalty = $report->penalty;
+            // $rebate  = $report->rebadet;
+            // $arear = $report->a1rear_total_tax + $penalty;
+            // $current = $report->c1urrent_total_tax - $rebate;
             $arear = 0;
             $current = 0;
             $penalty = $data["report"]["penalty"];
