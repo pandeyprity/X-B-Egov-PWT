@@ -244,7 +244,8 @@ class TaxCalculator
             $cleanlinessTax = 0;#roundFigure($taxValue * 0.02);
             $sewerageTax = 0;#roundFigure($taxValue * 0.02);
             $treeTax = roundFigure($taxValue * 0.01);
-
+            $openPloatTax = roundFigure($taxValue * 0.43);
+            
             $isCommercial = false;
 
             $stateTaxes = $this->readStateTaxes($this->_calculatorParams['areaOfPlot'], $isCommercial);                   // Read State Taxes(3.1)
@@ -268,6 +269,7 @@ class TaxCalculator
                 'cleanlinessTax' => $cleanlinessTax,
                 'sewerageTax' => $sewerageTax,
                 'treeTax' => $treeTax,
+                "openPloatTax" => $openPloatTax,
                 'isCommercial' => $isCommercial,
                 'stateEducationTaxPerc' => $stateTaxes['educationTaxPerc'],
                 'stateEducationTax' => $stateTaxes['educationTax'],
@@ -356,11 +358,14 @@ class TaxCalculator
                 "stateEducationTax" => roundFigure($taxes->sum('stateEducationTax')),
                 "professionalTaxPerc" => roundFigure($taxes->sum('professionalTaxPerc') / $totalKeys),
                 "professionalTax" => roundFigure($taxes->sum('professionalTax')),
+                "openPloatTax" => roundFigure($taxes->sum('openPloatTax')),
             ];
         });
         $annualTaxes['totalTax'] = roundFigure($annualTaxes['generalTax'] + $annualTaxes['roadTax'] + $annualTaxes['firefightingTax'] + $annualTaxes['educationTax']
             + $annualTaxes['waterTax'] + $annualTaxes['cleanlinessTax'] + $annualTaxes['sewerageTax']
-            + $annualTaxes['treeTax'] + $annualTaxes['stateEducationTax'] + $annualTaxes['professionalTax']);
+            + $annualTaxes['treeTax'] + $annualTaxes['stateEducationTax'] + $annualTaxes['professionalTax'] 
+            // + ($annualTaxes['openPloatTax']??0) 
+            );
         return $annualTaxes;
     }
 

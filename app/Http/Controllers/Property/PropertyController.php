@@ -247,6 +247,66 @@ class PropertyController extends Controller
         }
     }
 
+    public function basicPropertyEditV1(Request $req)
+    {
+        $rules = [
+            "propertyId" => "required|digits_between:1,9223372036854775807",
+            "applicantName" => "required|regex:/^[A-Za-z.\s]+$/i",
+            "applicantMarathi" => "required|string",
+            "owner"      => "required|array",
+            "owner.*.ownerId"      => "required|digits_between:1,9223372036854775807",
+            "owner.*.ownerName"      => "required|regex:/^[A-Za-z.\s]+$/i",
+            "owner.*.ownerNameMarathi"  => "required|string",
+            "owner.*.guardianName"      => "required|regex:/^[A-Za-z.\s]+$/i",
+            "owner.*.guardianNameMarathi" => "required|string",
+        ];
+        $validated = Validator::make(
+            $req->all(),
+            $rules
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+        try {
+            $mPropProperty = new PropProperty();
+            $mPropOwners = new PropOwner();
+            $propId = $req->propertyId;
+            $prop = $mPropProperty->find($propId);
+            if(!$prop)
+            {
+                throw new Exception("Data Not Found");
+            }  
+            
+            DB::beginTransaction();
+            $prop->applicant_name = $req->applicantName;
+            $prop->applicant_marathi = $req->applicantMarathi;
+            foreach($req->owner as $val)
+            {
+                $testOwner = $mPropOwners->select("*")->where("id",$val["ownerId"])->where("property_id",$propId);
+                if(!$testOwner)
+                {
+                    throw new Exception("Invalid Owner Id Pass");
+                }
+                $testOwner->owner_name = $val["ownerName"];
+                $testOwner->owner_name_marathi = $val["ownerNameMarathi"];
+                $testOwner->guardian_name = $val["guardianName"];
+                $testOwner->guardian_name_marathi = $val["guardianNameMarathi"];
+                $testOwner->update();
+            }   
+            $prop->update();         
+            DB::commit();
+            
+            return responseMsgs(true, 'Data Updated', '', '010801', '01', '', 'Post', '');
+        } catch (Exception $e) {
+            DB::rollBack();
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
     /**
      * | Check if the property id exist in the workflow
      */
