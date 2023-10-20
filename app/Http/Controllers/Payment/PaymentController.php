@@ -75,7 +75,6 @@ class PaymentController extends Controller
         $mIciciPaymentRes = new IciciPaymentResponse();
 
         try {
-
             $reqBody = [
                 "Response_Code"         => "E000",               // Payment status
                 "Unique_Ref_Number"     => "2310131666814",      // Tran no
@@ -95,8 +94,6 @@ class PaymentController extends Controller
                 "mandatory_fields"      => "1697180633788010986|45|100|13/Oct/2023|0123456789|xy|xy",
                 "optional_fields"       => "X|X|X",
                 "RSV"                   => "8c988a820acc67ee8b0ebd2c525e3e4c88575cc2fef7f9c7dc1f2dbbad9002c86471ed446500deb4b6f1e25b11b091f7575469c0d603bccf1ba361c30f83f1a7",
-
-
             ];
 
             $dbData = [
@@ -129,7 +126,7 @@ class PaymentController extends Controller
                 throw new Exception("Payment request dont exist for $reqRefNo");
             }
 
-            if ($req->Response_Code == 'E000')  // Status of success
+            if ($req->Response_Code == 'E000')                                                  // Status of success
             {
                 # Update the icici request table data for payamet success
                 $updReqs = [
@@ -147,7 +144,12 @@ class PaymentController extends Controller
                 // ];
                 // $mIciciPaymentRes->create($resPayReqs);
             }
+
+            DB::connection('pgsql_master')->commit();
+            return responseMsgs(true, "Data Received Successfully", []);
         } catch (Exception $e) {
+            DB::connection('pgsql_master')->rollBack();
+            return responseMsgs(false, $e->getMessage(), []);
         }
     }
 
