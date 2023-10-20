@@ -399,9 +399,12 @@ class TaxCalculator
         while ($this->_calculationDateFrom <= $currentFyearEndDate) {
             $annualTaxes = collect($this->_floorsTaxes)->where('dateFrom', '<=', $this->_calculationDateFrom);
             $fyear = getFY($this->_calculationDateFrom);
-            $yearTax = $this->sumTaxes($annualTaxes);                       // 4.1
+            if(!$annualTaxes->isEmpty())
+            {
+                $yearTax = $this->sumTaxes($annualTaxes);                       // 4.1
+                $fyearWiseTaxes->put($fyear, array_merge($yearTax, ['fyear' => $fyear]));
+            }
 
-            $fyearWiseTaxes->put($fyear, array_merge($yearTax, ['fyear' => $fyear]));
             $this->_calculationDateFrom = Carbon::parse($this->_calculationDateFrom)->addYear()->format('Y-m-d');
         }
 

@@ -4373,12 +4373,28 @@ class Report implements IReport
                 if ($key == "payment_mode") {
                     return $val;
                 }
-                return !is_null($val) ? $val : 0;
+                return !is_null($val) ? round($val) : 0;
             });
             $penalty = $report->penalty;
             $rebate  = $report->rebadet;
             $arear = $report->a1rear_total_tax + $penalty;
             $current = $report->c1urrent_total_tax - $rebate;
+            $arear = 0;
+            $current = 0;
+            $penalty = $data["report"]["penalty"];
+            $rebate  = $data["report"]["rebadet"];
+            $currentPattern = "/current_/i";
+            $arrearPattern = "/arear_/i";
+            foreach ($data["report"] as $key => $val) {
+                if (preg_match($currentPattern, $key)) {
+                    $current += ($val ? $val : 0);
+                }
+                if (preg_match($arrearPattern, $key)) {
+                    $arear += ($val ? $val : 0);
+                }
+            };
+            $arear = $arear + $penalty;
+            $current = $current - $rebate;
             $data["total"] = [
                 "arear" => roundFigure($arear),
                 "current" => roundFigure($current),
