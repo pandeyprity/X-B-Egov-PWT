@@ -4341,8 +4341,8 @@ class Report implements IReport
             )prop_tran_dtls on prop_tran_dtls.tran_id = prop_transactions.id
             left join(
                 select distinct(prop_transactions.id)as tran_id ,
-                    sum(case when prop_penaltyrebates.is_rebate =true then COALESCE(prop_penaltyrebates.amount,0) else 0 end) as rebadet,
-                    sum(case when prop_penaltyrebates.is_rebate !=true then COALESCE(prop_penaltyrebates.amount,0) else 0 end) as penalty
+                    sum(case when prop_penaltyrebates.is_rebate =true then COALESCE(round(prop_penaltyrebates.amount),0) else 0 end) as rebadet,
+                    sum(case when prop_penaltyrebates.is_rebate !=true then COALESCE(round(prop_penaltyrebates.amount),0) else 0 end) as penalty
                 from prop_penaltyrebates
                 join prop_transactions on prop_transactions.id = prop_penaltyrebates.tran_id
                 join (
@@ -4373,12 +4373,28 @@ class Report implements IReport
                 if ($key == "payment_mode") {
                     return $val;
                 }
-                return !is_null($val) ? $val : 0;
+                return !is_null($val) ? round($val) : 0;
             });
-            $penalty = $report->penalty;
-            $rebate  = $report->rebadet;
-            $arear = $report->a1rear_total_tax + $penalty;
-            $current = $report->c1urrent_total_tax - $rebate;
+            // $penalty = $report->penalty;
+            // $rebate  = $report->rebadet;
+            // $arear = $report->a1rear_total_tax + $penalty;
+            // $current = $report->c1urrent_total_tax - $rebate;
+            $arear = 0;
+            $current = 0;
+            $penalty = $data["report"]["penalty"];
+            $rebate  = $data["report"]["rebadet"];
+            $currentPattern = "/current_/i";
+            $arrearPattern = "/arear_/i";
+            foreach ($data["report"] as $key => $val) {
+                if (preg_match($currentPattern, $key)) {
+                    $current += ($val ? $val : 0);
+                }
+                if (preg_match($arrearPattern, $key)) {
+                    $arear += ($val ? $val : 0);
+                }
+            };
+            $arear = $arear + $penalty;
+            $current = $current - $rebate;
             $data["total"] = [
                 "arear" => roundFigure($arear),
                 "current" => roundFigure($current),

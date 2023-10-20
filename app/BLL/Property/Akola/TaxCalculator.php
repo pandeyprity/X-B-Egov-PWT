@@ -230,19 +230,19 @@ class TaxCalculator
                 $rate = 8;
 
             $alv = roundFigure($this->_calculatorParams['areaOfPlot'] * $rate);
-            $maintance10Perc = roundFigure(($alv * $this->_maintancePerc) / 100);
+            $maintance10Perc = 0;#roundFigure(($alv * $this->_maintancePerc) / 100);
             $valueAfterMaintanance = roundFigure($alv - $maintance10Perc);
-            $aging = roundFigure(($valueAfterMaintanance * $agingPerc) / 100);
+            $aging = 0;#roundFigure(($valueAfterMaintanance * $agingPerc) / 100);
             $taxValue = roundFigure($valueAfterMaintanance - $aging);
 
             // Municipal Taxes
-            $generalTax = roundFigure($taxValue * 0.30);
-            $roadTax = roundFigure($taxValue * 0.03);
-            $firefightingTax = roundFigure($taxValue * 0.02);
-            $educationTax = roundFigure($taxValue * 0.02);
-            $waterTax = roundFigure($taxValue * 0.02);
-            $cleanlinessTax = roundFigure($taxValue * 0.02);
-            $sewerageTax = roundFigure($taxValue * 0.02);
+            $generalTax = 0;#roundFigure($taxValue * 0.30);
+            $roadTax = 0;#roundFigure($taxValue * 0.03);
+            $firefightingTax = 0;#roundFigure($taxValue * 0.02);
+            $educationTax = 0;#roundFigure($taxValue * 0.02);
+            $waterTax = 0;#roundFigure($taxValue * 0.02);
+            $cleanlinessTax = 0;#roundFigure($taxValue * 0.02);
+            $sewerageTax = 0;#roundFigure($taxValue * 0.02);
             $treeTax = roundFigure($taxValue * 0.01);
 
             $isCommercial = false;
@@ -379,13 +379,32 @@ class TaxCalculator
             $this->_GRID['demandPendingYrs'] = 6;
             $this->_calculationDateFrom = Carbon::now()->addYears(-5)->format('Y-m-d');
         }
+        #======added by Sandeep Bara========
+        /**
+         * for if vacand land apply New Assessment then teck tax from privisus 6 year
+         */
+        $privFiveYear = Carbon::now()->addYears(-5)->format('Y-m-d');
+        if($this->_REQUEST->applyDate)
+        {
+            $privFiveYear = Carbon::parse($this->_REQUEST->applyDate)->addYears(-5)->format('Y-m-d');
+        }
+        
+        if((Config::get("PropertyConstaint.ASSESSMENT-TYPE.".$this->_REQUEST->assessmentType)=='New Assessment' || $this->_REQUEST->assessmentType =='New Assessment') && $privFiveYear<$this->_calculationDateFrom)
+        {
+            $this->_GRID['demandPendingYrs'] = 6;
+            $this->_calculationDateFrom = $privFiveYear;
+        } 
+        #=======end========       
         // Act Of Limitations end
         while ($this->_calculationDateFrom <= $currentFyearEndDate) {
             $annualTaxes = collect($this->_floorsTaxes)->where('dateFrom', '<=', $this->_calculationDateFrom);
             $fyear = getFY($this->_calculationDateFrom);
-            $yearTax = $this->sumTaxes($annualTaxes);                       // 4.1
+            if(!$annualTaxes->isEmpty())
+            {
+                $yearTax = $this->sumTaxes($annualTaxes);                       // 4.1
+                $fyearWiseTaxes->put($fyear, array_merge($yearTax, ['fyear' => $fyear]));
+            }
 
-            $fyearWiseTaxes->put($fyear, array_merge($yearTax, ['fyear' => $fyear]));
             $this->_calculationDateFrom = Carbon::parse($this->_calculationDateFrom)->addYear()->format('Y-m-d');
         }
 
