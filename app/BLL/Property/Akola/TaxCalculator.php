@@ -364,7 +364,7 @@ class TaxCalculator
         $annualTaxes['totalTax'] = roundFigure($annualTaxes['generalTax'] + $annualTaxes['roadTax'] + $annualTaxes['firefightingTax'] + $annualTaxes['educationTax']
             + $annualTaxes['waterTax'] + $annualTaxes['cleanlinessTax'] + $annualTaxes['sewerageTax']
             + $annualTaxes['treeTax'] + $annualTaxes['stateEducationTax'] + $annualTaxes['professionalTax'] 
-            // + ($annualTaxes['openPloatTax']??0) 
+            + ($annualTaxes['openPloatTax']??0) 
             );
         return $annualTaxes;
     }
