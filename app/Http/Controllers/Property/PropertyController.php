@@ -257,8 +257,8 @@ class PropertyController extends Controller
             "owner.*.ownerId"      => "required|digits_between:1,9223372036854775807",
             "owner.*.ownerName"      => "required|regex:/^[A-Za-z.\s]+$/i",
             "owner.*.ownerNameMarathi"  => "required|string",
-            "owner.*.guardianName"      => "required|regex:/^[A-Za-z.\s]+$/i",
-            "owner.*.guardianNameMarathi" => "required|string",
+            // "owner.*.guardianName"      => "required|regex:/^[A-Za-z.\s]+$/i",
+            // "owner.*.guardianNameMarathi" => "required|string",
         ];
         $validated = Validator::make(
             $req->all(),
@@ -286,15 +286,15 @@ class PropertyController extends Controller
             $prop->applicant_marathi = $req->applicantMarathi;
             foreach($req->owner as $val)
             {
-                $testOwner = $mPropOwners->select("*")->where("id",$val["ownerId"])->where("property_id",$propId);
+                $testOwner = $mPropOwners->select("*")->where("id",$val["ownerId"])->where("property_id",$propId)->first();
                 if(!$testOwner)
                 {
                     throw new Exception("Invalid Owner Id Pass");
                 }
                 $testOwner->owner_name = $val["ownerName"];
                 $testOwner->owner_name_marathi = $val["ownerNameMarathi"];
-                $testOwner->guardian_name = $val["guardianName"];
-                $testOwner->guardian_name_marathi = $val["guardianNameMarathi"];
+                // $testOwner->guardian_name = $val["guardianName"];
+                // $testOwner->guardian_name_marathi = $val["guardianNameMarathi"];
                 $testOwner->update();
             }   
             $prop->update();         

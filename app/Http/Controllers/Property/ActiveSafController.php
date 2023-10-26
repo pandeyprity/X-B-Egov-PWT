@@ -744,13 +744,13 @@ class ActiveSafController extends Controller
             if (collect($data)->isEmpty()) {
                 $data = $mPropSaf->getSafDtls()
                     ->where('prop_safs.id', $req->applicationId)
-                    ->first();
-                $data->current_role_name = 'Approved By ' . $data->current_role_name;
+                    ->first();                
             }
 
             if (collect($data)->isEmpty())
                 throw new Exception("Application Not Found");
 
+            $data->current_role_name = 'Approved By ' . $data->current_role_name;
             if ($data->payment_status == 0) {
                 $data->current_role_name = null;
                 $data->current_role_name2 = "Payment is Pending";
@@ -774,6 +774,10 @@ class ActiveSafController extends Controller
 
             $memoDtls = $mPropSafMemoDtls->memoLists($data['id']);
             $data['memoDtls'] = $memoDtls;
+            if($status = ((new \App\Repository\Property\Concrete\SafRepository())->applicationStatus($req->applicationId,true)))
+            {
+                $data["current_role_name2"] = $status;
+            }
             return responseMsgs(true, "Saf Dtls", remove_null($data), "010127", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
             return responseMsgs(true, $e->getMessage(), [], "010127", "1.0", "", "POST", $req->deviceId ?? "");
@@ -980,7 +984,7 @@ class ActiveSafController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             DB::connection('pgsql_master')->rollBack();
-            return responseMsg(false, $e->getMessage(), "", "010109", "1.0", "", "POST", $request->deviceId);
+            return responseMsg(false, [$e->getMessage(),$e->getFile(),$e->getLine()], "", "010109", "1.0", "", "POST", $request->deviceId);
         }
     }
 
@@ -2616,6 +2620,8 @@ class ActiveSafController extends Controller
             "latitude.*" => "required|numeric"
         ]);
         try {
+            $mWfRoleUser = new WfRoleusermap();
+            $mWfWorkflowRoleMaps = new WfWorkflowrolemap();
             $docUpload = new DocUpload;
             $geoTagging = new PropSafGeotagUpload();
             $relativePath = Config::get('PropertyConstaint.GEOTAGGING_RELATIVE_PATH');
@@ -2625,7 +2631,18 @@ class ActiveSafController extends Controller
             $longitude = $req->longitude;
             $latitude = $req->latitude;
 
+            $userId = authUser($req)->id;
+            $ulbId = authUser($req)->ulb_id;
+            $roleIds = $mWfRoleUser->getRoleIdByUserId($userId)->pluck('wf_role_id'); 
+            $workflowIds = collect(collect($mWfWorkflowRoleMaps->getWfByRoleId($roleIds))->where("workflow_id",$safDtls->workflow_id))->values();
+            $req->merge(["applicationId"=>$safDtls->id,"action"=>"forward","receiverRoleId"=>$workflowIds[0]["forward_role_id"]??"","comment"=>$req->comment??"Gio Taging Done"]);            
+
             DB::beginTransaction();
+            $response = $this->postNextLevel($req);
+            if (!$response->original["status"])
+            {
+                return $response;
+            }
             collect($images)->map(function ($image, $key) use ($directionTypes, $relativePath, $req, $docUpload, $longitude, $latitude, $geoTagging) {
                 $refImageName = 'saf-geotagging-' . $directionTypes[$key] . '-' . $req->safId;
                 $docExistReqs = new Request([
