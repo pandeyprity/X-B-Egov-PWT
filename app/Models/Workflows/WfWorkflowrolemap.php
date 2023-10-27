@@ -139,7 +139,7 @@ class WfWorkflowrolemap extends Model
      */
     public function getWfByRoleId($roleIds)
     {
-        return WfWorkflowrolemap::select('workflow_id')
+        return WfWorkflowrolemap::select('workflow_id',"*")
             ->whereIn('wf_role_id', $roleIds)
             ->get();
     }

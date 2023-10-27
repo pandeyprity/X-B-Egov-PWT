@@ -2256,7 +2256,7 @@ class Report implements IReport
             $refUser        = authUser($request);
             $refUserId      = $refUser->id;
             $ulbId          = $refUser->ulb_id;
-            $wardId = null;
+            $zoneId=$wardId = null;
             $fiYear = getFY();
             if ($request->fiYear) {
                 $fiYear = $request->fiYear;
@@ -2272,6 +2272,9 @@ class Report implements IReport
             }
             if ($request->wardId) {
                 $wardId = $request->wardId;
+            }
+            if ($request->zoneId || $request->zone) {
+                $zoneId = $request->zoneId ?? $request->zone;
             }
             $from = "
                 FROM ulb_ward_masters 
@@ -2309,6 +2312,7 @@ class Report implements IReport
                     WHERE prop_demands.status =1 
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
+                        " . ($zoneId ? " AND prop_properties.zone_mstr_id = $zoneId" : "") . "
                         AND prop_demands.fyear<='$fiYear'
                     GROUP BY prop_properties.ward_mstr_id
                 )demands ON demands.ward_mstr_id = ulb_ward_masters.id   
@@ -2318,13 +2322,15 @@ class Report implements IReport
                     where prop_properties.status = 1 
                         AND prop_properties.ulb_id =$ulbId
                     " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
+                    " . ($zoneId ? " AND prop_properties.zone_mstr_id = $zoneId" : "") . "
                     GROUP BY prop_properties.ward_mstr_id
                 ) AS arrear  on arrear.ward_mstr_id = ulb_ward_masters.id                            
                 WHERE  ulb_ward_masters.ulb_id = $ulbId  
                     " . ($wardId ? " AND ulb_ward_masters.id = $wardId" : "") . "
-                GROUP BY ulb_ward_masters.ward_name           
+                    " . ($zoneId ? " AND ulb_ward_masters.zone = $zoneId" : "") . "
+                GROUP BY ulb_ward_masters.ward_name          
             ";
-            $select = "SELECT ulb_ward_masters.ward_name AS ward_no,
+            $select = "SELECT ulb_ward_masters.ward_name AS ward_no,ulb_ward_masters.ward_name,
                             SUM(COALESCE(demands.current_demand_hh, 0::numeric)) AS current_demand_hh,   
                             SUM(COALESCE(demands.arrear_demand_hh, 0::numeric)) AS arrear_demand_hh,      
                             SUM(COALESCE(demands.current_collection_hh, 0::numeric)) AS current_collection_hh,  
@@ -2434,12 +2440,16 @@ class Report implements IReport
             // $data['total_current_hh_eff'] = round(($data['total_current_collection_hh']) / ($data['total_current_demand_hh']) * 100);
             // $data['total_arrear_eff'] = round(($data['total_arrear_collection']) / ($data['total_arrear_demand']) * 100);
             $data['total_eff'] = round((($data['total_arrear_collection'] + $data['total_current_collection']) / ($data['total_arrear_demand'] + $data['total_current_demand'])) * 100);
-            $data['dcb'] = $dcb;
+            $data['dcb'] = collect($dcb)->sortBy(function ($item) {
+                // Extract the numeric part from the "ward_name"
+                preg_match('/\d+/', $item->ward_name, $matches);
+                return (int) ($matches[0]??"");
+            })->values();
 
             $queryRunTime = (collect(DB::getQueryLog())->sum("time"));
             return responseMsgs(true, "", $data, $apiId, $version, $queryRunTime, $action, $deviceId);
         } catch (Exception $e) {
-            return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
+            return responseMsgs(false, [$e->getMessage(),$e->getFile(),$e->getLine()], $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
 
@@ -4136,7 +4146,17 @@ class Report implements IReport
             }
             if ($request->paymentMode) {
                 if(!is_array($request->paymentMode))
+                {
                     $paymentMode = Str::upper($request->paymentMode);
+                }
+                elseif(is_array($request->paymentMode[0]))
+                {
+                    foreach($request->paymentMode as $val)
+                    {
+                        $paymentMode .= Str::upper($val["value"]).",";
+                    }
+                    $paymentMode =  trim($paymentMode,",");
+                }
                 else
                 {
 
@@ -4187,6 +4207,7 @@ class Report implements IReport
                 sum(COALESCE(drain_cess,0)::numeric) as drain_cess,
                 sum(COALESCE(light_cess,0)::numeric) as light_cess,
                 sum(COALESCE(major_building,0)::numeric) as major_building,
+                sum(COALESCE(open_ploat_tax,0)::numeric) as open_ploat_tax,
             
                 sum(COALESCE(c1urrent_total_demand,0)::numeric) as c1urrent_total_demand,
 	            sum(COALESCE(c1urrent_total_tax,0)::numeric) as c1urrent_total_tax,
@@ -4212,6 +4233,7 @@ class Report implements IReport
                 sum(COALESCE(current_drain_cess,0)::numeric ) as current_drain_cess,
                 sum(COALESCE(current_light_cess,0)::numeric ) as current_light_cess,
                 sum(COALESCE(current_major_building,0)::numeric ) as current_major_building,
+                sum(COALESCE(current_open_ploat_tax,0)::numeric ) as current_open_ploat_tax,
             
                 sum(COALESCE(a1rear_total_demand,0)::numeric) as a1rear_total_demand,
 	            sum(COALESCE(a1rear_total_tax,0)::numeric) as a1rear_total_tax,
@@ -4237,6 +4259,7 @@ class Report implements IReport
                 sum(COALESCE(arear_drain_cess,0)::numeric ) as arear_drain_cess,
                 sum(COALESCE(arear_light_cess,0)::numeric ) as arear_light_cess,
                 sum(COALESCE(arear_major_building,0)::numeric ) as arear_major_building,
+                sum(COALESCE(arear_open_ploat_tax,0)::numeric ) as arear_open_ploat_tax,
                 sum(COALESCE(rebadet,0)::numeric) as rebadet,
                 sum(COALESCE(penalty,0)::numeric) as penalty
             from prop_transactions
@@ -4266,6 +4289,7 @@ class Report implements IReport
                     sum(COALESCE(prop_tran_dtls.paid_drain_cess,0)::numeric) as drain_cess,
                     sum(COALESCE(prop_tran_dtls.paid_light_cess,0)::numeric) as light_cess,
                     sum(COALESCE(prop_tran_dtls.paid_major_building,0)::numeric) as major_building,
+                    sum(COALESCE(prop_tran_dtls.paid_open_ploat_tax,0)::numeric) as open_ploat_tax,
                 
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_total_tax,0)::numeric else 0 end) as c1urrent_total_demand,
 		            sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_total_tax,0)::numeric else 0 end) as c1urrent_total_tax,
@@ -4291,6 +4315,7 @@ class Report implements IReport
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_drain_cess,0)::numeric else 0 end) as current_drain_cess,
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_light_cess,0)::numeric else 0 end) as current_light_cess,
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_major_building,0)::numeric else 0 end) as current_major_building,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_open_ploat_tax,0)::numeric else 0 end) as current_open_ploat_tax,
                 
                     sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_total_tax,0)::numeric else 0 end) as a1rear_total_demand,
 		            sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_total_tax,0)::numeric else 0 end) as a1rear_total_tax,
@@ -4315,7 +4340,8 @@ class Report implements IReport
                     sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_sp_water_cess,0)::numeric else 0 end) as arear_sp_water_cess,
                     sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_drain_cess,0)::numeric else 0 end) as arear_drain_cess,
                     sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_light_cess,0)::numeric else 0 end) as arear_light_cess,
-                    sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_major_building,0)::numeric else 0 end) as arear_major_building
+                    sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_major_building,0)::numeric else 0 end) as arear_major_building,
+                    sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_open_ploat_tax,0)::numeric else 0 end) as arear_open_ploat_tax
                 
                 from prop_tran_dtls                
                 join prop_transactions on prop_transactions.id = prop_tran_dtls.tran_id

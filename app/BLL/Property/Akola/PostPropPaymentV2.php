@@ -184,6 +184,7 @@ class PostPropPaymentV2
             'paidDrainCess' => $demand->drain_cess ?? 0,
             'paidLightCess' => $demand->light_cess ?? 0,
             'paidMajorBuilding' => $demand->major_building ?? 0,
+            'paidOpenPloatTax' => $demand->open_ploat_tax ?? 0,
             'paidTotalTax' => $demand->total_tax ?? 0
         ];
     }
@@ -266,6 +267,7 @@ class PostPropPaymentV2
                 $tblDemand->due_drain_cess = $tblDemand->due_drain_cess - $paidTaxes->paidDrainCess;
                 $tblDemand->due_light_cess = $tblDemand->due_light_cess - $paidTaxes->paidLightCess;
                 $tblDemand->due_major_building = $tblDemand->due_major_building - $paidTaxes->paidMajorBuilding;
+                $tblDemand->due_open_ploat_tax = $tblDemand->due_open_ploat_tax - $paidTaxes->paidOpenPloatTax??0;
                 $tblDemand->paid_total_tax = $paidTaxes->paidTotalTax + $tblDemand->paid_total_tax;
 
                 if (isset($isPartWisePaid))
@@ -326,7 +328,8 @@ class PostPropPaymentV2
                 "paid_sp_water_cess" => $paidTaxes->paidSpWaterCess,
                 "paid_drain_cess" => $paidTaxes->paidDrainCess,
                 "paid_light_cess" => $paidTaxes->paidLightCess,
-                "paid_major_building" => $paidTaxes->paidMajorBuilding
+                "paid_major_building" => $paidTaxes->paidMajorBuilding,
+                "paid_open_ploat_tax" => $paidTaxes->paidOpenPloatTax??0,
             ];
             $this->_mPropTranDtl->create($tranDtlReq);
         }
@@ -394,6 +397,7 @@ class PostPropPaymentV2
             'tran_date' => $this->_REQ['todayDate'],
             'user_id' => $this->_REQ['userId'],
             'ulb_id' => $this->_REQ['ulbId'],
+            "ward_no" => $this->_REQ["wardNo"],
         ];
         $mTempTransaction->tempTransaction($tranReqs);
     }
@@ -449,6 +453,7 @@ class PostPropPaymentV2
             }
         }
         $wardNo = $wardDetails->ward_name;
+        $this->_REQ["wardNo"] =$wardNo;
         $counter = (new UlbWardMaster)->getTranCounter($wardDetails->id)->counter ?? null;
         $user = Auth()->user();
         $mUserType = $user->user_type;
@@ -516,12 +521,14 @@ class PostPropPaymentV2
         $drainCessPerc = ($currentTax->sum('drain_cess') / $totaTax) * 100;
         $lightCessPerc = ($currentTax->sum('light_cess') / $totaTax) * 100;
         $majorBuildingPerc = ($currentTax->sum('major_building') / $totaTax) * 100;
+        $openPloatTaxPerc = ($currentTax->sum('open_ploat_tax') / $totaTax) * 100;
 
         $totalPerc = $generalTaxPerc + $roadTaxPerc + $firefightingTaxPerc + $educationTaxPerc +
             $waterTaxPerc + $cleanlinessTaxPerc + $sewarageTaxPerc + $treeTaxPerc
             + $professionalTaxPerc + $tax1Perc + $tax2Perc + $tax3Perc
             + $stateEducationTaxPerc + $waterBenefitPerc + $waterBillPerc +
-            $spWaterCessPerc + $drainCessPerc + $lightCessPerc + $majorBuildingPerc;
+            $spWaterCessPerc + $drainCessPerc + $lightCessPerc + $majorBuildingPerc
+            + $openPloatTaxPerc;
 
         // $taxBifurcation = [                                      // Tax Bifurcations for References
         //     'generalTaxPerc' => $generalTaxPerc,
@@ -573,6 +580,7 @@ class PostPropPaymentV2
             'drain_cess' => roundFigure(($currentPayableAmount * $drainCessPerc) / 100),
             'light_cess' => roundFigure(($currentPayableAmount * $lightCessPerc) / 100),
             'major_building' => roundFigure(($currentPayableAmount * $majorBuildingPerc) / 100),
+            'open_ploat_tax' => roundFigure(($currentPayableAmount * $openPloatTaxPerc) / 100),
             'total_tax' => roundFigure(($currentPayableAmount * $totalPerc) / 100)
         ];
 
@@ -621,12 +629,14 @@ class PostPropPaymentV2
         $drainCessPerc = ($arrearTax->sum('drain_cess') / $totaTax) * 100;
         $lightCessPerc = ($arrearTax->sum('light_cess') / $totaTax) * 100;
         $majorBuildingPerc = ($arrearTax->sum('major_building') / $totaTax) * 100;
+        $openPloatTaxPerc = ($arrearTax->sum('open_ploat_tax') / $totaTax) * 100;
 
         $totalPerc = $generalTaxPerc + $roadTaxPerc + $firefightingTaxPerc + $educationTaxPerc +
             $waterTaxPerc + $cleanlinessTaxPerc + $sewarageTaxPerc + $treeTaxPerc
             + $professionalTaxPerc + $tax1Perc + $tax2Perc + $tax3Perc
             + $stateEducationTaxPerc + $waterBenefitPerc + $waterBillPerc +
-            $spWaterCessPerc + $drainCessPerc + $lightCessPerc + $majorBuildingPerc;
+            $spWaterCessPerc + $drainCessPerc + $lightCessPerc + $majorBuildingPerc
+            + $openPloatTaxPerc;
 
         // $taxBifurcation = [                                      // Tax Bifurcations for References
         //     'generalTaxPerc' => $generalTaxPerc,
@@ -678,6 +688,7 @@ class PostPropPaymentV2
             'drain_cess' => roundFigure(($arrearPayableAmount * $drainCessPerc) / 100),
             'light_cess' => roundFigure(($arrearPayableAmount * $lightCessPerc) / 100),
             'major_building' => roundFigure(($arrearPayableAmount * $majorBuildingPerc) / 100),
+            'open_ploat_tax' => roundFigure(($arrearPayableAmount * $openPloatTaxPerc) / 100),
             'total_tax' => roundFigure(($arrearPayableAmount * $totalPerc) / 100)
         ];
 

@@ -139,6 +139,7 @@ class GeneratePaymentReceiptV2
                         $list->drain_cess = $paidTranDemands->paid_drain_cess;
                         $list->light_cess = $paidTranDemands->paid_light_cess;
                         $list->major_building = $paidTranDemands->paid_major_building;
+                        $list->open_ploat_tax = $paidTranDemands->paid_open_ploat_tax;
                     }
                 }
                 $this->_GRID['penaltyRebates'] = $this->_mPropPenaltyRebates->getPenaltyRebatesHeads($trans->id, "Property");
@@ -194,6 +195,7 @@ class GeneratePaymentReceiptV2
             $drainCess = roundFigure($item->sum('drain_cess'));
             $lightCess = roundFigure($item->sum('light_cess'));
             $majorBuilding = roundFigure($item->sum('major_building'));
+            $openPloatTax = roundFigure($item->sum('open_ploat_tax'));
 
             if ($isCurrent == 0)
                 $arrearPenalty = roundFigure($this->_GRID['arrearPenalty']);              // 🔴🔴🔴 Condition Handled in case of other payments Receipt Purpose
@@ -219,7 +221,7 @@ class GeneratePaymentReceiptV2
                 $spWaterCess +
                 $drainCess +
                 $lightCess +
-                $majorBuilding + $arrearPenalty;
+                $majorBuilding + $arrearPenalty +$openPloatTax;
 
             $totalPayableAmt = roundFigure($totalPayableAmt);
 
@@ -246,6 +248,7 @@ class GeneratePaymentReceiptV2
                 "major_building" => $majorBuilding,
                 "arrearPenalty" => $arrearPenalty,
                 "totalPayableAmt" => $totalPayableAmt,
+                "open_ploat_tax"=>$openPloatTax,
                 "total_tax" => $totalTax,
                 "exceptionUnderSAY" => roundFigure(0),
                 "generalTaxException" => roundFigure(0),

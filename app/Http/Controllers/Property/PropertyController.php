@@ -26,6 +26,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Pipeline\Pipeline;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -243,6 +244,159 @@ class PropertyController extends Controller
 
             return responseMsgs(true, 'Data Updated', '', '010801', '01', '', 'Post', '');
         } catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+    public function basicPropertyEditV1(Request $req)
+    {
+        $controller = App::makeWith(ActiveSafController::class,["iSafRepository"=>app(\App\Repository\Property\Interfaces\iSafRepository::class)]);
+        $response = $controller->masterSaf(new Request);
+        if(!$response->original["status"]) 
+        {
+            return $response;
+        }       
+        $data = $response->original["data"];
+        $categories = $data["categories"];        
+        $categoriesIds = collect($categories)->implode("id",",");
+
+        $construction_type = $data["construction_type"];
+        $construction_typeIds = collect($construction_type)->implode("id",",");
+        
+        $floor_type = $data["floor_type"];
+        $floor_typeIds = collect($floor_type)->implode("id",",");
+        
+        $occupancy_type = $data["occupancy_type"];
+        $occupancy_typeIds = collect($occupancy_type)->implode("id",",");
+        
+        $ownership_types = $data["ownership_types"];
+        $ownership_typesIds = collect($ownership_types)->implode("id",",");
+        
+        $property_type = $data["property_type"];
+        $property_typeIds = collect($property_type)->implode("id",",");
+        
+        $transfer_mode = $data["transfer_mode"];
+        $transfer_modeIds = collect($transfer_mode)->implode("id",",");
+        
+        $usage_type = $data["usage_type"];
+        $usage_typeIds = collect($usage_type)->implode("id",",");
+        
+        $ward_master = $data["ward_master"];
+        $ward_masterIds = collect($ward_master)->implode("id",",");        
+        $zoneWiseWardIds = collect($ward_master)->where("zone",$req->zone)->implode("id",",");
+        if(!$zoneWiseWardIds)
+        {
+            $zoneWiseWardIds="0";
+        }
+        
+
+        $zone = $data["zone"];
+        $zoneIds = collect($zone)->implode("id",",");
+        
+        
+        $rules = [
+            "propertyId" => "required|digits_between:1,9223372036854775807",
+            "applicantName" => "required|regex:/^[A-Za-z.\s]+$/i",
+            "applicantMarathi" => "required|string",
+
+            "appartmentName"   => "nullable|string",
+            "electricityConnection"=>"nullable|string",
+            "electricityCustNo"=>"nullable|string",
+            "electricityAccNo"=>"nullable|string",
+            "electricityBindBookNo"=>"nullable|string",
+            "electricityConsCategory"=>"nullable|string",
+            "buildingPlanApprovalNo"=>"nullable|string",
+            "buildingPlanApprovalDate" =>"nullable|date|",
+
+            "ownershipType" => "required|In:$ownership_typesIds",
+            "zone" => "required|In:$zoneIds",
+            "ward" => "required|In:$zoneWiseWardIds",
+
+            "owner"      => "required|array",
+            "owner.*.ownerId"      => "required|digits_between:1,9223372036854775807",
+            "owner.*.ownerName"      => "required|regex:/^[A-Za-z.\s]+$/i",
+            "owner.*.ownerNameMarathi"  => "required|string",
+            "owner.*.guardianName"      => "required|regex:/^[A-Za-z.\s]+$/i",
+            "owner.*.guardianNameMarathi" => "required|string",
+            "owner.*.relation" => "nullable|string|in:S/O,W/O,D/O,C/O",
+            "owner.*.mobileNo" => "nullable|digits:10|regex:/[0-9]{10}/",
+            "owner.*.aadhar" => "digits:12|regex:/[0-9]{12}/|nullable",
+            "owner.*.pan" => "string|nullable",
+            "owner.*.email" => "email|nullable",
+        ];
+        $validated = Validator::make(
+            $req->all(),
+            $rules
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+        try {
+            $mPropProperty = new PropProperty();
+            $mPropOwners = new PropOwner();
+            $propId = $req->propertyId;
+            $prop = $mPropProperty->find($propId);
+            if(!$prop)
+            {
+                throw new Exception("Data Not Found");
+            }  
+            
+            DB::beginTransaction();
+            $prop->applicant_name           = $req->applicantName;
+            $prop->applicant_marathi        = $req->applicantMarathi;
+            $prop->ward_mstr_id             = $req->ward;
+            $prop->zone_mstr_id             = $req->zone;
+            $prop->ownership_type_mstr_id   = $req->ownershipType   ??  $prop->ownership_type_mstr_id;
+
+            $prop->building_name            = $req->buildingName    ??  $prop->building_name;
+            $prop->street_name              = $req->streetName  ??  $prop->street_name;
+            $prop->location                 = $req->location    ??  $prop->location;
+            $prop->landmark                 = $req->landmark    ??  $prop->landmark;
+            $prop->prop_address             = $req->propAddress ??  $prop->prop_address;
+            $prop->prop_city                = $req->propCity ??  $prop->prop_city;
+            $prop->prop_dist                = $req->propDist ??  $prop->prop_dist;
+            $prop->prop_pin_code            = $req->propPinCode ??  $prop->prop_pin_code;
+            $prop->prop_state               = $req->propState ??  $prop->prop_state;
+
+            $prop->corr_address             = $req->corrAddress ?? $prop->corr_address ;
+            $prop->corr_city                = $req->corrCity ?? $prop->corr_city ;
+            $prop->corr_dist                = $req->corrDist ?? $prop->corr_city ;
+            $prop->corr_pin_code            = $req->corrPinCode ?? $prop->corr_pin_code ;
+            $prop->corr_state               = $req->corrState ?? $prop->corr_state ;
+
+            
+
+            foreach($req->owner as $val)
+            {
+                $testOwner = $mPropOwners->select("*")->where("id",$val["ownerId"])->where("property_id",$propId)->first();
+                if(!$testOwner)
+                {
+                    throw new Exception("Invalid Owner Id Pass");
+                }
+                $testOwner->owner_name = $val["ownerName"];
+                $testOwner->owner_name_marathi = $val["ownerNameMarathi"];
+                $testOwner->guardian_name = $val["guardianName"];
+                $testOwner->guardian_name_marathi = $val["guardianNameMarathi"];
+
+                $testOwner->relation_type = $val["relation"]??$testOwner->relation_type;
+                $testOwner->mobile_no = $val["mobileNo"]??$testOwner->mobile_no;
+                $testOwner->email = $val["email"] ??$testOwner->email;
+                $testOwner->pan_no = $val["pan"] ?? $testOwner->pan_no;
+                $testOwner->aadhar_no = $val["aadhar"] ?? $testOwner->aadhar_no;
+                $testOwner->gender = $val["gender"] ?? $testOwner->gender;
+                $testOwner->dob = $val["dob"] ?? $testOwner->dob;
+                // $testOwner->update();                
+            }   
+            // $prop->update();                     
+            DB::commit();
+            
+            return responseMsgs(true, 'Data Updated', '', '010801', '01', '', 'Post', '');
+        } catch (Exception $e) {
+            DB::rollBack();
             return responseMsg(false, $e->getMessage(), "");
         }
     }

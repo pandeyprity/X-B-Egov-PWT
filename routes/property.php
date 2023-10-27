@@ -367,6 +367,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('caretaker-property-tagging', 'caretakerPropertyTag');        // 02
     Route::post('citizen-holding-saf', 'citizenHoldingSaf');                  // 03
     Route::post('basic-edit', 'basicPropertyEdit');
+    Route::post('v1/basic-edit', 'basicPropertyEditV1'); #->withoutMiddleware(['request_logger', 'expireBearerToken', 'auth_maker'])
     Route::post('check-property', 'CheckProperty');
     Route::post('v1/holding-copy', 'getHoldingCopy');                         // 04
   });
