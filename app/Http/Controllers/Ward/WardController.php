@@ -87,6 +87,11 @@ class WardController extends Controller
             if (collect($wardsByZone)->isEmpty()) {
                 $wardsByZone = $mUlbWardMstr->getWardsByZone($req->zoneId);
             }
+            $wardsByZone = collect($wardsByZone)->sortBy(function ($item) {
+                // Extract the numeric part from the "ward_name"
+                preg_match('/\d+/', $item->ward_name, $matches);
+                return (int) ($matches[0]??"");
+            })->values();
             return responseMsgs(true, "Ward List", remove_null($wardsByZone), "", "1.0", responseTime(), "POST", $req->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), [], "", "1.0", responseTime(), "POST", $req->deviceId);

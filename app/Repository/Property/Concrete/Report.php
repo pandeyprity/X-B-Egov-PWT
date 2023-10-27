@@ -2256,7 +2256,7 @@ class Report implements IReport
             $refUser        = authUser($request);
             $refUserId      = $refUser->id;
             $ulbId          = $refUser->ulb_id;
-            $wardId = null;
+            $zoneId=$wardId = null;
             $fiYear = getFY();
             if ($request->fiYear) {
                 $fiYear = $request->fiYear;
@@ -2272,6 +2272,9 @@ class Report implements IReport
             }
             if ($request->wardId) {
                 $wardId = $request->wardId;
+            }
+            if ($request->zoneId || $request->zone) {
+                $zoneId = $request->zoneId ?? $request->zone;
             }
             $from = "
                 FROM ulb_ward_masters 
@@ -2309,6 +2312,7 @@ class Report implements IReport
                     WHERE prop_demands.status =1 
                         AND prop_demands.ulb_id =$ulbId
                         " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
+                        " . ($zoneId ? " AND prop_properties.zone_mstr_id = $zoneId" : "") . "
                         AND prop_demands.fyear<='$fiYear'
                     GROUP BY prop_properties.ward_mstr_id
                 )demands ON demands.ward_mstr_id = ulb_ward_masters.id   
@@ -2318,13 +2322,15 @@ class Report implements IReport
                     where prop_properties.status = 1 
                         AND prop_properties.ulb_id =$ulbId
                     " . ($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "") . "
+                    " . ($zoneId ? " AND prop_properties.zone_mstr_id = $zoneId" : "") . "
                     GROUP BY prop_properties.ward_mstr_id
                 ) AS arrear  on arrear.ward_mstr_id = ulb_ward_masters.id                            
                 WHERE  ulb_ward_masters.ulb_id = $ulbId  
                     " . ($wardId ? " AND ulb_ward_masters.id = $wardId" : "") . "
-                GROUP BY ulb_ward_masters.ward_name           
+                    " . ($zoneId ? " AND ulb_ward_masters.zone = $zoneId" : "") . "
+                GROUP BY ulb_ward_masters.ward_name          
             ";
-            $select = "SELECT ulb_ward_masters.ward_name AS ward_no,
+            $select = "SELECT ulb_ward_masters.ward_name AS ward_no,ulb_ward_masters.ward_name,
                             SUM(COALESCE(demands.current_demand_hh, 0::numeric)) AS current_demand_hh,   
                             SUM(COALESCE(demands.arrear_demand_hh, 0::numeric)) AS arrear_demand_hh,      
                             SUM(COALESCE(demands.current_collection_hh, 0::numeric)) AS current_collection_hh,  
@@ -2434,12 +2440,16 @@ class Report implements IReport
             // $data['total_current_hh_eff'] = round(($data['total_current_collection_hh']) / ($data['total_current_demand_hh']) * 100);
             // $data['total_arrear_eff'] = round(($data['total_arrear_collection']) / ($data['total_arrear_demand']) * 100);
             $data['total_eff'] = round((($data['total_arrear_collection'] + $data['total_current_collection']) / ($data['total_arrear_demand'] + $data['total_current_demand'])) * 100);
-            $data['dcb'] = $dcb;
+            $data['dcb'] = collect($dcb)->sortBy(function ($item) {
+                // Extract the numeric part from the "ward_name"
+                preg_match('/\d+/', $item->ward_name, $matches);
+                return (int) ($matches[0]??"");
+            })->values();
 
             $queryRunTime = (collect(DB::getQueryLog())->sum("time"));
             return responseMsgs(true, "", $data, $apiId, $version, $queryRunTime, $action, $deviceId);
         } catch (Exception $e) {
-            return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
+            return responseMsgs(false, [$e->getMessage(),$e->getFile(),$e->getLine()], $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
 
@@ -4136,7 +4146,17 @@ class Report implements IReport
             }
             if ($request->paymentMode) {
                 if(!is_array($request->paymentMode))
+                {
                     $paymentMode = Str::upper($request->paymentMode);
+                }
+                elseif(is_array($request->paymentMode[0]))
+                {
+                    foreach($request->paymentMode as $val)
+                    {
+                        $paymentMode .= Str::upper($val["value"]).",";
+                    }
+                    $paymentMode =  trim($paymentMode,",");
+                }
                 else
                 {
 
