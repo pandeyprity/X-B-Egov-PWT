@@ -432,6 +432,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('verify-cash', 'cashVerify');                                   //05
     Route::post('cash-receipt', 'cashReceipt');                                 //06
     Route::post('edit-chequedtl', 'editChequeNo');                              //07
+    Route::post('tran/deactivated-list', 'tranDeactivatedList');                              //07
   });
 
   Route::controller(BankReconcillationController::class)->group(function () {

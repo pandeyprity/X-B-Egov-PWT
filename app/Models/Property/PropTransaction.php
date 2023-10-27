@@ -43,7 +43,8 @@ class PropTransaction extends Model
             'prop_cheque_dtls.cheque_no',
             'prop_cheque_dtls.cheque_date',
             'u.name as tc_name',
-            'u.mobile as tc_mobile'
+            'u.mobile as tc_mobile',
+            "prop_cheque_dtls.status as cheque_status"
         )
             ->where('tran_no', $tranNo)
             ->leftJoin("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
@@ -65,7 +66,8 @@ class PropTransaction extends Model
             'prop_cheque_dtls.cheque_no',
             'prop_cheque_dtls.cheque_date',
             'u.name as tc_name',
-            'u.mobile as tc_mobile'
+            'u.mobile as tc_mobile',
+            "prop_cheque_dtls.status as cheque_status"
         )
             ->where('prop_transactions.id', $tranId)
             ->leftJoin("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
