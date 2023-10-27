@@ -4207,6 +4207,7 @@ class Report implements IReport
                 sum(COALESCE(drain_cess,0)::numeric) as drain_cess,
                 sum(COALESCE(light_cess,0)::numeric) as light_cess,
                 sum(COALESCE(major_building,0)::numeric) as major_building,
+                sum(COALESCE(open_ploat_tax,0)::numeric) as open_ploat_tax,
             
                 sum(COALESCE(c1urrent_total_demand,0)::numeric) as c1urrent_total_demand,
 	            sum(COALESCE(c1urrent_total_tax,0)::numeric) as c1urrent_total_tax,
@@ -4232,6 +4233,7 @@ class Report implements IReport
                 sum(COALESCE(current_drain_cess,0)::numeric ) as current_drain_cess,
                 sum(COALESCE(current_light_cess,0)::numeric ) as current_light_cess,
                 sum(COALESCE(current_major_building,0)::numeric ) as current_major_building,
+                sum(COALESCE(current_open_ploat_tax,0)::numeric ) as current_open_ploat_tax,
             
                 sum(COALESCE(a1rear_total_demand,0)::numeric) as a1rear_total_demand,
 	            sum(COALESCE(a1rear_total_tax,0)::numeric) as a1rear_total_tax,
@@ -4257,6 +4259,7 @@ class Report implements IReport
                 sum(COALESCE(arear_drain_cess,0)::numeric ) as arear_drain_cess,
                 sum(COALESCE(arear_light_cess,0)::numeric ) as arear_light_cess,
                 sum(COALESCE(arear_major_building,0)::numeric ) as arear_major_building,
+                sum(COALESCE(arear_open_ploat_tax,0)::numeric ) as arear_open_ploat_tax,
                 sum(COALESCE(rebadet,0)::numeric) as rebadet,
                 sum(COALESCE(penalty,0)::numeric) as penalty
             from prop_transactions
@@ -4286,6 +4289,7 @@ class Report implements IReport
                     sum(COALESCE(prop_tran_dtls.paid_drain_cess,0)::numeric) as drain_cess,
                     sum(COALESCE(prop_tran_dtls.paid_light_cess,0)::numeric) as light_cess,
                     sum(COALESCE(prop_tran_dtls.paid_major_building,0)::numeric) as major_building,
+                    sum(COALESCE(prop_tran_dtls.paid_open_ploat_tax,0)::numeric) as open_ploat_tax,
                 
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_total_tax,0)::numeric else 0 end) as c1urrent_total_demand,
 		            sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_total_tax,0)::numeric else 0 end) as c1urrent_total_tax,
@@ -4311,6 +4315,7 @@ class Report implements IReport
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_drain_cess,0)::numeric else 0 end) as current_drain_cess,
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_light_cess,0)::numeric else 0 end) as current_light_cess,
                     sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_major_building,0)::numeric else 0 end) as current_major_building,
+                    sum(case when fyear between '$fromFyear' and '$uptoFyear' then COALESCE(prop_tran_dtls.paid_open_ploat_tax,0)::numeric else 0 end) as current_open_ploat_tax,
                 
                     sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_total_tax,0)::numeric else 0 end) as a1rear_total_demand,
 		            sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_total_tax,0)::numeric else 0 end) as a1rear_total_tax,
@@ -4335,7 +4340,8 @@ class Report implements IReport
                     sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_sp_water_cess,0)::numeric else 0 end) as arear_sp_water_cess,
                     sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_drain_cess,0)::numeric else 0 end) as arear_drain_cess,
                     sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_light_cess,0)::numeric else 0 end) as arear_light_cess,
-                    sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_major_building,0)::numeric else 0 end) as arear_major_building
+                    sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_major_building,0)::numeric else 0 end) as arear_major_building,
+                    sum(case when fyear < '$fromFyear' then COALESCE(prop_tran_dtls.paid_open_ploat_tax,0)::numeric else 0 end) as arear_open_ploat_tax
                 
                 from prop_tran_dtls                
                 join prop_transactions on prop_transactions.id = prop_tran_dtls.tran_id
