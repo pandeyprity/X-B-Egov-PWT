@@ -43,17 +43,23 @@ class CashVerificationController extends Controller
             $waterModuleId = Config::get('module-constants.WATER_MODULE_ID');
             $tradeModuleId = Config::get('module-constants.TRADE_MODULE_ID');
             $mTempTransaction =  new TempTransaction();
-
-            if (isset($userId)) {
-                $data = $mTempTransaction->transactionDtl($date, $ulbId)
-                    ->where('user_id', $userId)
-                    ->get();
+            $zoneId = $request->zone;
+            $wardId = $request->wardId;
+            
+            $data = $mTempTransaction->transactionDtl($date, $ulbId);
+            if($userId)
+            {
+                $data = $data->where('user_id', $userId);
             }
-
-            if (!isset($userId)) {
-                $data = $mTempTransaction->transactionDtl($date, $ulbId)
-                    ->get();
+            if($zoneId)
+            {
+                $data = $data->where('ulb_ward_masters.zone', $zoneId);
             }
+            if($wardId)
+            {
+                $data = $data->where('ulb_ward_masters.id', $wardId);
+            }
+            $data = $data->get();
 
             $collection = collect($data->groupBy("id")->all());
 
