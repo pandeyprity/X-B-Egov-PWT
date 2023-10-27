@@ -30,12 +30,12 @@ class GetRefUrl
     /**
      * | Generate Referal Url
      */
-    public function generateRefUrl()
+    public function generateRefUrl($req)
     {
         $todayDate          = Carbon::now()->format('d/M/Y');
         $refNo              = time() . rand();
         $this->_refNo       = $refNo;
-        $tranAmt            = $this->_tranAmt ?? 100;                                                                            // Remove the static amount
+        $tranAmt            = $req->amount ?? 100;                                                                            // Remove the static amount
         $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
         $eMandatoryField    = $this->encryptAes($mandatoryField);
         $optionalField      = $this->encryptAes("X|X|X");
