@@ -275,6 +275,7 @@ class PostPropPayment
             'tran_date' => $this->_REQ['todayDate'],
             'user_id' => $this->_REQ['userId'],
             'ulb_id' => $this->_REQ['ulbId'],
+            "ward_no" => $this->_REQ["wardNo"],
         ];
         $mTempTransaction->tempTransaction($tranReqs);
     }
@@ -330,6 +331,7 @@ class PostPropPayment
             }
         }
         $wardNo = $wardDetails->ward_name;
+        $this->_REQ["wardNo"] =$wardNo;
         $counter = (new UlbWardMaster)->getTranCounter($wardDetails->id)->counter ?? null;
         $user = Auth()->user();
         $mUserType = $user->user_type;

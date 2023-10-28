@@ -1594,6 +1594,7 @@ class ActiveSafController extends Controller
                 "doc_upload_status" => $fullSafDtls['doc_upload_status'],
                 "ownership_type" => $fullSafDtls['ownership_type'],
                 "payment_status" => $fullSafDtls['payment_status'],
+                "categoryType"  => $fullSafDtls['category']??"",
             ];
 
             return responseMsgs(true, "Demand Details", remove_null($demand), "", "1.0", responseTime(), "POST", $req->deviceId);

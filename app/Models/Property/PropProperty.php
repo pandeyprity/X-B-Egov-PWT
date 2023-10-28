@@ -72,14 +72,16 @@ class PropProperty extends Model
                 'r.road_type',
                 'a.apartment_name',
                 'a.apt_code as apartment_code',
-                'z.zone_name'
+                'z.zone_name',
+                'cat.category AS categoryType',
             )
             ->join('ulb_ward_masters as w', 'w.id', '=', 'prop_properties.ward_mstr_id')
             ->leftJoin('ref_prop_ownership_types as o', 'o.id', '=', 'prop_properties.ownership_type_mstr_id')
             ->leftJoin('ref_prop_types', 'ref_prop_types.id', '=', 'prop_properties.prop_type_mstr_id')
             ->leftJoin('ref_prop_road_types as r', 'r.id', '=', 'prop_properties.road_type_mstr_id')
             ->leftJoin('prop_apartment_dtls as a', 'a.id', '=', 'prop_properties.apartment_details_id')
-            ->leftJoin('zone_masters as z', 'z.id', '=', 'prop_properties.zone_mstr_id');
+            ->leftJoin('zone_masters as z', 'z.id', '=', 'prop_properties.zone_mstr_id')
+            ->leftjoin('ref_prop_categories as cat', 'cat.id', '=', 'prop_properties.category_id');
     }
 
     /**
