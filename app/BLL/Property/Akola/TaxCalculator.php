@@ -136,7 +136,7 @@ class TaxCalculator
 
                 $isCommercial = ($item->usageType == $this->_residentialUsageType) ? false : true;                    // Residential usage type id
 
-                $stateTaxes = $this->readStateTaxes($floorBuildupArea, $isCommercial);                   // Read State Taxes(2.3)
+                $stateTaxes = $this->readStateTaxes($floorBuildupArea, $isCommercial,$taxValue);                   // Read State Taxes(2.3)
 
                 $this->_floorsTaxes[$key] = [
                     'usageType' => $item->usageType,
@@ -248,7 +248,7 @@ class TaxCalculator
             
             $isCommercial = false;
 
-            $stateTaxes = $this->readStateTaxes($this->_calculatorParams['areaOfPlot'], $isCommercial);                   // Read State Taxes(3.1)
+            $stateTaxes = $this->readStateTaxes($this->_calculatorParams['areaOfPlot'], $isCommercial,$taxValue);                   // Read State Taxes(3.1)
 
             $this->_floorsTaxes[0] = [
                 'rate' => $rate,
@@ -284,42 +284,52 @@ class TaxCalculator
     /**
      * | read State Taxes (2.3) && (3.1)
      */
-    public function readStateTaxes($floorBuildupArea, $isCommercial)
+    public function readStateTaxes($floorBuildupArea, $isCommercial,$taxValue=0)
     {
         // State Taxes
-        if (is_between($floorBuildupArea, 0, 151)) {
+        if (is_between($floorBuildupArea, 0, 150)) {
             $stateEducationTaxPerc = $isCommercial ? 4 : 2;
-            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            // $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($taxValue * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 1 : 0;
-            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            // $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($taxValue * $professionalTaxPerc) / 100);
         }
 
-        if (is_between($floorBuildupArea, 150, 301)) {
+        if (is_between($floorBuildupArea, 151, 300)) {
             $stateEducationTaxPerc = $isCommercial ? 6 : 3;
-            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            // $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($taxValue * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 1.5 : 0;
-            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            // $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($taxValue * $professionalTaxPerc) / 100);
         }
 
-        if (is_between($floorBuildupArea, 300, 3001)) {
+        if (is_between($floorBuildupArea, 301, 3000)) {
             $stateEducationTaxPerc = $isCommercial ? 8 : 4;
-            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            // $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($taxValue * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 2 : 0;
-            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            // $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($taxValue * $professionalTaxPerc) / 100);
         }
 
-        if (is_between($floorBuildupArea, 3000, 6001)) {
+        if (is_between($floorBuildupArea, 3001, 6000)) {
             $stateEducationTaxPerc = $isCommercial ? 10 : 5;
-            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            // $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($taxValue * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 2.5 : 0;
-            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            // $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($taxValue * $professionalTaxPerc) / 100);
         }
 
         if ($floorBuildupArea > 6000) {
             $stateEducationTaxPerc = $isCommercial ? 12 : 6;
-            $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            // $stateEducationTax = roundFigure(($floorBuildupArea * $stateEducationTaxPerc) / 100);
+            $stateEducationTax = roundFigure(($taxValue * $stateEducationTaxPerc) / 100);
             $professionalTaxPerc = $isCommercial ? 3 : 0;
-            $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            // $professionalTax = roundFigure(($floorBuildupArea * $professionalTaxPerc) / 100);
+            $professionalTax = roundFigure(($taxValue * $professionalTaxPerc) / 100);
         }
 
         return [
