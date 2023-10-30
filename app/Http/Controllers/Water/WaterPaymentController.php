@@ -743,7 +743,7 @@ class WaterPaymentController extends Controller
                 $mWaterConsumerCollection->saveConsumerCollection($charges, $waterTrans, $user->id);
             }
             $this->commit();
-            return responseMsgs(true, "payment Done!", "", "", "01", ".ms", "POST", $request->deviceId);
+            return responseMsgs(true, "payment Done!", $request->all(), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             $this->rollback();
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", $request->deviceId);
