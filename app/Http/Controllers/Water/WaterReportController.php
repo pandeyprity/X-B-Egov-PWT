@@ -1246,23 +1246,43 @@ class WaterReportController extends Controller
             $refDate = $this->getFyearDate($previousFinancialYear);
             $previousFromDate = $refDate['fromDate'];
             $previousUptoDate = $refDate['uptoDate'];
-            $dataraw =  "SELECT 
-            SUM (CASE WHEN demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) AS previous_year_demands,
-            SUM (CASE WHEN demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) AS current_demands,
-            SUM (CASE WHEN paid_status = 0 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) AS current_year_balance_amount,
-            SUM (CASE WHEN paid_status = 0 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) AS previous_year_balance_amount,
-            SUM (CASE WHEN paid_status = 1 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) AS current_year_collection_amount,
-            SUM (CASE WHEN paid_status = 1 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) AS previous_year_collection_amount,
-            (SUM (CASE WHEN demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) - SUM (CASE WHEN paid_status = 1 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END)) AS arrear_balance,
-            (SUM (CASE WHEN demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) - SUM (CASE WHEN paid_status = 1 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END)) AS current_balance,
-            (SUM (CASE WHEN demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) + SUM (CASE WHEN status = TRUE AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END)) AS total_demand,
-            (SUM (CASE WHEN paid_status = 1 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) + SUM (CASE WHEN paid_status = 1 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END)) AS total_collection
-        FROM water_consumer_demands
-        WHERE 
-            (demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date AND status = TRUE)
-            OR (demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date AND status = TRUE)
+            $dataraw =  "SELECT *,
+            (arrear_balance + current_balance) AS total_balance
+        FROM (
+            SELECT 
+                SUM(CASE WHEN demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) AS current_demands,
+                SUM(CASE WHEN paid_status = 0 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) AS current_year_balance_amount,
+                SUM(CASE WHEN paid_status = 1 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) AS current_year_collection_amount,
+                SUM(CASE WHEN paid_status = 1 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) AS previous_year_collection_amount,
+                SUM(CASE WHEN demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) AS previous_year_demands,
+                SUM(CASE WHEN paid_status = 0 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) AS previous_year_balance_amount,
+                (SUM(CASE WHEN demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END) - SUM(CASE WHEN paid_status = 1 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END)) AS arrear_balance,
+                (SUM(CASE WHEN demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) - SUM(CASE WHEN paid_status = 1 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END)) AS current_balance,
+                (SUM(CASE WHEN demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) + SUM(CASE WHEN water_consumer_demands.STATUS = TRUE AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END)) AS total_demand,
+                (SUM(CASE WHEN paid_status = 1 AND demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date THEN amount ELSE 0 END) + SUM(CASE WHEN paid_status = 1 AND demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date THEN amount ELSE 0 END)) AS total_collection,
+                ulb_ward_masters.ward_name
+            FROM water_consumer_demands  
+            LEFT JOIN water_second_consumers ON water_consumer_demands.consumer_id = water_second_consumers.id
+            LEFT JOIN ulb_ward_masters ON water_second_consumers.ward_mstr_id = ulb_ward_masters.id
+            WHERE 
+          
+                (demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date AND water_consumer_demands.status = TRUE)
+                OR (demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date AND water_consumer_demands.STATUS = TRUE)
+                
+            "
+                . ($wardId ? " AND water_second_consumers.ward_mstr_id = '$wardId' 
+                                 " : "")
+                . ($zoneId ? " AND water_second_consumers.zone_mstr_id = '$zoneId' 
+                               " : "")
+
+
+                . "
+                GROUP BY ulb_ward_masters.ward_name
+        ) AS subquery
         ";
-         $results = DB::connection('pgsql_water')->select($dataraw);
+
+
+            $results = DB::connection('pgsql_water')->select($dataraw);
             $resultObject = (object) $results[0];
             return responseMsgs(true, "water demand report", remove_null($resultObject), "", "", "", 'POST', "");
         } catch (Exception $e) {

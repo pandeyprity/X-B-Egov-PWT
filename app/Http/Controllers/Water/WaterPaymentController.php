@@ -668,8 +668,16 @@ class WaterPaymentController extends Controller
             $mWaterConsumerDemand       = new WaterConsumerDemand();
 
             $offlinePaymentModes    = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
+            $offlinePayment         = Config::get('payment-constants.PAYMENT_OFFLINE_MODE_WATER');
             $adjustmentFor          = Config::get("waterConstaint.ADVANCE_FOR");
             $todayDate              = Carbon::now();
+
+            # Restrict the online payment maide 
+            if (!in_array($request->paymentMode, $offlinePayment)) {
+                throw new Exception('Invalid payment method');
+            }
+
+            # consumer demands
             $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
             if (!$refDemand) {
                 throw new Exception('demand not found!');
@@ -1705,13 +1713,17 @@ class WaterPaymentController extends Controller
             $refUser        = authUser($request);
             $waterModuleId  = Config::get('module-constants.WATER_MODULE_ID');
             $paymentFor     = Config::get('waterConstaint.PAYMENT_FOR');
+            $paymentMode    = Config::get('payment-constants.PAYMENT_OFFLINE_MODE');
             $startingDate   = Carbon::createFromFormat('Y-m-d',  $request->demandFrom)->startOfMonth();
             $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
             // $url            = Config::get('razorpay.PAYMENT_GATEWAY_URL');
             // $endPoint       = Config::get('razorpay.PAYMENT_GATEWAY_END_POINT');
-
+             # Restrict the online payment maide 
+             if (!in_array($request->paymentMode, $paymentMode)) {
+                throw new Exception('Invalid payment method');
+            }
             # Demand Collection 
             $this->begin();
             $refDetails = $this->preOfflinePaymentParams($request, $startingDate, $endDate);
@@ -2446,5 +2458,24 @@ class WaterPaymentController extends Controller
         // dd($url, $file);
 
         // return view("water_consumer_payment", $data);
+    }
+
+    /**
+     * part payment of consumer
+     */
+    public function partPayment(Request $request)
+    {
+        try {
+            $mWaterConsumerDemand = new waterConsumerDemand();
+            $mWaterTran           = new WaterTran();
+            $demandId             = $request->demandId;
+            $amount               = $request->amount;
+
+            return $actualAmount = $mWaterConsumerDemand->getActualamount($demandId);
+
+            return responseMsgs(true, "part payment succesful", remove_null($amount), "", "01", ".ms", "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "03", responseTime(), $request->getMethod(), $request->deviceId);
+        }
     }
 }
