@@ -178,7 +178,7 @@ class WaterMonthelyCall
                 # If the consumer demand exist the following process will continue with respective of last demand
                 if ($this->_consumerLastDemand) {
                     $monthsArray        = [];
-                    $startDate          = Carbon::parse("2023-06-03"); //$this->_consumerLastDemand->demand_upto
+                    $startDate          = Carbon::parse($this->_consumerLastDemand->demand_upto);
                     $endDate            = Carbon::parse($this->_now);
                     $refEndDate         = $endDate;
                     $refStartDate       = $startDate;
