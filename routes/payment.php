@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Payment\BankReconcillationController;
 use App\Http\Controllers\Payment\CashVerificationController;
+use App\Http\Controllers\Payment\IciciPaymentController;
 use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\Payment\RazorpayPaymentController;
 use Illuminate\Support\Facades\Route;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Route;
  * | Payment Master for Testing Payment Gateways
     | FLAG : removal of some function / use for testing
  */
-Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger']], function () {
+Route::group(['middleware' => ['auth_maker', 'request_logger']], function () {
     Route::controller(RazorpayPaymentController::class)->group(function () {
         Route::post('store-payment', 'storePayment');                                               // 01 Store Payment in payment Masters
         Route::get('get-payment-by-id/{id}', 'getPaymentByID');                                     // 02 Get Payment by Id
@@ -43,28 +44,10 @@ Route::group(['middleware' => ['json.response', 'auth:sanctum', 'request_logger'
         Route::post('update-reconciliation-details', 'updateReconciliationDetails');                // 13
     });
 
-
-    // /**
-    //  * | Created On-31-01-2023 
-    //  * | Created by-Mrinal Kumar
-    //  * | Payment Cash Verification
-    //      Serial No : 2
-    //  */
-    // Route::controller(CashVerificationController::class)->group(function () {
-    //     Route::post('list-cash-verification', 'cashVerificationList');              //01
-    //     Route::post('verified-cash-verification', 'verifiedCashVerificationList');  //02
-    //     Route::post('tc-collections', 'tcCollectionDtl');                           //03
-    //     Route::post('verified-tc-collections', 'verifiedTcCollectionDtl');          //04
-    //     Route::post('verify-cash', 'cashVerify');                                   //05
-    //     Route::post('cash-receipt', 'cashReceipt');                                 //06
-    //     Route::post('edit-chequedtl', 'editChequeNo');                              //07
-    // });
-
-    // Route::controller(BankReconcillationController::class)->group(function () {
-    //     Route::post('search-transaction', 'searchTransaction');
-    //     Route::post('cheque-dtl-by-id', 'chequeDtlById');
-    //     Route::post('cheque-clearance', 'chequeClearance');
-    // });
+    # Icici payament operation
+    Route::controller(IciciPaymentController::class)->group(function () {
+        Route::post('v1/get-referal-url', 'getReferalUrl');
+    });
 });
 Route::controller(RazorpayPaymentController::class)->group(function () {
     Route::post('razorpay-webhook', 'gettingWebhookDetails');                                       // 14 collecting the all data provided by the webhook and updating the related database
@@ -77,10 +60,16 @@ Route::controller(RazorpayPaymentController::class)->group(function () {
  * | Author-Anshu Kumar Dated-02-09-2023
  */
 Route::controller(PaymentController::class)->group(function () {
-    Route::post('v1/get-referal-url', 'getReferalUrl');
-    Route::post('v1/collect-callback-data', 'getCallbackDetial');
-    Route::post('v1/eazypayuat/get-webhook-data', 'getWebhookData');
+    // Route::post('v1/get-referal-url', 'getReferalUrl');
+    // Route::post('v1/collect-callback-data', 'getCallbackDetial');
+    // Route::post('v1/eazypayuat/get-webhook-data', 'getWebhookData');
     Route::post('v1/eazypayuat/get-payment-status', 'getPaymentDataByRefNo');
     Route::post('v1/pinelab/initiate-payment', 'initiatePayment');
     Route::post('v1/pinelab/save-response', 'savePinelabResponse');
+});
+
+# Icici payament operation
+Route::controller(IciciPaymentController::class)->group(function () {
+    Route::post('v1/collect-callback-data', 'getCallbackDetial');
+    Route::post('v1/eazypayuat/get-webhook-data', 'getWebhookData');
 });
