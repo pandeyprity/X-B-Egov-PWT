@@ -40,13 +40,15 @@ class reqDemandPayment extends FormRequest
             if (isset($this['chequeDate']) && $this['chequeDate'] > $refDate) {
                 # throw error
             }
+            if (isset($this['paymentMode']) &&  in_array($this['paymentMode'], $offlinePaymentModes) && $this['paymentMode'] != $refPaymentMode['5']) {
+                $rules['remarks']       = 'required|';
+            }
         }
         $rules['consumerId']        = 'required';
         $rules['amount']            = 'required';
         $rules['demandUpto']        = 'required|date_format:Y-m-d|';
-        // $rules['demandFrom']        = 'required|date_format:Y-m-d|';
         $rules['paymentMode']       = 'required|';
-        $rules['remarks']           = 'required|';
+
         return $rules;
     }
 

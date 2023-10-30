@@ -4184,7 +4184,32 @@ class Report implements IReport
                 '$paymentMode' AS payment_mode,
                 count(distinct(prop_transactions.id)) as total_tran,	
                 sum(COALESCE(total_demand,0)::numeric) as total_demand,
-                sum(COALESCE(total_tax,0)::numeric) as total_tax,
+                sum(COALESCE(total_tax,0)::numeric) as total_tax,sum(COALESCE(prop_transactions.amount,0)::numeric) as amount,
+				sum(
+                    +(COALESCE(maintanance_amt,0)::numeric) 
+                    +(COALESCE(aging_amt,0)::numeric) 
+                    +(COALESCE(general_tax,0)::numeric) 
+                    +(COALESCE(road_tax,0)::numeric) 
+                    +(COALESCE(firefighting_tax,0)::numeric)
+                    +(COALESCE(education_tax,0)::numeric)
+                    +(COALESCE(water_tax,0)::numeric)
+                    +(COALESCE(cleanliness_tax,0)::numeric)
+                    +(COALESCE(sewarage_tax,0)::numeric)
+                    +(COALESCE(tree_tax,0)::numeric)
+                    +(COALESCE(professional_tax,0)::numeric)
+                    +(COALESCE(adjust_amt,0)::numeric)
+                    +(COALESCE(tax1,0)::numeric)
+                    +(COALESCE(tax2,0)::numeric) 
+                    +(COALESCE(tax3,0)::numeric)
+                    +(COALESCE(sp_education_tax,0)::numeric) 
+                    +(COALESCE(water_benefit,0)::numeric)
+                    +(COALESCE(water_bill,0)::numeric)
+                    +(COALESCE(sp_water_cess,0)::numeric)
+                    +(COALESCE(drain_cess,0)::numeric)
+                    +(COALESCE(light_cess,0)::numeric) 
+                    +(COALESCE(major_building,0)::numeric) 
+                    +(COALESCE(open_ploat_tax,0)::numeric)
+				)as total,
                 sum(COALESCE(maintanance_amt,0)::numeric) as maintanance_amt,
                 sum(COALESCE(aging_amt,0)::numeric) as aging_amt,
                 sum(COALESCE(general_tax,0)::numeric) as general_tax,
@@ -4211,6 +4236,31 @@ class Report implements IReport
             
                 sum(COALESCE(c1urrent_total_demand,0)::numeric) as c1urrent_total_demand,
 	            sum(COALESCE(c1urrent_total_tax,0)::numeric) as c1urrent_total_tax,
+                sum(
+                    +(COALESCE(current_maintanance_amt,0)::numeric) 
+                    +(COALESCE(current_aging_amt,0)::numeric) 
+                    +(COALESCE(current_general_tax,0)::numeric) 
+                    +(COALESCE(current_road_tax,0)::numeric) 
+                    +(COALESCE(current_firefighting_tax,0)::numeric)
+                    +(COALESCE(current_education_tax,0)::numeric)
+                    +(COALESCE(current_water_tax,0)::numeric)
+                    +(COALESCE(current_cleanliness_tax,0)::numeric)
+                    +(COALESCE(current_sewarage_tax,0)::numeric)
+                    +(COALESCE(current_tree_tax,0)::numeric)
+                    +(COALESCE(current_professional_tax,0)::numeric)
+                    +(COALESCE(current_adjust_amt,0)::numeric)
+                    +(COALESCE(current_tax1,0)::numeric)
+                    +(COALESCE(current_tax2,0)::numeric) 
+                    +(COALESCE(current_tax3,0)::numeric)
+                    +(COALESCE(current_sp_education_tax,0)::numeric) 
+                    +(COALESCE(current_water_benefit,0)::numeric)
+                    +(COALESCE(current_water_bill,0)::numeric)
+                    +(COALESCE(current_sp_water_cess,0)::numeric)
+                    +(COALESCE(current_drain_cess,0)::numeric)
+                    +(COALESCE(current_light_cess,0)::numeric) 
+                    +(COALESCE(current_major_building,0)::numeric) 
+                    +(COALESCE(current_open_ploat_tax,0)::numeric)
+                )as c1urrent_total,
                 sum(COALESCE(current_maintanance_amt,0)::numeric ) as current_maintanance_amt,
                 sum(COALESCE(current_aging_amt,0)::numeric ) as current_aging_amt,
                 sum(COALESCE(current_general_tax,0)::numeric ) as current_general_tax,
@@ -4237,6 +4287,31 @@ class Report implements IReport
             
                 sum(COALESCE(a1rear_total_demand,0)::numeric) as a1rear_total_demand,
 	            sum(COALESCE(a1rear_total_tax,0)::numeric) as a1rear_total_tax,
+                sum(
+                    +(COALESCE(arear_maintanance_amt,0)::numeric) 
+                    +(COALESCE(arear_aging_amt,0)::numeric) 
+                    +(COALESCE(arear_general_tax,0)::numeric) 
+                    +(COALESCE(arear_road_tax,0)::numeric) 
+                    +(COALESCE(arear_firefighting_tax,0)::numeric)
+                    +(COALESCE(arear_education_tax,0)::numeric)
+                    +(COALESCE(arear_water_tax,0)::numeric)
+                    +(COALESCE(arear_cleanliness_tax,0)::numeric)
+                    +(COALESCE(arear_sewarage_tax,0)::numeric)
+                    +(COALESCE(arear_tree_tax,0)::numeric)
+                    +(COALESCE(arear_professional_tax,0)::numeric)
+                    +(COALESCE(arear_adjust_amt,0)::numeric)
+                    +(COALESCE(arear_tax1,0)::numeric)
+                    +(COALESCE(arear_tax2,0)::numeric) 
+                    +(COALESCE(arear_tax3,0)::numeric)
+                    +(COALESCE(arear_sp_education_tax,0)::numeric) 
+                    +(COALESCE(arear_water_benefit,0)::numeric)
+                    +(COALESCE(arear_water_bill,0)::numeric)
+                    +(COALESCE(arear_sp_water_cess,0)::numeric)
+                    +(COALESCE(arear_drain_cess,0)::numeric)
+                    +(COALESCE(arear_light_cess,0)::numeric) 
+                    +(COALESCE(arear_major_building,0)::numeric) 
+                    +(COALESCE(arear_open_ploat_tax,0)::numeric)
+                )as a1rear_total,
                 sum(COALESCE(arear_maintanance_amt,0)::numeric ) as arear_maintanance_amt,
                 sum(COALESCE(arear_aging_amt,0)::numeric ) as arear_aging_amt,
                 sum(COALESCE(arear_general_tax,0)::numeric ) as arear_general_tax,
@@ -4393,7 +4468,7 @@ class Report implements IReport
                 " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = ANY (UPPER('{".$paymentMode."}')::TEXT[])" : "") . "
             ";
 
-            $report = DB::select($query);
+            $report = DB::select($query);//print_var($query);die;
             $report = collect($report)->first();
             $data["report"] = collect($report)->map(function ($val, $key) {
                 if ($key == "payment_mode") {
@@ -4409,22 +4484,24 @@ class Report implements IReport
             $current = 0;
             $penalty = $data["report"]["penalty"];
             $rebate  = $data["report"]["rebadet"];
-            $currentPattern = "/current_/i";
-            $arrearPattern = "/arear_/i";
-            foreach ($data["report"] as $key => $val) {
-                if (preg_match($currentPattern, $key)) {
-                    $current += ($val ? $val : 0);
-                }
-                if (preg_match($arrearPattern, $key)) {
-                    $arear += ($val ? $val : 0);
-                }
-            };
-            $arear = $arear + $penalty;
-            $current = $current - $rebate;
+            $arear = $data["report"]["a1rear_total"] + $penalty;
+            $current = $data["report"]["c1urrent_total"] - $rebate;
+            // $currentPattern = "/current_/i";
+            // $arrearPattern = "/arear_/i";
+            // foreach ($data["report"] as $key => $val) {
+            //     if (preg_match($currentPattern, $key)) {
+            //         $current += ($val ? $val : 0);
+            //     }
+            //     if (preg_match($arrearPattern, $key)) {
+            //         $arear += ($val ? $val : 0);
+            //     }
+            // };
+            // $arear = $arear + $penalty;
+            // $current = $current - $rebate;
             $data["total"] = [
-                "arear" => roundFigure($arear),
-                "current" => roundFigure($current),
-                "total" => roundFigure(($arear + $current)),
+                "arear" => round($arear),
+                "current" => round($current),
+                "total" => round(($arear + $current)),
             ];
             $data["headers"] = [
                 "fromDate" => Carbon::parse($fromDate)->format('d-m-Y'),
