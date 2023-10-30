@@ -1712,13 +1712,17 @@ class WaterPaymentController extends Controller
             $refUser        = authUser($request);
             $waterModuleId  = Config::get('module-constants.WATER_MODULE_ID');
             $paymentFor     = Config::get('waterConstaint.PAYMENT_FOR');
+            $paymentMode    = Config::get('payment-constants.PAYMENT_OFFLINE_MODE');
             $startingDate   = Carbon::createFromFormat('Y-m-d',  $request->demandFrom)->startOfMonth();
             $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
             // $url            = Config::get('razorpay.PAYMENT_GATEWAY_URL');
             // $endPoint       = Config::get('razorpay.PAYMENT_GATEWAY_END_POINT');
-
+            # Restrict the online payment maide 
+            if ($request->paymentMode !== 'Online') {
+                throw new Exception('Invalid payment method');
+            }
             # Demand Collection 
             $this->begin();
             $refDetails = $this->preOfflinePaymentParams($request, $startingDate, $endDate);
