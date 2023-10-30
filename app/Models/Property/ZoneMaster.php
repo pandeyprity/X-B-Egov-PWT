@@ -22,7 +22,7 @@ class ZoneMaster extends Model
         {
             case(1) : $name="East";
                       break;
-            case(2): $name="Weast";
+            case(2): $name="West";
                       break;
             case(3): $name="North";
                       break;
