@@ -13,14 +13,19 @@ use App\Models\Property\PropActiveSaf;
 use App\Models\Property\PropDemand;
 use App\Models\Property\PropFloor;
 use App\Models\Property\PropOwner;
+use App\Models\Property\PropOwnerUpdateRequest;
 use App\Models\Property\PropProperty;
+use App\Models\Property\PropPropertyUpdateRequest;
 use App\Models\Property\PropSaf;
 use App\Models\Property\PropSafsDemand;
 use App\Models\Property\PropSafsOwner;
 use App\Models\Property\PropTransaction;
 use App\Models\Workflows\WfActiveDocument;
+use App\Models\Workflows\WfWorkflow;
 use App\Pipelines\SearchHolding;
 use App\Pipelines\SearchPtn;
+use App\Repository\Common\CommonFunction;
+use App\Traits\Property\Property;
 use App\Traits\Property\SAF;
 use Carbon\Carbon;
 use Exception;
@@ -42,6 +47,7 @@ use Illuminate\Support\Facades\Validator;
 class PropertyController extends Controller
 {
     use SAF;
+    use Property;
     /**
      * | Send otp for caretaker property
      */
@@ -336,16 +342,50 @@ class PropertyController extends Controller
             ]);
         }
         try {
+            $refUser            = Auth()->user();
+            $refUserId          = $refUser->id??0;
+            $refUlbId           = $refUser->ulb_id ?? 2;
+
             $mPropProperty = new PropProperty();
             $mPropOwners = new PropOwner();
+            $rPropProerty = new PropPropertyUpdateRequest();
+            $rPropOwners = new PropOwnerUpdateRequest();            
+            $mCommonFunction = new CommonFunction();
             $propId = $req->propertyId;
             $prop = $mPropProperty->find($propId);
             if(!$prop)
             {
                 throw new Exception("Data Not Found");
-            }  
+            } 
+            $refWorkflowId      = 16;
+            $refWfWorkflow     = WfWorkflow::where('wf_master_id', $refWorkflowId)
+                ->where('ulb_id', $refUlbId)
+                ->first();
+            if (!$refWfWorkflow) {
+                // throw new Exception("Workflow Not Available");
+            }
             
+            $refWorkflows       = $mCommonFunction->iniatorFinisher($refUserId, $refUlbId, $refWorkflowId);
+            $mUserType          = $mCommonFunction->userType($refWorkflowId);
+
+            $roadWidthType = $this->readRoadWidthType($req->roadType);
+            
+
+            $metaReqs['roadWidthType'] = $roadWidthType;
+
+            $metaReqs['workflowId'] = $refWfWorkflow->id;       // inserting workflow id
+            $metaReqs['initiatorRoleId'] = $refWorkflows['initiator']['id']; 
+            $metaReqs['finisherRoleId'] = $refWorkflows['finisher']['id']; 
+            $metaReqs['currentRole'] = $refWorkflows['initiator']['id'];
+            $metaReqs['userId'] = $refUserId;
+            $metaReqs['pendingStatus'] = 1;
+            $req->merge($metaReqs); 
+            $propRequest = $this->generatePropUpdateRequest($req,$prop,1);
+            $req->merge($propRequest); 
+           
             DB::beginTransaction();
+            dd(json_encode($prop->toArray()),$req->all());
+            $rPropProerty->logs = json_encode($prop->toArray());
             $prop->applicant_name           = $req->applicantName;
             $prop->applicant_marathi        = $req->applicantMarathi;
             $prop->ward_mstr_id             = $req->ward;
@@ -397,7 +437,7 @@ class PropertyController extends Controller
             return responseMsgs(true, 'Data Updated', '', '010801', '01', '', 'Post', '');
         } catch (Exception $e) {
             DB::rollBack();
-            return responseMsg(false, $e->getMessage(), "");
+            return responseMsg(false, [$e->getMessage(),$e->getFile(),$e->getLine()], "");
         }
     }
 
