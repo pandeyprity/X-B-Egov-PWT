@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Payment;
 
 use App\BLL\Property\DeactivateTran;
 use App\Http\Controllers\Controller;
+use App\MicroServices\DocUpload;
 use App\Models\Payment\PaymentReconciliation;
 use App\Models\Payment\TempTransaction;
 use App\Models\Property\PropActiveSaf;
@@ -13,10 +14,12 @@ use App\Models\Property\PropProperty;
 use App\Models\Property\PropSafsDemand;
 use App\Models\Property\PropTranDtl;
 use App\Models\Property\PropTransaction;
+use App\Models\Property\PropTransactionDeactivateDtl;
 use App\Models\Trade\ActiveTradeLicence;
 use App\Models\Trade\TradeChequeDtl;
 use App\Models\Trade\TradeLicence;
 use App\Models\Trade\TradeTransaction;
+use App\Models\Trade\TradeTransactionDeactivateDtl;
 use App\Models\Water\WaterApplication;
 use App\Models\Water\WaterChequeDtl;
 use App\Models\Water\WaterConnectionCharge;
@@ -25,6 +28,7 @@ use App\Models\Water\WaterConsumerDemand;
 use App\Models\Water\WaterPenaltyInstallment;
 use App\Models\Water\WaterTran;
 use App\Models\Water\WaterTranDetail;
+use App\Models\Water\WaterTransactionDeactivateDtl;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -558,25 +562,43 @@ class BankReconcillationController extends Controller
             $propertyModuleId = Config::get('module-constants.PROPERTY_MODULE_ID');
             $waterModuleId = Config::get('module-constants.WATER_MODULE_ID');
             $tradeModuleId = Config::get('module-constants.TRADE_MODULE_ID');
-
+            $docUpload = new DocUpload;
+            $document = $req->document;
+            $refImageName = $req->id."_".$req->moduleId."_".(Carbon::now()->format("Y-m-d"));
+            $relativePath = $req->moduleId==$propertyModuleId ? "Property/TranDeactivate" :($req->moduleId==$waterModuleId ? "Water/TranDeactivate" : ($req->moduleId==$tradeModuleId ? "Trade/TranDeactivate" : "Others/TranDeactivate")); 
+            $user = Auth()->user();
             DB::beginTransaction();
             DB::connection('pgsql_master')->beginTransaction();
             DB::connection('pgsql_water')->beginTransaction();
             DB::connection('pgsql_trade')->beginTransaction();
 
+            $imageName = $req->document ? $relativePath."/".$docUpload->upload($refImageName, $document, $relativePath) : "";
+            $deactivationArr = [
+                "tran_id" =>$req->id,
+                "deactivated_by" =>$user->id,
+                "reason" =>$req->remarks,
+                "file_path" =>$imageName,
+                "deactive_date" =>$req->deactiveDate??Carbon::now()->format("Y-m-d"),
+            ];
             #_For Property Transaction Deactivation
             if ($req->moduleId == $propertyModuleId) {
                 $deactivateTran = new DeactivateTran($req->id);                 // Property or Saf Deactivate Transaction
                 $deactivateTran->deactivate();
+                $propTranDeativetion = new PropTransactionDeactivateDtl();
+                $propTranDeativetion->create($deactivationArr);
             }
 
             #_For Water Transaction Deactivation
             if ($req->moduleId == $waterModuleId) {
+                $waterTranDeativetion = new WaterTransactionDeactivateDtl(); 
+                $waterTranDeativetion->create($deactivationArr); 
             }
 
             #_For Trade Transaction Deactivation
             if ($req->moduleId == $tradeModuleId) {
-                $tradeTrans = TradeTransaction::find($req->transaction_id);
+                $tradeTrans = TradeTransaction::find($req->id);
+                $tradeTranDeativetion = new TradeTransactionDeactivateDtl();
+                $tradeTranDeativetion->create($deactivationArr); 
                 if (!$tradeTrans) {
                     throw new Exception("Trade Transaction Not Available");
                 }

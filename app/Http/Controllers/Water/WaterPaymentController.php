@@ -668,9 +668,10 @@ class WaterPaymentController extends Controller
             $mWaterConsumerDemand       = new WaterConsumerDemand();
 
             $offlinePaymentModes    = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
+            $offlinePayment         = Config::get('payment-constants.PAYMENT_OFFLINE_MODE_WATER');
             $adjustmentFor          = Config::get("waterConstaint.ADVANCE_FOR");
             $todayDate              = Carbon::now();
-            $refDemand              = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
+            $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
             if (!$refDemand) {
                 throw new Exception('demand not found!');
             }
@@ -1701,22 +1702,15 @@ class WaterPaymentController extends Controller
     public function initiateOnlineDemandPayment(reqDemandPayment $request)
     {
         try {
-            $mWaterConsumerDemand   = new WaterConsumerDemand();
-            $refUser                = authUser($request);
-            $waterModuleId          = Config::get('module-constants.WATER_MODULE_ID');
-            $paymentFor             = Config::get('waterConstaint.PAYMENT_FOR');
-            $endDate                = Carbon::createFromFormat('Y-m-d',  $request->demandUpto);
-            $endDate                = $endDate->toDateString();
-
-            # Get demand for "From date"
-            $refDemand = $mWaterConsumerDemand->getConsumerDemandV2($request->consumerId)->last();
-            if (!$refDemand) {
-                throw new Exception('demand not found!');
-            }
-            if ($refDemand) {
-                $startingDate = Carbon::createFromFormat('Y-m-d', $refDemand->demand_from);
-            }
+            $refUser        = authUser($request);
+            $waterModuleId  = Config::get('module-constants.WATER_MODULE_ID');
+            $paymentFor     = Config::get('waterConstaint.PAYMENT_FOR');
+            $startingDate   = Carbon::createFromFormat('Y-m-d',  $request->demandFrom)->startOfMonth();
+            $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
             $startingDate   = $startingDate->toDateString();
+            $endDate        = $endDate->toDateString();
+            // $url            = Config::get('razorpay.PAYMENT_GATEWAY_URL');
+            // $endPoint       = Config::get('razorpay.PAYMENT_GATEWAY_END_POINT');
 
             # Demand Collection 
             $this->begin();
@@ -2452,5 +2446,24 @@ class WaterPaymentController extends Controller
         // dd($url, $file);
 
         // return view("water_consumer_payment", $data);
+    }
+
+    /**
+     * part payment of consumer
+     */
+    public function partPayment(Request $request)
+    {
+        try {
+            $mWaterConsumerDemand = new waterConsumerDemand();
+            $mWaterTran           = new WaterTran();
+            $demandId             = $request->demandId;
+            $amount               = $request->amount;
+
+            return $actualAmount = $mWaterConsumerDemand->getActualamount($demandId);
+
+            return responseMsgs(true, "part payment succesful", remove_null($amount), "", "01", ".ms", "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "03", responseTime(), $request->getMethod(), $request->deviceId);
+        }
     }
 }

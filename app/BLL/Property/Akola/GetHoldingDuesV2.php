@@ -150,7 +150,8 @@ class GetHoldingDuesV2
             'citizen_id',
             'user_id',
             'applicant_name',
-            'property_no'
+            'property_no',
+            "categoryType"
         ]);
         $basicDtls['moduleId'] = 1;
         $basicDtls['workflowId'] = 0;

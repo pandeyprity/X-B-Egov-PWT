@@ -558,4 +558,19 @@ class CashVerificationController extends Controller
             return responseMsgs(false, $e->getMessage(), "", "010201", "1.0", responseTime(), "POST", $request->deviceId ?? "");
         }
     }
+
+    public function tranDeactivatedList(Request $request)
+    {
+        try{
+            $mUser = Auth()->user();
+            $userId = $mUser->id??0;
+            $ulbId = $mUser->ulb_id??0;
+
+            $data = "";
+        }
+        catch(Exception $e)
+        {
+            return responseMsgs(false, $e->getMessage(), "", "010201", "1.0", responseTime(), "POST", $request->deviceId ?? "");
+        }
+    }
 }

@@ -109,6 +109,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
 
         # FOR AKOLA 
         Route::post('consumer/offline-request-payment', 'offlineConPayment');
+        Route::post('consumer/part-payment', 'partPayment');                                             //status working
 
         # for grievance
         Route::post('grievance/get-user-transactions', 'getUserTransactions');

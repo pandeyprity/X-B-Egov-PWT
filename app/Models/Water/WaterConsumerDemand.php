@@ -366,4 +366,11 @@ class WaterConsumerDemand extends Model
             ->where('paid_status', 1)
             ->orderbydesc('id');
     }
+    /**
+     * get actual amount
+     */
+    public function getActualamount($demandId){
+        return WaterConsumerDemand::where('id',$demandId)
+        ->where('status',True);
+    }
 }
