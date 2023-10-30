@@ -47,7 +47,7 @@ class PaymentController extends Controller
         $validated = Validator::make(
             $req->all(),
             [
-                "workflowId"    => "required|",
+                "workflowId"    => "required",
                 "amount"        => "required",
                 "applicationId" => "required",
             ]
@@ -130,7 +130,8 @@ class PaymentController extends Controller
             //     "rsv",
             // ];
 
-            Storage::disk('public')->put('icici/webhook/' . $req->Unique_Ref_Number . '.json', json_encode($req->all()));
+            Storage::disk('public')->put('icici/callback/' . $req->Unique_Ref_Number . '.json', json_encode($req->all()));
+            return view('icici_payment_call_back');
             $reqRefNo           = $req->ReferenceNo;
             $paymentReqsData    = $mIciciPaymentReq->findByReqRefNoV2($reqRefNo);
             if (!$paymentReqsData) {
@@ -172,7 +173,9 @@ class PaymentController extends Controller
             $data               = $req->all();
             $reqRefNo           = $req->reqRefNo;
             $resRefNo           = $req->resRefNo;
-            $paymentReqsData    = $mIciciPaymentReq->findByReqRefNoV2($reqRefNo);
+
+            # Get the payamen request
+            $paymentReqsData = $mIciciPaymentReq->findByReqRefNoV2($reqRefNo);
             if (!$paymentReqsData) {
                 throw new Exception("Payment request dont exist for $reqRefNo");
             }
@@ -195,13 +198,15 @@ class PaymentController extends Controller
             }
 
             // ❗❗ Pending for Module Specific Table Updation / Dont user to transfer data to module ❗❗
-            switch ($paymentReqsData->workflow_id) {
-                case 'value':
-                    # code...
+            switch ($paymentReqsData->module_id) {
+                case '1':
                     break;
 
+                case '2':
+                    
+                    break;
                 default:
-                    # code...
+                    
                     break;
             }
 

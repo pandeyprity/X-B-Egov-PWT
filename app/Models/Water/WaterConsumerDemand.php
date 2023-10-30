@@ -62,6 +62,19 @@ class WaterConsumerDemand extends Model
     }
 
     /**
+     * | Get Demand According to consumerId and payment status false versin 2
+        | Here Changes
+     */
+    public function getConsumerDemandV2($consumerId)
+    {
+        // $this->impos_penalty($consumerId);
+        return WaterConsumerDemand::where('consumer_id', $consumerId)
+            ->where('paid_status', 0)
+            ->where('status', true)
+            ->orderByDesc('id');
+    }
+
+    /**
      * | 
      */
     public function getRefConsumerDemand($consumerId)
@@ -352,5 +365,12 @@ class WaterConsumerDemand extends Model
         return  WaterConsumerDemand::where('consumer_id', $consumerId)
             ->where('paid_status', 1)
             ->orderbydesc('id');
+    }
+    /**
+     * get actual amount
+     */
+    public function getActualamount($demandId){
+        return WaterConsumerDemand::where('id',$demandId)
+        ->where('status',True);
     }
 }
