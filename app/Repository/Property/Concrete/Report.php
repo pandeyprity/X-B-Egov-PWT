@@ -4499,9 +4499,9 @@ class Report implements IReport
             // $arear = $arear + $penalty;
             // $current = $current - $rebate;
             $data["total"] = [
-                "arear" => roundFigure($arear),
-                "current" => roundFigure($current),
-                "total" => roundFigure(($arear + $current)),
+                "arear" => round($arear),
+                "current" => round($current),
+                "total" => round(($arear + $current)),
             ];
             $data["headers"] = [
                 "fromDate" => Carbon::parse($fromDate)->format('d-m-Y'),
