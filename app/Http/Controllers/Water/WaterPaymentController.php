@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Water;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Payment\IciciPaymentController;
+use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Requests\Water\reqConsumerReqPayment;
 use App\Http\Requests\Water\reqDemandPayment;
 use App\Models\Water\WaterApplicant;
@@ -30,6 +32,7 @@ use App\Models\Water\WaterConsumerDemand;
 use App\Models\Water\WaterConsumerInitialMeter;
 use App\Models\Water\WaterConsumerMeter;
 use App\Models\Water\WaterConsumerTax;
+use App\Models\Water\WaterIciciRequest;
 use App\Models\Water\WaterOwnerTypeMstr;
 use App\Models\Water\WaterParamPipelineType;
 use App\Models\Water\WaterPenaltyInstallment;
@@ -740,7 +743,7 @@ class WaterPaymentController extends Controller
                 $mWaterConsumerCollection->saveConsumerCollection($charges, $waterTrans, $user->id);
             }
             $this->commit();
-            return responseMsgs(true, "payment Done!", "", "", "01", ".ms", "POST", $request->deviceId);
+            return responseMsgs(true, "payment Done!", $request->all(), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             $this->rollback();
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", $request->deviceId);
@@ -1709,46 +1712,55 @@ class WaterPaymentController extends Controller
     public function initiateOnlineDemandPayment(reqDemandPayment $request)
     {
         try {
-            $refUser        = authUser($request);
-            $waterModuleId  = Config::get('module-constants.WATER_MODULE_ID');
-            $paymentFor     = Config::get('waterConstaint.PAYMENT_FOR');
-            $paymentMode    = Config::get('payment-constants.PAYMENT_OFFLINE_MODE');
-            $startingDate   = Carbon::createFromFormat('Y-m-d',  $request->demandFrom)->startOfMonth();
-            $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
-            $startingDate   = $startingDate->toDateString();
-            $endDate        = $endDate->toDateString();
-            // $url            = Config::get('razorpay.PAYMENT_GATEWAY_URL');
-            // $endPoint       = Config::get('razorpay.PAYMENT_GATEWAY_END_POINT');
+            $mWaterConsumerDemand   = new WaterConsumerDemand();
+            $iciciPaymentController = new IciciPaymentController();
+            $mWaterIciciRequest     = new WaterIciciRequest();
+            $refUser                = authUser($request);
+            $waterModuleId          = Config::get('module-constants.WATER_MODULE_ID');
+            $paymentFor             = Config::get('waterConstaint.PAYMENT_FOR');
+            $paymentMode            = Config::get('payment-constants.PAYMENT_OFFLINE_MODE');
+            $endDate                = Carbon::createFromFormat('Y-m-d',  $request->demandUpto);
+            $endDate                = $endDate->toDateString();
+
             # Restrict the online payment maide 
-            if ($request->paymentMode !== 'Online') {
+            if ($request->paymentMode !== $paymentMode['5']) {
                 throw new Exception('Invalid payment method');
             }
-            # Demand Collection 
+            # consumer demands 
+            $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
+            if (!$refDemand->last()) {
+                throw new Exception('demand not found!');
+            }
+            $lastDemand = $refDemand->last();
+            if (!$lastDemand) {
+                throw new Exception("demand from not found!");
+            }
+            $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from']);
+            $startingDate   = $startingDate->toDateString();
+            $refDetails     = $this->preOfflinePaymentParams($request, $startingDate, $endDate);
+
             $this->begin();
-            $refDetails = $this->preOfflinePaymentParams($request, $startingDate, $endDate);
             $myRequest = new Request([
-                'amount'        => $request->amount,
+                'amount'        => round($request->amount),
                 'workflowId'    => 0,                                                                   // Static
                 'id'            => $request->consumerId,
                 'departmentId'  => $waterModuleId,
                 'ulbId'         => $refDetails['consumer']['ulb_id'],
                 'auth'          => $refUser
             ]);
-            $temp = $this->saveGenerateOrderid($myRequest);
-            // $temp = Http::withHeaders([])
-            //     ->post($url . $endPoint, $myRequest);                                                   // Static
 
-            // $temp = $temp['data'];
-            $mWaterRazorPayRequest = new WaterRazorPayRequest();
-            $mWaterRazorPayRequest->saveRequestData($request, $paymentFor['1'], $temp, $refDetails);
+            $temp = $iciciPaymentController->getReferalUrl($myRequest);
+            $paymentDetails = $temp->original['data'];
+            // $mWaterIciciRequest->savePaymentReq($paymentDetails, $request, $refDetails, $paymentFor['1']);
             $this->commit();
 
-            $temp['name']   = $refUser->user_name;
-            $temp['mobile'] = $refUser->mobile;
-            $temp['email']  = $refUser->email;
-            $temp['userId'] = $refUser->id;
-            $temp['ulbId']  = $refUser->ulb_id;
-            return responseMsgs(true, "", $temp, "", "01", ".ms", "POST", $request->deviceId);
+            $returnDetails['name']   = $refUser->user_name;
+            $returnDetails['mobile'] = $refUser->mobile;
+            $returnDetails['email']  = $refUser->email;
+            $returnDetails['userId'] = $refUser->id;
+            $returnDetails['ulbId']  = $refUser->ulb_id;
+            $returnDetails['refUrl'] = $paymentDetails['encryptUrl'];
+            return responseMsgs(true, "", $returnDetails, "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             $this->rollback();
             return responseMsgs(false, $e->getMessage(), [], "", "03", ".ms", "POST", $request->deviceId);
