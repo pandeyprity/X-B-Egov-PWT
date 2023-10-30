@@ -671,15 +671,22 @@ class WaterPaymentController extends Controller
             $offlinePayment         = Config::get('payment-constants.PAYMENT_OFFLINE_MODE_WATER');
             $adjustmentFor          = Config::get("waterConstaint.ADVANCE_FOR");
             $todayDate              = Carbon::now();
+
+            # Restrict the online payment maide 
+            if (!in_array($request->paymentMode, $offlinePayment)) {
+                throw new Exception('Invalid payment method');
+            }
+            # consumer demands 
             $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
             if (!$refDemand) {
                 throw new Exception('demand not found!');
             }
             if ($refDemand->last()) {
-                $lastDemand     = $refDemand->last();
-                $startingDate   = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from']);
+                $lastDemand = $refDemand->last();
+                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from'])->startOfMonth();
             }
-            $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto);
+
+            $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
 
