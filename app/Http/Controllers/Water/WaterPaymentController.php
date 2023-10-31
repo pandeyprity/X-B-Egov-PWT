@@ -844,7 +844,7 @@ class WaterPaymentController extends Controller
         # calculation Part
         $totalPaymentAmount  = (collect($allCharges)->sum('due_balance_amount'));
         $totalPaymentAmount  = round($totalPaymentAmount);
-        if ($totalPaymentAmount < $refAmount) {
+        if ($totalPaymentAmount <= $refAmount) {
             throw new Exception("amount should be smaller!");
         }
         $totalPenalty = collect($allCharges)->sum('due_penalty');
