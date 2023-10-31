@@ -25,15 +25,22 @@ class WaterConsumerOwner extends Model
      * save owner details for akola 
      */
 
-     public function saveConsumerOwner($req,$refRequest){
+    public function saveConsumerOwner($req, $refRequest)
+    {
         $waterConsumerOwner   = new WaterConsumerOwner();
-        $waterConsumerOwner->consumer_id         =$refRequest['consumerId'];
-        $waterConsumerOwner->applicant_name      =$req->OwnerName;
-        $waterConsumerOwner->guardian_name       =$req->GuardianName;
-        $waterConsumerOwner->mobile_no           =$req->MobileNo;
-        $waterConsumerOwner->email               =$req->Email;
+        $waterConsumerOwner->consumer_id         = $refRequest['consumerId'];
+        $waterConsumerOwner->applicant_name      = $req->OwnerName;
+        $waterConsumerOwner->guardian_name       = $req->GuardianName;
+        $waterConsumerOwner->mobile_no           = $req->MobileNo;
+        $waterConsumerOwner->email               = $req->Email;
         $waterConsumerOwner->save();
         return $waterConsumerOwner;
-
-        } 
+    }
+    public function editConsumerOwnerDtls($request)
+    {
+        $waterConsumerOwner = WaterConsumerOwner::findorfail($request->id);
+        $waterConsumerOwner->applicant_name      =  $request->applicantName      ?? $waterConsumerOwner->applicant_name;
+        $waterConsumerOwner->guardian_name      =  $request->guardianName      ?? $waterConsumerOwner->guardian_name;
+        $waterConsumerOwner->save();
+    }
 }
