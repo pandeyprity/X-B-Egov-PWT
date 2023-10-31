@@ -680,7 +680,7 @@ class WaterPaymentController extends Controller
                 throw new Exception('Invalid payment method');
             }
             # consumer demands 
-            $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
+            $refDemand = $mWaterConsumerDemand->getConsumerDemandV3($request->consumerId);
             if (!$refDemand) {
                 throw new Exception('demand not found!');
             }
@@ -779,7 +779,7 @@ class WaterPaymentController extends Controller
         }
 
         # get charges according to respective from and upto date 
-        $allCharges = $mWaterConsumerDemand->getFirstConsumerDemand($consumerId)
+        $allCharges = $mWaterConsumerDemand->getFirstConsumerDemandV2($consumerId)
             ->where('demand_from', '>=', $startingDate)
             ->where('demand_upto', '<=', $endDate)
             ->get();
@@ -790,7 +790,7 @@ class WaterPaymentController extends Controller
 
         # calculation Part
         $refadvanceAmount = $this->checkAdvance($request);
-        $totalPaymentAmount = (collect($allCharges)->sum('balance_amount')) - $refadvanceAmount['advanceAmount'];
+        $totalPaymentAmount = (collect($allCharges)->sum('due_balance_amount')) - $refadvanceAmount['advanceAmount'];
         $totalPaymentAmount = round($totalPaymentAmount);
         if ($totalPaymentAmount != $refAmount) {
             throw new Exception("amount Not Matched!");
@@ -798,9 +798,9 @@ class WaterPaymentController extends Controller
         $totalPenalty = collect($allCharges)->sum('penalty');
 
         # checking the advance amount 
-        $allunpaidCharges = $mWaterConsumerDemand->getFirstConsumerDemand($consumerId)
+        $allunpaidCharges = $mWaterConsumerDemand->getFirstConsumerDemandV2($consumerId)
             ->get();
-        $leftAmount = (collect($allunpaidCharges)->sum('balance_amount') - collect($allCharges)->sum('balance_amount'));
+        $leftAmount = (collect($allunpaidCharges)->sum('due_balance_amount') - collect($allCharges)->sum('due_balance_amount'));
         return [
             "consumer"          => $refConsumer,
             "consumerChages"    => $allCharges,
