@@ -686,10 +686,10 @@ class WaterPaymentController extends Controller
             }
             if ($refDemand->last()) {
                 $lastDemand = $refDemand->last();
-                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from'])->startOfMonth();
+                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from']);
             }
 
-            $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
+            $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto);
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
 
@@ -812,6 +812,78 @@ class WaterPaymentController extends Controller
 
 
     /**
+     * | Check the params for part payment 
+        | Serial No :
+        | Under Con
+     */
+    public function prePartPaymentParams($request, $startingDate, $endDate)
+    {
+        $mWaterConsumerDemand   = new WaterConsumerDemand();
+        $mWaterSecondConsumer   = new WaterSecondConsumer();
+        $consumerId             = $request->consumerId;
+        $refAmount              = round($request->amount);
+
+        if ($startingDate > $endDate) {
+            throw new Exception("demandFrom Date should not be grater than demandUpto date!");
+        }
+        $refConsumer = $mWaterSecondConsumer->getConsumerDetails($consumerId)->first();
+        if (!$refConsumer) {
+            throw new Exception("Consumer Not Found!");
+        }
+
+        # get charges according to respective from and upto date 
+        $allCharges = $mWaterConsumerDemand->getFirstConsumerDemand($consumerId)
+            ->where('demand_from', '>=', $startingDate)
+            ->where('demand_upto', '<=', $endDate)
+            ->get();
+        $checkCharges = collect($allCharges)->last();
+        if (is_null($checkCharges) || !$checkCharges->id) {
+            throw new Exception("Charges for respective date doesn't exist!......");
+        }
+
+        # calculation Part
+        $totalPaymentAmount  = (collect($allCharges)->sum('due_balance_amount'));
+        $totalPaymentAmount  = round($totalPaymentAmount);
+        if ($totalPaymentAmount < $refAmount) {
+            throw new Exception("amount should be smaller!");
+        }
+        $totalPenalty = collect($allCharges)->sum('due_penalty');
+        $duePaymentAmount = $totalPaymentAmount - $refAmount;
+        if ($duePaymentAmount < 0) {
+            $duePaymentAmount = 0;
+        }
+
+        # checking the advance amount 
+        $allunpaidCharges = $mWaterConsumerDemand->getFirstConsumerDemand($consumerId)
+            ->get();
+
+        # part Payment     
+        // $partPayDemand = $allCharges->pluck('due_balance_amount');
+        // $refCallDemandAmount = 0;
+        // $noramlDemandId = [];
+        // $dueAdjustDemand = 0;
+        // foreach ($allCharges as $values) {
+        //     if ($values->due_balance_amount < $refAmount) {
+        //         $noramlDemandId = $noramlDemandId + $values->due_balance_amount;
+        //     }
+        //     if ($values->due_balance_amount > $refAmount) {
+        //         $dueAdjustDemand = $values->id;
+        //     }
+        // }
+
+        $leftAmount = (collect($allunpaidCharges)->sum('due_balance_amount') - collect($allCharges)->sum('due_balance_amount'));
+        return [
+            "consumer"          => $refConsumer,
+            "consumerChages"    => $allCharges,
+            "leftDemandAmount"  => $leftAmount,
+            "adjustedAmount"    => 0,
+            "penaltyAmount"     => $totalPenalty,
+            "duePaymentAmount"  => $duePaymentAmount,
+        ];
+    }
+
+
+    /**
      * | Save the consumer demand payment status
      * | @param request
      * | @param offlinePaymentModes
@@ -831,8 +903,11 @@ class WaterPaymentController extends Controller
             $mWaterTran->saveVerifyStatus($waterTrans['id']);
         } else {
             $charges->paid_status = 1;                                      // Update Demand Paid Status // Static
+            $charges->is_full_paid = true;
         }
         $charges->save();                                                   // Save Demand
+
+        # Save transaction details 
         $waterTranDetail->saveDefaultTrans(
             $charges->amount,
             $request->consumerId ?? $request->applicationId,
@@ -2477,19 +2552,138 @@ class WaterPaymentController extends Controller
     /**
      * part payment of consumer
      */
-    public function partPayment(Request $request)
+    public function partPayment(reqDemandPayment $request)
     {
         try {
-            $mWaterConsumerDemand = new waterConsumerDemand();
-            $mWaterTran           = new WaterTran();
-            $demandId             = $request->demandId;
-            $amount               = $request->amount;
+            $user                       = authUser($request);
+            $midGeneration              = new IdGeneration;
+            $mWaterAdjustment           = new WaterAdjustment();
+            $mwaterTran                 = new waterTran();
+            $mWaterConsumerCollection   = new WaterConsumerCollection();
+            $mWaterConsumerDemand       = new WaterConsumerDemand();
 
-            return $actualAmount = $mWaterConsumerDemand->getActualamount($demandId);
+            $offlinePaymentModes    = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
+            $offlinePayment         = Config::get('payment-constants.PAYMENT_OFFLINE_MODE_WATER');
+            $adjustmentFor          = Config::get("waterConstaint.ADVANCE_FOR");
+            $todayDate              = Carbon::now();
 
-            return responseMsgs(true, "part payment succesful", remove_null($amount), "", "01", ".ms", "POST", $request->deviceId);
+            # Restrict the online payment maide 
+            if (!in_array($request->paymentMode, $offlinePayment)) {
+                throw new Exception('Invalid payment method');
+            }
+            # consumer demands 
+            $refDemand = $mWaterConsumerDemand->getConsumerDemandV2($request->consumerId);
+            if (!$refDemand) {
+                throw new Exception('demand not found!');
+            }
+            if ($refDemand->last()) {
+                $lastDemand = $refDemand->last();
+                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from']);
+            }
+            $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto);
+            $startingDate   = $startingDate->toDateString();
+            $endDate        = $endDate->toDateString();
+            if (!$user->ulb_id) {
+                throw new Exception("Ulb Not Found!");
+            }
+
+            # check the params for part payment
+            $finalCharges = $this->prePartPaymentParams($request, $startingDate, $endDate);
+
+            $this->begin();
+            $tranNo = $midGeneration->generateTransactionNo($user->ulb_id);
+            $request->merge([
+                'userId'            => $user->id,
+                'userType'          => $user->user_type,
+                'todayDate'         => $todayDate->format('Y-m-d'),
+                'tranNo'            => $tranNo,
+                'id'                => $request->consumerId,
+                'ulbId'             => $user->ulb_id,
+                'chargeCategory'    => "Demand Collection",                                 // Static
+                'leftDemandAmount'  => $finalCharges['leftDemandAmount'],
+                'adjustedAmount'    => $finalCharges['adjustedAmount'],
+                'isJsk'             => true                                                 // Static
+            ]);
+            # Save the Details of the transaction
+            $wardId['ward_mstr_id'] = collect($finalCharges['consumer'])['ward_mstr_id'];
+            $waterTrans = $mwaterTran->waterTransaction($request, $wardId);
+
+            # Save the Details for the Cheque,DD,neft
+            if (in_array(strtoupper($request['paymentMode']), $offlinePaymentModes)) {
+                $request->merge([
+                    'chequeDate'    => $request['chequeDate'],
+                    'tranId'        => $waterTrans['id'],
+                    'applicationNo' => collect($finalCharges['consumer'])['consumer_no'],
+                    'workflowId'    => 0,                                                   // Static
+                    'ward_no'       => collect($finalCharges['consumer'])['ward_mstr_id']
+                ]);
+                $this->postOtherPaymentModes($request);
+            }
+
+            # adjustment data saving
+            if ($finalCharges['adjustedAmount'] > 0) {
+                $mWaterAdjustment->saveAdjustment($waterTrans, $request, $adjustmentFor['1']);
+            }
+            # Save the fine data in the 
+            if ($finalCharges['penaltyAmount'] > 0) {
+                $this->savePenaltyDetails($waterTrans, $finalCharges['penaltyAmount']);
+            }
+            # Reflect on water Tran Details
+            $refConsumercharges = collect($finalCharges['consumerChages']);
+            $consumercharges = collect($finalCharges['consumerChages']);
+            $popedDemand = $refConsumercharges->pop();
+
+            foreach ($refConsumercharges as $charges) {
+                $this->saveConsumerPaymentStatus($request, $offlinePaymentModes, $charges, $waterTrans);
+                $mWaterConsumerCollection->saveConsumerCollection($charges, $waterTrans, $user->id);
+            }
+
+            # Adjust the details of the demand 
+            $this->adjustPartPayment($popedDemand, $refConsumercharges, $request, $offlinePaymentModes, $waterTrans, $consumercharges);
+
+            $this->commit();
+            return responseMsgs(true, "payment Done!", $request->all(), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
-            return responseMsgs(false, $e->getMessage(), [], "", "03", responseTime(), $request->getMethod(), $request->deviceId);
+            $this->rollback();
+            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", $request->deviceId);
         }
+    }
+
+
+    /**
+     * | Adjust the demand for part payament 
+        | Serial No :
+        | Uner Con
+     */
+    public function adjustPartPayment($popedDemand, $refConsumercharges, $request, $offlinePaymentModes, $waterTrans, $consumercharges)
+    {
+        $mWaterConsumerCollection   = new WaterConsumerCollection();
+        $waterTranDetail            = new WaterTranDetail();
+        $mWaterTran                 = new WaterTran();
+        $refAmount                  = round($request->amount);
+        $remaningAmount             = round($refConsumercharges->sum('due_balance_amount'));
+        if ($remaningAmount > $refAmount) {
+            throw new Exception("plese select the month properly for part payament!");
+        }
+
+        if (in_array($request['paymentMode'], $offlinePaymentModes)) {
+            $popedDemand->paid_status = 2;                                       // Update Demand Paid Status // Static
+            $mWaterTran->saveVerifyStatus($waterTrans['id']);
+        } else {
+            $popedDemand->paid_status = 1;                                      // Update Demand Paid Status // Static
+        }
+
+        $remaningBalance = $popedDemand->due_balance_amount - ($refAmount - $refConsumercharges->sum('due_balance_amount'));
+        $popedDemand->due_balance_amount = $remaningBalance;
+        $popedDemand->save();                                                   // Save Demand
+
+        # Save transaction details 
+        $waterTranDetail->saveDefaultTrans(
+            $popedDemand->amount,
+            $request->consumerId ?? $request->applicationId,
+            $waterTrans['id'],
+            $popedDemand->id,
+        );
+        $mWaterConsumerCollection->saveConsumerCollection($popedDemand, $waterTrans, $request->auth['id']);
     }
 }

@@ -101,11 +101,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('citizen/payment-history', 'paymentHistory');                                       // Citizen  
         Route::post('consumer/water-user-charges', 'getWaterUserCharges');                              // Admin / Citizen
 
-
         # Site inspection 
         Route::post('site-verification/save-site-details', 'saveSitedetails');                          // Admin
         Route::post('consumer/offline-payment', 'Consumerofflinepayment');
-
 
         # FOR AKOLA 
         Route::post('consumer/offline-request-payment', 'offlineConPayment');

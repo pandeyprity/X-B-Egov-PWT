@@ -69,9 +69,10 @@ class WaterConsumerDemand extends Model
     {
         // $this->impos_penalty($consumerId);
         return WaterConsumerDemand::where('consumer_id', $consumerId)
-            ->where('paid_status', 0)
+            ->where('is_full_paid',false)
             ->where('status', true)
-            ->orderByDesc('id');
+            ->orderByDesc('id')
+            ->get();
     }
 
     /**
