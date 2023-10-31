@@ -842,8 +842,7 @@ class WaterPaymentController extends Controller
         }
 
         # calculation Part
-        $totalPaymentAmount  = (collect($allCharges)->sum('due_balance_amount'));
-        $totalPaymentAmount  = round($totalPaymentAmount);
+        $totalPaymentAmount  = round(collect($allCharges)->sum('due_balance_amount'));
         if ($totalPaymentAmount <= $refAmount) {
             throw new Exception("amount should be smaller!");
         }
@@ -860,7 +859,7 @@ class WaterPaymentController extends Controller
         $leftAmount = (collect($allunpaidCharges)->sum('due_balance_amount') - collect($allCharges)->sum('due_balance_amount'));
         return [
             "consumer"          => $refConsumer,
-            "consumerChages"    => $allCharges,
+            "consumerChages"    => $allCharges->orderByAsc('demand_upto'),
             "leftDemandAmount"  => $leftAmount,
             "adjustedAmount"    => 0,
             "penaltyAmount"     => $totalPenalty,
@@ -2623,9 +2622,10 @@ class WaterPaymentController extends Controller
                 $this->saveConsumerPaymentStatus($request, $offlinePaymentModes, $charges, $waterTrans);
                 $mWaterConsumerCollection->saveConsumerCollection($charges, $waterTrans, $user->id);
             }
-
             # Adjust the details of the demand 
             $this->adjustPartPayment($popedDemand, $refConsumercharges, $request, $offlinePaymentModes, $waterTrans, $consumercharges);
+
+
 
             $this->commit();
             return responseMsgs(true, "payment Done!", $request->all(), "", "01", ".ms", "POST", $request->deviceId);
