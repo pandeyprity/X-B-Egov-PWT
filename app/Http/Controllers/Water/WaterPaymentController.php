@@ -1719,8 +1719,8 @@ class WaterPaymentController extends Controller
             $endDate        = $endDate->toDateString();
             // $url            = Config::get('razorpay.PAYMENT_GATEWAY_URL');
             // $endPoint       = Config::get('razorpay.PAYMENT_GATEWAY_END_POINT');
-            # Restrict the online payment maide 
-            if ($request->paymentMode !== 'Online') {
+            # Restrict the online payment maide   
+            if ($request->paymentMode !=$paymentMode['5']) {
                 throw new Exception('Invalid payment method');
             }
             # Demand Collection 
