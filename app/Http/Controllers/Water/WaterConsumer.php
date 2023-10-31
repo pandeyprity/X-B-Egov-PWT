@@ -156,7 +156,7 @@ class WaterConsumer extends Controller
             }
 
             # Get demand details 
-            $refConsumerDemand = $mWaterConsumerDemand->getConsumerDemand($refConsumerId);
+            $refConsumerDemand = $mWaterConsumerDemand->getConsumerDemandV3($refConsumerId);
             if (!($refConsumerDemand->first())) {
                 $consumerDemand['demandStatus'] = 0;                                    // Static / to represent existence of demand
                 return responseMsgs(false, "consumer demands not found!", $consumerDemand, "", "01", responseTime(), $request->getMethod(), $request->deviceId);
@@ -168,8 +168,8 @@ class WaterConsumer extends Controller
 
             # Check the details 
             if (isset($checkParam)) {
-                $sumDemandAmount = collect($consumerDemand['consumerDemands'])->sum('balance_amount');
-                $totalPenalty = collect($consumerDemand['consumerDemands'])->sum('penalty');
+                $sumDemandAmount = collect($consumerDemand['consumerDemands'])->sum('due_balance_amount');
+                $totalPenalty = collect($consumerDemand['consumerDemands'])->sum('due_penalty');
                 $consumerDemand['totalSumDemand'] = round($sumDemandAmount, 2);
                 $consumerDemand['totalPenalty'] = round($totalPenalty, 2);
                 # Meter Details 
