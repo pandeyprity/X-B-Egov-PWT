@@ -43,11 +43,6 @@ Route::group(['middleware' => ['auth_maker', 'request_logger']], function () {
         Route::post('search-reconciliation-details', 'searchReconciliationDetails');                // 12
         Route::post('update-reconciliation-details', 'updateReconciliationDetails');                // 13
     });
-
-    # Icici payament operation
-    Route::controller(IciciPaymentController::class)->group(function () {
-        Route::post('v1/get-referal-url', 'getReferalUrl');
-    });
 });
 Route::controller(RazorpayPaymentController::class)->group(function () {
     Route::post('razorpay-webhook', 'gettingWebhookDetails');                                       // 14 collecting the all data provided by the webhook and updating the related database
@@ -72,4 +67,5 @@ Route::controller(PaymentController::class)->group(function () {
 Route::controller(IciciPaymentController::class)->group(function () {
     Route::post('v1/collect-callback-data', 'getCallbackDetial');
     Route::post('v1/eazypayuat/get-webhook-data', 'getWebhookData');
+    Route::post('v1/get-referal-url', 'getReferalUrl');
 });
