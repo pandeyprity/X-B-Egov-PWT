@@ -742,6 +742,9 @@ class WaterPaymentController extends Controller
                 $this->saveConsumerPaymentStatus($request, $offlinePaymentModes, $charges, $waterTrans);
                 $mWaterConsumerCollection->saveConsumerCollection($charges, $waterTrans, $user->id);
             }
+            $request->merge([
+                'tranId'    => $waterTrans['id']
+            ]);
             $this->commit();
             return responseMsgs(true, "payment Done!", $request->all(), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
