@@ -12,6 +12,7 @@ use App\Http\Requests\Water\ReqWaterPayment;
 use App\Http\Requests\Water\siteAdjustment;
 use App\MicroServices\IdGeneration;
 use  App\Http\Requests\water\reqeustFileWater;
+use App\MicroServices\DocUpload;
 use App\Models\Payment\TempTransaction;
 use App\Models\Payment\WebhookPaymentData;
 use App\Models\Water\WaterAdjustment;
@@ -35,6 +36,7 @@ use App\Models\Water\WaterConsumerTax;
 use App\Models\Water\WaterIciciRequest;
 use App\Models\Water\WaterOwnerTypeMstr;
 use App\Models\Water\WaterParamPipelineType;
+use App\Models\Water\WaterPartPaymentDocument;
 use App\Models\Water\WaterPenaltyInstallment;
 use App\Models\Water\WaterPropertyTypeMstr;
 use App\Models\Water\WaterRazorPayRequest;
@@ -2625,7 +2627,24 @@ class WaterPaymentController extends Controller
             # Adjust the details of the demand 
             $this->adjustPartPayment($popedDemand, $refConsumercharges, $request, $offlinePaymentModes, $waterTrans, $consumercharges);
 
+            # Save document
+            $docUpload = new DocUpload;
+            $mWaterPartPaymentDocument = new WaterPartPaymentDocument();
+            $relativePath = "Uploads/Water/Partpayment";
+            $refImageName = "Partpayment";
+            $refImageName = $request->consumerId . '-' . str_replace(' ', '_', $refImageName);
+            $document     = $request->document;
 
+            $imageName = $docUpload->upload($refImageName, $document, $relativePath);
+            $metaReqs['consumer_id'] = $request->consumerId;
+            $metaReqs['transaction_id'] = $waterTrans['id'];
+            $metaReqs['relative_path'] = $relativePath;
+            $metaReqs['document'] = $imageName;
+            $metaReqs['uploaded_by'] = $user->id;
+            $metaReqs['uploaded_by_type'] = $user->user_type;
+
+            // $metaReqs = new Request($metaReqs);
+            $mWaterPartPaymentDocument->postDocuments($metaReqs);
 
             $this->commit();
             return responseMsgs(true, "payment Done!", $request->all(), "", "01", ".ms", "POST", $request->deviceId);
