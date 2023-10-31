@@ -859,7 +859,7 @@ class WaterPaymentController extends Controller
         $leftAmount = (collect($allunpaidCharges)->sum('due_balance_amount') - collect($allCharges)->sum('due_balance_amount'));
         return [
             "consumer"          => $refConsumer,
-            "consumerChages"    => $allCharges->orderByAsc('demand_upto'),
+            "consumerChages"    => $allCharges->sortBy('demand_upto'),
             "leftDemandAmount"  => $leftAmount,
             "adjustedAmount"    => 0,
             "penaltyAmount"     => $totalPenalty,
