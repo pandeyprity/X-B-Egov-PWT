@@ -2659,7 +2659,11 @@ class WaterPaymentController extends Controller
             $popedDemand->paid_status = 1;                                      // Update Demand Paid Status // Static
         }
 
-        $remaningBalance = $popedDemand->due_balance_amount - (abs($consumercharges->sum('due_balance_amount') ?? 0) - $refAmount);
+        if (!$refConsumercharges->first()) {
+            $remaningBalance = ($consumercharges->sum('due_balance_amount')) - $refAmount;
+        } else {
+            $remaningBalance = $popedDemand->due_balance_amount - ($consumercharges->sum('due_balance_amount') - $refAmount);
+        }
         $popedDemand->due_balance_amount = $remaningBalance;
         $popedDemand->save();                                                   // Save Demand
 
