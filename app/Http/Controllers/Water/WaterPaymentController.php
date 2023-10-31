@@ -832,7 +832,7 @@ class WaterPaymentController extends Controller
         }
 
         # get charges according to respective from and upto date 
-        $allCharges = $mWaterConsumerDemand->getFirstConsumerDemand($consumerId)
+        $allCharges = $mWaterConsumerDemand->getFirstConsumerDemandV2($consumerId)
             ->where('demand_from', '>=', $startingDate)
             ->where('demand_upto', '<=', $endDate)
             ->get();
@@ -854,22 +854,8 @@ class WaterPaymentController extends Controller
         }
 
         # checking the advance amount 
-        $allunpaidCharges = $mWaterConsumerDemand->getFirstConsumerDemand($consumerId)
+        $allunpaidCharges = $mWaterConsumerDemand->getFirstConsumerDemandV2($consumerId)
             ->get();
-
-        # part Payment     
-        // $partPayDemand = $allCharges->pluck('due_balance_amount');
-        // $refCallDemandAmount = 0;
-        // $noramlDemandId = [];
-        // $dueAdjustDemand = 0;
-        // foreach ($allCharges as $values) {
-        //     if ($values->due_balance_amount < $refAmount) {
-        //         $noramlDemandId = $noramlDemandId + $values->due_balance_amount;
-        //     }
-        //     if ($values->due_balance_amount > $refAmount) {
-        //         $dueAdjustDemand = $values->id;
-        //     }
-        // }
 
         $leftAmount = (collect($allunpaidCharges)->sum('due_balance_amount') - collect($allCharges)->sum('due_balance_amount'));
         return [
@@ -961,18 +947,18 @@ class WaterPaymentController extends Controller
         if ($validated->fails())
             return validationError($validated);
         try {
-            $mWaterConsumerDemand     = new WaterConsumerDemand();
-            $refDemand = $mWaterConsumerDemand->getConsumerDemand($request->consumerId);
+            $mWaterConsumerDemand = new WaterConsumerDemand();
+            $refDemand = $mWaterConsumerDemand->getConsumerDemandV3($request->consumerId);
             if (!$refDemand) {
                 throw new Exception('demand not found!');
             }
             if ($refDemand->last()) {
                 $lastDemand = $refDemand->last();
-                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from'])->startOfMonth();
+                $startingDate = Carbon::createFromFormat('Y-m-d', $lastDemand['demand_from']);
             } else {
                 $startingDate = null;
             }
-            $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto)->endOfMonth();
+            $endDate        = Carbon::createFromFormat('Y-m-d',  $request->demandUpto);
             $startingDate   = $startingDate->toDateString();
             $endDate        = $endDate->toDateString();
 
@@ -982,7 +968,7 @@ class WaterPaymentController extends Controller
             # update the penalty used status after its use
             $refadvanceAmount = $this->checkAdvance($request);
             $advanceAmount = $refadvanceAmount['advanceAmount'];
-            $totalPaymentAmount  = collect($collectiveCharges)->pluck('balance_amount')->sum();
+            $totalPaymentAmount  = collect($collectiveCharges)->pluck('due_balance_amount')->sum();
             $roundedTotalDemand = round($totalPaymentAmount);
             $actualCallAmount = $totalPaymentAmount - $advanceAmount;
             if ($actualCallAmount < 0) {
@@ -995,7 +981,7 @@ class WaterPaymentController extends Controller
 
             $returnData = [
                 'totalPayAmount'        => $roundedTotalDemand,
-                'totalPenalty'          => collect($collectiveCharges)->pluck('penalty')->sum(),
+                'totalPenalty'          => collect($collectiveCharges)->pluck('due_penalty')->sum(),
                 'totalDemand'           => $roundedTotalDemand,
                 'totalAdvance'          => $advanceAmount,
                 'totalRebate'           => 0,                                                       // Static
@@ -1031,7 +1017,7 @@ class WaterPaymentController extends Controller
         }
 
         # get demand by (upto and from) date 
-        $allCharges = $mWaterConsumerDemand->getFirstConsumerDemand($request->consumerId)
+        $allCharges = $mWaterConsumerDemand->getFirstConsumerDemandV2($request->consumerId)
             ->where('demand_from', '>=', $startingDate)
             ->where('demand_upto', '<=', $endDate)
             ->get();
@@ -1693,9 +1679,9 @@ class WaterPaymentController extends Controller
                 ->get();
 
 
-            $fromDate           = collect($consumerDemands)->first()->demand_from;
+            $fromDate           = collect($consumerDemands)->last()->demand_from;
             $startingDate       = Carbon::createFromFormat('Y-m-d',  $fromDate)->startOfMonth();
-            $uptoDate           = collect($consumerDemands)->last()->demand_upto;
+            $uptoDate           = collect($consumerDemands)->first()->demand_upto;
             $endingDate         = Carbon::createFromFormat('Y-m-d',  $uptoDate)->endOfMonth();
             $penaltyAmount      = collect($consumerDemands)->sum('penalty');
             $refDemandAmount    = collect($consumerDemands)->sum('balance_amount');
