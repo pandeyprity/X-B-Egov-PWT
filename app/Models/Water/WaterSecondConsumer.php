@@ -378,7 +378,7 @@ class WaterSecondConsumer extends Model
             'water_second_consumers.id as waterConsumerId',
             'water_consumer_owners.id as waterConsumerOwner',
         )
-            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id','water_second_consumers.id')
+            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.id', $consumerId);
     }
     /**
@@ -387,11 +387,11 @@ class WaterSecondConsumer extends Model
     public function editConsumerdtls($request)
     {
         $mWaterSecondConsumer = WaterSecondConsumer::findorfail($request->consumerId);
-        $mWaterSecondConsumer->ward_mstr_id         =  $request->wardId;         
-        $mWaterSecondConsumer->zone_mstr_id         =  $request->zoneId;        
-        $mWaterSecondConsumer->mobile_no            =  $request->mobileNo;    
-        $mWaterSecondConsumer->old_consumer_no      =  $request->oldConsumerNo;     
-
+        $mWaterSecondConsumer->ward_mstr_id         =  $request->wardId;
+        $mWaterSecondConsumer->zone_mstr_id         =  $request->zoneId;
+        $mWaterSecondConsumer->mobile_no            =  $request->mobileNo;
+        $mWaterSecondConsumer->old_consumer_no      =  $request->oldConsumerNo;
+        $mWaterSecondConsumer->property_no          =  $request->propertyNo;
         $mWaterSecondConsumer->save();
     }
 }

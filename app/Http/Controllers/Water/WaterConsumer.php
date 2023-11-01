@@ -198,7 +198,7 @@ class WaterConsumer extends Controller
             }
             throw new Exception("There is no demand!");
         } catch (Exception $e) {
-            return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
+            return responseMsgs(false, $e->getMessage(),"", "", "01", "ms", "POST", "");
         }
     }
 
@@ -2272,6 +2272,7 @@ class WaterConsumer extends Controller
                 'zoneId'            => 'nullable|',
                 'wardId'            => 'nullable|integer',
                 'address'           => 'nullable|',
+                'propertyNo'        => 'nullable',
                 'oldConsumerNo'     => 'nullable'
             ]
         );
@@ -2280,7 +2281,7 @@ class WaterConsumer extends Controller
 
         try {
             $now            = Carbon::now();
-            $user           = authUser($request);
+            $user           = authUser($request);    
             $consumerId     = $request->consumerId;
 
             $mWaterSecondConsumer = new waterSecondConsumer();
