@@ -107,7 +107,14 @@ class PropPropertyUpdateRequest extends Model
             'is_trust_verified' => $req->isTrustVerified ?? false,
             'category_id' => $req->category,
         ];
-        return PropPropertyUpdateRequest::create($reqs)->id;   
+        $propUpdateReq= PropPropertyUpdateRequest::create($reqs);   
+        return ([
+            'id' => $propUpdateReq->id,
+            'application_no' => $propUpdateReq->request_no,
+            'workflow_id' => $propUpdateReq->workflow_id,
+            'current_role' => $propUpdateReq->current_role_id,
+            'ulb_id' => $propUpdateReq->ulb_id
+        ]);
     }
 
     public function WorkFlowMetaList()

@@ -408,7 +408,7 @@ class PropertyController extends Controller
             $req->merge($propRequest); 
            
             DB::beginTransaction();
-            $updetId = $rPropProerty->store($req);
+            $updetReq = $rPropProerty->store($req);
             foreach($req->owner as $val)
             {
                 $testOwner = $mPropOwners->select("*")->where("id",$val["ownerId"])->where("property_id",$propId)->first();
@@ -417,14 +417,13 @@ class PropertyController extends Controller
                     throw new Exception("Invalid Owner Id Pass");
                 }                
                 $newOwnerArr = $this->generatePropOwnerUpdateRequest($val,$testOwner,$req->isFullUpdate);
-                $newOwnerArr["requestId"] = $updetId;
+                $newOwnerArr["requestId"] = $updetReq["id"];
                 $newOwnerArr["userId"] = $refUlbId;
                 $rPropOwners->store($newOwnerArr);
                                
             } 
             DB::commit();
-            
-            return responseMsgs(true, 'Update Request Submited', '', '010801', '01', '', 'Post', '');
+            return responseMsgs(true, 'Update Request Submited', $updetReq, '010801', '01', '', 'Post', '');
         } catch (Exception $e) {
             DB::rollBack();
             return responseMsg(false, $e->getMessage(), "");
