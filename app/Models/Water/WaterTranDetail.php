@@ -67,4 +67,13 @@ class WaterTranDetail extends Model
         $waterTranDetail->total_demand      = $amount;
         $waterTranDetail->save();
     }
+
+    /**
+     * | Get transaction details according to transaction id
+     */
+    public function getDetailByTranIdV2($transactionId)
+    {
+        return WaterTranDetail::where('tran_id', $transactionId)
+            ->where('status', 1);
+    }
 }
