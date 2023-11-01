@@ -742,7 +742,7 @@ class WaterPaymentController extends Controller
             $consumercharges = collect($finalCharges['consumerChages']);
             foreach ($consumercharges as $charges) {
                 $this->saveConsumerPaymentStatus($request, $offlinePaymentModes, $charges, $waterTrans);
-                $mWaterConsumerCollection->saveConsumerCollection($charges, $waterTrans, $user->id);
+                $mWaterConsumerCollection->saveConsumerCollection($charges, $waterTrans, $user->id, Null);
             }
             $request->merge([
                 'tranId'    => $waterTrans['id']
@@ -900,6 +900,7 @@ class WaterPaymentController extends Controller
             $request->consumerId ?? $request->applicationId,
             $waterTrans['id'],
             $charges['id'],
+            null
         );
     }
 
@@ -1286,6 +1287,7 @@ class WaterPaymentController extends Controller
             $req->applicationId,
             $waterTrans['id'],
             $charges['id'],
+            null
         );
     }
 
@@ -1920,8 +1922,8 @@ class WaterPaymentController extends Controller
             }
             foreach ($mDemands as $demand) {
                 # save Water trans details 
-                $mWaterTranDetail->saveDefaultTrans($demand->amount, $demand->consumer_id, $transactionId['id'], $demand->id);
-                $mWaterConsumerCollection->saveConsumerCollection($demand, $transactionId, $refUserId);
+                $mWaterTranDetail->saveDefaultTrans($demand->amount, $demand->consumer_id, $transactionId['id'], $demand->id,null);
+                $mWaterConsumerCollection->saveConsumerCollection($demand, $transactionId, $refUserId, null);
                 # update the payment status of the demand 
                 $demand->paid_status = 1;                                          // Static
                 $demand->update();
@@ -2200,7 +2202,7 @@ class WaterPaymentController extends Controller
             $transactionId = $mWaterTran->waterTransaction($metaRequest, $consumer);
 
             # save Water trans details 
-            $mWaterTranDetail->saveDefaultTrans($demandDetails->amount, $demandDetails->related_id, $transactionId['id'], $demandDetails->id);
+            $mWaterTranDetail->saveDefaultTrans($demandDetails->amount, $demandDetails->related_id, $transactionId['id'], $demandDetails->id,null);
 
             # Save the payment Status and the initiater in active Table
             $updateStatus = [
@@ -2435,6 +2437,7 @@ class WaterPaymentController extends Controller
             $request->consumerId ?? $request->applicationId,
             $waterTrans['id'],
             $charges['id'],
+            null
         );
     }
 
@@ -2622,7 +2625,7 @@ class WaterPaymentController extends Controller
 
             foreach ($refConsumercharges as $charges) {
                 $this->saveConsumerPaymentStatus($request, $offlinePaymentModes, $charges, $waterTrans);
-                $mWaterConsumerCollection->saveConsumerCollection($charges, $waterTrans, $user->id);
+                $mWaterConsumerCollection->saveConsumerCollection($charges, $waterTrans, $user->id, null);
             }
             # Adjust the details of the demand 
             $this->adjustPartPayment($popedDemand, $refConsumercharges, $request, $offlinePaymentModes, $waterTrans, $consumercharges);
@@ -2636,12 +2639,12 @@ class WaterPaymentController extends Controller
             $document     = $request->document;
 
             $imageName = $docUpload->upload($refImageName, $document, $relativePath);
-            $metaReqs['consumer_id'] = $request->consumerId;
-            $metaReqs['transaction_id'] = $waterTrans['id'];
-            $metaReqs['relative_path'] = $relativePath;
-            $metaReqs['document'] = $imageName;
-            $metaReqs['uploaded_by'] = $user->id;
-            $metaReqs['uploaded_by_type'] = $user->user_type;
+            $metaReqs['consumer_id']        = $request->consumerId;
+            $metaReqs['transaction_id']     = $waterTrans['id'];
+            $metaReqs['relative_path']      = $relativePath;
+            $metaReqs['document']           = $imageName;
+            $metaReqs['uploaded_by']        = $user->id;
+            $metaReqs['uploaded_by_type']   = $user->user_type;
 
             // $metaReqs = new Request($metaReqs);
             $mWaterPartPaymentDocument->postDocuments($metaReqs);
@@ -2668,7 +2671,7 @@ class WaterPaymentController extends Controller
         $refAmount                  = round($request->amount);
         $remaningAmount             = round($refConsumercharges->sum('due_balance_amount'));
         if ($remaningAmount > $refAmount) {
-            throw new Exception("plese select the month properly for part payament!");
+            throw new Exception("please select the month properly for part payament!");
         }
 
         if (in_array($request['paymentMode'], $offlinePaymentModes)) {
@@ -2679,9 +2682,11 @@ class WaterPaymentController extends Controller
         }
 
         if (!$refConsumercharges->first()) {
-            $remaningBalance = ($consumercharges->sum('due_balance_amount')) - $refAmount;
+            $refPaidAmount      = ($consumercharges->sum('due_balance_amount')) - $refAmount;
+            $remaningBalance    = $refPaidAmount;
         } else {
-            $remaningBalance = $popedDemand->due_balance_amount - ($consumercharges->sum('due_balance_amount') - $refAmount);
+            $refPaidAmount      = $consumercharges->sum('due_balance_amount') - $refAmount;
+            $remaningBalance    = $popedDemand->due_balance_amount - $refPaidAmount;
         }
         $popedDemand->due_balance_amount = $remaningBalance;
         $popedDemand->save();                                                   // Save Demand
@@ -2692,7 +2697,34 @@ class WaterPaymentController extends Controller
             $request->consumerId ?? $request->applicationId,
             $waterTrans['id'],
             $popedDemand->id,
+            $refPaidAmount
         );
-        $mWaterConsumerCollection->saveConsumerCollection($popedDemand, $waterTrans, $request->auth['id']);
+        $mWaterConsumerCollection->saveConsumerCollection($popedDemand, $waterTrans, $request->auth['id'], $refPaidAmount);
+    }
+
+
+    /**
+     * | Demand updation for consumer demand
+        | Serial No :
+        | Under Con
+     */
+    public function demandUpdation(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "citizenId" => "required|",
+            ]
+        );
+        if ($validated->fails()) {
+            return validationError($validated);
+        }
+
+        try {
+
+            return responseMsgs(true, "payment Done!", $request->all(), "", "01", responseTime(), "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), [], "", "01", responseTime(), "POST", $request->deviceId);
+        }
     }
 }

@@ -119,7 +119,7 @@ class WaterTran extends Model
         $transactionId = $watertransaction->id;
 
         $mWaterTranDetail = new WaterTranDetail();
-        $mWaterTranDetail->saveDefaultTrans($totalConnectionCharges, $applicationId, $transactionId, $connectionId);
+        $mWaterTranDetail->saveDefaultTrans($totalConnectionCharges, $applicationId, $transactionId, $connectionId,null);
     }
 
     public function chequeTranDtl($ulbId)
