@@ -236,7 +236,7 @@ class WaterSecondConsumer extends Model
             "ulb_masters.association_with",
             DB::raw('ulb_ward_masters.ward_name as ward_number')
         )
-            ->leftjoin('zone_masters','zone_masters.id','water_second_consumers.zone_mstr_id')
+            ->leftjoin('zone_masters', 'zone_masters.id', 'water_second_consumers.zone_mstr_id')
             ->leftjoin('water_property_type_mstrs', 'water_property_type_mstrs.id', 'water_second_consumers.property_type_id')
             ->join('water_consumer_initial_meters', 'water_consumer_initial_meters.consumer_id', 'water_second_consumers.id')
             ->join("water_consumer_owners", 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
@@ -370,5 +370,28 @@ class WaterSecondConsumer extends Model
             // ->where('ward_mstr_id',$wardId)
             // ->where('zone',$zoneId);
         ;
+    }
+    #all consumer details
+    public function consumerDetails($consumerId)
+    {
+        return WaterSecondConsumer::select(
+            'water_second_consumers.*',
+            'water_consumer_owners.*',
+        )
+            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id','water_second_consumers.id')
+            ->where('water_second_consumers.id', $consumerId);
+    }
+    /**
+     * | Save the consumer dtl 
+     */
+    public function editConsumerdtls($request)
+    {
+        $mWaterSecondConsumer = WaterSecondConsumer::findorfail($request->consumerId);
+        $mWaterSecondConsumer->ward_mstr_id         =  $request->wardId;         
+        $mWaterSecondConsumer->zone_mstr_id         =  $request->zoneId;        
+        $mWaterSecondConsumer->mobile_no            =  $request->mobileNo;    
+        $mWaterSecondConsumer->old_consumer_no      =  $request->oldConsumerNo;     
+
+        $mWaterSecondConsumer->save();
     }
 }

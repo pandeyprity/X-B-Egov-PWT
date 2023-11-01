@@ -40,14 +40,24 @@ class reqDemandPayment extends FormRequest
             if (isset($this['chequeDate']) && $this['chequeDate'] > $refDate) {
                 # throw error
             }
-            if (isset($this['paymentMode']) &&  in_array($this['paymentMode'], $offlinePaymentModes) && $this['paymentMode'] != $refPaymentMode['5']) {
-                $rules['remarks']       = 'required|';
+        }
+        if (isset($this['paymentMode']) &&  in_array($this['paymentMode'], $offlinePaymentModes) && $this['paymentMode'] != $refPaymentMode['5']) {
+            $rules['remarks'] = 'required|';
+        }
+
+        # For Part payament 
+        if (isset($this['paymentType']) && $this['paymentType'] == "isPartPayment") {
+            $rules['deviceId']  = "nullable";
+            if (in_array($this['paymentMode'], $offlinePaymentModes) &&  $this['paymentMode'] != $refPaymentMode['1']) {
+                $rules['document']  = "required|mimes:pdf,jpg,jpeg,png|max:2048";
             }
         }
-        $rules['consumerId']        = 'required';
-        $rules['amount']            = 'required';
-        $rules['demandUpto']        = 'required|date_format:Y-m-d|';
-        $rules['paymentMode']       = 'required|';
+
+        $rules['demandUpto']    = 'required|date_format:Y-m-d|';
+        $rules['consumerId']    = 'required';
+        $rules['amount']        = 'required';
+        $rules['paymentMode']   = 'required';
+        $rules['paymentType']   = 'nullable';
 
         return $rules;
     }

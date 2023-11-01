@@ -101,11 +101,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('citizen/payment-history', 'paymentHistory');                                       // Citizen  
         Route::post('consumer/water-user-charges', 'getWaterUserCharges');                              // Admin / Citizen
 
-
         # Site inspection 
         Route::post('site-verification/save-site-details', 'saveSitedetails');                          // Admin
         Route::post('consumer/offline-payment', 'Consumerofflinepayment');
-
 
         # FOR AKOLA 
         Route::post('consumer/offline-request-payment', 'offlineConPayment');
@@ -150,6 +148,8 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
         Route::post('consumer/get-master-data', 'getMasterData');
         Route::post('consumer/get-consumer-demand', 'getConsumerDemands');
+        Route::post('consumer/update-consumer-details', 'updateConsumerDetails');
+
     });
 
 

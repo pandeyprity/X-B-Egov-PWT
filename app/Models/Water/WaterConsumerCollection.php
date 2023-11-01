@@ -14,7 +14,7 @@ class WaterConsumerCollection extends Model
      * | Save consumer demand details for the transactions
      * | @param 
      */
-    public function saveConsumerCollection($charges, $waterTrans, $refUserId)
+    public function saveConsumerCollection($charges, $waterTrans, $refUserId, $refPaidAmount)
     {
         $mWaterConsumerCollection = new WaterConsumerCollection();
         $mWaterConsumerCollection->consumer_id          = $charges->consumer_id;
@@ -29,6 +29,7 @@ class WaterConsumerCollection extends Model
         $mWaterConsumerCollection->payment_from         = null;
         $mWaterConsumerCollection->demand_payment_from  = null;
         $mWaterConsumerCollection->connection_type      = $charges->connection_type;
+        $mWaterConsumerCollection->paid_amount          = $refPaidAmount ?? $charges->due_balance_amount;
         $mWaterConsumerCollection->save();
     }
 }

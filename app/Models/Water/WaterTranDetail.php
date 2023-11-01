@@ -27,13 +27,14 @@ class WaterTranDetail extends Model
     /**
      * | Save transaction details 
      */
-    public function saveDefaultTrans($totalConnectionCharges, $applicationId, $transactionId, $connectionId)
+    public function saveDefaultTrans($totalConnectionCharges, $applicationId, $transactionId, $connectionId, $refPaidAmount)
     {
         $TradeDtl = new WaterTranDetail;
         $TradeDtl->tran_id          = $transactionId;
         $TradeDtl->demand_id        = $connectionId;
         $TradeDtl->total_demand     = $totalConnectionCharges;
         $TradeDtl->application_id   = $applicationId;
+        $TradeDtl->paid_amount      = $refPaidAmount ?? $totalConnectionCharges;
         $TradeDtl->created_at       = Carbon::now();
         $TradeDtl->save();
     }

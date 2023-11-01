@@ -61,6 +61,22 @@ class WaterConsumerDemand extends Model
             ->get();
     }
 
+
+    /**
+     * | Get Demand According to consumerId and payment status false 
+        | Here Changes
+     */
+    public function getConsumerDemandV3($consumerId)
+    {
+        // $this->impos_penalty($consumerId);
+        return WaterConsumerDemand::where('consumer_id', $consumerId)
+            ->where('is_full_paid', false)
+            ->where('status', true)
+            ->orderByDesc('id')
+            ->get();
+    }
+
+
     /**
      * | Get Demand According to consumerId and payment status false versin 2
         | Here Changes
@@ -69,9 +85,10 @@ class WaterConsumerDemand extends Model
     {
         // $this->impos_penalty($consumerId);
         return WaterConsumerDemand::where('consumer_id', $consumerId)
-            ->where('paid_status', 0)
+            ->where('is_full_paid', false)
             ->where('status', true)
-            ->orderByDesc('id');
+            ->orderByDesc('id')
+            ->get();
     }
 
     /**
@@ -136,6 +153,7 @@ class WaterConsumerDemand extends Model
         $mWaterConsumerDemand->demand_no                =  "WCD" . random_int(100000, 999999) . "/" . random_int(1, 10);
         $mWaterConsumerDemand->balance_amount           =  $demands['penalty'] ?? 0 + $demands['amount'];
         $mWaterConsumerDemand->created_at               =  Carbon::now();
+        $mWaterConsumerDemand->due_balance_amount       =  $demands['penalty'] ?? 0 + $demands['amount'];
         $mWaterConsumerDemand->save();
 
         return $mWaterConsumerDemand->id;
@@ -150,6 +168,18 @@ class WaterConsumerDemand extends Model
         // $this->impos_penalty($consumerId);
         return WaterConsumerDemand::where('consumer_id', $consumerId)
             ->where('paid_status', 0)
+            ->where('status', true)
+            ->orderByDesc('id');
+    }
+
+    /**
+     * | Get Demand According to consumerId and payment status false 
+     */
+    public function getFirstConsumerDemandV2($consumerId)
+    {
+        // $this->impos_penalty($consumerId);
+        return WaterConsumerDemand::where('consumer_id', $consumerId)
+            ->where('is_full_paid', false)
             ->where('status', true)
             ->orderByDesc('id');
     }
@@ -369,8 +399,9 @@ class WaterConsumerDemand extends Model
     /**
      * get actual amount
      */
-    public function getActualamount($demandId){
-        return WaterConsumerDemand::where('id',$demandId)
-        ->where('status',True);
+    public function getActualamount($demandId)
+    {
+        return WaterConsumerDemand::where('id', $demandId)
+            ->where('status', True);
     }
 }

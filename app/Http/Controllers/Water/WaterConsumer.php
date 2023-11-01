@@ -156,7 +156,7 @@ class WaterConsumer extends Controller
             }
 
             # Get demand details 
-            $refConsumerDemand = $mWaterConsumerDemand->getConsumerDemand($refConsumerId);
+            $refConsumerDemand = $mWaterConsumerDemand->getConsumerDemandV3($refConsumerId);
             if (!($refConsumerDemand->first())) {
                 $consumerDemand['demandStatus'] = 0;                                    // Static / to represent existence of demand
                 return responseMsgs(false, "consumer demands not found!", $consumerDemand, "", "01", responseTime(), $request->getMethod(), $request->deviceId);
@@ -168,8 +168,8 @@ class WaterConsumer extends Controller
 
             # Check the details 
             if (isset($checkParam)) {
-                $sumDemandAmount = collect($consumerDemand['consumerDemands'])->sum('balance_amount');
-                $totalPenalty = collect($consumerDemand['consumerDemands'])->sum('penalty');
+                $sumDemandAmount = collect($consumerDemand['consumerDemands'])->sum('due_balance_amount');
+                $totalPenalty = collect($consumerDemand['consumerDemands'])->sum('due_penalty');
                 $consumerDemand['totalSumDemand'] = round($sumDemandAmount, 2);
                 $consumerDemand['totalPenalty'] = round($totalPenalty, 2);
                 # Meter Details 
@@ -2251,6 +2251,49 @@ class WaterConsumer extends Controller
             ];
             $returnValues = collect($demandDetails)->merge($demands);
             return responseMsgs(true, "Consumer Details!", remove_null($returnValues), "", "01", ".ms", "POST", $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "010203", "1.0", "", 'POST', "");
+        }
+    }
+
+    /**
+     * update consumer details
+     */
+    public function updateConsumerDetails(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                'consumerId'        => 'required|integer',
+                'mobileNo'          => 'nullable|',
+                'email'             => 'nullable|email',
+                'applicantName'     => 'nullable|',
+                'guardianName'      => 'nullable|',
+                'zoneId'            => 'nullable|',
+                'wardId'            => 'nullable|integer',
+                'address'           => 'nullable|',
+                'oldConsumerNo'     => 'nullable' 
+            ]
+        );
+        if ($validated->fails())
+            return validationError($validated);
+
+        try {
+            $now            = Carbon::now();
+            $user           = authUser($request);
+            $consumerId     = $request->consumerId;
+
+            $mWaterSecondConsumer = new waterSecondConsumer();
+            $mWaterConsumerOwners = new WaterConsumerOwner();
+            $consumerDtls = $mWaterSecondConsumer->consumerDetails($consumerId)->first();
+            if (!$consumerDtls) {
+                throw new Exception("consumer details not found!");
+            }
+
+            DB::beginTransaction();
+            $mWaterSecondConsumer->editConsumerdtls($request);
+            $mWaterConsumerOwners->editConsumerOwnerDtls($request);
+            return responseMsgs(true, "update consumer details succesfull!", remove_null($consumerDtls), "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "010203", "1.0", "", 'POST', "");
         }

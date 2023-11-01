@@ -43,7 +43,7 @@ class IciciPaymentController extends Controller
         $validated = Validator::make(
             $req->all(),
             [
-                "workflowId"    => "required|int",
+                "workflowId"    => "nullable|int",
                 "amount"        => "required|min:1",
                 "id"            => "required",
                 "callBackUrls"  => "nullable"
@@ -59,7 +59,7 @@ class IciciPaymentController extends Controller
             $url                = $getRefUrl->generateRefUrl($req);
             $paymentReq = [
                 "user_id"           => $req->auth->id ?? $req->userId,
-                "workflow_id"       => $req->workflowId,
+                "workflow_id"       => $req->workflowId ?? 0,
                 "req_ref_no"        => $getRefUrl->_refNo,
                 "amount"            => $req->amount,
                 "application_id"    => $req->id,
@@ -90,7 +90,7 @@ class IciciPaymentController extends Controller
         $mIciciPaymentRes = new IciciPaymentResponse();
 
         try {
-            $random = rand(10, 10);
+            $random = rand(1, 1000);
             Storage::disk('public')->put('icici/webhook/' . $random . '.json', json_encode($req->all()));
             $data               = $req->all();
             $reqRefNo           = $req->reqRefNo;
