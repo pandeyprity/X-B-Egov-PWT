@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Property\PropActiveSaf;
+use App\Models\Property\PropPropertyUpdateRequest;
 use App\Observers\Property\PropActiveSafObserver;
+use App\Observers\PropUpdateRequestObserver;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -30,5 +32,6 @@ class EventServiceProvider extends ServiceProvider
     public function boot()
     {
         PropActiveSaf::observe(PropActiveSafObserver::class);
+        PropPropertyUpdateRequest::observe(PropUpdateRequestObserver::class);
     }
 }

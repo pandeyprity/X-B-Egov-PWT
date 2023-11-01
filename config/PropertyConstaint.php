@@ -428,6 +428,7 @@ return [
     "HARVESTING_RELATIVE_PATH" => "Uploads/Property/Harvesting",
     "WAIVER_RELATIVE_PATH"     => "Uploads/Property/Waiver",
     "CUSTOM_RELATIVE_PATH"     => "Uploads/Custom",
+    "PROP_UPDATE_RELATIVE_PATH" => "Uploads/Property/UpdateRequest",
 
     // Rebates
     "REBATES" => [
@@ -464,6 +465,8 @@ return [
     "PT_PARAM_ID"   => 3,
     "GB_PARAM"      => 4,
     "SAM_PARAM_ID"  => 5,
+    "PROP_FULL_UPDATE_ID"  => 44,
+    "PROP_BASIC_UPDATE_ID"  => 45,
     "FAM_PARAM_ID"  => 6,
     "CON_PARAM_ID"  => 7,
     "OBJ_PARAM_ID"  => 8,

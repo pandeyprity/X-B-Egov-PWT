@@ -4468,13 +4468,13 @@ class Report implements IReport
                 " . ($paymentMode ? "AND UPPER(prop_transactions.payment_mode) = ANY (UPPER('{".$paymentMode."}')::TEXT[])" : "") . "
             ";
 
-            $report = DB::select($query);//print_var($query);die;
+            $report = DB::select($query);
             $report = collect($report)->first();
             $data["report"] = collect($report)->map(function ($val, $key) {
                 if ($key == "payment_mode") {
                     return $val;
                 }
-                return !is_null($val) ? round($val) : 0;
+                return !is_null($val) ? roundFigure($val) : 0;
             });
             // $penalty = $report->penalty;
             // $rebate  = $report->rebadet;
@@ -4499,9 +4499,9 @@ class Report implements IReport
             // $arear = $arear + $penalty;
             // $current = $current - $rebate;
             $data["total"] = [
-                "arear" => round($arear),
-                "current" => round($current),
-                "total" => round(($arear + $current)),
+                "arear" => roundFigure($arear),
+                "current" => roundFigure($current),
+                "total" => roundFigure(($arear + $current)),
             ];
             $data["headers"] = [
                 "fromDate" => Carbon::parse($fromDate)->format('d-m-Y'),

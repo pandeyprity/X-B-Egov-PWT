@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Property;
 
+use App\EloquentModels\Common\ModelWard;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ThirdPartyController;
+use App\MicroServices\DocUpload;
 use App\Models\ActiveCitizen;
 use App\Models\Citizen\ActiveCitizenUndercare;
 use App\Models\Property\PropActiveConcession;
@@ -22,6 +24,7 @@ use App\Models\Property\PropSafsOwner;
 use App\Models\Property\PropTransaction;
 use App\Models\Workflows\WfActiveDocument;
 use App\Models\Workflows\WfWorkflow;
+use App\Models\WorkflowTrack;
 use App\Pipelines\SearchHolding;
 use App\Pipelines\SearchPtn;
 use App\Repository\Common\CommonFunction;
@@ -302,6 +305,7 @@ class PropertyController extends Controller
         
         $rules = [
             "propertyId" => "required|digits_between:1,9223372036854775807",
+            "document" => "required|mimes:pdf,jpeg,png,jpg,gif",
             "applicantName" => "required|regex:/^[A-Za-z.\s]+$/i",
             "applicantMarathi" => "required|string",
 
@@ -343,9 +347,10 @@ class PropertyController extends Controller
         }
         try {
             $refUser            = Auth()->user();
-            $refUserId          = $refUser->id??0;
-            $refUlbId           = $refUser->ulb_id ?? 2;
-
+            $refUserId          = $refUser->id;
+            $refUlbId           = $refUser->ulb_id;
+            $relativePath = Config::get('PropertyConstaint.PROP_UPDATE_RELATIVE_PATH');
+            $docUpload = new DocUpload;
             $mPropProperty = new PropProperty();
             $mPropOwners = new PropOwner();
             $rPropProerty = new PropPropertyUpdateRequest();
@@ -357,17 +362,26 @@ class PropertyController extends Controller
             {
                 throw new Exception("Data Not Found");
             } 
-            $refWorkflowId      = 16;
+            $refWorkflowId      = Config::get("workflow-constants.PROPERTY_UPDATE_ID");
             $refWfWorkflow     = WfWorkflow::where('wf_master_id', $refWorkflowId)
                 ->where('ulb_id', $refUlbId)
                 ->first();
             if (!$refWfWorkflow) {
-                // throw new Exception("Workflow Not Available");
+                throw new Exception("Workflow Not Available");
             }
+            $pendingRequest = $prop->getUpdatePendingRqu()->first();
+            if($pendingRequest)
+            {
+                throw new Exception("Already Update Request Apply Which is Pending");
+            }            
             
             $refWorkflows       = $mCommonFunction->iniatorFinisher($refUserId, $refUlbId, $refWorkflowId);
             $mUserType          = $mCommonFunction->userType($refWorkflowId);
-
+            $document = $req->document;
+            $refImageName = $req->propertyId."-".(strtotime(Carbon::now()->format('Y-m-dH:s:i')));            
+            $imageName = $docUpload->upload($refImageName, $document, $relativePath);
+            $metaReqs["supportingDocument"] =($relativePath."/".$imageName);
+            
             $roadWidthType = $this->readRoadWidthType($req->roadType);
             
 
@@ -380,64 +394,390 @@ class PropertyController extends Controller
             $metaReqs['userId'] = $refUserId;
             $metaReqs['pendingStatus'] = 1;
             $req->merge($metaReqs); 
-            $propRequest = $this->generatePropUpdateRequest($req,$prop,1);
+            $req->merge(["isFullUpdate"=>false]);
+            $propRequest = $this->generatePropUpdateRequest($req,$prop,$req->isFullUpdate);
             $req->merge($propRequest); 
            
             DB::beginTransaction();
-            dd(json_encode($prop->toArray()),$req->all());
-            $rPropProerty->logs = json_encode($prop->toArray());
-            $prop->applicant_name           = $req->applicantName;
-            $prop->applicant_marathi        = $req->applicantMarathi;
-            $prop->ward_mstr_id             = $req->ward;
-            $prop->zone_mstr_id             = $req->zone;
-            $prop->ownership_type_mstr_id   = $req->ownershipType   ??  $prop->ownership_type_mstr_id;
-
-            $prop->building_name            = $req->buildingName    ??  $prop->building_name;
-            $prop->street_name              = $req->streetName  ??  $prop->street_name;
-            $prop->location                 = $req->location    ??  $prop->location;
-            $prop->landmark                 = $req->landmark    ??  $prop->landmark;
-            $prop->prop_address             = $req->propAddress ??  $prop->prop_address;
-            $prop->prop_city                = $req->propCity ??  $prop->prop_city;
-            $prop->prop_dist                = $req->propDist ??  $prop->prop_dist;
-            $prop->prop_pin_code            = $req->propPinCode ??  $prop->prop_pin_code;
-            $prop->prop_state               = $req->propState ??  $prop->prop_state;
-
-            $prop->corr_address             = $req->corrAddress ?? $prop->corr_address ;
-            $prop->corr_city                = $req->corrCity ?? $prop->corr_city ;
-            $prop->corr_dist                = $req->corrDist ?? $prop->corr_city ;
-            $prop->corr_pin_code            = $req->corrPinCode ?? $prop->corr_pin_code ;
-            $prop->corr_state               = $req->corrState ?? $prop->corr_state ;
-
-            
-
+            $updetId = $rPropProerty->store($req);
             foreach($req->owner as $val)
             {
                 $testOwner = $mPropOwners->select("*")->where("id",$val["ownerId"])->where("property_id",$propId)->first();
                 if(!$testOwner)
                 {
                     throw new Exception("Invalid Owner Id Pass");
-                }
-                $testOwner->owner_name = $val["ownerName"];
-                $testOwner->owner_name_marathi = $val["ownerNameMarathi"];
-                $testOwner->guardian_name = $val["guardianName"];
-                $testOwner->guardian_name_marathi = $val["guardianNameMarathi"];
-
-                $testOwner->relation_type = $val["relation"]??$testOwner->relation_type;
-                $testOwner->mobile_no = $val["mobileNo"]??$testOwner->mobile_no;
-                $testOwner->email = $val["email"] ??$testOwner->email;
-                $testOwner->pan_no = $val["pan"] ?? $testOwner->pan_no;
-                $testOwner->aadhar_no = $val["aadhar"] ?? $testOwner->aadhar_no;
-                $testOwner->gender = $val["gender"] ?? $testOwner->gender;
-                $testOwner->dob = $val["dob"] ?? $testOwner->dob;
-                // $testOwner->update();                
-            }   
-            // $prop->update();                     
+                }                
+                $newOwnerArr = $this->generatePropOwnerUpdateRequest($val,$testOwner,$req->isFullUpdate);
+                $newOwnerArr["requestId"] = $updetId;
+                $newOwnerArr["userId"] = $refUlbId;
+                $rPropOwners->store($newOwnerArr);
+                               
+            } 
             DB::commit();
             
-            return responseMsgs(true, 'Data Updated', '', '010801', '01', '', 'Post', '');
+            return responseMsgs(true, 'Update Request Submited', '', '010801', '01', '', 'Post', '');
         } catch (Exception $e) {
             DB::rollBack();
-            return responseMsg(false, [$e->getMessage(),$e->getFile(),$e->getLine()], "");
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+    public function updateRequestInbox(Request $request)
+    {
+        try{
+            $refUser            = Auth()->user();
+            $refUserId          = $refUser->id;
+            $refUlbId           = $refUser->ulb_id;
+            $mCommonFunction = new CommonFunction();
+            $ModelWard = new ModelWard();
+            $refWorkflowId  = Config::get("workflow-constants.PROPERTY_UPDATE_ID");
+            $refWfWorkflow     = WfWorkflow::where('wf_master_id', $refWorkflowId)
+                ->where('ulb_id', $refUlbId)
+                ->first();
+            if (!$refWfWorkflow) {
+                throw new Exception("Workflow Not Available");
+            }
+            $mUserType = $mCommonFunction->userType($refWorkflowId);
+            $mWardPermission = $mCommonFunction->WardPermission($refUserId);
+            $mRole = $mCommonFunction->getUserRoll($refUserId, $refUlbId, $refWorkflowId);
+
+            if (!$mRole) {
+                throw new Exception("You Are Not Authorized For This Action");
+            }
+            if ($mRole->is_initiator)    
+            {
+                $mWardPermission = $ModelWard->getAllWard($refUlbId)->map(function ($val) {
+                    $val->ward_no = $val->ward_name;
+                    return $val;
+                });
+                $mWardPermission = objToArray($mWardPermission);
+            } 
+
+            $mWardIds = array_map(function ($val) {
+                return $val['id'];
+            }, $mWardPermission);
+
+            $mRoleId = $mRole->role_id;
+
+            $data = (new PropPropertyUpdateRequest)->WorkFlowMetaList()
+                        ->where("current_role_id", $mRoleId)
+                        ->where("prop_properties.ulb_id", $refUlbId);
+            if ($request->wardNo && $request->wardNo != "ALL") {
+                $mWardIds = [$request->wardNo];
+            }
+            if ($request->formDate && $request->toDate) {
+                $data = $data
+                    ->whereBetween(DB::raw('prop_property_update_requests.created_at::date'), [$request->formDate, $request->toDate]);
+            }
+            if (trim($request->key)) 
+            {
+                $key = trim($request->key);
+                $data = $data->where(function ($query) use ($key) {
+                    $query->orwhere('prop_properties.holding_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('prop_property_update_requests.request_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('prop_properties.property_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.owner_name', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.guardian_name', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.mobile_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.owner_name_marathi', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.guardian_name_marathi', 'ILIKE', '%' . $key . '%');
+                });
+            }
+            $data = $data
+                ->whereIn('prop_properties.ward_mstr_id', $mWardIds)
+                ->orderBy("prop_property_update_requests.created_at","DESC"); 
+            if($request->all)
+            {
+                $data= $data->get();
+                return responseMsg(true, "", $data);
+            } 
+            $perPage = $request->perPage ? $request->perPage :  10;
+            $page = $request->page && $request->page > 0 ? $request->page : 1;
+
+            $paginator = $data->paginate($perPage);
+            $list = [
+                "current_page" => $paginator->currentPage(),
+                "last_page" => $paginator->lastPage(),
+                "data" => $paginator->items(),
+                "total" => $paginator->total(),
+            ];
+            return responseMsg(true, "", remove_null($list)); 
+            
+        }catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+
+    }
+    public function updateRequestOutbox(Request $request)
+    {
+        try{
+            $refUser            = Auth()->user();
+            $refUserId          = $refUser->id;
+            $refUlbId           = $refUser->ulb_id;
+            $mCommonFunction = new CommonFunction();
+            $ModelWard = new ModelWard();
+            $refWorkflowId  = Config::get("workflow-constants.PROPERTY_UPDATE_ID");
+            $refWfWorkflow     = WfWorkflow::where('wf_master_id', $refWorkflowId)
+                ->where('ulb_id', $refUlbId)
+                ->first();
+            if (!$refWfWorkflow) {
+                throw new Exception("Workflow Not Available");
+            }
+            $mUserType = $mCommonFunction->userType($refWorkflowId);
+            $mWardPermission = $mCommonFunction->WardPermission($refUserId);
+            $mRole = $mCommonFunction->getUserRoll($refUserId, $refUlbId, $refWorkflowId);
+
+            if (!$mRole) {
+                throw new Exception("You Are Not Authorized For This Action");
+            }
+            if ($mRole->is_initiator)    
+            {
+                $mWardPermission = $ModelWard->getAllWard($refUlbId)->map(function ($val) {
+                    $val->ward_no = $val->ward_name;
+                    return $val;
+                });
+                $mWardPermission = objToArray($mWardPermission);
+            } 
+
+            $mWardIds = array_map(function ($val) {
+                return $val['id'];
+            }, $mWardPermission);
+
+            $mRoleId = $mRole->role_id;
+
+            $data = (new PropPropertyUpdateRequest)->WorkFlowMetaList()
+                        ->where("current_role_id","<>", $mRoleId)
+                        ->where("prop_properties.ulb_id", $refUlbId);
+            if ($request->wardNo && $request->wardNo != "ALL") {
+                $mWardIds = [$request->wardNo];
+            }
+            if ($request->formDate && $request->toDate) {
+                $data = $data
+                    ->whereBetween(DB::raw('prop_property_update_requests.created_at::date'), [$request->formDate, $request->toDate]);
+            }
+            if (trim($request->key)) 
+            {
+                $key = trim($request->key);
+                $data = $data->where(function ($query) use ($key) {
+                    $query->orwhere('prop_properties.holding_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('prop_property_update_requests.request_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('prop_properties.property_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.owner_name', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.guardian_name', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.mobile_no', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.owner_name_marathi', 'ILIKE', '%' . $key . '%')
+                        ->orwhere('owner.guardian_name_marathi', 'ILIKE', '%' . $key . '%');
+                });
+            }
+            $data = $data
+                ->whereIn('prop_properties.ward_mstr_id', $mWardIds)
+                ->orderBy("prop_property_update_requests.created_at","DESC"); 
+            if($request->all)
+            {
+                $data= $data->get();
+                return responseMsg(true, "", $data);
+            } 
+            $perPage = $request->perPage ? $request->perPage :  10;
+            $page = $request->page && $request->page > 0 ? $request->page : 1;
+
+            $paginator = $data->paginate($perPage);
+            $list = [
+                "current_page" => $paginator->currentPage(),
+                "last_page" => $paginator->lastPage(),
+                "data" => $paginator->items(),
+                "total" => $paginator->total(),
+            ];
+            return responseMsg(true, "", remove_null($list)); 
+            
+        }catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+
+    }
+
+    public function postNextUpdateRequest(Request $request)
+    {
+        try{
+            $user = Auth()->user();
+            $user_id = $user->id;
+            $ulb_id = $user->ulb_id;
+            $mCommonFunction = new CommonFunction();
+            $refWorkflowId  = Config::get("workflow-constants.PROPERTY_UPDATE_ID");
+            $mModuleId = config::get("module-constants.PROPERTY_MODULE_ID");
+            $_TRADE_CONSTAINT = config::get("TradeConstant");
+
+            $role = $mCommonFunction->getUserRoll($user_id, $ulb_id, $refWorkflowId);
+            $request->validate([
+                "action"        => 'required|in:forward,backward',
+                'applicationId' => 'required|digits_between:1,9223372036854775807',
+                'senderRoleId' => 'nullable|integer',
+                'receiverRoleId' => 'nullable|integer',
+                'comment' => ($role->is_initiator ?? false) ? "nullable" : 'required',
+            ]);
+            if (!$request->senderRoleId) {
+                $request->merge(["senderRoleId" => $role->role_id ?? 0]);
+            }
+            if (!$request->receiverRoleId) {
+                if ($request->action == 'forward') {
+                    $request->merge(["receiverRoleId" => $role->forward_role_id ?? 0]);
+                }
+                if ($request->action == 'backward') {
+                    $request->merge(["receiverRoleId" => $role->backward_role_id ?? 0]);
+                }
+            }
+            #if finisher forward then
+            if (($role->is_finisher ?? 0) && $request->action == 'forward') {
+                $request->merge(["status" => 1]);
+                return $this->approvedRejectRequest($request);
+            }
+            if($request->action != 'backward')
+            {
+                $request->merge(["status" => 0]);
+                return $this->approvedRejectRequest($request);
+            }
+            if (!$mCommonFunction->checkUsersWithtocken("users")) {
+                throw new Exception("Citizen Not Allowed");
+            }
+            $workflowId = WfWorkflow::where('wf_master_id', $refWorkflowId)
+                ->where('ulb_id', $ulb_id)
+                ->first();
+            if (!$workflowId) {
+                throw new Exception("Workflow Not Available");
+            }
+            $application = PropPropertyUpdateRequest::find($request->applicationId);
+            if (!$application) {
+                throw new Exception("Data Not Found");
+            }
+            $allRolse     = collect($mCommonFunction->getAllRoles($user_id, $ulb_id, $refWorkflowId, 0, true));
+
+            $initFinish   = $mCommonFunction->iniatorFinisher($user_id, $ulb_id, $refWorkflowId);
+            $receiverRole = array_values(objToArray($allRolse->where("id", $request->receiverRoleId)))[0] ?? [];
+            $senderRole   = array_values(objToArray($allRolse->where("id", $request->senderRoleId)))[0] ?? [];
+            
+            if ($application->current_role_id != $role->role_id) {
+                throw new Exception("You Have Not Pending This Application");
+            }
+
+            $sms = "Application Rejected By " . $receiverRole["role_name"] ?? "";
+            if ($role->serial_no  < $receiverRole["serial_no"] ?? 0) {
+                $sms = "Application Forward To " . $receiverRole["role_name"] ?? "";
+            }
+            DB::beginTransaction();
+
+            DB::commit();
+        }catch (Exception $e) {
+            DB::rollBack();
+            return responseMsg(false, $e->getMessage(), "");
+        }
+    }
+
+    public function approvedRejectRequest(Request $request)
+    {
+        try {
+            $rules = [
+                "applicationId" => "required",
+                "status" => "required",
+                "comment" => $request->status == 0 ? "required" : "nullable",
+            ];
+            $validated = Validator::make(
+                $request->all(),
+                $rules
+            );
+            if ($validated->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'validation error',
+                    'errors' => $validated->errors()
+                ]);
+            }
+            $user = Auth()->user();
+            $user_id = $user->id;
+            $ulb_id = $user->ulb_id;
+            $mCommonFunction = new CommonFunction();
+            $refWorkflowId  = Config::get("workflow-constants.PROPERTY_UPDATE_ID");
+            $mModuleId = config::get("module-constants.PROPERTY_MODULE_ID");
+            $_TRADE_CONSTAINT = config::get("TradeConstant");
+            
+            if (!$mCommonFunction->checkUsersWithtocken("users")) {
+                throw new Exception("Citizen Not Allowed");
+            }
+
+            $application = PropPropertyUpdateRequest::find($request->applicationId);
+            
+            $role = $mCommonFunction->getUserRoll($user_id, $ulb_id, $refWorkflowId);
+
+            if(!$application)
+            {
+                throw new Exception("Data Not Found!");
+            }
+            if ($application->finisher_role != $role->role_id) {
+                throw new Exception("Forbidden Access");
+            }
+            if (!$request->senderRoleId) {
+                $request->merge(["senderRoleId" => $role->role_id ?? 0]);
+            }
+            $owneres = $application->getOwnersUpdateReq()->get(); 
+            if (!$request->receiverRoleId) {
+                if ($request->status == '1') {
+                    $request->merge(["receiverRoleId" => $role->forward_role_id ?? 0]);
+                }
+                if ($request->status == '0') {
+                    $request->merge(["receiverRoleId" => $role->backward_role_id ?? 0]);
+                }
+            }            
+            $track = new WorkflowTrack();
+            $lastworkflowtrack = $track->select("*")
+                ->where('ref_table_id_value', $request->applicationId)
+                ->where('module_id', $mModuleId)
+                ->where('ref_table_dot_id', "prop_properties")
+                ->whereNotNull('sender_role_id')
+                ->orderBy("track_date", 'DESC')
+                ->first();
+            $metaReqs['moduleId'] = $mModuleId;
+            $metaReqs['workflowId'] = $application->workflow_id;
+            $metaReqs['refTableDotId'] = 'prop_properties';
+            $metaReqs['refTableIdValue'] = $request->applicationId;
+            $metaReqs['user_id'] = $user_id;
+            $metaReqs['ulb_id'] = $ulb_id;
+            $metaReqs['trackDate'] = $lastworkflowtrack && $lastworkflowtrack->forward_date ? ($lastworkflowtrack->forward_date . " " . $lastworkflowtrack->forward_time) : Carbon::now()->format('Y-m-d H:i:s');
+            $metaReqs['forwardDate'] = Carbon::now()->format('Y-m-d');
+            $metaReqs['forwardTime'] = Carbon::now()->format('H:i:s');
+            $metaReqs['verificationStatus'] = ($request->status == 1) ? $_TRADE_CONSTAINT["VERIFICATION-STATUS"]["APROVE"] : $_TRADE_CONSTAINT["VERIFICATION-STATUS"]["REJECT"];
+            $request->merge($metaReqs);
+            
+            DB::beginTransaction();
+            $track->saveTrack($request);
+            
+            // Approval
+            if ($request->status == 1) {
+                $propArr=$this->updateProperty($application);                
+                $propUpdate = (new PropProperty)->edit($application->prop_id,$propArr);                                
+                foreach($owneres as $val)
+                {
+                    $ownerArr=$this->updatePropOwner($val);
+                    $ownerUpdate = (new PropOwner)->edit($val->owner_id,$ownerArr);
+                }
+                $application->pending_status = 5;
+                $msg =  $application->holding_no." Updated Successfull" ;
+            }
+
+            // Rejection
+            if ($request->status == 0) {
+                // Objection Application replication
+                $application->pending_status = 4;
+                $msg = $application->request_no ." Of Holding No ".$application->holding_no." Rejected";
+            }
+            
+            $application->approval_date = Carbon::now()->format('Y-m-d');
+            $application->approved_by = $user_id;
+            $application->update();
+            DB::commit();
+
+            return responseMsgs(true, $msg, "", '010811', '01', '474ms-573', 'Post', '');
+            
+        }catch (Exception $e) {
+            DB::rollBack();
+            return responseMsg(false, $e->getMessage(), "");
         }
     }
 
