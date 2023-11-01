@@ -1922,7 +1922,7 @@ class WaterPaymentController extends Controller
             }
             foreach ($mDemands as $demand) {
                 # save Water trans details 
-                $mWaterTranDetail->saveDefaultTrans($demand->amount, $demand->consumer_id, $transactionId['id'], $demand->id,null);
+                $mWaterTranDetail->saveDefaultTrans($demand->amount, $demand->consumer_id, $transactionId['id'], $demand->id, null);
                 $mWaterConsumerCollection->saveConsumerCollection($demand, $transactionId, $refUserId, null);
                 # update the payment status of the demand 
                 $demand->paid_status = 1;                                          // Static
@@ -2202,7 +2202,7 @@ class WaterPaymentController extends Controller
             $transactionId = $mWaterTran->waterTransaction($metaRequest, $consumer);
 
             # save Water trans details 
-            $mWaterTranDetail->saveDefaultTrans($demandDetails->amount, $demandDetails->related_id, $transactionId['id'], $demandDetails->id,null);
+            $mWaterTranDetail->saveDefaultTrans($demandDetails->amount, $demandDetails->related_id, $transactionId['id'], $demandDetails->id, null);
 
             # Save the payment Status and the initiater in active Table
             $updateStatus = [
@@ -2631,23 +2631,25 @@ class WaterPaymentController extends Controller
             $this->adjustPartPayment($popedDemand, $refConsumercharges, $request, $offlinePaymentModes, $waterTrans, $consumercharges);
 
             # Save document
-            $docUpload = new DocUpload;
-            $mWaterPartPaymentDocument = new WaterPartPaymentDocument();
-            $relativePath = "Uploads/Water/Partpayment";
-            $refImageName = "Partpayment";
-            $refImageName = $request->consumerId . '-' . str_replace(' ', '_', $refImageName);
-            $document     = $request->document;
+            if ($request->document || !is_null($request->document)) {
+                $docUpload = new DocUpload;
+                $mWaterPartPaymentDocument = new WaterPartPaymentDocument();
+                $relativePath = "Uploads/Water/Partpayment";
+                $refImageName = "Partpayment";
+                $refImageName = $request->consumerId . '-' . str_replace(' ', '_', $refImageName);
+                $document     = $request->document;
 
-            $imageName = $docUpload->upload($refImageName, $document, $relativePath);
-            $metaReqs['consumer_id']        = $request->consumerId;
-            $metaReqs['transaction_id']     = $waterTrans['id'];
-            $metaReqs['relative_path']      = $relativePath;
-            $metaReqs['document']           = $imageName;
-            $metaReqs['uploaded_by']        = $user->id;
-            $metaReqs['uploaded_by_type']   = $user->user_type;
+                $imageName = $docUpload->upload($refImageName, $document, $relativePath);
+                $metaReqs['consumer_id']        = $request->consumerId;
+                $metaReqs['transaction_id']     = $waterTrans['id'];
+                $metaReqs['relative_path']      = $relativePath;
+                $metaReqs['document']           = $imageName;
+                $metaReqs['uploaded_by']        = $user->id;
+                $metaReqs['uploaded_by_type']   = $user->user_type;
 
-            // $metaReqs = new Request($metaReqs);
-            $mWaterPartPaymentDocument->postDocuments($metaReqs);
+                // $metaReqs = new Request($metaReqs);
+                $mWaterPartPaymentDocument->postDocuments($metaReqs);
+            }
 
             $this->commit();
             return responseMsgs(true, "payment Done!", $request->all(), "", "01", ".ms", "POST", $request->deviceId);
@@ -2708,12 +2710,12 @@ class WaterPaymentController extends Controller
         | Serial No :
         | Under Con
      */
-    public function demandUpdation(Request $request)
+    public function transactionDeactivation(Request $request)
     {
         $validated = Validator::make(
             $request->all(),
             [
-                "citizenId" => "required|",
+                "transactionId" => "required|",
             ]
         );
         if ($validated->fails()) {
@@ -2721,10 +2723,35 @@ class WaterPaymentController extends Controller
         }
 
         try {
+            $mWaterTran                 = new WaterTran();
+            $mWaterTranDetail           = new WaterTranDetail();
+            $mWaterConsumerCollection   = new WaterConsumerCollection();
+            $mWaterConsumerDemand       = new WaterConsumerDemand();
 
+            $transactionId = $request->transactionId;
+
+            $transactionDetails = $mWaterTran->ConsumerTransactionV2($transactionId)->first();
+            if (!$transactionDetails) {
+                throw new Exception("Transaction detials not found!");
+            }
+            $this->checkParamforTranDeactivation($transactionDetails);
             return responseMsgs(true, "payment Done!", $request->all(), "", "01", responseTime(), "POST", $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), [], "", "01", responseTime(), "POST", $request->deviceId);
         }
+    }
+
+
+    /**
+     * | Check the params for transaction deactivation
+        | Serial No :
+        | Under Con
+     */
+    public function checkParamforTranDeactivation($transactionDetails)
+    {
+        $mWaterTranDetail           = new WaterTranDetail();
+        $mWaterConsumerCollection   = new WaterConsumerCollection();
+        $mWaterConsumerDemand       = new WaterConsumerDemand();
+
     }
 }

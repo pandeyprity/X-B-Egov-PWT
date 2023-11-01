@@ -40,6 +40,12 @@ class WaterTran extends Model
             ->where('status', 1)
             ->orderByDesc('id');
     }
+    public function ConsumerTransactionV2($transactionId)
+    {
+        return WaterTran::where('id', $transactionId)
+            ->where('tran_type', "=", "Demand Collection")
+            ->where('status', 1);
+    }
     public function siteInspectionTransaction($applicationId)
     {
         return WaterTran::where('related_id', $applicationId)
@@ -119,7 +125,7 @@ class WaterTran extends Model
         $transactionId = $watertransaction->id;
 
         $mWaterTranDetail = new WaterTranDetail();
-        $mWaterTranDetail->saveDefaultTrans($totalConnectionCharges, $applicationId, $transactionId, $connectionId,null);
+        $mWaterTranDetail->saveDefaultTrans($totalConnectionCharges, $applicationId, $transactionId, $connectionId, null);
     }
 
     public function chequeTranDtl($ulbId)

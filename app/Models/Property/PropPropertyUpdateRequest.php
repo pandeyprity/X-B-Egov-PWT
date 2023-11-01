@@ -5,6 +5,7 @@ namespace App\Models\Property;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PropPropertyUpdateRequest extends Model
@@ -21,15 +22,11 @@ class PropPropertyUpdateRequest extends Model
             "pt_no"=>  $req->ptNo,
             "property_no"=>  $req->propertyNo,
             "logs" =>  $req->logs,
-            "supportingDocument"=>$req->supportingDocument,
+            "supporting_doc"=>$req->supportingDocument,
             "unique_id"=>$req->uniqueId,
             "reference_no" => $req->referenceNo,
+            "is_full_update" => $req->isFullUpdate,
 
-            'has_previous_holding_no' => $req->hasPreviousHoldingNo,
-            'previous_holding_id' => $req->previousHoldingId,
-            'previous_ward_mstr_id' => $req->previousWard,
-            'is_owner_changed' => $req->isOwnerChanged,
-            'transfer_mode_mstr_id' => $req->transferModeId ?? null,
             'holding_no' => $req->holdingNo,
             'ward_mstr_id' => $req->ward,
             'ownership_type_mstr_id' => $req->ownershipType,
@@ -55,7 +52,6 @@ class PropPropertyUpdateRequest extends Model
             'prop_city' => $req->propCity,
             'prop_dist' => $req->propDist,
             'prop_pin_code' => $req->propPinCode,
-            'is_corr_add_differ' => $req->isCorrAddDiffer,
             'corr_address' => $req->corrAddress,
             'corr_city' => $req->corrCity,
             'corr_dist' => $req->corrDist,
@@ -77,18 +73,14 @@ class PropPropertyUpdateRequest extends Model
             'is_water_harvesting' => $req->isWaterHarvesting,
             'rwh_date_from' => ($req->isWaterHarvesting == 1) ? $req->rwhDateFrom : null,
             'land_occupation_date' => $req->landOccupationDate?$req->landOccupationDate:$req->dateOfPurchase,
-            'doc_verify_cancel_remarks' => $req->docVerifyCancelRemark,
             'application_date' =>  $req->applicationDate,
             'assessment_type' => $req->assessmentType,
-            'saf_distributed_dtl_id' => $req->safDistributedDtl,
-            'prop_dtl_id' => $req->propDtl,
             'prop_state' => $req->propState,
             'corr_state' => $req->corrState,
             'holding_type' => $req->holdingType,
             'ip_address' => getClientIpAddress(),
             'new_ward_mstr_id' => $req->newWard,
             "entry_type"    =>  $req->entryType,
-            'percentage_of_property_transfer' => $req->percOfPropertyTransfer,
             'apartment_details_id' => $req->apartmentId,
             'applicant_name' => $req->applicantName,
             'applicant_marathi' => $req->applicantMarathi,
@@ -97,7 +89,7 @@ class PropPropertyUpdateRequest extends Model
             'workflow_id' => $req->workflowId,
             'ulb_id' => $req->ulbId,
             'pending_status' => $req->pendingStatus??0,
-            'current_role' => $req->initiatorRoleId,
+            'current_role_id' => $req->initiatorRoleId,
             'initiator_role_id' => $req->initiatorRoleId,
             'finisher_role_id' => $req->finisherRoleId,
             'citizen_id' => $req->citizenId ?? null,
@@ -116,5 +108,47 @@ class PropPropertyUpdateRequest extends Model
             'category_id' => $req->category,
         ];
         return PropPropertyUpdateRequest::create($reqs)->id;   
+    }
+
+    public function WorkFlowMetaList()
+    {
+        return self::where("prop_property_update_requests.status",1)
+            ->where("prop_property_update_requests.pending_status",1)
+            ->join("prop_properties","prop_properties.id","prop_property_update_requests.prop_id")
+            ->leftjoin(DB::raw("(select STRING_AGG(owner_name,',') AS owner_name,
+                            STRING_AGG(guardian_name,',') AS guardian_name,
+                            STRING_AGG(mobile_no::TEXT,',') AS mobile_no,
+                            STRING_AGG(email,',') AS email,
+                            STRING_AGG(owner_name_marathi,',') AS owner_name_marathi,
+                            STRING_AGG(guardian_name_marathi,',') AS guardian_name_marathi,
+                            property_id
+                        FROM prop_owners 
+                        WHERE status = 1
+                        GROUP BY property_id
+                        )owner"), function ($join) {
+                $join->on("owner.property_id", "prop_properties.id");
+                })
+                ->select(
+                    "prop_property_update_requests.id",
+                    "prop_property_update_requests.request_no",
+                    "prop_property_update_requests.prop_id",
+                    "prop_property_update_requests.workflow_id",
+                    "owner.owner_name",
+                    "owner.guardian_name",
+                    "owner.mobile_no",
+                    "owner.email",
+                    "owner.owner_name_marathi",
+                    "owner.guardian_name_marathi",
+                    "prop_property_update_requests.holding_no",
+                    "prop_property_update_requests.property_no",
+                    "prop_property_update_requests.current_role_id",
+                    "prop_property_update_requests.is_full_update",
+                    DB::raw("TO_CHAR(CAST(prop_property_update_requests.created_at AS DATE), 'DD-MM-YYYY') as application_date"),
+                );
+    }
+
+    public function getOwnersUpdateReq()
+    {
+        return $this->hasMany(PropOwnerUpdateRequest::class,"request_id","id")->where("prop_owner_update_requests.status",1);
     }
 }

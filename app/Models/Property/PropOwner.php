@@ -196,6 +196,15 @@ class PropOwner extends Model
     }
 
     /**
+     * | Independent Edit
+     */
+    public function edit($ownerId, $req)
+    {
+        $property = PropOwner::findOrFail($ownerId);
+        return $property->update($req);
+    }
+
+    /**
      * | 1st owner by property Id
      */
     public function firstOwner($propertyId)

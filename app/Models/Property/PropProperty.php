@@ -541,7 +541,7 @@ class PropProperty extends Model
     public function edit($propId, $req)
     {
         $property = PropProperty::findOrFail($propId);
-        $property->update($req);
+        return $property->update($req);
     }
 
     /**
@@ -910,5 +910,19 @@ class PropProperty extends Model
             ->whereIn('prop_properties', $propertyIds)
             ->where('prop_properties.status', 1)
             ->where('prop_owners.status', 1);
+    }
+
+    public function getUpdateRqu()
+    {
+        return $this->hasMany(PropPropertyUpdateRequest::class,"prop_id","id")
+        ->where("prop_property_update_requests.status",1)
+        ->orderBy("id","ASC");
+    }
+    public function getUpdatePendingRqu()
+    {
+        return $this->hasOne(PropPropertyUpdateRequest::class,"prop_id","id")
+        ->where("prop_property_update_requests.status",1)
+        ->where("prop_property_update_requests.pending_status",1)
+        ->orderBy("id","ASC");
     }
 }
