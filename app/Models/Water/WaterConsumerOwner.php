@@ -38,7 +38,7 @@ class WaterConsumerOwner extends Model
     }
     public function editConsumerOwnerDtls($request)
     {
-        $waterConsumerOwner = WaterConsumerOwner::findorfail($request->id);
+        $waterConsumerOwner = WaterConsumerOwner::findorfail($request->consumerId);
         $waterConsumerOwner->applicant_name      =  $request->applicantName      ?? $waterConsumerOwner->applicant_name;
         $waterConsumerOwner->guardian_name      =  $request->guardianName      ?? $waterConsumerOwner->guardian_name;
         $waterConsumerOwner->save();

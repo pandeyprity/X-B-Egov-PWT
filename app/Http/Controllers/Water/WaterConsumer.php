@@ -2272,7 +2272,7 @@ class WaterConsumer extends Controller
                 'zoneId'            => 'nullable|',
                 'wardId'            => 'nullable|integer',
                 'address'           => 'nullable|',
-                'oldConsumerNo'     => 'nullable' 
+                'oldConsumerNo'     => 'nullable'
             ]
         );
         if ($validated->fails())
@@ -2290,11 +2290,13 @@ class WaterConsumer extends Controller
                 throw new Exception("consumer details not found!");
             }
 
-            DB::beginTransaction();
+            $this->begin();
             $mWaterSecondConsumer->editConsumerdtls($request);
             $mWaterConsumerOwners->editConsumerOwnerDtls($request);
-            return responseMsgs(true, "update consumer details succesfull!", remove_null($consumerDtls), "", "01", ".ms", "POST", $request->deviceId);
+            $this->commit();
+            return responseMsgs(true, "update consumer details succesfull!", "", "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
+            $this->rollback();
             return responseMsgs(false, $e->getMessage(), "", "010203", "1.0", "", 'POST', "");
         }
     }
