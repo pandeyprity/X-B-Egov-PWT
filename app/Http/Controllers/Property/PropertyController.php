@@ -257,6 +257,15 @@ class PropertyController extends Controller
         }
     }
 
+    /**
+     * ================📝 Submit Basic Dtl Update Request 📝======================================
+     * ||                 Created by :  Sandeep Bara
+     * ||                 Date       :  01-11-2023
+     * ||                 Status     :  Open
+     * ||                 
+     * ============================================================================================
+     * 
+     */
     public function basicPropertyEditV1(Request $req)
     {
         $controller = App::makeWith(ActiveSafController::class,["iSafRepository"=>app(\App\Repository\Property\Interfaces\iSafRepository::class)]);
@@ -399,7 +408,7 @@ class PropertyController extends Controller
             $req->merge($propRequest); 
            
             DB::beginTransaction();
-            $updetId = $rPropProerty->store($req);
+            $updetReq = $rPropProerty->store($req);
             foreach($req->owner as $val)
             {
                 $testOwner = $mPropOwners->select("*")->where("id",$val["ownerId"])->where("property_id",$propId)->first();
@@ -408,20 +417,26 @@ class PropertyController extends Controller
                     throw new Exception("Invalid Owner Id Pass");
                 }                
                 $newOwnerArr = $this->generatePropOwnerUpdateRequest($val,$testOwner,$req->isFullUpdate);
-                $newOwnerArr["requestId"] = $updetId;
+                $newOwnerArr["requestId"] = $updetReq["id"];
                 $newOwnerArr["userId"] = $refUlbId;
                 $rPropOwners->store($newOwnerArr);
                                
             } 
             DB::commit();
-            
-            return responseMsgs(true, 'Update Request Submited', '', '010801', '01', '', 'Post', '');
+            return responseMsgs(true, 'Update Request Submited', $updetReq, '010801', '01', '', 'Post', '');
         } catch (Exception $e) {
             DB::rollBack();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
 
+    /**
+     * ======================📖 Update Request InBox 📖==========================================
+     * ||                     Created By : Sandeep Bara
+     * ||                     Date       : 01-11-2023
+     * ||                     Status     : Open
+     * ===========================================================================================
+     */
     public function updateRequestInbox(Request $request)
     {
         try{
@@ -508,6 +523,14 @@ class PropertyController extends Controller
         }
 
     }
+
+    /**
+     * ======================📖 Update Request OutBox 📖==========================================
+     * ||                     Created By : Sandeep Bara
+     * ||                     Date       : 01-11-2023
+     * ||                     Status     : Open
+     * ===========================================================================================
+     */
     public function updateRequestOutbox(Request $request)
     {
         try{
@@ -595,6 +618,13 @@ class PropertyController extends Controller
 
     }
 
+    /**
+     * ======================📝 Update Request Forward Next User Or Reject 📝====================
+     * ||                     Created By : Sandeep Bara
+     * ||                     Date       : 01-11-2023
+     * ||                     Status     : Open
+     * ===========================================================================================
+     */
     public function postNextUpdateRequest(Request $request)
     {
         try{
@@ -606,14 +636,25 @@ class PropertyController extends Controller
             $mModuleId = config::get("module-constants.PROPERTY_MODULE_ID");
             $_TRADE_CONSTAINT = config::get("TradeConstant");
 
-            $role = $mCommonFunction->getUserRoll($user_id, $ulb_id, $refWorkflowId);
-            $request->validate([
+            $role = $mCommonFunction->getUserRoll($user_id, $ulb_id, $refWorkflowId);            
+            $rules = [
                 "action"        => 'required|in:forward,backward',
                 'applicationId' => 'required|digits_between:1,9223372036854775807',
                 'senderRoleId' => 'nullable|integer',
                 'receiverRoleId' => 'nullable|integer',
                 'comment' => ($role->is_initiator ?? false) ? "nullable" : 'required',
-            ]);
+            ];
+            $validated = Validator::make(
+                $request->all(),
+                $rules
+            );
+            if ($validated->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'validation error',
+                    'errors' => $validated->errors()
+                ]);
+            }
             if (!$request->senderRoleId) {
                 $request->merge(["senderRoleId" => $role->role_id ?? 0]);
             }
@@ -630,7 +671,7 @@ class PropertyController extends Controller
                 $request->merge(["status" => 1]);
                 return $this->approvedRejectRequest($request);
             }
-            if($request->action != 'backward')
+            if($request->action != 'forward')
             {
                 $request->merge(["status" => 0]);
                 return $this->approvedRejectRequest($request);
@@ -663,14 +704,51 @@ class PropertyController extends Controller
                 $sms = "Application Forward To " . $receiverRole["role_name"] ?? "";
             }
             DB::beginTransaction();
+            DB::connection("pgsql_master")->beginTransaction();
+            $application->max_level_attained = ($application->max_level_attained < ($receiverRole["serial_no"] ?? 0)) ? ($receiverRole["serial_no"] ?? 0) : $application->max_level_attained;
+            $application->current_role_id = $request->receiverRoleId;            
+            $application->update();
 
+            $track = new WorkflowTrack();
+            $lastworkflowtrack = $track->select("*")
+                ->where('ref_table_id_value', $request->applicationId)
+                ->where('module_id', $mModuleId)
+                ->where('ref_table_dot_id', "prop_properties")
+                ->whereNotNull('sender_role_id')
+                ->orderBy("track_date", 'DESC')
+                ->first();
+
+
+            $metaReqs['moduleId'] = $mModuleId;
+            $metaReqs['workflowId'] = $application->workflow_id;
+            $metaReqs['refTableDotId'] = "prop_properties";
+            $metaReqs['refTableIdValue'] = $request->applicationId;
+            $metaReqs['user_id'] = $user_id;
+            $metaReqs['ulb_id'] = $ulb_id;
+            $metaReqs['trackDate'] = $lastworkflowtrack && $lastworkflowtrack->forward_date ? ($lastworkflowtrack->forward_date . " " . $lastworkflowtrack->forward_time) : Carbon::now()->format('Y-m-d H:i:s');
+            $metaReqs['forwardDate'] = Carbon::now()->format('Y-m-d');
+            $metaReqs['forwardTime'] = Carbon::now()->format('H:i:s');
+            $metaReqs['verificationStatus'] = ($request->action == 'forward') ? $_TRADE_CONSTAINT["VERIFICATION-STATUS"]["VERIFY"] : $_TRADE_CONSTAINT["VERIFICATION-STATUS"]["BACKWARD"];
+            
+            $request->merge($metaReqs);
+            $track->saveTrack($request);
             DB::commit();
+            DB::connection("pgsql_master")->commit();
+            return responseMsgs(true, $sms, "", "010109", "1.0", "286ms", "POST", $request->deviceId);
         }catch (Exception $e) {
             DB::rollBack();
+            DB::connection("pgsql_master")->rollBack();
             return responseMsg(false, $e->getMessage(), "");
         }
     }
 
+    /**
+     * ======================📝 Update Request Approved Or Reject By Finisher📝==================
+     * ||                     Created By : Sandeep Bara
+     * ||                     Date       : 01-11-2023
+     * ||                     Status     : Open
+     * ===========================================================================================
+     */
     public function approvedRejectRequest(Request $request)
     {
         try {
@@ -746,6 +824,7 @@ class PropertyController extends Controller
             $request->merge($metaReqs);
             
             DB::beginTransaction();
+            DB::connection("pgsql_master")->beginTransaction();
             $track->saveTrack($request);
             
             // Approval
@@ -772,11 +851,12 @@ class PropertyController extends Controller
             $application->approved_by = $user_id;
             $application->update();
             DB::commit();
-
+            DB::connection("pgsql_master")->commit();
             return responseMsgs(true, $msg, "", '010811', '01', '474ms-573', 'Post', '');
             
         }catch (Exception $e) {
             DB::rollBack();
+            DB::connection("pgsql_master")->rollBack();
             return responseMsg(false, $e->getMessage(), "");
         }
     }

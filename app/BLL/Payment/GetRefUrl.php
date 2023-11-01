@@ -15,13 +15,15 @@ use Illuminate\Support\Facades\Http;
 class GetRefUrl
 {
     // private static $icid = 600587;
-    private static $icid = 136082;                                                      // Merchant Id
+    // private static $icid = 136082;                                                       // Merchant Id uat
+    private static $icid = 378278;                                                          // live
     // private static $aesKey = 6000010105805020;
-    private static $aesKey = 1300011160805020;
+    // private static $aesKey = 1300011160805020;                                           // Uat
+    private static $aesKey = 3705200682705002;                                              // Live
     private static $subMerchantId = 45;
     private static $paymentMode = 9;
-    private static $baseUrl = "https://eazypayuat.icicibank.com";
-    private static $returnUrl = "http://203.129.217.62:82/api/payment/v1/collect-callback-data";                   // http://203.129.217.244:8081/property
+    private static $baseUrl = "https://eazypay.icicibank.com";                       // https://eazypayuat.icicibank.com
+    private static $returnUrl = "https://modernulb.com/property/payment-success/87878787";                   // http://203.129.217.62:82/api/payment/v1/collect-callback-data
     private static $ciphering = "aes-128-ecb";                                                                  // Store the cipher method for encryption
     public $_tranAmt;
     public $_refNo;

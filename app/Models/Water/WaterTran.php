@@ -42,9 +42,11 @@ class WaterTran extends Model
     }
     public function ConsumerTransactionV2($transactionId)
     {
-        return WaterTran::where('id', $transactionId)
+        return WaterTran::join('water_tran_details', 'water_tran_details.tran_id', 'water_trans.id')
+            ->where('id', $transactionId)
             ->where('tran_type', "=", "Demand Collection")
-            ->where('status', 1);
+            ->where('water_trans.status', 1)
+            ->where('water_tran_details.status', 1);
     }
     public function siteInspectionTransaction($applicationId)
     {

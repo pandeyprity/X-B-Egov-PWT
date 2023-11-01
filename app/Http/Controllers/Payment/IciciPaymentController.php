@@ -90,8 +90,15 @@ class IciciPaymentController extends Controller
         $mIciciPaymentRes = new IciciPaymentResponse();
 
         try {
+
+
             $random = rand(1, 1000);
             Storage::disk('public')->put('icici/webhook/' . $random . '.json', json_encode($req->all()));
+            return responseMsgs(true, "Data Received Successfully", []);
+
+
+
+
             $data               = $req->all();
             $reqRefNo           = $req->reqRefNo;
             $resRefNo           = $req->resRefNo;

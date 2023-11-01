@@ -1677,10 +1677,13 @@ class WaterPaymentController extends Controller
             # Connection Charges
             $demandIds = collect($detailsOfDemand)->pluck('demand_id');
 
-            $consumerDemands = $mWaterConsumerDemand->getDemandCollectively($demandIds)
+            $consumerDemands = $mWaterConsumerDemand->getDemandCollectively($demandIds->toarray())
                 ->orderByDesc('id')
                 ->get();
 
+            if (!$consumerDemands->first()) {
+                throw new Exception("Improper data in cluster!");
+            }
 
             $fromDate           = collect($consumerDemands)->last()->demand_from;
             $startingDate       = Carbon::createFromFormat('Y-m-d',  $fromDate)->startOfMonth();
@@ -2631,7 +2634,7 @@ class WaterPaymentController extends Controller
             $this->adjustPartPayment($popedDemand, $refConsumercharges, $request, $offlinePaymentModes, $waterTrans, $consumercharges);
 
             # Save document
-            if ($request->document || !is_null($request->document)) {
+            if (isset($_FILES['document']) || $_FILES['document']['error'] == 0) {
                 $docUpload = new DocUpload;
                 $mWaterPartPaymentDocument = new WaterPartPaymentDocument();
                 $relativePath = "Uploads/Water/Partpayment";
@@ -2729,14 +2732,24 @@ class WaterPaymentController extends Controller
             $mWaterConsumerDemand       = new WaterConsumerDemand();
 
             $transactionId = $request->transactionId;
+            $transactionDetails = $mWaterTran->ConsumerTransactionV2($transactionId)
+                ->select(
+                    'water_tran_details.id AS trans_detail_id',
+                    'water_trans.id AS transaction_id',
+                    'water_tran_details.*'
+                )->get();
 
-            $transactionDetails = $mWaterTran->ConsumerTransactionV2($transactionId)->first();
-            if (!$transactionDetails) {
+            if (!($transactionDetails->first())) {
                 throw new Exception("Transaction detials not found!");
             }
             $this->checkParamforTranDeactivation($transactionDetails);
+
+            $this->begin();
+
+            $this->commit();
             return responseMsgs(true, "payment Done!", $request->all(), "", "01", responseTime(), "POST", $request->deviceId);
         } catch (Exception $e) {
+            $this->rollback();
             return responseMsgs(false, $e->getMessage(), [], "", "01", responseTime(), "POST", $request->deviceId);
         }
     }
@@ -2749,9 +2762,8 @@ class WaterPaymentController extends Controller
      */
     public function checkParamforTranDeactivation($transactionDetails)
     {
-        $mWaterTranDetail           = new WaterTranDetail();
-        $mWaterConsumerCollection   = new WaterConsumerCollection();
-        $mWaterConsumerDemand       = new WaterConsumerDemand();
+        $mWaterConsumerDemand = new WaterConsumerDemand();
 
+        // if()
     }
 }

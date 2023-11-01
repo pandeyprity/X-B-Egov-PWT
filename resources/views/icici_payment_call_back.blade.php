@@ -8,19 +8,9 @@
 </head>
 
 <body>
-    <P>
-        Lorem ipsum
-        dolor sit amet
-        consectetur adipisicing
-        elit. Dignissimos,
-        consequatur soluta
-        quia libero molestiae
-        similique totam labore
-        nihil consectetur blanditiis
-        exercitationem molestias voluptatem
-        nam, eligendi a quo eius praesentium
-        itaque.
-    </P>
+    <p style="font-size: 16px; font-family: Arial, sans-serif; color: #333; background-color: #f5f5f5; padding: 10px; text-align: center;">
+        Thank you for payment.
+    </p>
 </body>
 
 </html>
