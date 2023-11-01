@@ -1630,16 +1630,22 @@ class WaterPaymentController extends Controller
      */
     public function generateDemandPaymentReceipt(Request $req)
     {
-        $validated = Validator::make(
-            $req->all(),
-            [
-                'transactionNo' => 'required'
-            ]
-        );
-        if ($validated->fails())
+        $validationRules = [
+            'transactionNo' => 'nullable',
+        ];
+
+        if ($req->input('transactionNo') == null) {
+            $validationRules['tranId'] = 'required';
+        }
+
+        $validated = Validator::make($req->all(), $validationRules);
+
+        if ($validated->fails()) {
             return validationError($validated);
+        }
 
         try {
+            $refTranId              = $req->tranId;
             $refTransactionNo       = $req->transactionNo;
             $mWaterConsumerDemand   = new WaterConsumerDemand();
             $mWaterConsumer         = new WaterSecondConsumer();
@@ -1657,9 +1663,13 @@ class WaterPaymentController extends Controller
             $mPaymentModes      = $this->_paymentModes;
 
             # transaction Deatils
-            $transactionDetails = $mWaterTran->getTransactionByTransactionNo($refTransactionNo)
+            $transactionDetails = $mWaterTran->getTransactionByTransactionNoV2($refTransactionNo, $refTranId)
                 ->where('tran_type', $mTranType['1'])
-                ->firstOrFail();
+                ->first();
+
+            if (!$transactionDetails) {
+                throw new Exception("transaction details not found!");
+            }
 
             #  Data not equal to Cash
             if (!in_array($transactionDetails['payment_mode'], [$mPaymentModes['1'], $mPaymentModes['5']])) {

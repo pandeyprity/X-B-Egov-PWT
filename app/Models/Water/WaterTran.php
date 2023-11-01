@@ -84,6 +84,25 @@ class WaterTran extends Model
         // ->where('water_tran_details.status', 1);
     }
 
+
+    public function getTransactionByTransactionNoV2($transactionNo, $reftranId)
+    {
+        $query = WaterTran::select(
+            'water_trans.*',
+            'water_tran_details.demand_id'
+        )
+            ->leftJoin('water_tran_details', 'water_tran_details.tran_id', '=', 'water_trans.id')
+            ->where('water_trans.status', 1);
+
+        if ($transactionNo !== null) {
+            $query->where('water_trans.tran_no', $transactionNo);
+        } elseif ($reftranId !== null) {
+            $query->where('water_trans.id', $reftranId);
+        }
+
+        return $query;
+    }
+
     /**
      * | Enter the default details of the transacton which have 0 Connection charges
      * | @param totalConnectionCharges
