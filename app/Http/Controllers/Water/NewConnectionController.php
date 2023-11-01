@@ -1843,7 +1843,7 @@ class NewConnectionController extends Controller
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
                 case ("propertyNo"):                                                                             // Static
-                    $waterReturnDetails = $mWaterConsumer->getDetailByConsumerNo($request, $refstring, $paramenter)->paginate($pages);
+                    $waterReturnDetails = $mWaterConsumer->getConsumerByItsDetails($request, $refstring, $paramenter)->paginate($pages);
                     $checkVal = collect($waterReturnDetails)->last();
                     if (!$checkVal || $checkVal == 0)
                         throw new Exception("Data according to " . $key . " not Found!");
