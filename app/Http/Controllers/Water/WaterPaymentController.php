@@ -2644,7 +2644,7 @@ class WaterPaymentController extends Controller
             $this->adjustPartPayment($popedDemand, $refConsumercharges, $request, $offlinePaymentModes, $waterTrans, $consumercharges);
 
             # Save document
-            if (isset($_FILES['document']) || $_FILES['document']['error'] == 0) {
+            if (isset($_FILES['document'])) {
                 $docUpload = new DocUpload;
                 $mWaterPartPaymentDocument = new WaterPartPaymentDocument();
                 $relativePath = "Uploads/Water/Partpayment";
