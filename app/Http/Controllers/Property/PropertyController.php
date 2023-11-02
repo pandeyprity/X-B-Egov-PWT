@@ -618,6 +618,41 @@ class PropertyController extends Controller
 
     }
 
+    public function updateRequestView(Request $request)
+    {
+        try{
+            $validated = Validator::make(
+                $request->all(),
+                [
+                    'applicationId' => 'required|digits_between:1,9223372036854775807',
+                ]
+            );
+            if ($validated->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'validation error',
+                    'errors' => $validated->errors()
+                ]);
+            }
+            $application = PropPropertyUpdateRequest::find($request->applicationId);
+            if (!$application) {
+                throw new Exception("Data Not Found");
+            }
+            $owneres = $application->getOwnersUpdateReq()->get(); 
+            $propLog = json_decode($application->logs);
+            $ownerLog = json_decode($owneres->logs);
+            $propCom =[];
+            foreach($propLog as $key=>$val)
+            {
+                // $propCom
+            }
+
+        }catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+
+    }
+
     /**
      * ======================📝 Update Request Forward Next User Or Reject 📝====================
      * ||                     Created By : Sandeep Bara
