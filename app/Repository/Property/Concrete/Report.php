@@ -4470,11 +4470,34 @@ class Report implements IReport
 
             $report = DB::select($query);
             $report = collect($report)->first();
+            $report->maintanance_amt = round($report->current_maintanance_amt)     +  round($report->arear_maintanance_amt);
+            $report->aging_amt       = round($report->current_aging_amt)           +  round($report->arear_aging_amt);
+            $report->general_tax     = round($report->current_general_tax)         +  round($report->arear_general_tax);
+            $report->road_tax        = round($report->current_road_tax)            +  round($report->arear_road_tax);
+            $report->firefighting_tax= round($report->current_firefighting_tax)    +  round($report->arear_firefighting_tax);
+            $report->education_tax   = round($report->current_education_tax)       +  round($report->arear_education_tax);
+            $report->water_tax       = round($report->current_water_tax)           +  round($report->arear_water_tax) ;
+            $report->cleanliness_tax = round($report->current_cleanliness_tax)     +  round($report->arear_cleanliness_tax);
+            $report->sewarage_tax    = round($report->current_sewarage_tax)        +  round($report->arear_sewarage_tax)    ;
+            $report->tree_tax        = round($report->current_tree_tax)            +  round($report->arear_tree_tax)    ;
+            $report->professional_tax= round($report->current_professional_tax)    +  round($report->arear_professional_tax);
+            $report->tax1            = round($report->current_tax1)                +  round($report->arear_tax1)       ;
+            $report->tax2            = round($report->current_tax2)                +  round($report->arear_tax2)       ;
+            $report->tax3            = round($report->current_tax3)                +  round($report->arear_tax3)       ;
+            $report->sp_education_tax= round($report->current_sp_education_tax)    +  round($report->arear_sp_education_tax);
+            $report->water_benefit   = round($report->current_water_benefit)       +  round($report->arear_water_benefit)    ;
+            $report->water_bill      = round($report->current_water_bill)          +  round($report->arear_water_bill)       ;
+            $report->sp_water_cess   = round($report->current_sp_water_cess)       +  round($report->arear_sp_water_cess)    ;
+            $report->drain_cess      = round($report->current_drain_cess)          +  round($report->arear_drain_cess)       ;
+            $report->light_cess      = round($report->current_light_cess)          +  round($report->arear_light_cess)       ;
+            $report->major_building  = round($report->current_major_building)      +  round($report->arear_major_building)   ;
+            $report->open_ploat_tax  = round($report->current_open_ploat_tax)      +  round($report->arear_open_ploat_tax)   ;
+            
             $data["report"] = collect($report)->map(function ($val, $key) {
                 if ($key == "payment_mode") {
                     return $val;
                 }
-                return !is_null($val) ? roundFigure($val) : 0;
+                return !is_null($val) ? round($val) : 0;
             });
             // $penalty = $report->penalty;
             // $rebate  = $report->rebadet;
@@ -4484,24 +4507,24 @@ class Report implements IReport
             $current = 0;
             $penalty = $data["report"]["penalty"];
             $rebate  = $data["report"]["rebadet"];
-            $arear = $data["report"]["a1rear_total"] + $penalty;
-            $current = $data["report"]["c1urrent_total"] - $rebate;
-            // $currentPattern = "/current_/i";
-            // $arrearPattern = "/arear_/i";
-            // foreach ($data["report"] as $key => $val) {
-            //     if (preg_match($currentPattern, $key)) {
-            //         $current += ($val ? $val : 0);
-            //     }
-            //     if (preg_match($arrearPattern, $key)) {
-            //         $arear += ($val ? $val : 0);
-            //     }
-            // };
-            // $arear = $arear + $penalty;
-            // $current = $current - $rebate;
+            // $arear = $data["report"]["a1rear_total"] + $penalty;
+            // $current = $data["report"]["c1urrent_total"] - $rebate;
+            $currentPattern = "/current_/i";
+            $arrearPattern = "/arear_/i";
+            foreach ($data["report"] as $key => $val) {
+                if (preg_match($currentPattern, $key)) {
+                    $current += ($val ? $val : 0);
+                }
+                if (preg_match($arrearPattern, $key)) {
+                    $arear += ($val ? $val : 0);
+                }
+            };
+            $arear = $arear + $penalty;
+            $current = $current - $rebate;
             $data["total"] = [
-                "arear" => roundFigure($arear),
-                "current" => roundFigure($current),
-                "total" => roundFigure(($arear + $current)),
+                "arear" => round($arear),
+                "current" => round($current),
+                "total" => round(($arear + $current)),
             ];
             $data["headers"] = [
                 "fromDate" => Carbon::parse($fromDate)->format('d-m-Y'),
