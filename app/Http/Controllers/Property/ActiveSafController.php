@@ -265,17 +265,39 @@ class ActiveSafController extends Controller
      */
     public function editSaf(Request $req)
     {
-        $req->validate([
+        $rules = [
             'id' => 'required|numeric',
             'owner' => 'array',
-            'owner.*.ownerId' => 'required|numeric',
+            'owner.*.propOwnerDetailId' => 'required|numeric',
             'owner.*.ownerName' => 'required',
             'owner.*.guardianName' => 'required',
             'owner.*.relation' => 'required',
-            'owner.*.mobileNo' => 'numeric|string|digits:10',
-            'owner.*.aadhar' => 'numeric|string|digits:12|nullable',
+            'owner.*.mobileNo' => 'numeric|digits:10',
+            'owner.*.aadhar' => 'numeric|digits:12|nullable',
             'owner.*.email' => 'email|nullable',
-        ]);
+        ];
+        $validated = Validator::make(
+            $req->all(),
+            $rules
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+        // $req->validate([
+        //     'id' => 'required|numeric',
+        //     'owner' => 'array',
+        //     'owner.*.ownerId' => 'required|numeric',
+        //     'owner.*.ownerName' => 'required',
+        //     'owner.*.guardianName' => 'required',
+        //     'owner.*.relation' => 'required',
+        //     'owner.*.mobileNo' => 'numeric|string|digits:10',
+        //     'owner.*.aadhar' => 'numeric|string|digits:12|nullable',
+        //     'owner.*.email' => 'email|nullable',
+        // ]);
 
         try {
             $mPropSaf = new PropActiveSaf();
@@ -286,6 +308,7 @@ class ActiveSafController extends Controller
             $mPropSaf->edit($req);                                                      // Updation SAF Basic Details
 
             collect($mOwners)->map(function ($owner) use ($mPropSafOwners) {            // Updation of Owner Basic Details
+                $owner["safOwnerId"] = $owner["propOwnerDetailId"];
                 $mPropSafOwners->edit($owner);
             });
 
