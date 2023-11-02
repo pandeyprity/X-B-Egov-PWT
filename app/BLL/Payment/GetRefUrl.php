@@ -52,7 +52,7 @@ class GetRefUrl
         $plainUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $mandatoryField . "&optional fields=''" . '&returnurl=' . self::$returnUrl . '&Reference No=' . $refNo
             . '&submerchantid=' . self::$subMerchantId . '&transaction amount=' . "$tranAmt" . '&paymode=' . self::$paymentMode;
 
-        $encryptUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $eMandatoryField . "&optional fields=$optionalField" . '&returnurl=' . $returnUrl . '&Reference No=' . $eRefNo
+        $encryptUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $eMandatoryField . "&optional fields=''" . '&returnurl=' . $returnUrl . '&Reference No=' . $eRefNo
             . '&submerchantid=' . $subMerchantId . '&transaction amount=' . $eTranAmt . '&paymode=' . $paymentMode;
         $this->_refUrl = $encryptUrl;
         return [
