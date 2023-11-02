@@ -41,7 +41,8 @@ class GetRefUrl
         // $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
         $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . "1";               // 10 is transactional amount
         $eMandatoryField    = $this->encryptAes($mandatoryField);
-        $optionalField      = $this->encryptAes("X|X|X");
+        // $optionalField      = $this->encryptAes("X|X|X");
+        $optionalField      = $this->encryptAes("");
         $returnUrl          = $this->encryptAes(self::$returnUrl);
         $eRefNo             = $this->encryptAes($refNo);
         $subMerchantId      = $this->encryptAes(self::$subMerchantId);
