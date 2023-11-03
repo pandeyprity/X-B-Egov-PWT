@@ -90,14 +90,14 @@ class WaterTran extends Model
         $query = WaterTran::select(
             'water_trans.*',
             'water_tran_details.demand_id',
-            'users.user_name as tcName',
+            'users.name as tcName',
             'users.mobile',
             'water_second_consumers.zone_mstr_id',
             'zone_masters.zone_name' // Add this line to retrieve zone_name
         )
-            ->leftJoin('water_tran_details', 'water_tran_details.tran_id', '=', 'water_trans.id')
-            ->join('water_second_consumers', 'water_second_consumers.id', '=', 'water_trans.related_id')
-            ->leftjoin('users', 'users.id', '=', 'water_trans.emp_dtl_id')
+            ->leftJoin('water_tran_details', 'water_tran_details.tran_id', 'water_trans.id')
+            ->join('water_second_consumers', 'water_second_consumers.id', 'water_trans.related_id')
+            ->leftjoin('users', 'users.id', 'water_trans.emp_dtl_id')
             ->leftJoin('zone_masters', 'zone_masters.id', '=', 'water_second_consumers.zone_mstr_id') // Join zone_masters
             ->where('water_trans.status', 1);
 
