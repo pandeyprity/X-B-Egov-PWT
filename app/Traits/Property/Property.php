@@ -2,12 +2,15 @@
 
 namespace App\Traits\Property;
 
+use App\Http\Controllers\Property\ActiveSafController;
 use App\Models\Property\PropOwner;
 use App\Models\Property\PropOwnerUpdateRequest;
 use App\Models\Property\PropProperty;
 use App\Models\Property\PropPropertyUpdateRequest;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 
 /**
  * | Trait for Property and SAF reusable 
@@ -283,5 +286,458 @@ trait Property
             "is_armed_force" =>  $UpdateRequest->is_armed_force,
             "is_specially_abled" =>   $UpdateRequest->is_specially_abled,
             ];
+    }
+
+    public function PropUpdateCom(PropPropertyUpdateRequest $application)
+    {
+        $propCom =[];
+        $propLog = json_decode($application->logs);
+        $controller = App::makeWith(ActiveSafController::class,["iSafRepository"=>app(\App\Repository\Property\Interfaces\iSafRepository::class)]);
+        $response = $controller->masterSaf(new Request);
+        if(!$response->original["status"]) 
+        {
+            throw new Exception("Master Data Not Found");
+        }       
+        $data = $response->original["data"];
+        $categories = $data["categories"];        
+        $categoriesIds = collect($categories)->implode("id",",");
+
+        $construction_type = $data["construction_type"];
+        $construction_typeIds = collect($construction_type)->implode("id",",");
+        
+        $floor_type = $data["floor_type"];
+        $floor_typeIds = collect($floor_type)->implode("id",",");
+        
+        $occupancy_type = $data["occupancy_type"];
+        $occupancy_typeIds = collect($occupancy_type)->implode("id",",");
+        
+        $ownership_types = $data["ownership_types"];
+        $ownership_typesIds = collect($ownership_types)->implode("id",",");
+        
+        $property_type = $data["property_type"];
+        $property_typeIds = collect($property_type)->implode("id",",");
+        
+        $transfer_mode = $data["transfer_mode"];
+        $transfer_modeIds = collect($transfer_mode)->implode("id",",");
+        
+        $usage_type = $data["usage_type"];
+        $usage_typeIds = collect($usage_type)->implode("id",",");
+
+        $ward_master = $data["ward_master"];
+        $ward_masterIds = collect($ward_master)->implode("id",",");        
+        
+        
+
+        $zone = $data["zone"];
+        $zoneIds = collect($zone)->implode("id",",");
+        #basic        
+        {
+            $propCom["basic"]["values"]=[
+                [
+                "key"=>"applicant name",
+                "values" => ($propLog->applicant_name ?? "") == ($application->applicant_name ?? ""),
+                "according_verification" => $application->applicant_name ?? "",
+                "according_application" => $propLog->applicant_name ?? "",
+                ],
+                [
+                    "key"=>"applicant name in marathi",
+                    "values" => ($propLog->applicant_marathi ?? "") == ($application->applicant_marathi ?? ""),
+                    "according_verification" => $application->applicant_marathi ?? "",
+                    "according_application" => $propLog->applicant_marathi ?? "",
+                ],
+                [
+                    "key"=>"zone",
+                    "values" => ($propLog->zone_mstr_id ?? "") == ($application->zone_mstr_id ?? ""),
+                    "according_verification" => ((collect($zone)->where("id",$application->zone_mstr_id ?? "")->first())->zone_name??""),
+                    "according_application" => ((collect($zone)->where("id",$propLog->zone_mstr_id ?? "")->first())->zone_name??""),
+                ],
+                [
+                    "key"=>"ward no.",
+                    "values" => ($propLog->ward_mstr_id ?? "") == ($application->ward_mstr_id ?? ""),
+                    "according_verification" => ((collect($ward_master)->where("id",$application->ward_mstr_id ?? "")->first())->ward_name??""),
+                    "according_application" => ((collect($ward_master)->where("id",$propLog->ward_mstr_id ?? "")->first())->ward_name??""),
+                ],
+                [
+                    "key"=>"ownership type",
+                    "values" => ($propLog->ownership_type_mstr_id ?? "") == ($application->ownership_type_mstr_id ?? ""),
+                    "according_verification" => ((collect($ownership_types)->where("id",$application->ownership_type_mstr_id ?? "")->first())->ownership_type??""),
+                    "according_application" => ((collect($ownership_types)->where("id",$propLog->ownership_type_mstr_id ?? "")->first())->ownership_type??""),
+                ],
+                [
+                    "key"=>"electric connection no",
+                    "values" => ($propLog->no_electric_connection ?? "") == ($application->no_electric_connection ?? ""),
+                    "according_verification" => $application->no_electric_connection ?? "",
+                    "according_application" => $propLog->no_electric_connection ?? "",
+                ],
+                [
+                    "key"=>"electric consumer no",
+                    "values" => ($propLog->elect_consumer_no ?? "") == ($application->elect_consumer_no ?? ""),
+                    "according_verification" => $application->elect_consumer_no ?? "",
+                    "according_application" => $propLog->elect_consumer_no ?? "",
+                ],
+                [
+                    "key"=>"electric acc no",
+                    "values" => ($propLog->elect_acc_no ?? "") == ($application->elect_acc_no ?? ""),
+                    "according_verification" => $application->elect_acc_no ?? "",
+                    "according_application" => $propLog->elect_acc_no ?? "",
+                ],
+                [
+                    "key"=>"electric bind book no",
+                    "values" => ($propLog->elect_bind_book_no ?? "") == ($application->elect_bind_book_no ?? ""),
+                    "according_verification" => $application->elect_bind_book_no ?? "",
+                    "according_application" => $propLog->elect_bind_book_no ?? "",
+                ],                
+                [
+                    "key"=>"electric consumer category",
+                    "values" => ($propLog->elect_cons_category ?? "") == ($application->elect_cons_category ?? ""),
+                    "according_verification" => $application->elect_cons_category ?? "",
+                    "according_application" => $propLog->elect_cons_category ?? "",
+                ],               
+                [
+                    "key"=>"water consumer no",
+                    "values" => ($propLog->water_conn_no ?? "") == ($application->water_conn_no ?? ""),
+                    "according_verification" => $application->water_conn_no ?? "",
+                    "according_application" => $propLog->water_conn_no ?? "",
+                ],
+                [
+                    "key"=>"water conn date",
+                    "values" => ($propLog->water_conn_date ?? "") == ($application->water_conn_date ?? ""),
+                    "according_verification" => $application->water_conn_date ?Carbon::parse($application->water_conn_date)->format("d-m-Y"): null,
+                    "according_application" => $propLog->water_conn_date ?Carbon::parse($propLog->water_conn_date)->format("d-m-Y"): null,
+                ],                
+                [
+                    "key"=>"khata no",
+                    "values" => ($propLog->khata_no ?? "") == ($application->khata_no ?? ""),
+                    "according_verification" => $application->khata_no ?? "",
+                    "according_application" => $propLog->khata_no ?? "",
+                ],
+                [
+                    "key"=>"plot no",
+                    "values" => ($propLog->plot_no ?? "") == ($application->plot_no ?? ""),
+                    "according_verification" => $application->plot_no ?? "",
+                    "according_application" => $propLog->plot_no ?? "",
+                ],
+                [
+                    "key"=>"village mauja name",
+                    "values" => ($propLog->village_mauja_name ?? "") == ($application->village_mauja_name ?? ""),
+                    "according_verification" => $application->village_mauja_name ?? "",
+                    "according_application" => $propLog->village_mauja_name ?? "",
+                ],
+                [
+                    "key"=>"prop address",
+                    "values" => ($propLog->prop_address ?? "") == ($application->prop_address ?? ""),
+                    "according_verification" => $application->prop_address ?? "",
+                    "according_application" => $propLog->prop_address ?? "",
+                ],
+                [
+                    "key"=>"prop city",
+                    "values" => ($propLog->prop_city ?? "") == ($application->prop_city ?? ""),
+                    "according_verification" => $application->prop_city ?? "",
+                    "according_application" => $propLog->prop_city ?? "",
+                ],                
+                [
+                    "key"=>"prop dist",
+                    "values" => ($propLog->prop_dist ?? "") == ($application->prop_dist ?? ""),
+                    "according_verification" => $application->prop_dist ?? "",
+                    "according_application" => $propLog->prop_dist ?? "",
+                ],               
+                [
+                    "key"=>"prop pin code",
+                    "values" => ($propLog->prop_pin_code ?? "") == ($application->prop_pin_code ?? ""),
+                    "according_verification" => $application->prop_pin_code ?? "",
+                    "according_application" => $propLog->prop_pin_code ?? "",
+                ],                              
+                [
+                    "key"=>"prop state",
+                    "values" => ($propLog->prop_state ?? "") == ($application->prop_state ?? ""),
+                    "according_verification" => $application->prop_state ?? "",
+                    "according_application" => $propLog->prop_state ?? "",
+                ],                             
+                [
+                    "key"=>"corr address",
+                    "values" => ($propLog->corr_address ?? "") == ($application->corr_address ?? ""),
+                    "according_verification" => $application->corr_address ?? "",
+                    "according_application" => $propLog->corr_address ?? "",
+                ],                             
+                [
+                    "key"=>"corr city",
+                    "values" => ($propLog->corr_city ?? "") == ($application->corr_city ?? ""),
+                    "according_verification" => $application->corr_city ?? "",
+                    "according_application" => $propLog->corr_city ?? "",
+                ],                             
+                [
+                    "key"=>"corr dist",
+                    "values" => ($propLog->corr_dist ?? "") == ($application->corr_dist ?? ""),
+                    "according_verification" => $application->corr_dist ?? "",
+                    "according_application" => $propLog->corr_dist ?? "",
+                ],                           
+                [
+                    "key"=>"corr pin code",
+                    "values" => ($propLog->corr_pin_code ?? "") == ($application->corr_pin_code ?? ""),
+                    "according_verification" => $application->corr_pin_code ?? "",
+                    "according_application" => $propLog->corr_pin_code ?? "",
+                ],                           
+                [
+                    "key"=>"corr state",
+                    "values" => ($propLog->corr_state ?? "") == ($application->corr_state ?? ""),
+                    "according_verification" => $application->corr_state ?? "",
+                    "according_application" => $propLog->corr_state ?? "",
+                ],                           
+                [
+                    "key"=>"building name",
+                    "values" => ($propLog->building_name ?? "") == ($application->building_name ?? ""),
+                    "according_verification" => $application->building_name ?? "",
+                    "according_application" => $propLog->building_name ?? "",
+                ],                          
+                [
+                    "key"=>"street name",
+                    "values" => ($propLog->street_name ?? "") == ($application->street_name ?? ""),
+                    "according_verification" => $application->street_name ?? "",
+                    "according_application" => $propLog->street_name ?? "",
+                ],                          
+                [
+                    "key"=>"location",
+                    "values" => ($propLog->location ?? "") == ($application->location ?? ""),
+                    "according_verification" => $application->location ?? "",
+                    "according_application" => $propLog->location ?? "",
+                ],                          
+                [
+                    "key"=>"landmark",
+                    "values" => ($propLog->landmark ?? "") == ($application->landmark ?? ""),
+                    "according_verification" => $application->landmark ?? "",
+                    "according_application" => $propLog->landmark ?? "",
+                ],  
+            ];
+        }
+        #primary
+        {
+            $propCom["primary"]["values"]=[
+                [
+                    "key"=>"appartment name",
+                    "values" => ($propLog->appartment_name ?? "") == ($application->appartment_name ?? ""),
+                    "according_verification" => $application->appartment_name ?? "",
+                    "according_application" => $propLog->appartment_name ?? "",
+                ],
+                [
+                    "key"=>"building plan approval no",
+                    "values" => ($propLog->building_plan_approval_no ?? "") == ($application->building_plan_approval_no ?? ""),
+                    "according_verification" => $application->building_plan_approval_no ?? "",
+                    "according_application" => $propLog->building_plan_approval_no ?? "",
+                ],
+                [
+                    "key"=>"building plan approval date",
+                    "values" => ($propLog->building_plan_approval_date ?? "") == ($application->building_plan_approval_date ?? ""),
+                    "according_verification" => $application->building_plan_approval_date ? Carbon::parse($application->building_plan_approval_date)->format("d-m-Y"): null,
+                    "according_application" => $propLog->building_plan_approval_date ? Carbon::parse($propLog->building_plan_approval_date)->format("d-m-Y"): null,
+                ],
+                [
+                    "key"=>"property type",
+                    "values" => ($propLog->prop_type_mstr_id ?? "") == ($application->prop_type_mstr_id ?? ""),
+                    "according_verification" => ((collect($property_type)->where("id",$application->prop_type_mstr_id ?? "")->first())->property_type??""),
+                    "according_application" => ((collect($property_type)->where("id",$propLog->prop_type_mstr_id ?? "")->first())->property_type??""),
+                ],
+                [
+                    "key"=>"road width",
+                    "values" => ($propLog->road_width ?? "") == ($application->road_width ?? ""),
+                    "according_verification" => ($application->road_width ?? ""),
+                    "according_application" => ($propLog->road_width ?? ""),
+                ],
+                [
+                    "key"=>"area of plot",
+                    "values" => ($propLog->area_of_plot ?? "") == ($application->area_of_plot ?? ""),
+                    "according_verification" => ($application->area_of_plot ?? ""),
+                    "according_application" => ($propLog->area_of_plot ?? ""),
+                ],
+                [
+                    "key"=>"has mobile tower",
+                    "values" => ($propLog->is_mobile_tower ?? "") == ($application->is_mobile_tower ?? ""),
+                    "according_verification" => ($application->is_mobile_tower ?? ""),
+                    "according_application" => ($propLog->is_mobile_tower ?? ""),
+                ],
+                [
+                    "key"=>"tower area",
+                    "values" => ($propLog->tower_area ?? "") == ($application->tower_area ?? ""),
+                    "according_verification" => ($application->tower_area ?? ""),
+                    "according_application" => ($propLog->tower_area ?? ""),
+                ],                
+                [
+                    "key"=>"tower installation date",
+                    "values" => ($propLog->tower_installation_date ?? "") == ($application->tower_installation_date ?? ""),
+                    "according_verification" => $application->tower_installation_date ? Carbon::parse($application->tower_installation_date)->format("d-m-Y"): null,
+                    "according_application" => $propLog->tower_installation_date ? Carbon::parse($propLog->tower_installation_date)->format("d-m-Y"): null,
+                ],              
+                [
+                    "key"=>"has Hoarding Board",
+                    "values" => ($propLog->isHoardingBoard ?? "") == ($application->isHoardingBoard ?? ""),
+                    "according_verification" => ($application->isHoardingBoard ?? ""),
+                    "according_application" => ($propLog->isHoardingBoard ?? ""),
+                ],
+                [
+                    "key"=>"Hoarding Board Area",
+                    "values" => ($propLog->hoarding_area ?? "") == ($application->hoarding_area ?? ""),
+                    "according_verification" => ($application->hoarding_area ?? ""),
+                    "according_application" => ($propLog->hoarding_area ?? ""),
+                ],                
+                [
+                    "key"=>"Hoarding Board installation date",
+                    "values" => ($propLog->hoarding_installation_date ?? "") == ($application->hoarding_installation_date ?? ""),
+                    "according_verification" => $application->hoarding_installation_date ? Carbon::parse($application->hoarding_installation_date)->format("d-m-Y"): null,
+                    "according_application" => $propLog->hoarding_installation_date ? Carbon::parse($propLog->hoarding_installation_date)->format("d-m-Y"): null,
+                ],                
+                [
+                    "key"=>"has petrol pump",
+                    "values" => ($propLog->is_petrol_pump ?? "") == ($application->is_petrol_pump ?? ""),
+                    "according_verification" => ($application->is_petrol_pump ?? ""),
+                    "according_application" => ($propLog->is_petrol_pump ?? ""),
+                ],                
+                [
+                    "key"=>"under ground area",
+                    "values" => ($propLog->under_ground_area ?? "") == ($application->under_ground_area ?? ""),
+                    "according_verification" => ($application->under_ground_area ?? ""),
+                    "according_application" => ($propLog->under_ground_area ?? ""),
+                ],                
+                [
+                    "key"=>"petrol pump completion date",
+                    "values" => ($propLog->petrol_pump_completion_date ?? "") == ($application->petrol_pump_completion_date ?? ""),
+                    "according_verification" => $application->petrol_pump_completion_date ? Carbon::parse($application->petrol_pump_completion_date)->format("d-m-Y"): null,
+                    "according_application" => $propLog->petrol_pump_completion_date ? Carbon::parse($propLog->petrol_pump_completion_date)->format("d-m-Y"): null,
+                ],                
+                [
+                    "key"=>"has water harvesting",
+                    "values" => ($propLog->is_water_harvesting ?? "") == ($application->is_water_harvesting ?? ""),
+                    "according_verification" => ($application->is_water_harvesting ?? ""),
+                    "according_application" => ($propLog->is_water_harvesting ?? ""),
+                ],                                
+                [
+                    "key"=>"water harvesting date from",
+                    "values" => ($propLog->rwh_date_from ?? "") == ($application->rwh_date_from ?? ""),
+                    "according_verification" => $application->rwh_date_from ? Carbon::parse($application->rwh_date_from)->format("d-m-Y"): null,
+                    "according_application" => $propLog->rwh_date_from ? Carbon::parse($propLog->rwh_date_from)->format("d-m-Y"): null,
+                ],                                
+                [
+                    "key"=>"land occupation date",
+                    "values" => ($propLog->land_occupation_date ?? "") == ($application->land_occupation_date ?? ""),
+                    "according_verification" => $application->land_occupation_date ? Carbon::parse($application->land_occupation_date)->format("d-m-Y"): null,
+                    "according_application" => $propLog->land_occupation_date ? Carbon::parse($propLog->land_occupation_date)->format("d-m-Y"): null,
+                ],                                               
+                [
+                    "key"=>"flat registry date",
+                    "values" => ($propLog->flat_registry_date ?? "") == ($application->flat_registry_date ?? ""),
+                    "according_verification" => ($application->flat_registry_date ?? ""),
+                    "according_application" => ($propLog->flat_registry_date ?? ""),
+                ],                                              
+                [
+                    "key"=>"is trust",
+                    "values" => ($propLog->is_trust ?? "") == ($application->is_trust ?? ""),
+                    "according_verification" => ($application->is_trust ?? ""),
+                    "according_application" => ($propLog->is_trust ?? ""),
+                ],                                                              
+                [
+                    "key"=>"trust type",
+                    "values" => ($propLog->trust_type ?? "") == ($application->trust_type ?? ""),
+                    "according_verification" => ($application->trust_type ?? ""),
+                    "according_application" => ($propLog->trust_type ?? ""),
+                ],                                                              
+                [
+                    "key"=>"category",
+                    "values" => ($propLog->category_id ?? "") == ($application->category_id ?? ""),
+                    "according_verification" => ((collect($categories)->where("id",$application->category_id ?? "")->first())->category??""),
+                    "according_application" => ((collect($categories)->where("id",$propLog->category_id ?? "")->first())->category??""),
+                ],
+            ]; 
+        }
+        return $propCom;
+    }
+
+    public function OwerUpdateCom(PropPropertyUpdateRequest $application)
+    {
+        $ownerCom = [];
+        $owners = $application->getOwnersUpdateReq()->get(); 
+        
+        foreach($owners as $key=>$val)
+        {
+            $ownerLog = json_decode($val->logs);
+            $ownerCom[]["values"]=[
+                [
+                    "key"=>"owner name",
+                    "values" => ($ownerLog->owner_name ?? "") == ($val->owner_name ?? ""),
+                    "according_verification" => $val->owner_name ?? "",
+                    "according_application" => $ownerLog->owner_name ?? "",
+                ],
+                [
+                    "key"=>"owner name in marathi",
+                    "values" => ($ownerLog->owner_name_marathi ?? "") == ($val->owner_name_marathi ?? ""),
+                    "according_verification" => $val->owner_name_marathi ?? "",
+                    "according_application" => $ownerLog->owner_name_marathi ?? "",
+                ],
+                [
+                    "key"=>"guardian name",
+                    "values" => ($ownerLog->guardian_name ?? "") == ($val->guardian_name ?? ""),
+                    "according_verification" => $val->guardian_name ?? "",
+                    "according_application" => $ownerLog->guardian_name ?? "",
+                ],
+                [
+                    "key"=>"guardian name in marathi",
+                    "values" => ($ownerLog->guardian_name_marathi ?? "") == ($val->guardian_name_marathi ?? ""),
+                    "according_verification" => $val->guardian_name_marathi ?? "",
+                    "according_application" => $ownerLog->guardian_name_marathi ?? "",
+                ],
+                [
+                    "key"=>"relation type",
+                    "values" => ($ownerLog->relation_type ?? "") == ($val->relation_type ?? ""),
+                    "according_verification" => $val->relation_type ?? "",
+                    "according_application" => $ownerLog->relation_type ?? "",
+                ],
+                [
+                    "key"=>"mobile no",
+                    "values" => ($ownerLog->mobile_no ?? "") == ($val->mobile_no ?? ""),
+                    "according_verification" => $val->mobile_no ?? "",
+                    "according_application" => $ownerLog->mobile_no ?? "",
+                ],
+                [
+                    "key"=>"email",
+                    "values" => ($ownerLog->email ?? "") == ($val->email ?? ""),
+                    "according_verification" => $val->email ?? "",
+                    "according_application" => $ownerLog->email ?? "",
+                ],
+                [
+                    "key"=>"pan no",
+                    "values" => ($ownerLog->pan_no ?? "") == ($val->pan_no ?? ""),
+                    "according_verification" => $val->pan_no ?? "",
+                    "according_application" => $ownerLog->pan_no ?? "",
+                ],
+                [
+                    "key"=>"aadhar no",
+                    "values" => ($ownerLog->aadhar_no ?? "") == ($val->aadhar_no ?? ""),
+                    "according_verification" => $val->aadhar_no ?? "",
+                    "according_application" => $ownerLog->aadhar_no ?? "",
+                ],
+                [
+                    "key"=>"gender",
+                    "values" => ($ownerLog->gender ?? "") == ($val->gender ?? ""),
+                    "according_verification" => $val->gender ?? "",
+                    "according_application" => $ownerLog->gender ?? "",
+                ],
+                [
+                    "key"=>"DOB",
+                    "values" => ($ownerLog->dob ?? "") == ($val->dob ?? ""),
+                    "according_verification" => $val->dob ?Carbon::parse($val->dob)->format("d-m-Y"): null,
+                    "according_application" => $ownerLog->dob ?Carbon::parse($ownerLog->dob)->format("d-m-Y"): null ,
+                ],
+                [
+                    "key"=>"is armed force",
+                    "values" => ($ownerLog->is_armed_force ?? "") == ($val->is_armed_force ?? ""),
+                    "according_verification" => $val->is_armed_force ?? "",
+                    "according_application" => $ownerLog->is_armed_force ?? "",
+                ],
+                [
+                    "key"=>"is specially abled",
+                    "values" => ($ownerLog->is_specially_abled ?? "") == ($val->is_specially_abled ?? ""),
+                    "according_verification" => $val->is_specially_abled ?? "",
+                    "according_application" => $ownerLog->is_specially_abled ?? "",
+                ],
+            ];
+        }
+        return $ownerCom;
     }
 }

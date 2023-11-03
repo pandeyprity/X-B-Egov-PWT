@@ -581,9 +581,9 @@ class NewConnectionRepository implements iNewConnection
         if ($waterDetails->doc_upload_status == false) {
             throw new Exception("Full document is Not Uploaded!");
         }
-        if ($waterDetails->is_field_verified == 0) {
-            throw new Exception("Field Verification Not Done!!");
-        }
+        // if ($waterDetails->is_field_verified == 0) {
+        //     throw new Exception("Field Verification Not Done!!");
+        // }
         $this->checkDataApprovalCondition($request, $roleId, $waterDetails);   // Reminder
         return $waterDetails;
     }

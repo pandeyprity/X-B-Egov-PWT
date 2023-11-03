@@ -238,11 +238,11 @@ class WaterSecondConsumer extends Model
         )
             ->leftjoin('zone_masters', 'zone_masters.id', 'water_second_consumers.zone_mstr_id')
             ->leftjoin('water_property_type_mstrs', 'water_property_type_mstrs.id', 'water_second_consumers.property_type_id')
-            ->join('water_consumer_initial_meters', 'water_consumer_initial_meters.consumer_id', 'water_second_consumers.id')
-            ->join("water_consumer_owners", 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
-            ->join('ulb_masters', 'ulb_masters.id', 'water_second_consumers.ulb_id')
+            ->leftjoin('water_consumer_initial_meters', 'water_consumer_initial_meters.consumer_id', 'water_second_consumers.id')
+            ->leftjoin("water_consumer_owners", 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
+            ->leftjoin('ulb_masters', 'ulb_masters.id', 'water_second_consumers.ulb_id')
             ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
-            ->join('water_consumer_meters', 'water_consumer_meters.consumer_id', 'water_second_consumers.id')
+            ->leftjoin('water_consumer_meters', 'water_consumer_meters.consumer_id', 'water_second_consumers.id')
             ->leftjoin('water_second_connection_charges', 'water_second_connection_charges.consumer_id', 'water_second_consumers.id')
             ->where('water_second_consumers.id', $applicationId)
             ->where('water_second_consumers.status', 1)
@@ -392,6 +392,7 @@ class WaterSecondConsumer extends Model
         $mWaterSecondConsumer->mobile_no            =  $request->mobileNo;
         $mWaterSecondConsumer->old_consumer_no      =  $request->oldConsumerNo;
         $mWaterSecondConsumer->property_no          =  $request->propertyNo;
+        $mWaterSecondConsumer->dtc_code             =  $request->dtcCode;
         $mWaterSecondConsumer->save();
     }
 }
