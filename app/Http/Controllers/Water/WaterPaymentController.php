@@ -1724,17 +1724,23 @@ class WaterPaymentController extends Controller
             //     ->min("demand_from");
             // $fixedUpto = $consumerTaxes->where("connection_type", "Fixed")                      // Static
             //     ->max("demand_upto");
-
+            // Calculate the current year
+            #session 
+            $currentYear = date('Y');
+            $nextYear = $currentYear + 1;
+            $yearRange = $currentYear . '-' . $nextYear;
             $returnValues = [
                 "departmentSection"     => $mDepartmentSection,
                 "accountDescription"    => $mAccDescription,
                 "transactionDate"       => $transactionDetails['tran_date'],
                 "transactionTime"       => $transactionTime,
+                "session"               => $yearRange,
+                "paymentType"           => $transactionDetails['payment_type'],
                 "transactionNo"         => $refTransactionNo,
                 "userType"              => $transactionDetails['user_type'],
                 "zoneName"              => $transactionDetails['zone_name'],
-                "empName"                => $transactionDetails['tcName'],
-                "empMobile"              => $transactionDetails['mobile'],
+                "empName"               => $transactionDetails['tcName'],
+                "empMobile"             => $transactionDetails['mobile'],
                 "consumerNo"            => $consumerDetails['consumer_no'],
                 "customerName"          => $consumerDetails['applicant_name'],
                 "customerMobile"        => $consumerDetails['mobile_no'],
