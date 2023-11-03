@@ -22,6 +22,7 @@ use App\Models\Property\PropSaf;
 use App\Models\Property\PropSafsDemand;
 use App\Models\Property\PropSafsOwner;
 use App\Models\Property\PropTransaction;
+use App\Models\User;
 use App\Models\Workflows\WfActiveDocument;
 use App\Models\Workflows\WfWorkflow;
 use App\Models\WorkflowTrack;
@@ -422,6 +423,17 @@ class PropertyController extends Controller
                 $rPropOwners->store($newOwnerArr);
                                
             } 
+            $rules = [
+                "applicationId" => $updetReq["id"],
+                "status" => 1,
+                "comment" => "Approved",
+            ];
+            // $newRequest = new Request($rules);
+            // $approveResponse = $this->approvedRejectRequest($newRequest);
+            // if(!$approveResponse->original["status"]) 
+            // {
+            //     return $approveResponse;
+            // }
             DB::commit();
             return responseMsgs(true, 'Update Request Submited', $updetReq, '010801', '01', '', 'Post', '');
         } catch (Exception $e) {
@@ -612,6 +624,47 @@ class PropertyController extends Controller
             ];
             return responseMsg(true, "", remove_null($list)); 
             
+        }catch (Exception $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        }
+
+    }
+
+    public function updateRequestView(Request $request)
+    {
+        try{
+            $validated = Validator::make(
+                $request->all(),
+                [
+                    'applicationId' => 'required|digits_between:1,9223372036854775807',
+                ]
+            );
+            if ($validated->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'validation error',
+                    'errors' => $validated->errors()
+                ]);
+            }
+            $application = PropPropertyUpdateRequest::find($request->applicationId);
+            if (!$application) {
+                throw new Exception("Data Not Found");
+            }
+            $users = User::select("*")->where("id",$application->user_id)->first();
+            $docUrl = Config::get('module-constants.DOC_URL');
+            $data["userDtl"] = [
+                "employeeName"=>$users->name,
+                "mobile"=>$users->mobile,
+                "document"=>$application->supporting_doc ? ($docUrl."/".$application->supporting_doc):"",
+                "applicationDate"=>$application->created_at ? Carbon::parse($application->created_at)->format("m-d-Y H:s:i A"):null,
+                "requestNo"=>$application->request_no,
+                "updationType"=>$application->is_full_update?"Full Update":"Basice Update",
+            ]; 
+            $data["propCom"] = $this->PropUpdateCom($application);
+            $data["ownerCom"] = $this->OwerUpdateCom($application);
+            
+            return responseMsgs(true,"data fetched", remove_null($data), "010109", "1.0", "286ms", "POST", $request->deviceId);
+
         }catch (Exception $e) {
             return responseMsg(false, $e->getMessage(), "");
         }
