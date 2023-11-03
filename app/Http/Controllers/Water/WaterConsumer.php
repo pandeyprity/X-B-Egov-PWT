@@ -2273,6 +2273,7 @@ class WaterConsumer extends Controller
                 'wardId'            => 'nullable|integer',
                 'address'           => 'nullable|',
                 'propertyNo'        => 'nullable',
+                'dtcCode'           => 'nullble',
                 'oldConsumerNo'     => 'nullable'
             ]
         );

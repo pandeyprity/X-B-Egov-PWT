@@ -89,9 +89,16 @@ class WaterTran extends Model
     {
         $query = WaterTran::select(
             'water_trans.*',
-            'water_tran_details.demand_id'
+            'water_tran_details.demand_id',
+            'users.user_name as tcName',
+            'users.mobile',
+            'water_second_consumers.zone_mstr_id',
+            'zone_masters.zone_name' // Add this line to retrieve zone_name
         )
             ->leftJoin('water_tran_details', 'water_tran_details.tran_id', '=', 'water_trans.id')
+            ->join('water_second_consumers', 'water_second_consumers.id', '=', 'water_trans.related_id')
+            ->leftjoin('users', 'users.id', '=', 'water_trans.emp_dtl_id')
+            ->leftJoin('zone_masters', 'zone_masters.id', '=', 'water_second_consumers.zone_mstr_id') // Join zone_masters
             ->where('water_trans.status', 1);
 
         if ($transactionNo !== null) {
@@ -102,6 +109,7 @@ class WaterTran extends Model
 
         return $query;
     }
+
 
     /**
      * | Enter the default details of the transacton which have 0 Connection charges
@@ -174,6 +182,7 @@ class WaterTran extends Model
     public function waterTransaction($req, $consumer)
     {
         $waterTrans = new WaterTran();
+        $nowTime = Carbon::now()->format('h:i:s A');
         $waterTrans->related_id         = $req['id'];
         $waterTrans->amount             = $req['amount'];
         $waterTrans->tran_type          = $req['chargeCategory'];
@@ -190,6 +199,8 @@ class WaterTran extends Model
         $waterTrans->adjustment_amount  = $req['adjustedAmount'] ?? 0;
         $waterTrans->pg_response_id     = $req['pgResponseId'] ?? null;
         $waterTrans->pg_id              = $req['pgId'] ?? null;
+        $waterTrans->tran_time          = $nowTime;
+        $waterTrans->payment_type       = $req['partPayment'];
         if ($req->penaltyIds) {
             $waterTrans->penalty_ids    = $req->penaltyIds;
             $waterTrans->is_penalty     = $req->isPenalty;

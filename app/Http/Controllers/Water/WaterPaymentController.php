@@ -362,11 +362,12 @@ class WaterPaymentController extends Controller
             # Transaction Date
             $refDate = $transactionDetails->tran_date;
             $transactionDate = Carbon::parse($refDate)->format('Y-m-d');
-
+            $currentTime = date('H:i:s');
             $returnValues = [
                 "departmentSection"     => $mDepartmentSection,
                 "accountDescription"    => $mAccDescription,
                 "transactionDate"       => $transactionDate,
+                "transactionTime"       => $currentTime,
                 "transactionNo"         => $refTransactionNo,
                 "applicationNo"         => $applicationDetails['application_no'],
                 "customerName"          => $applicationDetails['applicantname'],
@@ -1709,6 +1710,8 @@ class WaterPaymentController extends Controller
             $consumerInitialMeters = $mWaterConsumerInitial->calculateUnitsConsumed($consumerDetails->id);
             $finalReading = $consumerInitialMeters->first()->initial_reading;
             $initialReading = $consumerInitialMeters->last()->initial_reading ?? 0;
+            $transactionTime = Carbon::parse($transactionDetails['tran_time'])->format('H:i');
+
 
 
             # water consumer consumed
@@ -1726,7 +1729,12 @@ class WaterPaymentController extends Controller
                 "departmentSection"     => $mDepartmentSection,
                 "accountDescription"    => $mAccDescription,
                 "transactionDate"       => $transactionDetails['tran_date'],
+                "transactionTime"       => $transactionTime,
                 "transactionNo"         => $refTransactionNo,
+                "userType"              => $transactionDetails['user_type'],
+                "zoneName"              => $transactionDetails['zone_name'],
+                "empName"                => $transactionDetails['tcName'],
+                "empMobile"              => $transactionDetails['mobile'],
                 "consumerNo"            => $consumerDetails['consumer_no'],
                 "customerName"          => $consumerDetails['applicant_name'],
                 "customerMobile"        => $consumerDetails['mobile_no'],
@@ -1754,7 +1762,7 @@ class WaterPaymentController extends Controller
                 "WardNo"                => $consumerDetails['ward_name'],
                 "logo"                  => $consumerDetails['logo'],
                 "towards"               => $mTowardsDemand,
-                "description"           => $mAccDescription,
+                "description"           => $mTowardsDemand,
                 "totalPaidAmount"       => $transactionDetails->amount,
                 "dueAmount"             => $transactionDetails->due_amount,
                 "rebate"                => 0,                                                                       // Static
@@ -2605,6 +2613,7 @@ class WaterPaymentController extends Controller
                 'chargeCategory'    => "Demand Collection",                                 // Static
                 'leftDemandAmount'  => $finalCharges['leftDemandAmount'],
                 'adjustedAmount'    => $finalCharges['adjustedAmount'],
+                'partPayment'       => 'part payment',
                 'isJsk'             => true                                                 // Static
             ]);
             # Save the Details of the transaction
@@ -2644,7 +2653,7 @@ class WaterPaymentController extends Controller
             $this->adjustPartPayment($popedDemand, $refConsumercharges, $request, $offlinePaymentModes, $waterTrans, $consumercharges);
 
             # Save document
-            if (isset($_FILES['document']) || $_FILES['document']['error'] == 0) {
+            if (isset($_FILES['document'])) {
                 $docUpload = new DocUpload;
                 $mWaterPartPaymentDocument = new WaterPartPaymentDocument();
                 $relativePath = "Uploads/Water/Partpayment";
