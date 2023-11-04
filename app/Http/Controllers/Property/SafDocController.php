@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config as FacadesConfig;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Facade;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * | Created On=01-02-2023 
@@ -173,6 +174,26 @@ class SafDocController extends Controller
      */
     public function docUpload(Request $req)
     {
+        $extention = $req->document->getClientOriginalExtension();
+        $rules=[
+            "applicationId" => "required|numeric",
+            "document" => "required|mimes:pdf,jpeg,png,jpg".(strtolower($extention) == 'pdf' ? 'max:10240' : 'max:1024'),
+            "docCode" => "required",
+            "docCategory" => "required|string",
+            "ownerId" => "nullable|numeric"
+        ];
+        $validated = Validator::make(
+            $req->all(),
+            $rules
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+        
         $req->validate([
             "applicationId" => "required|numeric",
             "document" => "required|mimes:pdf,jpeg,png,jpg",
