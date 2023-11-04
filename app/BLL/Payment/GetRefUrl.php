@@ -37,20 +37,23 @@ class GetRefUrl
         $todayDate          = Carbon::now()->format('d/M/Y');
         $refNo              = time() . rand();
         $this->_refNo       = $refNo;
-        $tranAmt            = $req->amount;                                                                            // Remove the static amount
-        $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
+        $tranAmt            = 1;//$req->amount;                                                                            // Remove the static amount
+        // $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
+        $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . "1";               // 10 is transactional amount
         $eMandatoryField    = $this->encryptAes($mandatoryField);
-        $optionalField      = $this->encryptAes("X|X|X");
+        // $optionalField      = $this->encryptAes("X|X|X");
+        $optionalField      = $this->encryptAes("");
         $returnUrl          = $this->encryptAes(self::$returnUrl);
         $eRefNo             = $this->encryptAes($refNo);
         $subMerchantId      = $this->encryptAes(self::$subMerchantId);
-        $eTranAmt           = $this->encryptAes($tranAmt);
+        // $eTranAmt           = $this->encryptAes($tranAmt);
+        $eTranAmt           = $this->encryptAes(1);
         $paymentMode        = $this->encryptAes(self::$paymentMode);
 
-        $plainUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $mandatoryField . "&optional fields=X|X|X" . '&returnurl=' . self::$returnUrl . '&Reference No=' . $refNo
+        $plainUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $mandatoryField . "&optional fields=''" . '&returnurl=' . self::$returnUrl . '&Reference No=' . $refNo
             . '&submerchantid=' . self::$subMerchantId . '&transaction amount=' . "$tranAmt" . '&paymode=' . self::$paymentMode;
 
-        $encryptUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $eMandatoryField . "&optional fields=$optionalField" . '&returnurl=' . $returnUrl . '&Reference No=' . $eRefNo
+        $encryptUrl = self::$baseUrl . '/EazyPG?merchantid=' . self::$icid . '&mandatory fields=' . $eMandatoryField . "&optional fields=''" . '&returnurl=' . $returnUrl . '&Reference No=' . $eRefNo
             . '&submerchantid=' . $subMerchantId . '&transaction amount=' . $eTranAmt . '&paymode=' . $paymentMode;
         $this->_refUrl = $encryptUrl;
         return [

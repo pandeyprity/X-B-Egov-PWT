@@ -2931,7 +2931,7 @@ class NewConnectionController extends Controller
                 $mWaterApplicant->saveWaterApplicant($meta, $owners);
             }
 
-            $mWaterApplicant = $mWaterCharges->saveWaterCharges($meta);
+            return $mWaterApplicant = $mWaterCharges->saveWaterCharges($meta);
             # save for  work flow track
             $metaReqs = new Request(
                 [
