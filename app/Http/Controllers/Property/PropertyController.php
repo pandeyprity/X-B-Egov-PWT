@@ -841,7 +841,7 @@ class PropertyController extends Controller
             {
                 throw new Exception("Data Not Found!");
             }
-            if ($application->finisher_role != $role->role_id) {
+            if (!$role || ($application->finisher_role != $role->role_id??0)) {
                 throw new Exception("Forbidden Access");
             }
             if (!$request->senderRoleId) {

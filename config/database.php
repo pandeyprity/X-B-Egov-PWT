@@ -100,6 +100,24 @@ return [
                 PDO::ATTR_PERSISTENT => true,
             ],
         ],
+        #_For Reports
+        'pgsql_reports' => [
+            'driver' => 'pgsql',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_REPORT_HOST', '127.0.0.1'),
+            'port' => env('DB_REPORT_PORT', '5432'),
+            'database' => env('DB_REPORT_DATABASE', 'forge'),
+            'username' => env('DB_REPORT_USERNAME', 'forge'),
+            'password' => env('DB_REPORT_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'public',
+            'sslmode' => 'prefer',
+            'options'   => [
+                PDO::ATTR_PERSISTENT => true,
+            ],
+        ],
 
         #_For Trade Service
         'pgsql_trade' => [
