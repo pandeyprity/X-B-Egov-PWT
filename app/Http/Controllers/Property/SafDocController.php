@@ -218,6 +218,7 @@ class SafDocController extends Controller
             // Derivative Assignments
             $getSafDtls = $mActiveSafs->getSafNo($req->applicationId);
             $refImageName = $req->docCode;
+            $refImageName = str_replace('/', '-', $refImageName);
             $refImageName = $getSafDtls->id . '-' . $refImageName;
             $document = $req->document;
             $imageName = $docUpload->upload($refImageName, $document, $relativePath);
