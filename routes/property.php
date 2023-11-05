@@ -486,6 +486,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('reports/property/tc-collection', 'tcCollectionReport');
     Route::post('v1/reports/property/mode-wise-brif-dtl', 'paymentModedealyCollectionRptV1');
     Route::post('reports/mpl', 'mplReport');                    //done
+    Route::post('reports/mpl-totdayCollection', 'mplReportCollection');                    //done
   });
 
   /**

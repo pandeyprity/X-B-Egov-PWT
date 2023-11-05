@@ -791,7 +791,6 @@ class ReportController extends Controller
     {
         try {
             $ulbId = $request->ulbId ?? 2;
-            $ulbId = $request->ulbId ?? 2;
             $fyear = getFY();
             $fyArr = explode("-",$fyear);
             $privYear = ($fyArr[0]-1)."-".($fyArr[1]-1);            
@@ -824,6 +823,14 @@ class ReportController extends Controller
             $data['Assessment Categories']['commercial']        = $currentYearData->total_assessed_commercial ?? 0;
             $data['Assessment Categories']['industrial']        = $currentYearData->total_assessed_industrial ?? 0;
             $data['Assessment Categories']['gbsaf']             = $currentYearData->total_assessed_gbsaf ?? 0;
+            $data['Assessment Categories']['mix']               = $currentYearData->total_assessed_mixe ?? 0;
+
+            $data['Prop Categories']['total_assessment']  = $currentYearData->total_property ?? 0;
+            $data['Prop Categories']['residential']       = $currentYearData->total_prop_residential ?? 0;
+            $data['Prop Categories']['commercial']        = $currentYearData->total_prop_commercial ?? 0;
+            $data['Prop Categories']['industrial']        = $currentYearData->total_prop_industrial ?? 0;
+            $data['Prop Categories']['gbsaf']             = $currentYearData->total_prop_gbsaf ?? 0;
+            $data['Prop Categories']['mix']               = $currentYearData->total_prop_mixe ?? 0;
 
             #_Ownership ??
             $data['Ownership']['total_ownership'] = $currentYearData->total_property ?? 0;
@@ -833,53 +840,53 @@ class ReportController extends Controller
 
             #_Unpaid Properties
             $data['Unpaid Properties']["previous"]['count_not_paid_3yrs']  = $prevYearData->count_not_paid_3yrs ?? 0;
-            $data['Unpaid Properties']["previous"]['amount_not_paid_3yrs'] = round(($prevYearData->amount_not_paid_3yrs ?? 0) / 100000, 2); #_in lacs
+            $data['Unpaid Properties']["previous"]['amount_not_paid_3yrs'] = round(($prevYearData->amount_not_paid_3yrs ?? 0) / 10000000, 2); #_in cr
             $data['Unpaid Properties']["previous"]['count_not_paid_2yrs']  = $prevYearData->count_not_paid_2yrs ?? 0;
-            $data['Unpaid Properties']["previous"]['amount_not_paid_2yrs'] = round(($prevYearData->amount_not_paid_2yrs ?? 0) / 100000, 2); #_in lacs
+            $data['Unpaid Properties']["previous"]['amount_not_paid_2yrs'] = round(($prevYearData->amount_not_paid_2yrs ?? 0) / 10000000, 2); #_in cr
             $data['Unpaid Properties']["previous"]['count_not_paid_1yrs']  = $prevYearData->count_not_paid_1yrs ?? 0;
-            $data['Unpaid Properties']["previous"]['amount_not_paid_1yrs'] = round(($prevYearData->amount_not_paid_1yrs ?? 0) / 100000, 2); #_in lacs
+            $data['Unpaid Properties']["previous"]['amount_not_paid_1yrs'] = round(($prevYearData->amount_not_paid_1yrs ?? 0) / 10000000, 2); #_in cr
             $data['Unpaid Properties']["previous"]['count_not_paid_this_yrs']  = $prevYearData->property_count_not_paid_this_years ?? 0;
-            $data['Unpaid Properties']["previous"]['amount_not_paid_this_yrs'] = round(($prevYearData->property_amount_not_paid_this_years ?? 0) / 100000, 2); #_in lacs
+            $data['Unpaid Properties']["previous"]['amount_not_paid_this_yrs'] = round(($prevYearData->property_amount_not_paid_this_years ?? 0) / 10000000, 2); #_in cr
 
             $data['Unpaid Properties']["current"]['count_not_paid_3yrs']  = $currentYearData->count_not_paid_3yrs ?? 0;
-            $data['Unpaid Properties']["current"]['amount_not_paid_3yrs'] = round(($currentYearData->amount_not_paid_3yrs ?? 0) / 100000, 2); #_in lacs
+            $data['Unpaid Properties']["current"]['amount_not_paid_3yrs'] = round(($currentYearData->amount_not_paid_3yrs ?? 0) / 10000000, 2); #_in cr
             $data['Unpaid Properties']["current"]['count_not_paid_2yrs']  = $currentYearData->count_not_paid_2yrs ?? 0;
-            $data['Unpaid Properties']["current"]['amount_not_paid_2yrs'] = round(($currentYearData->amount_not_paid_2yrs ?? 0) / 100000, 2); #_in lacs
+            $data['Unpaid Properties']["current"]['amount_not_paid_2yrs'] = round(($currentYearData->amount_not_paid_2yrs ?? 0) / 10000000, 2); #_in cr
             $data['Unpaid Properties']["current"]['count_not_paid_1yrs']  = $currentYearData->count_not_paid_1yrs ?? 0;
-            $data['Unpaid Properties']["current"]['amount_not_paid_1yrs'] = round(($currentYearData->amount_not_paid_1yrs ?? 0) / 100000, 2); #_in lacs
+            $data['Unpaid Properties']["current"]['amount_not_paid_1yrs'] = round(($currentYearData->amount_not_paid_1yrs ?? 0) / 10000000, 2); #_in cr
             $data['Unpaid Properties']["current"]['count_not_paid_this_yrs']  = $currentYearData->property_count_not_paid_this_years ?? 0;
-            $data['Unpaid Properties']["current"]['amount_not_paid_this_yrs'] = round(($currentYearData->property_amount_not_paid_this_years ?? 0) / 100000, 2);#_in lacs
+            $data['Unpaid Properties']["current"]['amount_not_paid_this_yrs'] = round(($currentYearData->property_amount_not_paid_this_years ?? 0) / 10000000, 2);#_in cr
 
             #_Outstanding Demand Last Year
             // 604529369.42  =>total demand
-            $data['Outstanding Demand Last Year']['outstanding']        = round(($prevYearData->demand_outstanding_this_year ?? 0) / 100000, 2);          #_in lacs
+            $data['Outstanding Demand Last Year']['outstanding']        = round(($prevYearData->demand_outstanding_this_year ?? 0) / 10000000, 2);          #_in cr
             $data['Outstanding Demand Last Year']['outstanding_count']  = $prevYearData->demand_outstanding_from_this_year_prop_count ?? 0;
-            $data['Outstanding Demand Last Year']['outstanding_amount'] = round(($prevYearData->demand_outstanding_this_year ?? 0) / 100000, 2);   #_in lacs
-            $data['Outstanding Demand Last Year']['extempted']          = round(($prevYearData->demand_extempted ?? 0) / 100000, 2);            #_in lacs
-            $data['Outstanding Demand Last Year']['extempted_count']    = $prevYearData->demand_extempted_count ?? 0;                           #_in lacs
-            $data['Outstanding Demand Last Year']['extempted_amount']   = round(($prevYearData->demand_extempted_amount ?? 0) / 100000, 2);     #_in lacs
-            $data['Outstanding Demand Last Year']['recoverable_demand'] = round(($prevYearData->demand_recoverable_demand ?? 0) / 100000, 2);   #_in lacs   #_collection amount
-            $data['Outstanding Demand Last Year']['payment_done']       = round(($prevYearData->demand_coll_this_year ?? 0) / 100000, 2);         #_in lacs
-            $data['Outstanding Demand Last Year']['payment_due']        = round(($prevYearData->demand_balance_this_year ?? 0) / 100000, 2);          #_in lacs
+            $data['Outstanding Demand Last Year']['outstanding_amount'] = round(($prevYearData->demand_outstanding_this_year ?? 0) / 10000000, 2);   #_in cr
+            $data['Outstanding Demand Last Year']['extempted']          = round(($prevYearData->demand_extempted ?? 0) / 10000000, 2);            #_in cr
+            $data['Outstanding Demand Last Year']['extempted_count']    = $prevYearData->demand_extempted_count ?? 0;                           #_in cr
+            $data['Outstanding Demand Last Year']['extempted_amount']   = round(($prevYearData->demand_extempted_amount ?? 0) / 10000000, 2);     #_in cr
+            $data['Outstanding Demand Last Year']['recoverable_demand'] = round(($prevYearData->demand_recoverable_demand ?? 0) / 10000000, 2);   #_in cr   #_collection amount
+            $data['Outstanding Demand Last Year']['payment_done']       = round(($prevYearData->demand_coll_this_year ?? 0) / 10000000, 2);         #_in cr
+            $data['Outstanding Demand Last Year']['payment_due']        = round(($prevYearData->demand_balance_this_year ?? 0) / 10000000, 2);          #_in cr
 
             #_Outstanding Demand Current Year
-            $data['Outstanding Demand Current Year']['outstanding']        = round(($currentYearData->demand_outstanding_this_year ?? 0) / 100000, 2);             #_in lacs
+            $data['Outstanding Demand Current Year']['outstanding']        = round(($currentYearData->demand_outstanding_this_year ?? 0) / 10000000, 2);             #_in cr
             $data['Outstanding Demand Current Year']['outstanding_count']  = $currentYearData->demand_outstanding_from_this_year_prop_count ?? 0;
-            $data['Outstanding Demand Current Year']['outstanding_amount'] = round(($currentYearData->demand_outstanding_this_year ?? 0) / 100000, 2);      #_in lacs
-            $data['Outstanding Demand Current Year']['extempted']          = round(($currentYearData->demand_extempted ?? 0) / 100000, 2);               #_in lacs
+            $data['Outstanding Demand Current Year']['outstanding_amount'] = round(($currentYearData->demand_outstanding_this_year ?? 0) / 10000000, 2);      #_in cr
+            $data['Outstanding Demand Current Year']['extempted']          = round(($currentYearData->demand_extempted ?? 0) / 10000000, 2);               #_in cr
             $data['Outstanding Demand Current Year']['extempted_count']    = $currentYearData->demand_extempted_count ?? 0;
-            $data['Outstanding Demand Current Year']['extempted_amount']   = round(($currentYearData->demand_extempted_amount ?? 0) / 100000, 2);        #_in lacs
-            $data['Outstanding Demand Current Year']['recoverable_demand'] = round(($currentYearData->demand_recoverable_demand ?? 0) / 100000, 2);             #_in lacs
-            $data['Outstanding Demand Current Year']['payment_done']       = round(($currentYearData->demand_coll_this_year ?? 0) / 100000, 2);            #_in lacs
-            $data['Outstanding Demand Current Year']['payment_due']        = round(($currentYearData->demand_balance_this_year ?? 0) / 100000, 2);             #_in lacs
+            $data['Outstanding Demand Current Year']['extempted_amount']   = round(($currentYearData->demand_extempted_amount ?? 0) / 10000000, 2);        #_in cr
+            $data['Outstanding Demand Current Year']['recoverable_demand'] = round(($currentYearData->demand_recoverable_demand ?? 0) / 10000000, 2);             #_in cr
+            $data['Outstanding Demand Current Year']['payment_done']       = round(($currentYearData->demand_coll_this_year ?? 0) / 10000000, 2);            #_in cr
+            $data['Outstanding Demand Current Year']['payment_due']        = round(($currentYearData->demand_balance_this_year ?? 0) / 10000000, 2);             #_in cr
 
             #_Payments
             $data['Payments']['previous_to_last_year_payment_count']  = $prevYearData->previous_to_last_year_payment_count ?? 0;
-            $data['Payments']['previous_to_last_year_payment_amount'] = round(($prevYearData->previous_to_last_year_payment_amount ?? 0) / 100000, 2);   #_in lacs
+            $data['Payments']['previous_to_last_year_payment_amount'] = round(($prevYearData->previous_to_last_year_payment_amount ?? 0) / 10000000, 2);   #_in cr
             $data['Payments']['last_year_payment_count']              = $prevYearData->last_year_payment_count ?? 0;
-            $data['Payments']['last_year_payment_amount']             = round(($prevYearData->last_year_payment_amount ?? 0) / 100000, 2);               #_in lacs
+            $data['Payments']['last_year_payment_amount']             = round(($prevYearData->last_year_payment_amount ?? 0) / 10000000, 2);               #_in cr
             $data['Payments']['this_year_payment_count']              = $currentYearData->this_year_payment_count ?? 0;
-            $data['Payments']['this_year_payment_amount']             = round(($currentYearData->this_year_payment_amount ?? 0) / 100000, 2);            #_in lacs
+            $data['Payments']['this_year_payment_amount']             = round(($currentYearData->this_year_payment_amount ?? 0) / 10000000, 2);            #_in cr
 
             #_Single Payment
             $data['Single Payment']['before_previous_year_count'] = $prevYearData->single_payment_before_this_year_count ?? 0;
@@ -887,17 +894,17 @@ class ReportController extends Controller
 
             #_Notice
             $data['Notice']['last_year_count']     = $prevYearData->notice_this_year_count ?? 0;
-            $data['Notice']['last_year_amount']    = round(($prevYearData->notice_this_year_amount ?? 0) / 100000, 2);               #_in lacs
-            $data['Notice']['last_year_recovery']  = round(($prevYearData->notice_this_year_recovery ?? 0) / 100000, 2);             #_in lacs
+            $data['Notice']['last_year_amount']    = round(($prevYearData->notice_this_year_amount ?? 0) / 10000000, 2);               #_in cr
+            $data['Notice']['last_year_recovery']  = round(($prevYearData->notice_this_year_recovery ?? 0) / 10000000, 2);             #_in cr
             $data['Notice']['this_year_count']     = $currentYearData->notice_this_year_count ?? 0;
-            $data['Notice']['this_year_amount']    = round(($currentYearData->notice_this_year_amount ?? 0) / 100000, 2);            #_in lacs
-            $data['Notice']['this_year_recovery']  = round(($currentYearData->notice_this_year_recovery ?? 0) / 100000, 2);          #_in lacs
+            $data['Notice']['this_year_amount']    = round(($currentYearData->notice_this_year_amount ?? 0) / 10000000, 2);            #_in cr
+            $data['Notice']['this_year_recovery']  = round(($currentYearData->notice_this_year_recovery ?? 0) / 10000000, 2);          #_in cr
 
             #_Mutation
             $data['Mutation']['last_year_count']  = $prevYearData->mutation_this_year_count ?? 0;
-            $data['Mutation']['last_year_amount'] = round(($prevYearData->mutation_this_year_amount ?? 0) / 100000, 2);              #_in lacs
+            $data['Mutation']['last_year_amount'] = round(($prevYearData->mutation_this_year_amount ?? 0) / 10000000, 2);              #_in cr
             $data['Mutation']['this_year_count']  = $currentYearData->mutation_this_year_count ?? 0;
-            $data['Mutation']['this_year_amount'] = round(($currentYearData->mutation_this_year_amount ?? 0) / 100000, 2);           #_in lacs
+            $data['Mutation']['this_year_amount'] = round(($currentYearData->mutation_this_year_amount ?? 0) / 10000000, 2);           #_in cr
 
             #_Top Areas Property Transactions 
             /**
@@ -915,26 +922,26 @@ class ReportController extends Controller
             $data['Top Areas Property Transactions']['ward5_name']  = $currentYearData->top_area_property_transaction_ward5_name ?? 0;
 
             #_Payment Modes
-            $data['Payment Modes']['current_year_cash_collection']   = round(($currentYearData->current_year_cash_collection ?? 0) / 100000, 2);             #_in lacs
-            $data['Payment Modes']['last_year_cash_collection']      = round(($prevYearData->last_year_cash_collection ?? 0) / 100000, 2);                   #_in lacs
-            $data['Payment Modes']['current_year_upi_collection']    = round(($currentYearData->current_year_upi_collection ?? 0) / 100000, 2);              #_in lacs
-            $data['Payment Modes']['last_year_upi_collection']       = round(($prevYearData->last_year_upi_collection ?? 0) / 100000, 2);                    #_in lacs
-            $data['Payment Modes']['current_year_card_collection']   = round(($currentYearData->current_year_card_collection ?? 0) / 100000, 2);             #_in lacs
-            $data['Payment Modes']['last_year_card_collection']      = round(($prevYearData->last_year_card_collection ?? 0) / 100000, 2);                   #_in lacs
-            $data['Payment Modes']['current_year_cheque_collection'] = round(($currentYearData->current_year_cheque_collection ?? 0) / 100000, 2);           #_in lacs
-            $data['Payment Modes']['last_year_cheque_collection']    = round(($prevYearData->last_year_cheque_collection ?? 0) / 100000, 2);                 #_in lacs
-            $data['Payment Modes']['current_year_dd_collection']     = round(($currentYearData->current_year_dd_collection ?? 0) / 100000, 2);               #_in lacs
-            $data['Payment Modes']['last_year_dd_collection']        = round(($prevYearData->last_year_dd_collection ?? 0) / 100000, 2);                     #_in lacs
+            $data['Payment Modes']['current_year_cash_collection']   = round(($currentYearData->current_year_cash_collection ?? 0) / 10000000, 2);             #_in cr
+            $data['Payment Modes']['last_year_cash_collection']      = round(($prevYearData->last_year_cash_collection ?? 0) / 10000000, 2);                   #_in cr
+            $data['Payment Modes']['current_year_upi_collection']    = round(($currentYearData->current_year_upi_collection ?? 0) / 10000000, 2);              #_in cr
+            $data['Payment Modes']['last_year_upi_collection']       = round(($prevYearData->last_year_upi_collection ?? 0) / 10000000, 2);                    #_in cr
+            $data['Payment Modes']['current_year_card_collection']   = round(($currentYearData->current_year_card_collection ?? 0) / 10000000, 2);             #_in cr
+            $data['Payment Modes']['last_year_card_collection']      = round(($prevYearData->last_year_card_collection ?? 0) / 10000000, 2);                   #_in cr
+            $data['Payment Modes']['current_year_cheque_collection'] = round(($currentYearData->current_year_cheque_collection ?? 0) / 10000000, 2);           #_in cr
+            $data['Payment Modes']['last_year_cheque_collection']    = round(($prevYearData->last_year_cheque_collection ?? 0) / 10000000, 2);                 #_in cr
+            $data['Payment Modes']['current_year_dd_collection']     = round(($currentYearData->current_year_dd_collection ?? 0) / 10000000, 2);               #_in cr
+            $data['Payment Modes']['last_year_dd_collection']        = round(($prevYearData->last_year_dd_collection ?? 0) / 10000000, 2);                     #_in cr
 
             #_Citizen Engagement
             $data['Citizen Engagement']['online_application_count_prev_year']  = $prevYearData->online_application_count_prev_year ?? 0;
             $data['Citizen Engagement']['online_application_count_this_year']  = $currentYearData->online_application_count_this_year ?? 0;
-            $data['Citizen Engagement']['online_application_amount_prev_year'] = round(($prevYearData->online_application_amount_prev_year ?? 0) / 100000, 2);       #_in lacs
-            $data['Citizen Engagement']['online_application_amount_this_year'] = round(($currentYearData->online_application_amount_this_year ?? 0) / 100000, 2);    #_in lacs
+            $data['Citizen Engagement']['online_application_amount_prev_year'] = round(($prevYearData->online_application_amount_prev_year ?? 0) / 10000000, 2);       #_in cr
+            $data['Citizen Engagement']['online_application_amount_this_year'] = round(($currentYearData->online_application_amount_this_year ?? 0) / 10000000, 2);    #_in cr
             $data['Citizen Engagement']['jsk_application_count_prev_year']     = $prevYearData->jsk_application_count_prev_year ?? 0;
             $data['Citizen Engagement']['jsk_application_count_this_year']     = $currentYearData->jsk_application_count_this_year ?? 0;
-            $data['Citizen Engagement']['jsk_application_amount_prev_year']    = round(($prevYearData->jsk_application_amount_prev_year ?? 0) / 100000, 2);          #_in lacs
-            $data['Citizen Engagement']['jsk_application_amount_this_year']    = round(($currentYearData->jsk_application_amount_this_year ?? 0) / 100000, 2);       #_in lacs
+            $data['Citizen Engagement']['jsk_application_amount_prev_year']    = round(($prevYearData->jsk_application_amount_prev_year ?? 0) / 10000000, 2);          #_in cr
+            $data['Citizen Engagement']['jsk_application_amount_this_year']    = round(($currentYearData->jsk_application_amount_this_year ?? 0) / 10000000, 2);       #_in cr
 
             #_Compliances
             $data['Compliances']['no_of_property_inspected_prev_year'] = $prevYearData->no_of_property_inspected_prev_year ?? 0;
@@ -942,12 +949,12 @@ class ReportController extends Controller
             $data['Compliances']['no_of_property_inspected_this_year'] = $currentYearData->no_of_property_inspected_this_year ?? 0;
             $data['Compliances']['no_of_defaulter_this_year']          = $currentYearData->no_of_defaulter_this_year ?? 0;
 
-            $data['Demand']['prev_year']             = round(($prevYearData->demand_for_this_year??0) / 100000, 2); #_in lacs
-            $data['Demand']['current_year']          = round(($currentYearData->demand_for_this_year??0) / 100000, 2); #_in lacs
-            $data['Collection']['prev_year']         = round(($prevYearData->demand_coll_this_year??0) / 100000, 2); #_in lacs
-            $data['Collection']['current_year']      = round(($currentYearData->demand_coll_this_year??0) / 100000, 2); #_in lacs
-            $data['Balance']['prev_year']            = round(($prevYearData->demand_balance_this_year??0)  / 100000, 2); #_in lacs
-            $data['Balance']['current_year']         = round(($currentYearData->demand_balance_this_year??0) / 100000, 2); #_in lacs
+            $data['Demand']['prev_year']             = round(($prevYearData->demand_for_this_year??0) / 10000000, 2); #_in cr
+            $data['Demand']['current_year']          = round(($currentYearData->demand_for_this_year??0) / 10000000, 2); #_in cr
+            $data['Collection']['prev_year']         = round(($prevYearData->demand_coll_this_year??0) / 10000000, 2); #_in cr
+            $data['Collection']['current_year']      = round(($currentYearData->demand_coll_this_year??0) / 10000000, 2); #_in cr
+            $data['Balance']['prev_year']            = round(($prevYearData->demand_balance_this_year??0)  / 10000000, 2); #_in cr
+            $data['Balance']['current_year']         = round(($currentYearData->demand_balance_this_year??0) / 10000000, 2); #_in cr
             $data['Total Payment From HH']['prev_year']    = $prevYearData->demand_coll_from_this_year_prop_count??0;
             $data['Total Payment From HH']['current_year'] = $currentYearData->demand_coll_from_this_year_prop_count??0;
 
@@ -1048,17 +1055,6 @@ class ReportController extends Controller
                 ],
             ];
 
-            // $data['Top Areas Saf']['ward1_count'] = $currentYearData->top_area_saf_ward1_count ?? 0;
-            // $data['Top Areas Saf']['ward2_count'] = $currentYearData->top_area_saf_ward2_count ?? 0;
-            // $data['Top Areas Saf']['ward3_count'] = $currentYearData->top_area_saf_ward3_count ?? 0;
-            // $data['Top Areas Saf']['ward4_count'] = $currentYearData->top_area_saf_ward4_count ?? 0;
-            // $data['Top Areas Saf']['ward5_count'] = $currentYearData->top_area_saf_ward5_count ?? 0;
-            // $data['Top Areas Saf']['ward1_name']  = $currentYearData->top_area_saf_ward1_name ?? 0;
-            // $data['Top Areas Saf']['ward2_name']  = $currentYearData->top_area_saf_ward2_name ?? 0;
-            // $data['Top Areas Saf']['ward3_name']  = $currentYearData->top_area_saf_ward3_name ?? 0;
-            // $data['Top Areas Saf']['ward4_name']  = $currentYearData->top_area_saf_ward4_name ?? 0;
-            // $data['Top Areas Saf']['ward5_name']  = $currentYearData->top_area_saf_ward5_name ?? 0;
-
             /**
              * | Top Defaulter Ward Name
              */
@@ -1125,47 +1121,25 @@ class ReportController extends Controller
                     "ward"=> $currentYearData->top_defaulter_ward10_name ?? "",
                 ],
             ];
-            // $data['Top Defaulter']['ward1_name']   = $currentYearData->top_defaulter_ward1_name ?? 0;
-            // $data['Top Defaulter']['ward2_name']   = $currentYearData->top_defaulter_ward2_name ?? 0;
-            // $data['Top Defaulter']['ward3_name']   = $currentYearData->top_defaulter_ward3_name ?? 0;
-            // $data['Top Defaulter']['ward4_name']   = $currentYearData->top_defaulter_ward4_name ?? 0;
-            // $data['Top Defaulter']['ward5_name']   = $currentYearData->top_defaulter_ward5_name ?? 0;
-            // $data['Top Defaulter']['ward6_name']   = $currentYearData->top_defaulter_ward6_name ?? 0;
-            // $data['Top Defaulter']['ward7_name']   = $currentYearData->top_defaulter_ward7_name ?? 0;
-            // $data['Top Defaulter']['ward8_name']   = $currentYearData->top_defaulter_ward8_name ?? 0;
-            // $data['Top Defaulter']['ward9_name']   = $currentYearData->top_defaulter_ward9_name ?? 0;
-            // $data['Top Defaulter']['ward10_name']  = $currentYearData->top_defaulter_ward10_name ?? 0;
-
-            // /**
-            //  * | Top Defaulter Ward Amount
-            //  */
-            // $data['Top Defaulter']['ward1_amount']   = $currentYearData->top_defaulter_ward1_amount ?? 0;
-            // $data['Top Defaulter']['ward2_amount']   = $currentYearData->top_defaulter_ward2_amount ?? 0;
-            // $data['Top Defaulter']['ward3_amount']   = $currentYearData->top_defaulter_ward3_amount ?? 0;
-            // $data['Top Defaulter']['ward4_amount']   = $currentYearData->top_defaulter_ward4_amount ?? 0;
-            // $data['Top Defaulter']['ward5_amount']   = $currentYearData->top_defaulter_ward5_amount ?? 0;
-            // $data['Top Defaulter']['ward6_amount']   = $currentYearData->top_defaulter_ward6_amount ?? 0;
-            // $data['Top Defaulter']['ward7_amount']   = $currentYearData->top_defaulter_ward7_amount ?? 0;
-            // $data['Top Defaulter']['ward8_amount']   = $currentYearData->top_defaulter_ward8_amount ?? 0;
-            // $data['Top Defaulter']['ward9_amount']   = $currentYearData->top_defaulter_ward9_amount ?? 0;
-            // $data['Top Defaulter']['ward10_amount']  = $currentYearData->top_defaulter_ward10_amount ?? 0;
-
-            // $data['citizen']['jan']  = $currentYearData->jan;
-            // $data['citizen']['feb']  = $currentYearData->feb;
-            // $data['citizen']['mar']  = $currentYearData->mar;
-            // $data['citizen']['apr']  = $currentYearData->apr;
-            // $data['citizen']['may']  = $currentYearData->may;
-            // $data['citizen']['june'] = $currentYearData->june;
-            // $data['citizen']['july'] = $currentYearData->july;
-            // $data['citizen']['aug']  = $currentYearData->aug;
-            // $data['citizen']['sept'] = $currentYearData->sept;
-            // $data['citizen']['oct']  = $currentYearData->oct;
-            // $data['citizen']['nov']  = $currentYearData->nov;
-            // $data['citizen']['dec']  = $currentYearData->dec;
 
             return responseMsgs(true, "Mpl Report", $data, "", 01, responseTime(), $request->getMethod(), $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $request->getMethod(), $request->deviceId);
         }
+    }
+
+    public function mplReportCollection(Request $request)
+    {
+        try{
+            $request->merge(["metaData" => ["pr111.1", 1.1, null, $request->getMethod(), null,]]);
+            $ulbId = $request->ulbId ?? 2;            
+            $currentDate = Carbon::now()->format("Y-m-d");
+            $toDayCollection = PropTransaction::whereIn('status',[1,2])->where("tran_date",$currentDate)->sum("amount");            
+            $data["toDayCollection"] = ($toDayCollection? $toDayCollection:0)/100000 ; #in_lakh
+            return responseMsgs(true, "Mpl Report Today Coll", $data, "", 01, responseTime(), $request->getMethod(), $request->deviceId);
+        }catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $request->getMethod(), $request->deviceId);
+        }
+
     }
 }
