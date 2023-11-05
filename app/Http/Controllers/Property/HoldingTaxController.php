@@ -321,14 +321,15 @@ class HoldingTaxController extends Controller
             $paymentReqs = $mPropPinelabPayment->getPaymentByBillRefNo($billRefNo);
             $req->merge(['paymentMode' => $paymentReqs->payment_mode]);                 // Add Payment Mode by the table
             $postPropPayment = new PostPropPayment($req);
-            $demandList = json_decode($paymentReqs->demand_list);
+            $demandList = json_decode($paymentReqs->demand_list, true);
             $demandList = responseMsgs(true, "Demand Details", $demandList);
             $demandList->original['data'] = (array)$demandList->original['data'];
             $demandList->original['data']['grandTaxes'] = (array)$demandList->original['data']['grandTaxes'];
 
             $postPropPayment->_propCalculation = $demandList;
-            $postPropPayment->postPayment();
+            $tranDtl =  $postPropPayment->postPayment();
             DB::commit();
+            return $tranDtl;
         } catch (Exception $e) {
             DB::rollBack();
         }
