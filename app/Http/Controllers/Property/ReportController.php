@@ -879,6 +879,12 @@ class ReportController extends Controller
             $data['Outstanding Demand Last Year']['payment_done']       = round(($prevYearData->demand_coll_this_year ?? 0) / 10000000, 2);         #_in cr
             $data['Outstanding Demand Last Year']['payment_due']        = round(($prevYearData->demand_balance_this_year ?? 0) / 10000000, 2);          #_in cr
 
+            #recovery_demand
+            $data['recovery']['arear']['demand']        = round(($currentYearData->demand_outstanding_this_year ?? 0) / 10000000, 2);             #_in cr
+            $data['recovery']['arear']['recover']       = round(($currentYearData->demand_outstanding_coll_this_year ?? 0) / 10000000, 2);
+            $data['recovery']['current']['demand']      = round(($currentYearData->demand_for_this_year ?? 0) / 10000000, 2);      #_in cr
+            $data['recovery']['current']['recover']     = round(($currentYearData->demand_coll_this_year ?? 0) / 10000000, 2);               #_in cr
+
             #_Outstanding Demand Current Year
             $data['Outstanding Demand Current Year']['outstanding']        = round(($currentYearData->demand_outstanding_this_year ?? 0) / 10000000, 2);             #_in cr
             $data['Outstanding Demand Current Year']['outstanding_count']  = $currentYearData->demand_outstanding_from_this_year_prop_count ?? 0;
