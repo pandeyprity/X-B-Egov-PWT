@@ -1135,7 +1135,7 @@ class ReportController extends Controller
             $ulbId = $request->ulbId ?? 2;            
             $currentDate = Carbon::now()->format("Y-m-d");
             $toDayCollection = PropTransaction::whereIn('status',[1,2])->where("tran_date",$currentDate)->sum("amount");            
-            $data["toDayCollection"] = ($toDayCollection? $toDayCollection:0)/100000 ; #in_lakh
+            $data["toDayCollection"] = ($toDayCollection? $toDayCollection:0); 
             return responseMsgs(true, "Mpl Report Today Coll", $data, "", 01, responseTime(), $request->getMethod(), $request->deviceId);
         }catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $request->getMethod(), $request->deviceId);
