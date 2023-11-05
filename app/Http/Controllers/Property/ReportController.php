@@ -824,6 +824,7 @@ class ReportController extends Controller
             $data['Assessment Categories']['industrial']        = $currentYearData->total_assessed_industrial ?? 0;
             $data['Assessment Categories']['gbsaf']             = $currentYearData->total_assessed_gbsaf ?? 0;
             $data['Assessment Categories']['mix']               = $currentYearData->total_assessed_mixe ?? 0;
+            $data['Assessment Categories']['vacand']            = $currentYearData->total_assessed_vacand ?? 0;
 
             $data['Prop Categories']['total_assessment']  = $currentYearData->total_property ?? 0;
             $data['Prop Categories']['residential']       = $currentYearData->total_prop_residential ?? 0;
@@ -831,6 +832,15 @@ class ReportController extends Controller
             $data['Prop Categories']['industrial']        = $currentYearData->total_prop_industrial ?? 0;
             $data['Prop Categories']['gbsaf']             = $currentYearData->total_prop_gbsaf ?? 0;
             $data['Prop Categories']['mix']               = $currentYearData->total_prop_mixe ?? 0;
+            $data['Prop Categories']['vacand']            = $currentYearData->total_prop_vacand ?? 0;
+
+            #_payment_status
+            $data['PaymentStatus']['both_paid']            = $currentYearData->current_arear_demand_clear_prop_count ?? 0;
+            $data['PaymentStatus']['both_unpaid']        = $currentYearData->current_arear_demand_not_clear_prop_count ?? 0;
+            $data['PaymentStatus']['curent_unpaid']            = $currentYearData->arear_demand_clear_but_not_current_prop_count ?? 0;
+            // $data['PaymentStatus']['arear_demand_not_clear']            = $currentYearData->arear_demand_not_clear_prop_count ?? 0;
+            // $data['PaymentStatus']['current_arear_demand_clear']            = $currentYearData->current_arear_demand_clear_prop_count ?? 0;
+            // $data['PaymentStatus']['current_arear_demand_not_clear']            = $currentYearData->current_arear_demand_not_clear_prop_count ?? 0;
 
             #_Ownership ??
             $data['Ownership']['total_ownership'] = $currentYearData->total_property ?? 0;
@@ -932,6 +942,12 @@ class ReportController extends Controller
             $data['Payment Modes']['last_year_cheque_collection']    = round(($prevYearData->last_year_cheque_collection ?? 0) / 10000000, 2);                 #_in cr
             $data['Payment Modes']['current_year_dd_collection']     = round(($currentYearData->current_year_dd_collection ?? 0) / 10000000, 2);               #_in cr
             $data['Payment Modes']['last_year_dd_collection']        = round(($prevYearData->last_year_dd_collection ?? 0) / 10000000, 2);                     #_in cr
+            $data['Payment Modes']['current_year_neft_collection']     = round(($currentYearData->current_year_neft_collection ?? 0) / 10000000, 2);               #_in cr
+            $data['Payment Modes']['last_year_neft_collection']        = round(($prevYearData->last_year_neft_collection ?? 0) / 10000000, 2);                     #_in cr
+            $data['Payment Modes']['current_year_rtgs_collection']     = round(($currentYearData->current_year_rtgs_collection ?? 0) / 10000000, 2);               #_in cr
+            $data['Payment Modes']['last_year_rtgs_collection']        = round(($prevYearData->last_year_rtgs_collection ?? 0) / 10000000, 2);                     #_in cr
+            $data['Payment Modes']['current_year_online_collection']     = round(($currentYearData->online_application_amount_this_year ?? 0) / 10000000, 2);               #_in cr
+            $data['Payment Modes']['last_year_online_collection']        = round(($prevYearData->online_application_amount_this_year ?? 0) / 10000000, 2);                     #_in cr
 
             #_Citizen Engagement
             $data['Citizen Engagement']['online_application_count_prev_year']  = $prevYearData->online_application_count_prev_year ?? 0;
@@ -1063,61 +1079,61 @@ class ReportController extends Controller
                 "ward1"=>[
                     "key"=>"ward1",
                     "count"=>$currentYearData->top_defaulter_ward1_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward1_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward1_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward1_name ?? "",
                 ],
                 "ward2"=>[
                     "key"=>"ward2",
                     "count"=>$currentYearData->top_defaulter_ward2_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward2_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward2_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward2_name ?? "",
                 ],
                 "ward3"=>[
                     "key"=>"ward3",
                     "count"=>$currentYearData->top_defaulter_ward3_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward3_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward3_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward3_name ?? "",
                 ],
                 "ward4"=>[
                     "key"=>"ward4",
                     "count"=>$currentYearData->top_defaulter_ward4_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward4_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward4_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward4_name ?? "",
                 ],
                 "ward5"=>[
                     "key"=>"ward5",
                     "count"=>$currentYearData->top_defaulter_ward5_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward5_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward5_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward5_name ?? "",
                 ],
                 "ward6"=>[
                     "key"=>"ward6",
                     "count"=>$currentYearData->top_defaulter_ward6_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward6_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward6_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward6_name ?? "",
                 ],
                 "ward7"=>[
                     "key"=>"ward7",
                     "count"=>$currentYearData->top_defaulter_ward7_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward7_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward7_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward7_name ?? "",
                 ],
                 "ward8"=>[
                     "key"=>"ward8",
                     "count"=>$currentYearData->top_defaulter_ward8_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward8_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward8_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward8_name ?? "",
                 ],
                 "ward9"=>[
                     "key"=>"ward9",
                     "count"=>$currentYearData->top_defaulter_ward9_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward9_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward9_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward9_name ?? "",
                 ],
                 "ward10"=>[
                     "key"=>"ward10",
                     "count"=>$currentYearData->top_defaulter_ward10_count ?? 0,
-                    "amount"=> $currentYearData->top_defaulter_ward10_amount ?? 0,
+                    "amount"=> round(($currentYearData->top_defaulter_ward10_amount ?? 0) / 10000000, 2),#_in cr
                     "ward"=> $currentYearData->top_defaulter_ward10_name ?? "",
                 ],
             ];
