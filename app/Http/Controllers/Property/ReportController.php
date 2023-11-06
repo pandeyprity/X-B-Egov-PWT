@@ -622,6 +622,28 @@ class ReportController extends Controller
         return $this->Repository->paymentModedealyCollectionRptV1($request);
     }
 
+    public function individualDedealyCollectionRptV1(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "fromDate" => "nullable|date|date_format:Y-m-d",
+                "uptoDate" => "nullable|date|date_format:Y-m-d",
+                "wardId" =>"nullable|digits_between:1,9223372036854775807",
+                "zoneId"  =>"nullable|digits_between:1,9223",
+                "userId" =>"nullable|digits_between:1,9223",
+            ]
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+        return $this->Repository->individualDedealyCollectionRptV1($request);
+    }
+
     public function mplReport2(Request $request)
     {
         try {
