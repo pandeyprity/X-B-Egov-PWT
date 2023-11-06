@@ -83,6 +83,8 @@ class Report implements IReport
                 DB::raw("
                             ulb_ward_masters.ward_name AS ward_no,
                             prop_properties.id,
+                            prop_properties.prop_address,
+                            zone_masters.zone_name,
                             'property' as type,
                             prop_properties.saf_no,
                             prop_properties.assessment_type,
@@ -125,6 +127,7 @@ class Report implements IReport
                     }
                 )
                 ->JOIN("ulb_ward_masters", "ulb_ward_masters.id", "prop_properties.ward_mstr_id")
+                ->LEFTJOIN("zone_masters", "zone_masters.id", "prop_properties.zone_mstr_id")
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
                 ->LEFTJOIN("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
                 ->WHERENOTNULL("prop_transactions.property_id")
@@ -240,6 +243,8 @@ class Report implements IReport
                 DB::raw("
                             ulb_ward_masters.ward_name AS ward_no,
                             prop_active_safs.id,
+                            prop_active_safs.prop_address,
+                            zone_masters.zone_name,
                             'saf' as type,
                             assessment_type,
                             prop_transactions.id AS tran_id,
@@ -284,6 +289,7 @@ class Report implements IReport
                     }
                 )
                 ->JOIN("ulb_ward_masters", "ulb_ward_masters.id", "prop_active_safs.ward_mstr_id")
+                ->LEFTJOIN("zone_masters", "zone_masters.id", "prop_active_safs.zone_mstr_id")
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
                 ->LEFTJOIN("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
                 ->WHERENOTNULL("prop_transactions.saf_id")
@@ -294,6 +300,8 @@ class Report implements IReport
                 DB::raw("
                             ulb_ward_masters.ward_name AS ward_no,
                             prop_rejected_safs.id,
+                            prop_rejected_safs.prop_address,
+                            zone_masters.zone_name,
                             'saf' as type,
                             assessment_type,
                             prop_transactions.id AS tran_id,
@@ -338,6 +346,7 @@ class Report implements IReport
                     }
                 )
                 ->JOIN("ulb_ward_masters", "ulb_ward_masters.id", "prop_rejected_safs.ward_mstr_id")
+                ->LEFTJOIN("zone_masters", "zone_masters.id", "prop_rejected_safs.zone_mstr_id")
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
                 ->LEFTJOIN("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
                 ->WHERENOTNULL("prop_transactions.saf_id")
@@ -348,6 +357,8 @@ class Report implements IReport
                 DB::raw("
                             ulb_ward_masters.ward_name AS ward_no,
                             prop_safs.id,
+                            prop_safs.prop_address,
+                            zone_masters.zone_name,
                             'saf' as type,
                             assessment_type,
                             prop_transactions.id AS tran_id,
@@ -392,6 +403,7 @@ class Report implements IReport
                     }
                 )
                 ->JOIN("ulb_ward_masters", "ulb_ward_masters.id", "prop_safs.ward_mstr_id")
+                ->LEFTJOIN("zone_masters", "zone_masters.id", "prop_safs.zone_mstr_id")
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
                 ->LEFTJOIN("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
                 ->WHERENOTNULL("prop_transactions.saf_id")
