@@ -6,6 +6,7 @@
  * | Created for- Payment Constants Masters
  */
 return [
+    "ULB_LOGO_URL" =>  env("ulb_logo_url", "http://localhost/"),
     'PAYMENT_MODE' => [
         '1' => 'ONLINE',
         '2' => 'NETBANKING',
@@ -74,5 +75,5 @@ return [
         5 => "User Blocked For Max Attempt",
         6 => "Permission Denied For This User ",
         7 => "Invalid Data Format",
-    ]
+    ],
 ];

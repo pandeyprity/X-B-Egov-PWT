@@ -92,6 +92,7 @@ class WaterPaymentController extends Controller
     private $_paymentModes;
     protected $_DB_NAME;
     protected $_DB;
+    protected $_ulb_logo_url;
 
     public function __construct()
     {
@@ -102,6 +103,7 @@ class WaterPaymentController extends Controller
         $this->_accDescription      = Config::get('waterConstaint.ACCOUNT_DESCRIPTION');
         $this->_departmentSection   = Config::get('waterConstaint.DEPARTMENT_SECTION');
         $this->_paymentModes        = Config::get('payment-constants.PAYMENT_OFFLINE_MODE');
+        $this->_ulb_logo_url        = Config::get('payment-constants.ULB_LOGO_URL');
         $this->_DB_NAME             = "pgsql_water";
         $this->_DB                  = DB::connection($this->_DB_NAME);
     }
@@ -1659,6 +1661,7 @@ class WaterPaymentController extends Controller
 
             $mTowardsDemand     = Config::get("waterConstaint.TOWARDS_DEMAND");
             $mTranType          = Config::get("waterConstaint.PAYMENT_FOR");
+
             $mAccDescription    = $this->_accDescription;
             $mDepartmentSection = $this->_departmentSection;
             $mPaymentModes      = $this->_paymentModes;
@@ -1710,11 +1713,13 @@ class WaterPaymentController extends Controller
             $consumerInitialMeters = $mWaterConsumerInitial->calculateUnitsConsumed($consumerDetails->id);
             $finalReading = $consumerInitialMeters->first()->initial_reading;
             $initialReading = $consumerInitialMeters->last()->initial_reading ?? 0;
+            # transaction date and time 
             $transactionTime = Carbon::parse($transactionDetails['tran_time'])->format('H:i');
+            $transactionDate = Carbon::parse($transactionDetails['tran_date'])->format('d-m-Y');
+            # ulb logo 
+             $fullLogoUrl =$this->_ulb_logo_url . $consumerDetails['logo'];
 
-
-
-            # water consumer consumed
+             # water consumer consumed
             // $consumerTaxes = $mWaterConsumerDemand->getConsumerTax($demandIds);
             // $initialReading = $consumerTaxes->wherein("connection_type", ["Meter", "Metered"])  // Static
             //     ->min("initial_reading");
@@ -1725,6 +1730,7 @@ class WaterPaymentController extends Controller
             // $fixedUpto = $consumerTaxes->where("connection_type", "Fixed")                      // Static
             //     ->max("demand_upto");
             // Calculate the current year
+
             #session 
             $currentYear = date('Y');
             $nextYear = $currentYear + 1;
@@ -1732,7 +1738,7 @@ class WaterPaymentController extends Controller
             $returnValues = [
                 "departmentSection"     => $mDepartmentSection,
                 "accountDescription"    => $mAccDescription,
-                "transactionDate"       => $transactionDetails['tran_date'],
+                "transactionDate"       => $transactionDate,
                 "transactionTime"       => $transactionTime,
                 "session"               => $yearRange,
                 "paymentType"           => $transactionDetails['payment_type'],
@@ -1762,6 +1768,7 @@ class WaterPaymentController extends Controller
                 "chequeDate"            => $chequeDetails['cheque_date'] ?? null,                                  // in case of chque,dd,nfts
                 "penaltyAmount"         => $penaltyAmount,
                 "association"           => $consumerDetails['association_with'],
+                "currentWebSite"        => $consumerDetails['current_website'],
                 "demandAmount"          => $refDemandAmount,
                 "ulbId"                 => $consumerDetails['ulb_id'],
                 "ulbName"               => $consumerDetails['ulb_name'],

@@ -234,6 +234,8 @@ class WaterSecondConsumer extends Model
             DB::raw("string_agg(water_consumer_owners.guardian_name,',') as guardian_name"),
             DB::raw("string_agg(water_consumer_owners.email,',') as email"),
             "ulb_masters.association_with",
+            "ulb_masters.current_website",
+            "ulb_masters.logo",
             DB::raw('ulb_ward_masters.ward_name as ward_number')
         )
             ->leftjoin('zone_masters', 'zone_masters.id', 'water_second_consumers.zone_mstr_id')
@@ -256,6 +258,8 @@ class WaterSecondConsumer extends Model
                 'water_consumer_meters.final_meter_reading',
                 'ulb_masters.ulb_name',
                 'ulb_masters.association_with',
+                "ulb_masters.logo",
+                "ulb_masters.current_website",
                 'ulb_ward_masters.ward_name',
                 'water_consumer_initial_meters.initial_reading',
                 'water_property_type_mstrs.property_type',
@@ -395,4 +399,30 @@ class WaterSecondConsumer extends Model
         $mWaterSecondConsumer->dtc_code             =  $request->dtcCode;
         $mWaterSecondConsumer->save();
     }
+    /**
+     * | get the water consumer detaials by application no
+     * | @param refVal as ApplicationNo
+     */
+    public function getDetailByApplicationNo($refVal)
+    {
+        return WaterSecondConsumer::select(
+            'water_second_consumers.id',
+            'water_second_consumers.consumer_no',
+            'water_second_consumers.ward_mstr_id',
+            'water_second_consumers.address',
+            'water_second_consumers.holding_no',
+            'water_second_consumers.saf_no',
+            'ulb_ward_masters.ward_name',
+            'water_consumer_owners.applicant_name as applicant_name',
+            'water_consumer_owners.mobile_no as mobile_no',
+            'water_consumer_owners.guardian_name as guardian_name',
+        )
+            ->join('water_approval_application_details', 'water_approval_application_details.id', 'water_second_consumers.apply_connection_id')
+            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', '=', 'water_second_consumers.id')
+            ->leftJoin('ulb_ward_masters', 'ulb_ward_masters.id', '=', 'water_second_consumers.ward_mstr_id')
+            ->where('water_approval_application_details.application_no', 'LIKE', '%' . $refVal . '%')
+            ->where('water_second_consumers.status', 1);
+            // ->where('ulb_ward_masters.status', true);
+    }
+
 }

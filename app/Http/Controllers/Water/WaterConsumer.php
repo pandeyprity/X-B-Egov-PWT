@@ -419,6 +419,7 @@ class WaterConsumer extends Controller
     {
         try {
             $mWaterConsumerMeter    = new WaterConsumerMeter();
+            // $mWaterConsumerInitial  = new WaterConsumerInitialMeter();
             $meterRefImageName      = config::get('waterConstaint.WATER_METER_CODE');
             $param                  = $this->checkParamForMeterEntry($request);
 
@@ -434,6 +435,10 @@ class WaterConsumer extends Controller
             }
             $documentPath = $this->saveDocument($request, $meterRefImageName);
             $mWaterConsumerMeter->saveMeterDetails($request, $documentPath, $fixedRate = null);
+            // $userDetails =[
+            //     'emp_id' =>$mWaterConsumerMeter->emp_details_id
+            // ];
+            // $mWaterConsumerInitial->saveConsumerReading($request,$metaRequest,$userDetails);             # when initial meter data save  
             $this->commit();
             return responseMsgs(true, "Meter Detail Entry Success !", "", "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
@@ -457,12 +462,12 @@ class WaterConsumer extends Controller
         $refConsumerId  = $request->consumerId;
         $todayDate      = Carbon::now();
 
-        $mWaterWaterConsumer    = new WaterWaterConsumer();
+        $mWaterWaterSecondConsumer    = new waterSecondConsumer();
         $mWaterConsumerMeter    = new WaterConsumerMeter();
         $mWaterConsumerDemand   = new WaterConsumerDemand();
         $refMeterConnType       = Config::get('waterConstaint.WATER_MASTER_DATA.METER_CONNECTION_TYPE');
 
-        $refConsumerDetails     = $mWaterWaterConsumer->getConsumerDetailById($refConsumerId);
+        $refConsumerDetails     = $mWaterWaterSecondConsumer->getConsumerDetailById($refConsumerId);
         if (!$refConsumerDetails) {
             throw new Exception("Consumer Details Not Found!");
         }
@@ -2078,6 +2083,7 @@ class WaterConsumer extends Controller
             if (!$consumerDetails) {
                 throw new Exception("consumer basic details not found!");
             }
+
             # meter Details 
             $refMeterData = $mWaterConsumerMeter->getMeterDetailsByConsumerIdV2($refConsumerId)->first();
             if ($refMeterData) {
@@ -2282,7 +2288,7 @@ class WaterConsumer extends Controller
 
         try {
             $now            = Carbon::now();
-            $user           = authUser($request);    
+            $user           = authUser($request);
             $consumerId     = $request->consumerId;
 
             $mWaterSecondConsumer = new waterSecondConsumer();

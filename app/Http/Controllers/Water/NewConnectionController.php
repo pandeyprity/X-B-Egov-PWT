@@ -1860,6 +1860,12 @@ class NewConnectionController extends Controller
                     if (!$waterReturnDetails)
                         throw new Exception("Data according to " . $key . " not Found!");
                     break;
+                case ('applicationNo'):
+                    $waterReturnDetails = $mWaterConsumer->getDetailByApplicationNo($paramenter)->paginate($pages);
+                    $checkVal = collect($waterReturnDetails)->last();
+                    if (!$checkVal || $checkVal == 0)
+                        throw new Exception("Data according to " . $key . " not Found!");
+                    break;
                 default:
                     throw new Exception("Data provided in filterBy is not valid!");
             }
@@ -2866,6 +2872,12 @@ class NewConnectionController extends Controller
                     $connectionType = "New Connection";                                     // Static
                     break;
             }
+            if ($req->Category == 'Slum' && $req->TabSize != 15) {
+                throw new Exception('Tab size must be 15 for Slum');
+            }
+            if ($req->PropertyType == '2' && $req->Category == 'Slum') {
+                throw new Exception('slum is not under the commercial');
+            }
 
             $mProperty = $mPropProperty->getPropertyId($req->propertyNo);
             if (!$mProperty) {
@@ -2931,7 +2943,7 @@ class NewConnectionController extends Controller
                 $mWaterApplicant->saveWaterApplicant($meta, $owners);
             }
 
-            return $mWaterApplicant = $mWaterCharges->saveWaterCharges($meta);
+            $mWaterApplicant = $mWaterCharges->saveWaterCharges($meta);
             # save for  work flow track
             $metaReqs = new Request(
                 [

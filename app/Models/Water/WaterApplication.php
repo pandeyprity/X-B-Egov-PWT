@@ -679,9 +679,11 @@ class WaterApplication extends Model
         $saveNewApplication->property_no            = $req->propertyNo;
         $saveNewApplication->tab_size               = $req->TabSize;
         $saveNewApplication->mobile_no              = $req->mobileNo;
-        $saveNewApplication->zone                   = $req->zone;
+        $saveNewApplication->zone_mstr_id           = $req->zoneId;
         $saveNewApplication->cycle                  = $req->cycle;
         $saveNewApplication->building_type          = $req->buildingType;
+        $saveNewApplication->tap_size               = $req->tabSize;
+
         $saveNewApplication->save();
         return $saveNewApplication;
     }
