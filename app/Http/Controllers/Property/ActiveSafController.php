@@ -1774,8 +1774,8 @@ class ActiveSafController extends Controller
                         $floorsTaxes->sum("professionalTax") + $floorsTaxes->sum("openPloatTax")
                 ),
             ];
-            $residentFloor = $floorsTaxes->where("occupancyType", 1);
-            $nonResidentFloor = $floorsTaxes->where("occupancyType", "!=", 1);
+            $residentFloor = $floorsTaxes->whereIN("usageType", [45,25]);
+            $nonResidentFloor = $floorsTaxes->whereNOTIN("usageType", [45,25]);
             $data["usageTypeTax"] = [
                 "new" => [
                     "residence" => [
