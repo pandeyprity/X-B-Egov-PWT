@@ -30,7 +30,7 @@ class reqMeterEntry extends FormRequest
         $rules['connectionType']        = 'required|int:1,2,3,4';
         $rules['consumerId']            = "required|digits_between:1,9223372036854775807";
         $rules['connectionDate']        = 'required|date|date_format:Y-m-d';
-        $rules['oldMeterFinalReading']  = 'required';
+        $rules['oldMeterFinalReading']  = 'nullable';
 
         if (isset($this->connectionType) && $this->connectionType && in_array($this->connectionType, [$refMeterConnectionType['Meter'], $refMeterConnectionType['Gallon']])) {
             $rules['meterNo']                   = 'required';

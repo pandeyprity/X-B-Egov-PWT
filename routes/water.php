@@ -35,7 +35,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
      */
     Route::controller(NewConnectionController::class)->group(function () {
         # Workflow
-        
+    
         Route::post('inbox', 'waterInbox');                                                             // Workflow
         Route::post('outbox', 'waterOutbox');                                                           // Workflow
         Route::post('post-next-level', 'postNextLevel');                                                // Workflow
@@ -187,6 +187,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('report/total-water-consumer', 'totalConsumerType');
         Route::post('report/billing-summary', 'billingSummary');
         Route::post('ward-list', 'WardList');
+        Route::post('report/tc-collection','WaterCollectionReport');
     });
 
 
