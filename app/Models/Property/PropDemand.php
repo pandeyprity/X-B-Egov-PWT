@@ -136,6 +136,7 @@ class PropDemand extends Model
             "due_drain_cess",
             "due_light_cess",
             "due_major_building",
+            "is_old",
         )
             ->where('status', 1)
             ->where('property_id', $propId)

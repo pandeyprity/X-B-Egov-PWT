@@ -118,8 +118,8 @@ class reqApplySaf extends FormRequest
                 $rules["owner.*.ownerName"]           =   "required|regex:/^[A-Za-z.\s]+$/";
                 $rules["owner.*.gender"]              =   "required|string";
                 $rules["owner.*.dob"]                 =   "required|date|date_format:Y-m-d|before_or_equal:$mNowDate";
-                $rules["owner.*.guardianName"]        =   "required|regex:/^[A-Za-z.\s]+$/";
-                $rules["owner.*.relation"]            =   "required|string|in:S/O,W/O,D/O,C/O";
+                $rules["owner.*.guardianName"]        =   "nullable|regex:/^[A-Za-z.\s]+$/";
+                $rules["owner.*.relation"]            =   "nullable|string|in:S/O,W/O,D/O,C/O";
                 $rules["owner.*.mobileNo"]            =   "required|digits:10|regex:/[0-9]{10}/";
                 $rules["owner.*.email"]               =   "email|nullable";
                 $rules["owner.*.pan"]                 =   "string|nullable";
@@ -127,7 +127,7 @@ class reqApplySaf extends FormRequest
                 $rules["owner.*.isArmedForce"]        =   "required|bool";
                 $rules["owner.*.isSpeciallyAbled"]    =   "required|bool";
                 $rules["owner.*.ownerNameMarathi"]    =   "required|string";
-                $rules["owner.*.guardianNameMarathi"]    =   "required|string";
+                $rules["owner.*.guardianNameMarathi"]    =   "nullable|string";
             }
         }
         return $rules;

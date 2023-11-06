@@ -89,8 +89,8 @@ class PropPropertyUpdateRequest extends Model
             'workflow_id' => $req->workflowId,
             'ulb_id' => $req->ulbId,
             'pending_status' => $req->pendingStatus??0,
-            'current_role_id' => $req->initiatorRoleId,
-            'initiator_role_id' => $req->initiatorRoleId,
+            'current_role_id' => $req->finisherRoleId,
+            'initiator_role_id' => $req->finisherRoleId,
             'finisher_role_id' => $req->finisherRoleId,
             'citizen_id' => $req->citizenId ?? null,
 
