@@ -94,11 +94,11 @@ class IciciPaymentController extends Controller
         try {
 
             $random = rand(1, 1000);
-            Storage::disk('public')->put('icici/webhook/' . $random . '.json', json_encode($req->all()));
+            Storage::disk('public')->put('icici/webhook/' . $random . '.json', $req->getContent());
 
             $refReq = [
                 "data" => $req,
-                "innerData" => $req->all()
+                "innerData" => $req->getContent()
             ];
             Http::withHeaders([])
                 ->post("192.168.0.240:82/api/payment/v1/eazypayuat/get-webhook-data", $refReq);
