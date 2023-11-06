@@ -265,7 +265,8 @@ class PaymentController extends Controller
                         if ($workflowId == 0) {
                             $objHoldingTaxController = new HoldingTaxController($this->_safRepo);
                             $moduleData = new Request($moduleData);
-                            $objHoldingTaxController->paymentHolding($moduleData);
+                            $propTranDtl = $objHoldingTaxController->paymentHolding($moduleData);
+                            $data->tranId = $propTranDtl['tran_id'];
                         } else {                                            //<------------------ (SAF PAYMENT)
                             $obj = new ActiveSafController($this->_safRepo);
                             $moduleData = new ReqPayment($moduleData);
@@ -283,7 +284,7 @@ class PaymentController extends Controller
                 }
             } else
                 throw new Exception("Payment Cancelled");
-            return responseMsgs(true, "Data Saved", $data, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
+            return responseMsgs(true, "Data Saved",   $data, "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $req->getMethod(), $req->deviceId);
         }

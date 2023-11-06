@@ -210,6 +210,7 @@ class PostPropPayment
                 "ulb_id" => $this->_REQ['ulbId'],
             ];
             $this->_mPropTranDtl->create($tranDtlReq);
+            return $tranDtlReq;
         }
 
         // Rebate Penalty Transactions 🔴🔴 Rebate implementation is pending
@@ -331,7 +332,7 @@ class PostPropPayment
             }
         }
         $wardNo = $wardDetails->ward_name;
-        $this->_REQ["wardNo"] =$wardNo;
+        $this->_REQ["wardNo"] = $wardNo;
         $counter = (new UlbWardMaster)->getTranCounter($wardDetails->id)->counter ?? null;
         $user = Auth()->user();
         $mUserType = $user->user_type;

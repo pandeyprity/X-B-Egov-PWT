@@ -1356,31 +1356,26 @@ class WaterReportController extends Controller
         if ($validated->fails())
             return validationError($validated);
         try {
-            $mWaterTrans    = new WaterTran();
+            $mWaterTrans            = new WaterTran();
             $dateFrom =  $dateUpto  = Carbon::now()->format('Y-m-d');
-            $fiYear = $wardId = $zoneId= null;
-            if($request->dateFrom)
-            {
+            $fiYear = $wardId = $zoneId = null;
+            if ($request->dateFrom) {
                 $dateFrom = $request->dateFrom;
             }
-            if($request->dateUpto)
-            {
+            if ($request->dateUpto) {
                 $dateUpto = $request->dateUpto;
             }
-            if($request->fiYear)
-            {
+            if ($request->fiYear) {
                 $fiYear = $request->fiYear;
                 $refDate        = $this->getFyearDate($fiYear);
                 $dateFrom       = $refDate['fromDate'];
                 $dateUpto       = $refDate['uptoDate'];
             }
-            if($request->wardId)
-            {
-               $wardId =  $request->wardId;
+            if ($request->wardId) {
+                $wardId =  $request->wardId;
             }
-            if($request->zoneId)
-            {
-               $zoneId =  $request->zoneId;
+            if ($request->zoneId) {
+                $zoneId =  $request->zoneId;
             }
 
             $dataraw = "SELECT
@@ -1479,12 +1474,12 @@ class WaterReportController extends Controller
             AND water_trans.tran_date BETWEEN '$dateFrom' AND '$dateUpto'
             AND water_trans.tran_type = 'Demand Collection'
             "
-            . ($wardId ? " AND water_second_consumers.ward_mstr_id = $wardId " : "")
-            . ($zoneId ? " AND water_second_consumers.zone_mstr_id = $zoneId ": "")
-            . "
+                . ($wardId ? " AND water_second_consumers.ward_mstr_id = $wardId " : "")
+                . ($zoneId ? " AND water_second_consumers.zone_mstr_id = $zoneId " : "")
+                . "
          ";
-            $results = collect(collect(DB::connection('pgsql_water')->select($dataraw))->first())->map(function($val){
-                return $val ? $val: 0;
+            $results = collect(collect(DB::connection('pgsql_water')->select($dataraw))->first())->map(function ($val) {
+                return $val ? $val : 0;
             });
             return responseMsgs(true, "water Dcb report", remove_null($results), "", "", "", 'POST', "");
         } catch (Exception $e) {
@@ -1578,25 +1573,22 @@ class WaterReportController extends Controller
         $request->request->add(["metaData" => ["tr13.1", 1.1, null, $request->getMethod(), null,]]);
         $metaData = collect($request->metaData)->all();
         list($apiId, $version, $queryRunTime, $action, $deviceId) = $metaData;
-        try{
+        try {
             $refUser        = Auth()->user();
             $refUserId      = $refUser->id;
             $ulbId          = $refUser->ulb_id;
-            if($request->ulbId)
-            {
+            if ($request->ulbId) {
                 $ulbId  =   $request->ulbId;
             }
             $wardList = UlbWardMaster::select(DB::raw("min(id) as id ,ward_name,ward_name as ward_no"))
-                        ->WHERE("ulb_id",$ulbId)
-                        ->GROUPBY("ward_name")
-                        ->ORDERBY("ward_name")
-                        ->GET();
-            
+                ->WHERE("ulb_id", $ulbId)
+                ->GROUPBY("ward_name")
+                ->ORDERBY("ward_name")
+                ->GET();
+
             return responseMsgs(true, "", $wardList, $apiId, $version, $queryRunTime, $action, $deviceId);
-        }
-        catch(Exception $e)
-        {
+        } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
-        }        
+        }
     }
 }
