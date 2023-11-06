@@ -485,8 +485,10 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('reports/property/admin-dashboard', 'adminDashReport');                   // Admin dashboard report for akola
     Route::post('reports/property/tc-collection', 'tcCollectionReport');
     Route::post('v1/reports/property/mode-wise-brif-dtl', 'paymentModedealyCollectionRptV1');
+    Route::post('v1/reports/individual-tran-brif-dtl', 'individualDedealyCollectionRptV1');
     Route::post('reports/mpl', 'mplReport');                    //done
     Route::post('reports/mpl-totdayCollection', 'mplReportCollection');                    //done
+    Route::post('reports/user-wise/coll-summary', 'userWiseCollectionSummary');
   });
 
   /**

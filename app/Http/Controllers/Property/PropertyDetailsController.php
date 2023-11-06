@@ -433,12 +433,16 @@ class PropertyDetailsController extends Controller
 
                 case ("ownerName"):
                     $data = $mPropProperty->searchProperty($ulbId)
-                        ->where('o.owner_name', 'LIKE', '%' . strtoupper($parameter) . '%');
+                            ->where(function($where)use($parameter){
+                                $where->where('o.owner_name', 'ILIKE', '%' . strtoupper($parameter) . '%')
+                                ->orwhere('o.owner_name_marathi', 'ILIKE', '%' . strtoupper($parameter) . '%');
+                            });
+                        
                     break;
 
                 case ("address"):
                     $data = $mPropProperty->searchProperty($ulbId)
-                        ->where('prop_properties.prop_address', 'LIKE', '%' . strtoupper($parameter) . '%');
+                        ->where('prop_properties.prop_address', 'ILIKE', '%' . strtoupper($parameter) . '%');
                     break;
 
                 case ("mobileNo"):
