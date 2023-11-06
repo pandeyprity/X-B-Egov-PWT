@@ -35,7 +35,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
      */
     Route::controller(NewConnectionController::class)->group(function () {
         # Workflow
-
+        
         Route::post('inbox', 'waterInbox');                                                             // Workflow
         Route::post('outbox', 'waterOutbox');                                                           // Workflow
         Route::post('post-next-level', 'postNextLevel');                                                // Workflow
@@ -130,7 +130,6 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('consumer/caretaken-connections', 'viewCaretakenConnection');                       // Citiizen
         Route::post('consumer/calculate/meter-fixed-reading', 'calculateMeterFixedReading');            // Admin
         Route::post('consumer/self-generate-demand', 'selfGenerateDemand');                             // Citizen
-        Route::post('consumer/get-details', 'WaterConsumerDetails');              // Akola
 
         # Unfinished API
         Route::post('admin/consumer/add-fixed-rate', 'addFixedRate');               // Here             // Admin / Not used
@@ -145,10 +144,12 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('get-listed-fee', 'test');
 
         # for akola 
-        Route::post('consumer/apply-new-connection', 'applyWaterConnection');   // for akola consumer 
+        Route::post('consumer/apply-new-connection', 'applyWaterConnection');     // for akola consumer 
         Route::post('consumer/get-master-data', 'getMasterData');
         Route::post('consumer/get-consumer-demand', 'getConsumerDemands');
         Route::post('consumer/update-consumer-details', 'updateConsumerDetails');
+        Route::post('consumer/get-details', 'WaterConsumerDetails'); 
+        Route::post('consumer/get-connection-list', 'getConnectionList');  
 
     });
 
