@@ -105,7 +105,8 @@ class WaterConsumerMeter extends Model
         $mWaterConsumerMeter->connection_type           = $req->connectionType;
         $mWaterConsumerMeter->meter_no                  = $req->meterNo ?? null;
         $mWaterConsumerMeter->meter_intallation_date    = $installationDate ?? null;
-        $mWaterConsumerMeter->initial_reading           = $req->newMeterInitialReading ?? null;
+        $mWaterConsumerMeter->initial_reading           = $req->newMeterInitialReading ?? 0;
+        $mWaterConsumerMeter->final_meter_reading       = $req->newMeterInitialReading ?? 0;
         $mWaterConsumerMeter->meter_status              = $meterStatus ?? 1;                        // Static for meter connection
         $mWaterConsumerMeter->rate_per_month            = $fixedRate ?? 0;                          // For fixed connection
         $mWaterConsumerMeter->relative_path             = $documentPath['relaivePath'];
@@ -129,12 +130,11 @@ class WaterConsumerMeter extends Model
         $mWaterConsumerMeter->save();
         return $mWaterConsumerMeter;
     }
-     /**
+    /**
      * | Get consumer by consumer Id
      */
     public function getConsumerMeterDetails($consumerId)
     {
         return WaterConsumerMeter::where('consumer_id', $consumerId);
     }
-
 }

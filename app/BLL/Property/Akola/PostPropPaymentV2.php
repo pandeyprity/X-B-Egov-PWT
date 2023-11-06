@@ -185,7 +185,7 @@ class PostPropPaymentV2
             'paidLightCess' => $demand->light_cess ?? 0,
             'paidMajorBuilding' => $demand->major_building ?? 0,
             'paidOpenPloatTax' => $demand->open_ploat_tax ?? 0,
-            'paidTotalTax' => $demand->total_tax ?? 0
+            'paidTotalTax' => $demand->total_tax ?? 0,
         ];
     }
 
@@ -194,6 +194,10 @@ class PostPropPaymentV2
      */
     public function postPayment()
     {
+        if ($this->_REQ->paymentType == 'isPartPayment')
+        {
+            return $this->postPaymentV2();
+        }
         $this->readPaymentParams();
 
         // 🔴🔴🔴🔴Begining Transactions 🔴🔴🔴
@@ -693,5 +697,266 @@ class PostPropPaymentV2
         ];
 
         return $this->_paidArrearTaxesBifurcation = $this->readPaidTaxes($paidDemandBifurcation);
+    }
+
+    public function postPaymentV2()
+    {
+        $this->readPaymentParams();
+
+        // 🔴🔴🔴🔴Begining Transactions 🔴🔴🔴
+        DB::beginTransaction();
+        $this->_propDetails->balance = 0;                  // Update Arrear
+        $this->_propDetails->save();
+
+        $this->_REQ['ulbId'] = $this->_propDetails->ulb_id;
+        $paymentReceiptNo = $this->generatePaymentReceiptNoV2();
+        $this->_REQ['bookNo'] = $paymentReceiptNo["bookNo"];
+        $this->_REQ['receiptNo'] = $paymentReceiptNo["receiptNo"];
+        $isPartWisePaid = null;
+        // Part Payment
+        if ($this->_REQ->paymentType == 'isPartPayment' && $this->_REQ->paidAmount < $this->_propCalculation->original['data']['payableAmt']) {                    // Adjust Demand on Part Payment
+            $isPartWisePaid = true;                                                                                 // Flag has been kept for showing the partial payment receipt
+            $this->_REQ->merge(['amount' => $this->_REQ->paidAmount]);
+            if ($this->_REQ->paidAmount > $this->_propCalculation->original['data']['arrearPayableAmt'])           // We have to adjust current demand
+                $this->currentDemandAdjust();
+            elseif ($this->_REQ->paidAmount < $this->_propCalculation->original['data']['arrearPayableAmt'] && $this->_REQ->paidAmount > $this->_propCalculation->original['data']['totalInterestPenalty'])           // We have to adjust Arrear demand
+                $this->arrearDemandAdjust();
+            else
+                throw new Exception("Part Payment in Monthly Interest Not Available");
+        }
+
+        if ($this->_REQ->paymentType == 'isPartPayment' && $this->_REQ->paidAmount > $this->_propCalculation->original['data']['payableAmt'])                     // Adjust Demand on Part Payment
+            throw new Exception("Amount should be less then the payable amount");
+
+        // return (["Full Payment"]);
+
+        $payableAmount = $this->_REQ->paidAmount - $this->_propCalculation->original['data']["previousInterest"];
+        $demands = collect($this->_propCalculation->original['data']["demandList"])->sortBy(["fyear","id"]);
+        $paidPenalty = $this->_propCalculation->original['data']["previousInterest"];
+        $paidDemands =[];
+        
+        foreach($demands as $key=>$val)
+        {
+            if($payableAmount<=0)
+            {
+                continue;
+            }
+            $paymentDtl = ($this->demandAdjust($payableAmount,$val["id"]));                       
+            $payableAmount = $paymentDtl["balence"];
+            $paidPenalty+=$paymentDtl["payableAmountOfPenalty"];
+            $paidDemands[]=$paymentDtl;
+        }
+        $this->_fromFyear = ((collect($paidDemands)->sortBy("fyear"))->first())["fyear"]?? $this->_fromFyear;
+        $this->_uptoFyear = ((collect($paidDemands)->sortBy("fyear"))->last())["fyear"]??$this->_uptoFyear;
+
+        $propTrans = $this->_mPropTrans->postPropTransactions($this->_REQ,$paidDemands , $this->_fromFyear, $this->_uptoFyear);
+        $this->_tranId = $propTrans['id'];
+        $this->_propTransaction = $propTrans;
+        $this->_penaltyRebates["monthlyPenalty"]["amount"]=roundFigure($paidPenalty);
+        $d1 = [];
+        $trDtl =[]; 
+        
+        // Updation of payment status in demand table
+        foreach($paidDemands as $dtls)
+        {
+            $demand = collect($dtls["currentTax"]);
+            $demand = (object)$demand->toArray();
+            $tblDemand = $this->_mPropDemand->findOrFail($demand->id);          
+            $d1[]=$demand;
+            $tblDemand->is_full_paid = $dtls["remaining"] > 0 ? false : true ;
+            $paidTaxes = (object)($dtls["paidCurrentTaxesBifurcation"]);
+            
+            // Update Paid Taxes
+
+            /**
+             * | due taxes = paid_taxes-due Taxes
+             */
+            $tblDemand->paid_status = 1;           // Paid Status Updation
+            $tblDemand->balance = $tblDemand->balance - $paidTaxes->paidTotalTax > 0 ? $tblDemand->balance - $paidTaxes->paidTotalTax : 0;
+            $tblDemand->due_general_tax = $tblDemand->due_general_tax - $paidTaxes->paidGeneralTax;
+            $tblDemand->due_road_tax = $tblDemand->due_road_tax - $paidTaxes->paidRoadTax;
+            $tblDemand->due_firefighting_tax = $tblDemand->due_firefighting_tax - $paidTaxes->paidFirefightingTax;
+            $tblDemand->due_education_tax = $tblDemand->due_education_tax - $paidTaxes->paidEducationTax;
+            $tblDemand->due_water_tax = $tblDemand->due_water_tax - $paidTaxes->paidWaterTax;
+            $tblDemand->due_cleanliness_tax = $tblDemand->due_cleanliness_tax - $paidTaxes->paidCleanlinessTax;
+            $tblDemand->due_sewarage_tax = $tblDemand->due_sewarage_tax - $paidTaxes->paidSewarageTax;
+            $tblDemand->due_tree_tax = $tblDemand->due_tree_tax - $paidTaxes->paidTreeTax;
+            $tblDemand->due_professional_tax = $tblDemand->due_professional_tax - $paidTaxes->paidProfessionalTax;
+            $tblDemand->due_total_tax = $tblDemand->due_total_tax - $paidTaxes->paidTotalTax;
+            $tblDemand->due_balance = $tblDemand->due_total_tax;
+            $tblDemand->due_tax1 = $tblDemand->due_tax1 - $paidTaxes->paidTax1;
+            $tblDemand->due_tax2 = $tblDemand->due_tax2 - $paidTaxes->paidTax2;
+            $tblDemand->due_tax3 = $tblDemand->due_tax3 - $paidTaxes->paidTax3;
+            $tblDemand->due_sp_education_tax = $tblDemand->due_sp_education_tax - $paidTaxes->paidStateEducationTax;
+            $tblDemand->due_water_benefit = $tblDemand->due_water_benefit - $paidTaxes->paidWaterBenefit;
+            $tblDemand->due_water_bill = $tblDemand->due_water_bill - $paidTaxes->paidWaterBill;
+            $tblDemand->due_sp_water_cess = $tblDemand->due_sp_water_cess - $paidTaxes->paidSpWaterCess;
+            $tblDemand->due_drain_cess = $tblDemand->due_drain_cess - $paidTaxes->paidDrainCess;
+            $tblDemand->due_light_cess = $tblDemand->due_light_cess - $paidTaxes->paidLightCess;
+            $tblDemand->due_major_building = $tblDemand->due_major_building - $paidTaxes->paidMajorBuilding;
+            $tblDemand->due_open_ploat_tax = $tblDemand->due_open_ploat_tax - $paidTaxes->paidOpenPloatTax??0;
+            $tblDemand->paid_total_tax = $paidTaxes->paidTotalTax + $tblDemand->paid_total_tax;
+
+            if (isset($isPartWisePaid))
+                $tblDemand->has_partwise_paid = $isPartWisePaid;
+
+            $tblDemand->save();
+
+            // ✅✅✅✅✅ Tran details insertion
+            $tranDtlReq = [
+                "tran_id" => $propTrans['id'],
+                "prop_demand_id" => $demand->id,
+                "total_demand" => $demand->balance,
+                "ulb_id" => $this->_REQ['ulbId'],
+                "paid_general_tax" => $paidTaxes->paidGeneralTax,
+                "paid_road_tax" => $paidTaxes->paidRoadTax,
+                "paid_firefighting_tax" => $paidTaxes->paidFirefightingTax,
+                "paid_education_tax" => $paidTaxes->paidEducationTax,
+                "paid_water_tax" => $paidTaxes->paidWaterTax,
+                "paid_cleanliness_tax" => $paidTaxes->paidCleanlinessTax,
+                "paid_sewarage_tax" => $paidTaxes->paidSewarageTax,
+                "paid_tree_tax" => $paidTaxes->paidTreeTax,
+                "paid_professional_tax" => $paidTaxes->paidProfessionalTax,
+                "paid_total_tax" => $paidTaxes->paidTotalTax,
+                "paid_balance" => $paidTaxes->paidTotalTax,
+                "paid_tax1" => $paidTaxes->paidTax1,
+                "paid_tax2" => $paidTaxes->paidTax2,
+                "paid_tax3" => $paidTaxes->paidTax3,
+                "paid_sp_education_tax" => $paidTaxes->paidStateEducationTax,
+                "paid_water_benefit" => $paidTaxes->paidWaterBenefit,
+                "paid_water_bill" => $paidTaxes->paidWaterBill,
+                "paid_sp_water_cess" => $paidTaxes->paidSpWaterCess,
+                "paid_drain_cess" => $paidTaxes->paidDrainCess,
+                "paid_light_cess" => $paidTaxes->paidLightCess,
+                "paid_major_building" => $paidTaxes->paidMajorBuilding,
+                "paid_open_ploat_tax" => $paidTaxes->paidOpenPloatTax??0,
+            ];
+            $trDtl[]=$tranDtlReq;
+            $this->_mPropTranDtl->create($tranDtlReq);
+        }
+
+        // Rebate Penalty Transactions 🔴🔴 Rebate implementation is pending
+        foreach ($this->_penaltyRebates as $penalRebates) {
+            $reqPenalRebate = [
+                'tran_id' => $propTrans['id'],
+                'head_name' => $penalRebates['type'],
+                'amount' => $penalRebates['amount'],
+                'is_rebate' => $penalRebates['isRebate'],
+                'tran_date' => Carbon::now(),
+                'prop_id' => $this->_propId,
+                'app_type' => 'Property'
+            ];
+            $finP[]=$reqPenalRebate;
+            $this->_mPropPenaltyrebates->create($reqPenalRebate);
+        }
+
+        // Cheque Entry
+        if (in_array($this->_REQ['paymentMode'], $this->_offlinePaymentModes)) {
+            $this->_REQ->merge([
+                'chequeDate' => $this->_REQ['chequeDate'],
+                'tranId' => $propTrans['id']
+            ]);
+            $this->postOtherPaymentModes($this->_REQ);
+        }
+    }
+    /**
+     * demand Adjust
+     */
+    public function demandAdjust($currentPayableAmount,$demanId)
+    {
+        $currentTax = $this->_propCalculation->original['data']["demandList"]->where("id", $demanId);
+
+        $totaTax = $currentTax->sum("total_tax");        
+        $penalty = $currentTax->sum("monthlyPenalty");
+        $demandPayableAmount = $totaTax + $penalty;
+        $balence = $currentPayableAmount - $demandPayableAmount;
+        $totalTaxOfDemand = $totaTax / $demandPayableAmount * 100;
+        $penaltyOfDemand = $penalty / $demandPayableAmount * 100;
+        $onePerOfCurrentPaybleAmount = $currentPayableAmount/100;
+        if($currentPayableAmount>$demandPayableAmount)
+        {
+            $onePerOfCurrentPaybleAmount = $demandPayableAmount/100;
+        }
+
+        $payableAmountOfTax = $onePerOfCurrentPaybleAmount * $totalTaxOfDemand;
+        $payableAmountOfPenalty = $onePerOfCurrentPaybleAmount * $penaltyOfDemand ;        
+        $data = [
+            "currentTax"=>$currentTax->first(),
+            "demandId"=>$demanId,
+            "fyear"=>($currentTax->first())["fyear"],
+            "totalTax"=>$totaTax,
+            "totalpenalty"=>$penalty,
+            "demandPayableAmount"=>$demandPayableAmount,
+            "currentPayableAmount"=>$currentPayableAmount,
+            "totalTaxOfDemand"=>$totalTaxOfDemand,
+            "penaltyOfDemand"=>$penaltyOfDemand,
+            "onePerOfCurrentPaybleAmount"=>$onePerOfCurrentPaybleAmount,
+            "payableAmountOfTax"=>$payableAmountOfTax,
+            "payableAmountOfPenalty"=>$payableAmountOfPenalty,
+            "balence"=>round($balence) > 0 ? $balence :0,
+            "remaining"=> $totaTax - $payableAmountOfTax > 0 ? $totaTax - $payableAmountOfTax : 0 ,
+        ];
+        $perPecOfTax =  $totaTax / 100;
+
+        $generalTaxPerc = ($currentTax->sum('general_tax') / $totaTax) * 100;
+        $roadTaxPerc = ($currentTax->sum('road_tax') / $totaTax) * 100;
+        $firefightingTaxPerc = ($currentTax->sum('firefighting_tax') / $totaTax) * 100;
+        $educationTaxPerc = ($currentTax->sum('education_tax') / $totaTax) * 100;
+        $waterTaxPerc = ($currentTax->sum('water_tax') / $totaTax) * 100;
+        $cleanlinessTaxPerc = ($currentTax->sum('cleanliness_tax') / $totaTax) * 100;
+        $sewarageTaxPerc = ($currentTax->sum('sewarage_tax') / $totaTax) * 100;
+        $treeTaxPerc = ($currentTax->sum('tree_tax') / $totaTax) * 100;
+        $professionalTaxPerc = ($currentTax->sum('professional_tax') / $totaTax) * 100;
+        $tax1Perc = ($currentTax->sum('tax1') / $totaTax) * 100;
+        $tax2Perc = ($currentTax->sum('tax2') / $totaTax) * 100;
+        $tax3Perc = ($currentTax->sum('tax3') / $totaTax) * 100;
+        $stateEducationTaxPerc = ($currentTax->sum('state_education_tax') / $totaTax) * 100;
+        $waterBenefitPerc = ($currentTax->sum('water_benefit') / $totaTax) * 100;
+        $waterBillPerc = ($currentTax->sum('water_bill') / $totaTax) * 100;
+        $spWaterCessPerc = ($currentTax->sum('sp_water_cess') / $totaTax) * 100;
+        $drainCessPerc = ($currentTax->sum('drain_cess') / $totaTax) * 100;
+        $lightCessPerc = ($currentTax->sum('light_cess') / $totaTax) * 100;
+        $majorBuildingPerc = ($currentTax->sum('major_building') / $totaTax) * 100;
+        $openPloatTaxPerc = ($currentTax->sum('open_ploat_tax') / $totaTax) * 100;
+
+        $totalPerc = $generalTaxPerc + $roadTaxPerc + $firefightingTaxPerc + $educationTaxPerc +
+            $waterTaxPerc + $cleanlinessTaxPerc + $sewarageTaxPerc + $treeTaxPerc
+            + $professionalTaxPerc + $tax1Perc + $tax2Perc + $tax3Perc
+            + $stateEducationTaxPerc + $waterBenefitPerc + $waterBillPerc +
+            $spWaterCessPerc + $drainCessPerc + $lightCessPerc + $majorBuildingPerc
+            + $openPloatTaxPerc;
+
+        
+
+        /**
+         * | 100 % = Payable Amount
+         * | 1 % = Payable Amount/100  (Hence We Have devided the taxes by hundred)
+         */
+
+        $paidDemandBifurcation = [
+            'general_tax' => roundFigure(($payableAmountOfTax * $generalTaxPerc) / 100),
+            'road_tax' => roundFigure(($payableAmountOfTax * $roadTaxPerc) / 100),
+            'firefighting_tax' => roundFigure(($payableAmountOfTax * $firefightingTaxPerc) / 100),
+            'education_tax' => roundFigure(($payableAmountOfTax * $educationTaxPerc) / 100),
+            'water_tax' => roundFigure(($payableAmountOfTax * $waterTaxPerc) / 100),
+            'cleanliness_tax' => roundFigure(($payableAmountOfTax * $cleanlinessTaxPerc) / 100),
+            'sewarage_tax' => roundFigure(($payableAmountOfTax * $sewarageTaxPerc) / 100),
+            'tree_tax' => roundFigure(($payableAmountOfTax * $treeTaxPerc) / 100),
+            'professional_tax' => roundFigure(($payableAmountOfTax * $professionalTaxPerc) / 100),
+            'tax1' => roundFigure(($payableAmountOfTax * $tax1Perc) / 100),
+            'tax2' => roundFigure(($payableAmountOfTax * $tax2Perc) / 100),
+            'tax3' => roundFigure(($payableAmountOfTax * $tax3Perc) / 100),
+            'state_education_tax' => roundFigure(($payableAmountOfTax * $stateEducationTaxPerc) / 100),
+            'water_benefit' => roundFigure(($payableAmountOfTax * $waterBenefitPerc) / 100),
+            'water_bill' => roundFigure(($payableAmountOfTax * $waterBillPerc) / 100),
+            'sp_water_cess' => roundFigure(($payableAmountOfTax * $spWaterCessPerc) / 100),
+            'drain_cess' => roundFigure(($payableAmountOfTax * $drainCessPerc) / 100),
+            'light_cess' => roundFigure(($payableAmountOfTax * $lightCessPerc) / 100),
+            'major_building' => roundFigure(($payableAmountOfTax * $majorBuildingPerc) / 100),
+            'open_ploat_tax' => roundFigure(($payableAmountOfTax * $openPloatTaxPerc) / 100),
+            'total_tax' => roundFigure(($payableAmountOfTax * $totalPerc) / 100),            
+        ];
+        $data["paidCurrentTaxesBifurcation"] = $this->readPaidTaxes($paidDemandBifurcation);
+        return$data;
     }
 }
