@@ -30,4 +30,5 @@ interface IReport
     public function adminDashReport(Request $request);
     public function tcCollectionReport();
     public function paymentModedealyCollectionRptV1(Request $request);
+    public function individualDedealyCollectionRptV1(Request $request);
 }
