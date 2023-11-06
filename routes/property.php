@@ -488,6 +488,7 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('v1/reports/individual-tran-brif-dtl', 'individualDedealyCollectionRptV1');
     Route::post('reports/mpl', 'mplReport');                    //done
     Route::post('reports/mpl-totdayCollection', 'mplReportCollection');                    //done
+    Route::post('reports/user-wise/coll-summary', 'userWiseCollectionSummary');
   });
 
   /**

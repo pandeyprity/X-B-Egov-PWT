@@ -1186,4 +1186,38 @@ class ReportController extends Controller
         }
 
     }
+
+    public function userWiseCollectionSummary(Request $request)
+    {
+        try{         
+            $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
+            $data = PropTransaction::select(
+                        DB::raw("
+                            SUM(amount) as total_amount,
+                            count(prop_transactions.id) as total_tran,
+                            count(distinct property_id) as total_property,
+                            users.id as user_id,
+                            users.name,
+                            users.mobile,
+                            users.photo,
+                            users.photo_relative_path
+                        ")
+                    )
+                    ->join("users","users.id","prop_transactions.user_id")
+                    ->whereIn('prop_transactions.status',[1,2])
+                    ->whereBetween("prop_transactions.tran_date",[$fromDate,$uptoDate])
+                    ->groupBy([
+                        "users.id" ,                         
+                        "users.name",       
+                        "users.mobile",                        
+                        "users.photo",                      
+                        "users.photo_relative_path"
+                    ])
+                    ->get();  
+                    // $data = $data->map(function($val))
+            return responseMsgs(true, "Mpl Report Today Coll", $data, "", 01, responseTime(), $request->getMethod(), $request->deviceId);
+        }catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $request->getMethod(), $request->deviceId);
+        }
+    }
 }
