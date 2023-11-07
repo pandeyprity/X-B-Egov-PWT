@@ -1592,7 +1592,7 @@ class WaterReportController extends Controller
             return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
-  
+
     /**
      * | water Collection
      */
@@ -1604,7 +1604,8 @@ class WaterReportController extends Controller
         list($apiId, $version, $queryRunTime, $action, $deviceId) = $metaData;
         // return $request->all();
         try {
-            $refUser        = authUser($request);
+         
+             $refUser        = authUser($request);
             $ulbId          = $refUser->ulb_id;
             $wardId = null;
             $userId = null;
@@ -1642,11 +1643,9 @@ class WaterReportController extends Controller
                             water_second_consumers.user_type,
                             water_trans.id AS tran_id,
                             water_second_consumers.property_no,
+                            water_trans.tran_date,
                             water_consumer_owners.applicant_name,
                             water_consumer_owners.mobile_no,
-                            water_trans.tran_date,
-                            water_owner_details.applicant_name,
-                            water_owner_details.mobile_no,
                             water_trans.payment_mode AS transaction_mode,
                             water_trans.amount,
                             users.name as emp_name,
@@ -1659,26 +1658,27 @@ class WaterReportController extends Controller
                 "),
             )
                 ->leftJOIN("water_second_consumers", "water_second_consumers.id", "water_trans.related_id")
+                ->leftJoin("water_consumer_owners", "water_consumer_owners.consumer_id", "=", "water_second_consumers.id")
                 ->JOIN(
                     DB::RAW("(
                         SELECT STRING_AGG(applicant_name, ', ') AS owner_name, STRING_AGG(water_consumer_owners.mobile_no::TEXT, ', ') AS mobile_no, water_consumer_owners.consumer_id 
                             FROM water_second_consumers 
                         JOIN water_trans  on water_trans.related_id = water_second_consumers.id
-                        JOIN water_consumer_owners on water_consumer_owners.consumer_id= water_second_consumers.id
+                        JOIN water_consumer_owners on water_consumer_owners.consumer_id = water_second_consumers.id
                         WHERE water_trans.related_id IS NOT NULL AND water_trans.status in (1, 2) 
                         AND water_trans.tran_date BETWEEN '$fromDate' AND '$uptoDate'
                         " .
-                        ($userId ? " AND water_second_consumers.user_id = $userId " : "")
+                        ($userId ? " AND water_second_consumers.user_ id = $userId " : "")
                         . ($paymentMode ? " AND upper(water_trans.payment_mode) = upper('$paymentMode') " : "")
                         . ($ulbId ? " AND water_trans.ulb_id = $ulbId" : "")
                         . "
                         GROUP BY water_consumer_owners.consumer_id
                         ) AS water_owner_details
                         "),
-                        function ($join) {
-                            $join->on("water_owner_details.consumer_id","=", "water_trans.related_id");
-                        }
-                        
+                    function ($join) {
+                        $join->on("water_owner_details.consumer_id", "=", "water_trans.related_id");
+                    }
+
                 )
                 ->LEFTJOIN("ulb_ward_masters", "ulb_ward_masters.id", "water_second_consumers.ward_mstr_id")
                 ->LEFTJOIN("users", "users.id", "water_trans.emp_dtl_id")
@@ -1701,7 +1701,7 @@ class WaterReportController extends Controller
             $paginator = collect();
 
             $data2 = $data;
-            $totalHolding = $data2->count("water_second_consumers.id");
+            $totalConsumers = $data2->count("water_second_consumers.id");
             $totalAmount = $data2->sum("water_trans.amount");
             $perPage = $request->perPage ? $request->perPage : 5;
             $page = $request->page && $request->page > 0 ? $request->page : 1;
@@ -1729,7 +1729,7 @@ class WaterReportController extends Controller
                     $list["totalCount"] = $totalFCount;
                     $list["totalAmount"] = $totalFAmount;
                 }
-                return responseMsgs(true, "", remove_null($list));
+                return responseMsgs(true, "", remove_null($list),$apiId, $version, $queryRunTime, $action, $deviceId);
             }
 
             $paginator = $data->paginate($perPage);
@@ -1740,7 +1740,7 @@ class WaterReportController extends Controller
             $list = [
                 "current_page" => $paginator->currentPage(),
                 "last_page" => $paginator->lastPage(),
-                "totalHolding" => $totalHolding,
+                "totalHolding" => $totalConsumers,
                 "totalAmount" => $totalAmount,
                 "data" => $paginator->items(),
                 "total" => $paginator->total(),
