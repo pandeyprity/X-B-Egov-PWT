@@ -390,7 +390,7 @@ class WaterSecondConsumer extends Model
     /**
      * | Save the consumer dtl 
      */
-    public function editConsumerdtls($request)
+    public function editConsumerdtls($request, $userId)
     {
         $mWaterSecondConsumer = WaterSecondConsumer::findorfail($request->consumerId);
         $mWaterSecondConsumer->ward_mstr_id         =  $request->wardId;
@@ -399,6 +399,7 @@ class WaterSecondConsumer extends Model
         $mWaterSecondConsumer->old_consumer_no      =  $request->oldConsumerNo;
         $mWaterSecondConsumer->property_no          =  $request->propertyNo;
         $mWaterSecondConsumer->dtc_code             =  $request->dtcCode;
+        $mWaterSecondConsumer->user_id              =  $userId;
         $mWaterSecondConsumer->save();
     }
     /**
@@ -424,7 +425,6 @@ class WaterSecondConsumer extends Model
             ->leftJoin('ulb_ward_masters', 'ulb_ward_masters.id', '=', 'water_second_consumers.ward_mstr_id')
             ->where('water_approval_application_details.application_no', 'LIKE', '%' . $refVal . '%')
             ->where('water_second_consumers.status', 1);
-            // ->where('ulb_ward_masters.status', true);
+        // ->where('ulb_ward_masters.status', true);
     }
-
 }

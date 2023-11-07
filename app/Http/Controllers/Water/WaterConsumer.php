@@ -198,7 +198,7 @@ class WaterConsumer extends Controller
             }
             throw new Exception("There is no demand!");
         } catch (Exception $e) {
-            return responseMsgs(false, $e->getMessage(),"", "", "01", "ms", "POST", "");
+            return responseMsgs(false, $e->getMessage(), "", "", "01", "ms", "POST", "");
         }
     }
 
@@ -2289,6 +2289,7 @@ class WaterConsumer extends Controller
         try {
             $now            = Carbon::now();
             $user           = authUser($request);
+            $userId         = $user->id;
             $consumerId     = $request->consumerId;
 
             $mWaterSecondConsumer = new waterSecondConsumer();
@@ -2299,8 +2300,8 @@ class WaterConsumer extends Controller
             }
 
             $this->begin();
-            $mWaterSecondConsumer->editConsumerdtls($request);
-            $mWaterConsumerOwners->editConsumerOwnerDtls($request);
+            $mWaterSecondConsumer->editConsumerdtls($request,$userId);
+            $mWaterConsumerOwners->editConsumerOwnerDtls($request,$userId);
             $this->commit();
             return responseMsgs(true, "update consumer details succesfull!", "", "", "01", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
