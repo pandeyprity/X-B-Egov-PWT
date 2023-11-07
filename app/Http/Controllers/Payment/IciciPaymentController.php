@@ -16,11 +16,13 @@ use App\Models\Payment\PinelabPaymentResponse;
 use App\Repository\Property\Interfaces\iSafRepository;
 use App\Repository\Trade\TradeCitizen;
 use App\Repository\Water\Concrete\WaterNewConnection;
+use Carbon\Carbon;
 use Exception;
 use Hamcrest\Core\HasToString;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -92,63 +94,53 @@ class IciciPaymentController extends Controller
         $mIciciPaymentRes = new IciciPaymentResponse();
 
         try {
-
-            $random = rand(1, 1000);
-            Storage::disk('public')->put('icici/webhook/' . $random . '.json', $req->getContent());
-
-            $refReq = [
-                "data" => $req,
-                "innerData" => $req->getContent()
-            ];
-            Http::withHeaders([])
-                ->post("192.168.0.240:82/api/payment/v1/eazypayuat/get-webhook-data", $refReq);
-
-            return responseMsgs(true, "Data Received Successfully", []);
-
-            $data               = $req->all();
-            $reqRefNo           = $req->reqRefNo;
-            $resRefNo           = $req->resRefNo;
+            # Save the data in file 
+            $random = strtotime(Carbon::now());
+            $webhoohEncripted = $req->getContent();
+            $getRefUrl = new GetRefUrl();
+            $webhookData = $getRefUrl->decryptWebhookData($webhoohEncripted);
+            Storage::disk('public')->put('icici/webhook/' . $webhookData->TrnId . '.json', json_encode($webhookData));
 
             # Get the payamen request
-            $paymentReqsData = $mIciciPaymentReq->findByReqRefNoV2($reqRefNo);
-            if (!$paymentReqsData) {
-                throw new Exception("Payment request dont exist for $reqRefNo");
-            }
+            // $paymentReqsData = $mIciciPaymentReq->findByReqRefNoV2($reqRefNo);
+            // if (!$paymentReqsData) {
+            //     throw new Exception("Payment request dont exist for $reqRefNo");
+            // }
 
-            if ($req->Status == 'Success') {
-                $updReqs = [
-                    'res_ref_no'        => $resRefNo,
-                    'payment_status'    => 1
-                ];
-                DB::connection('pgsql_master')->beginTransaction();
-                $paymentReqsData->update($updReqs);                 // Table Updation
-                $resPayReqs = [
-                    "payment_req_id"    => $paymentReqsData->id,
-                    "req_ref_id"        => $reqRefNo,
-                    "res_ref_id"        => $resRefNo,
-                    "icici_signature"   => $req->signature,
-                    "payment_status"    => 1
-                ];
-                $mIciciPaymentRes->create($resPayReqs);             // Response Data 
-            }
+            // if ($req->Status == 'Success') {
+            //     $updReqs = [
+            //         'res_ref_no'        => $resRefNo,
+            //         'payment_status'    => 1
+            //     ];
+            //     DB::connection('pgsql_master')->beginTransaction();
+            //     $paymentReqsData->update($updReqs);                 // Table Updation
+            //     $resPayReqs = [
+            //         "payment_req_id"    => $paymentReqsData->id,
+            //         "req_ref_id"        => $reqRefNo,
+            //         "res_ref_id"        => $resRefNo,
+            //         "icici_signature"   => $req->signature,
+            //         "payment_status"    => 1
+            //     ];
+            //     $mIciciPaymentRes->create($resPayReqs);             // Response Data 
+            // }
 
             // ❗❗ Pending for Module Specific Table Updation / Dont user to transfer data to module ❗❗
-            switch ($paymentReqsData->module_id) {
-                case '1':
-                    break;
+            // switch ($paymentReqsData->module_id) {
+            //     case '1':
+            //         break;
 
-                case '2':
+            //     case '2':
 
-                    break;
-                case '2':
+            //         break;
+            //     case '2':
 
-                    break;
-            }
+            //         break;
+            // }
 
-            DB::connection('pgsql_master')->commit();
+            // DB::connection('pgsql_master')->commit();
             return responseMsgs(true, "Data Received Successfully", []);
         } catch (Exception $e) {
-            DB::connection('pgsql_master')->rollBack();
+            // DB::connection('pgsql_master')->rollBack();
             return responseMsgs(false, $e->getMessage(), []);
         }
     }
@@ -165,6 +157,7 @@ class IciciPaymentController extends Controller
         $mIciciPaymentRes = new IciciPaymentResponse();
 
         try {
+
             // $reqBody = [
             //     "Response_Code"         => "E000",               // Payment status
             //     "Unique_Ref_Number"     => "2310131666814",      // Tran no

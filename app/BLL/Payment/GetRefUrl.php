@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 /**
  * | Created On-02-09-2023 
  * | Author-Anshu Kumar
- * | Status - Closed
+ * | Status - Open
  * | Final Url-https://eazypayuat.icicibank.com/EazyPGVerify?ezpaytranid=2309111661222&amount=&paymentmode=&merchantid=136082&trandate=&pgreferenceno=16945076411108222585  // tranid is ref no
  */
 class GetRefUrl
@@ -23,8 +23,9 @@ class GetRefUrl
     private static $subMerchantId = 45;
     private static $paymentMode = 9;
     private static $baseUrl = "https://eazypay.icicibank.com";                       // https://eazypayuat.icicibank.com
-    private static $returnUrl = "https://modernulb.com/property/payment-success/87878787";                   // http://203.129.217.62:82/api/payment/v1/collect-callback-data
+    private static $returnUrl = "http://203.129.217.62:82/api/payment/v1/collect-callback-data"; //"http://203.129.217.62:82/api/payment/v1/collect-callback-data";                   // http://203.129.217.62:82/api/payment/v1/collect-callback-data   https://modernulb.com/property/payment-success/87878787  https://modernulb.com/property/paymentReceipt/550980/holding
     private static $ciphering = "aes-128-ecb";                                                                  // Store the cipher method for encryption
+    private static $cipheringV2 = 'AES-128-ECB';
     public $_tranAmt;
     public $_refNo;
     public $_refUrl;
@@ -37,9 +38,9 @@ class GetRefUrl
         $todayDate          = Carbon::now()->format('d/M/Y');
         $refNo              = time() . rand();
         $this->_refNo       = $refNo;
-        $tranAmt            = 1;//$req->amount;                                                                            // Remove the static amount
+        $tranAmt            = 1; //$req->amount;                                                                            // Remove the static amount
         // $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . $todayDate . "|0123456789|xy|xy";               // 10 is transactional amount
-        $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . "1";               // 10 is transactional amount
+        $mandatoryField     = "$refNo|" . self::$subMerchantId . "|$tranAmt|" . "1";                                              // 10 is transactional amount
         $eMandatoryField    = $this->encryptAes($mandatoryField);
         // $optionalField      = $this->encryptAes("X|X|X");
         $optionalField      = $this->encryptAes("");
@@ -80,36 +81,20 @@ class GetRefUrl
     }
 
 
-
     /**
      * | Get the Payment Status and data 
      */
-    public function getPaymentStatusByUrl()
+    public function decryptWebhookData($encodedData)
     {
-        # calling the http request for Payment request
-        // https://eazypayuat.icicibank.com/EazyPGVerify?ezpaytranid=2309111661222
-        // &amount=
-        // &paymentmode=
-        // &merchantid=136082
-        // &trandate=
-        // &pgreferenceno=16945076411108222585
-
-        // Http::->post("$petApi->end_point", $transfer);
-
-        // https://eazypayuat.icicibank.com/EazyPG?merchantid=136082&mandatory fields=8+zD9Frb3bx+M8s1/1y//ymDXvTCLhON9Sxi1KftfI/6jiy1PPavcxwnhOLwTYlRgeyF3rsKUcias1KbX4wJiQ==&optional fields=h4UMk/cXKHxuF078YudPmA==&returnurl=p8HR4AwfAUB/HLkeYYSwhK/JM3Y1K/NyWYDWX8UwKpphWIcOauBRZo13tlLA1KAu&Reference No=8+zD9Frb3bx+M8s1/1y///L6yuC9oo312vy8Fu8HkMI=&submerchantid=EJpmy96shfiIc7fg4quxtQ==&transaction amount=TspCx9wbUIG3AHm40YYwjA==&paymode=FsAVZXp0rTj81r6v2bzn1w==
-
-
-        # Sms Process
-        // http://nimbusit.biz/api/SmsApi/SendSingleApi?
-        // UserID=SwatiIndbiz
-        // &Password=txif7813TX
-        // &SenderID=TECSSP
-        // &Phno=7319867430
-        // &Msg=Dear Student, Get confirmed admission in ABC in TOP medical colleges/Deemed Universities under management quota at low cost. Call-9999999999 TECSSP
-        // &EntityID=1201159409941345107
-        // &TemplateID=1707169477672412036
-
-
-
+        try {
+            $decryptedData = openssl_decrypt(base64_decode($encodedData), self::$cipheringV2, self::$aesKey, OPENSSL_RAW_DATA);
+            if ($decryptedData === false) {
+                throw new \Exception('Decryption failed.');
+            }
+            $finalWebhookData = json_decode(json_encode(simplexml_load_string($decryptedData)));
+            return $finalWebhookData;
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
     }
 }

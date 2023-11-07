@@ -68,4 +68,5 @@ Route::controller(IciciPaymentController::class)->group(function () {
     Route::post('v1/collect-callback-data', 'getCallbackDetial');
     Route::post('v1/eazypayuat/get-webhook-data', 'getWebhookData');
     Route::post('v1/get-referal-url', 'getReferalUrl');
+    Route::post('testV7', 'testV7');
 });
