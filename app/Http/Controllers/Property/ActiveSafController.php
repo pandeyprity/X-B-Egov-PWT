@@ -1685,6 +1685,7 @@ class ActiveSafController extends Controller
                 "professionalTaxPerc"   => $correntTax->sum("professionalTaxPerc"),
                 "professionalTax"       => $correntTax->sum("professionalTax"),
                 "totalTax"              => $correntTax->sum("totalTax"),
+                "openPloatTax"          =>$correntTax->sum("openPloatTax"),
                 "plotArea"              => $fullSafDtls["area_of_plot"] ?? "",
                 "plotAreaSQTM"          => sqFtToSqMt($fullSafDtls["area_of_plot"] ?? "0"),
                 "floorsCount"           => ($fullSafDtls["floors"]->count() ?? "0"),
@@ -1716,6 +1717,7 @@ class ActiveSafController extends Controller
                 "professionalTaxPerc"   => $arrearTax->sum("professionalTaxPerc"),
                 "professionalTax"       => $arrearTax->sum("professionalTax"),
                 "totalTax"              => $arrearTax->sum("totalTax"),
+                "openPloatTax"          =>$arrearTax->sum("openPloatTax"),
                 "plotArea"              => $fullSafDtls["area_of_plot"] ?? "",
                 "plotAreaSQTM"          => sqFtToSqMt($fullSafDtls["area_of_plot"] ?? "0"),
                 "floorsCount"           => ($fullSafDtls["floors"]->count() ?? "0"),
@@ -1751,6 +1753,7 @@ class ActiveSafController extends Controller
                 "agingPerc"         => $floorsTaxes->sum("agingPerc") ?? "0",
                 "agingAmt"          => $floorsTaxes->sum("agingAmt") ?? "0",
                 "taxValue"          => $floorsTaxes->sum("taxValue") ?? "0",
+                "openPloatTax"      =>$floorsTaxes->sum("openPloatTax")??"0",
                 "generalTax"        => $floorsTaxes->sum("generalTax") ?? "0",
                 "roadTax"           => $floorsTaxes->sum("roadTax") ?? "0",
                 "firefightingTax"   => $floorsTaxes->sum("firefightingTax") ?? "0",
@@ -1768,11 +1771,11 @@ class ActiveSafController extends Controller
                     $floorsTaxes->sum("generalTax") + $floorsTaxes->sum("roadTax") + $floorsTaxes->sum("firefightingTax") +
                         $floorsTaxes->sum("educationTax") + $floorsTaxes->sum("waterTax") + $floorsTaxes->sum("cleanlinessTax") +
                         $floorsTaxes->sum("sewerageTax") + $floorsTaxes->sum("treeTax") + $floorsTaxes->sum("stateEducationTax") +
-                        $floorsTaxes->sum("professionalTax")
+                        $floorsTaxes->sum("professionalTax") + $floorsTaxes->sum("openPloatTax")
                 ),
             ];
-            $residentFloor = $floorsTaxes->where("occupancyType", 1);
-            $nonResidentFloor = $floorsTaxes->where("occupancyType", "!=", 1);
+            $residentFloor = $floorsTaxes->whereIN("usageType", [45,25]);
+            $nonResidentFloor = $floorsTaxes->whereNOTIN("usageType", [45,25]);
             $data["usageTypeTax"] = [
                 "new" => [
                     "residence" => [
@@ -1781,7 +1784,8 @@ class ActiveSafController extends Controller
                             $residentFloor->sum("generalTax") + $residentFloor->sum("roadTax") + $residentFloor->sum("firefightingTax") +
                                 $residentFloor->sum("educationTax") + $residentFloor->sum("waterTax") +
                                 $residentFloor->sum("cleanlinessTax") + $residentFloor->sum("sewerageTax") + $residentFloor->sum("treeTax") +
-                                $residentFloor->sum("stateEducationTax") +  $residentFloor->sum("professionalTax")
+                                $residentFloor->sum("stateEducationTax") +  $residentFloor->sum("professionalTax")+
+                                $residentFloor->sum("openPloatTax")
                         ),
                     ],
                     "nonResidence" => [
@@ -1790,7 +1794,8 @@ class ActiveSafController extends Controller
                             $nonResidentFloor->sum("generalTax") + $nonResidentFloor->sum("roadTax") +
                                 $nonResidentFloor->sum("firefightingTax") + $nonResidentFloor->sum("educationTax") + $nonResidentFloor->sum("waterTax") +
                                 $nonResidentFloor->sum("cleanlinessTax") + $nonResidentFloor->sum("sewerageTax") + $nonResidentFloor->sum("treeTax") +
-                                $nonResidentFloor->sum("stateEducationTax") +  $nonResidentFloor->sum("professionalTax")
+                                $nonResidentFloor->sum("stateEducationTax") +  $nonResidentFloor->sum("professionalTax")+
+                                $nonResidentFloor->sum("openPloatTax")
                         ),
                     ]
                 ],
@@ -1822,6 +1827,7 @@ class ActiveSafController extends Controller
                     "cleanlinessTax"    => $residentFloor->sum("cleanlinessTax") ?? "0",
                     "sewerageTax"       => $residentFloor->sum("sewerageTax") ?? "0",
                     "treeTax"           => $residentFloor->sum("treeTax") ?? "0",
+                    "openPloatTax"      => $residentFloor->sum("openPloatTax")??"0",
                     "isCommercial"      => ($residentFloor->where("isCommercial", true)->count() > 1 ? true : false) ?? false,
                     "stateEducationTaxPerc" => $residentFloor->sum("stateEducationTaxPerc") ?? "0",
                     "stateEducationTax" => $residentFloor->sum("stateEducationTax") ?? "0",
@@ -1831,7 +1837,7 @@ class ActiveSafController extends Controller
                         $residentFloor->sum("generalTax") + $residentFloor->sum("roadTax") + $residentFloor->sum("firefightingTax") +
                             $residentFloor->sum("educationTax") + $residentFloor->sum("waterTax") + $residentFloor->sum("cleanlinessTax") +
                             $residentFloor->sum("sewerageTax") + $residentFloor->sum("treeTax") + $residentFloor->sum("stateEducationTax") +
-                            $residentFloor->sum("professionalTax")
+                            $residentFloor->sum("professionalTax")+ $residentFloor->sum("openPloatTax")
                     ),
                 ],
                 "nonResidence" => [
@@ -1850,6 +1856,7 @@ class ActiveSafController extends Controller
                     "cleanlinessTax"    => $nonResidentFloor->sum("cleanlinessTax") ?? "0",
                     "sewerageTax"       => $nonResidentFloor->sum("sewerageTax") ?? "0",
                     "treeTax"           => $nonResidentFloor->sum("treeTax") ?? "0",
+                    "openPloatTax"      => $nonResidentFloor->sum("openPloatTax")??"0",
                     "isCommercial"      => ($nonResidentFloor->where("isCommercial", true)->count() > 1 ? true : false) ?? false,
                     "stateEducationTaxPerc" => $nonResidentFloor->sum("stateEducationTaxPerc") ?? "0",
                     "stateEducationTax" => $nonResidentFloor->sum("stateEducationTax") ?? "0",
@@ -1859,7 +1866,7 @@ class ActiveSafController extends Controller
                         $nonResidentFloor->sum("generalTax") + $nonResidentFloor->sum("roadTax") + $nonResidentFloor->sum("firefightingTax") +
                             $nonResidentFloor->sum("educationTax") + $nonResidentFloor->sum("waterTax") + $nonResidentFloor->sum("cleanlinessTax") +
                             $nonResidentFloor->sum("sewerageTax") + $nonResidentFloor->sum("treeTax") + $nonResidentFloor->sum("stateEducationTax") +
-                            $nonResidentFloor->sum("professionalTax")
+                            $nonResidentFloor->sum("professionalTax") + $nonResidentFloor->sum("openPloatTax")
                     ),
                 ]
             ];

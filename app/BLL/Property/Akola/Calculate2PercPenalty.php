@@ -27,9 +27,23 @@ class Calculate2PercPenalty
             $noOfPenalMonths = 0;                               // Start of the month april
             $monthlyBalance = $demand->balance / 12;
         }
-
-        if ($demand->fyear < $currentFy && $demand->has_partwise_paid == false) {               // if the citizen has paid the tax part wise then avert the one percent penalty Calculation
+        // && $demand->has_partwise_paid == false
+        if ($demand->fyear < $currentFy) {               // if the citizen has paid the tax part wise then avert the one percent penalty Calculation
             $noOfPenalMonths = 1;                                  // Start of the month april(if the fyear is past)
+            if($demand->is_old)
+            {
+                list($fromYear,$uptoYear) = explode("-",$demand->fyear);
+                $uptoDate = new Carbon($uptoYear."-09-01");
+                $now = Carbon::now()->firstOfMonth()->format("Y-m-d");
+                $noOfPenalMonths = $uptoDate->diffInMonths($now);                
+            }
+            if(!$demand->is_old)
+            {
+                list($fromYear,$uptoYear) = explode("-",$demand->fyear);
+                $uptoDate = new Carbon($uptoYear."-04-01");
+                $now = Carbon::now()->firstOfMonth()->format("Y-m-d");
+                $noOfPenalMonths = $uptoDate->diffInMonths($now);  
+            }            
             $monthlyBalance = $demand->balance;
         }
 
@@ -40,6 +54,8 @@ class Calculate2PercPenalty
 
         $amount = $monthlyBalance * $noOfPenalMonths;
         $penalAmt = $amount * 0.02;
+        if($demand->fyear != $currentFy)
+        // dd($demand,$noOfPenalMonths,$amount,$penalAmt, Carbon::now()->firstOfMonth()->format("Y-m-d"));
         $demand->monthlyPenalty = roundFigure($penalAmt);
     }
 

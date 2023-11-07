@@ -83,6 +83,8 @@ class Report implements IReport
                 DB::raw("
                             ulb_ward_masters.ward_name AS ward_no,
                             prop_properties.id,
+                            prop_properties.prop_address,
+                            zone_masters.zone_name,
                             'property' as type,
                             prop_properties.saf_no,
                             prop_properties.assessment_type,
@@ -125,6 +127,7 @@ class Report implements IReport
                     }
                 )
                 ->JOIN("ulb_ward_masters", "ulb_ward_masters.id", "prop_properties.ward_mstr_id")
+                ->LEFTJOIN("zone_masters", "zone_masters.id", "prop_properties.zone_mstr_id")
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
                 ->LEFTJOIN("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
                 ->WHERENOTNULL("prop_transactions.property_id")
@@ -240,6 +243,8 @@ class Report implements IReport
                 DB::raw("
                             ulb_ward_masters.ward_name AS ward_no,
                             prop_active_safs.id,
+                            prop_active_safs.prop_address,
+                            zone_masters.zone_name,
                             'saf' as type,
                             assessment_type,
                             prop_transactions.id AS tran_id,
@@ -284,6 +289,7 @@ class Report implements IReport
                     }
                 )
                 ->JOIN("ulb_ward_masters", "ulb_ward_masters.id", "prop_active_safs.ward_mstr_id")
+                ->LEFTJOIN("zone_masters", "zone_masters.id", "prop_active_safs.zone_mstr_id")
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
                 ->LEFTJOIN("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
                 ->WHERENOTNULL("prop_transactions.saf_id")
@@ -294,6 +300,8 @@ class Report implements IReport
                 DB::raw("
                             ulb_ward_masters.ward_name AS ward_no,
                             prop_rejected_safs.id,
+                            prop_rejected_safs.prop_address,
+                            zone_masters.zone_name,
                             'saf' as type,
                             assessment_type,
                             prop_transactions.id AS tran_id,
@@ -338,6 +346,7 @@ class Report implements IReport
                     }
                 )
                 ->JOIN("ulb_ward_masters", "ulb_ward_masters.id", "prop_rejected_safs.ward_mstr_id")
+                ->LEFTJOIN("zone_masters", "zone_masters.id", "prop_rejected_safs.zone_mstr_id")
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
                 ->LEFTJOIN("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
                 ->WHERENOTNULL("prop_transactions.saf_id")
@@ -348,6 +357,8 @@ class Report implements IReport
                 DB::raw("
                             ulb_ward_masters.ward_name AS ward_no,
                             prop_safs.id,
+                            prop_safs.prop_address,
+                            zone_masters.zone_name,
                             'saf' as type,
                             assessment_type,
                             prop_transactions.id AS tran_id,
@@ -392,6 +403,7 @@ class Report implements IReport
                     }
                 )
                 ->JOIN("ulb_ward_masters", "ulb_ward_masters.id", "prop_safs.ward_mstr_id")
+                ->LEFTJOIN("zone_masters", "zone_masters.id", "prop_safs.zone_mstr_id")
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
                 ->LEFTJOIN("prop_cheque_dtls", "prop_cheque_dtls.transaction_id", "prop_transactions.id")
                 ->WHERENOTNULL("prop_transactions.saf_id")
@@ -421,26 +433,14 @@ class Report implements IReport
 
             $data = $activSaf->union($rejectedSaf)->union($saf);
             $data2 = $data;
-            // $totalSaf = $data2->count("id");
             $totalAmount = $data2->sum("amount");
             $perPage = $request->perPage ? $request->perPage : 5;
             $page = $request->page && $request->page > 0 ? $request->page : 1;
             $paginator = $data->paginate($perPage);
-            // $items = $paginator->items();
-            // $total = $paginator->total();
-            // $numberOfPages = ceil($total / $perPage);
+            
             $list = [
-                // "perPage" => $perPage,
-                // "page" => $page,
-                // "totalSaf" => $totalSaf,
-                // "totalAmount" => $totalAmount,
-                // "items" => $items,
-                // "total" => $total,
-                // "numberOfPages" => $numberOfPages
-
                 "current_page" => $paginator->currentPage(),
                 "last_page" => $paginator->lastPage(),
-                // "totalSaf" => $totalSaf,
                 "totalAmount" => $totalAmount,
                 "data" => $paginator->items(),
                 "total" => $paginator->total(),
@@ -483,7 +483,6 @@ class Report implements IReport
                 $ulbId = $request->ulbId;
             }
 
-            // DB::enableQueryLog();
             $data = PropProperty::select(
                 DB::raw("ulb_ward_masters.ward_name as ward_no,
                         prop_properties.holding_no,
@@ -665,18 +664,9 @@ class Report implements IReport
                 $data = $data->where("prop_properties.ulb_id", $ulbId);
             }
             $perPage = $request->perPage ? $request->perPage : 10;
-            $page = $request->page && $request->page > 0 ? $request->page : 1;
             $paginator = $data->paginate($perPage);
-            // $items = $paginator->items();
-            // $total = $paginator->total();
-            // $numberOfPages = ceil($total / $perPage);
-            $list = [
-                // "perPage" => $perPage,
-                // "page" => $page,
-                // "items" => $items,
-                // "total" => $total,
-                // "numberOfPages" => $numberOfPages,
-
+            
+            $list = [                
                 "current_page" => $paginator->currentPage(),
                 "last_page" => $paginator->lastPage(),
                 "data" => $paginator->items(),
@@ -703,8 +693,6 @@ class Report implements IReport
             if ($request->ulbId) {
                 $ulbId = $request->ulbId;
             }
-
-            // DB::enableQueryLog();
             $data = WfRole::SELECT(
                 "wf_roles.id",
                 "wf_roles.role_name",
@@ -763,7 +751,6 @@ class Report implements IReport
             $roleId = $roleId2 = $userId = null;
             $mWardPermission = collect([]);
             $perPage = $request->perPage ? $request->perPage : 5;
-            $page = $request->page && $request->page > 0 ? $request->page : 1;
 
             $safWorkFlow = Config::get('workflow-constants.SAF_WORKFLOW_ID');
             if ($request->ulbId) {
@@ -787,7 +774,7 @@ class Report implements IReport
 
             $mWardIds = $mWardPermission->implode("ward_id", ",");
             $mWardIds = explode(',', ($mWardIds ? $mWardIds : "0"));
-            // DB::enableQueryLog();
+
             $data = PropActiveSaf::SELECT(
                 DB::RAW("wf_roles.id AS role_id, wf_roles.role_name,
                     prop_active_safs.id, prop_active_safs.saf_no, prop_active_safs.prop_address,
@@ -824,9 +811,6 @@ class Report implements IReport
             }
 
             $paginator = $data->paginate($perPage);
-            // $items = $paginator->items();
-            // $total = $paginator->total();
-            // $numberOfPages = ceil($total / $perPage);
 
             $list = [
                 "current_page" => $paginator->currentPage(),
@@ -867,7 +851,7 @@ class Report implements IReport
                 $joins = "leftjoin";
             }
 
-            // DB::enableQueryLog();
+           
             $data = PropActiveSaf::SELECT(
                 DB::RAW(
                     "count(prop_active_safs.id),
@@ -910,9 +894,6 @@ class Report implements IReport
             $perPage = $request->perPage ? $request->perPage : 10;
             $page = $request->page && $request->page > 0 ? $request->page : 1;
             $paginator = $data->paginate($perPage);
-            // $items = $paginator->items();
-            // $total = $paginator->total();
-            // $numberOfPages = ceil($total / $perPage);
             $list = [
                 "current_page" => $paginator->currentPage(),
                 "last_page" => $paginator->lastPage(),
@@ -958,7 +939,7 @@ class Report implements IReport
 
             $mWardIds = $mWardPermission->implode("ward_id", ",");
             $mWardIds = explode(',', ($mWardIds ? $mWardIds : "0"));
-            // DB::enableQueryLog();
+            
             $data = UlbWardMaster::SELECT(
                 DB::RAW(" DISTINCT(ward_name) as ward_no, COUNT(prop_active_safs.id) AS total")
             )
@@ -983,15 +964,7 @@ class Report implements IReport
             $perPage = $request->perPage ? $request->perPage : 10;
             $page = $request->page && $request->page > 0 ? $request->page : 1;
             $paginator = $data->paginate($perPage);
-            // $items = $paginator->items();
-            // $total = $paginator->total();
-            // $numberOfPages = ceil($total / $perPage);
             $list = [
-                // "perPage" => $perPage,
-                // "page" => $page,
-                // "items" => $items,
-                // "total" => $total,
-                // "numberOfPages" => $numberOfPages,
 
                 "current_page" => $paginator->currentPage(),
                 "last_page" => $paginator->lastPage(),
@@ -1649,7 +1622,7 @@ class Report implements IReport
             if ($paymentMode) {
                 $assestmentType = $assestmentType->where(DB::raw("upper(prop_transactions.payment_mode)"), $paymentMode);
             }
-            // dd($assestmentType->get());
+            
             $collection = $collection->get();
             $refund     = $refund->get();
             $doorToDoor = $doorToDoor->get();
@@ -2614,11 +2587,8 @@ class Report implements IReport
                 $data = $data->WHERE("prop_properties.ulb_id", $ulbId);
             }
             $perPage = $request->perPage ? $request->perPage : 10;
-            $page = $request->page && $request->page > 0 ? $request->page : 1;
             $paginator = $data->paginate($perPage);
-            // $items = $paginator->items();
-            // $total = $paginator->total();
-            // $numberOfPages = ceil($total / $perPage);
+            
             $list = [
                 "current_page" => $paginator->currentPage(),
                 "last_page" => $paginator->lastPage(),
@@ -2705,9 +2675,7 @@ class Report implements IReport
             $perPage = $request->perPage ? $request->perPage : 10;
             $page = $request->page && $request->page > 0 ? $request->page : 1;
             $paginator = $data->paginate($perPage);
-            // $items = $paginator->items();
-            // $total = $paginator->total();
-            // $numberOfPages = ceil($total / $perPage);
+            
             $list = [
                 "current_page" => $paginator->currentPage(),
                 "last_page" => $paginator->lastPage(),
@@ -2732,7 +2700,7 @@ class Report implements IReport
         $perPage = $request->perPage ? $request->perPage : 10;
         $page = $request->page && $request->page > 0 ? $request->page : 1;
         $limit = $perPage;
-        $offset =  $request->page && $request->page > 0 ? ($request->page * $perPage) : 0;
+        $offset =  $request->page && $request->page > 0 ? ($request->page -1 * $perPage) : 0;
         $wardMstrId = NULL;
         $ulbId = authUser($request)->ulb_id;
 
@@ -2823,7 +2791,7 @@ class Report implements IReport
         $perPage = $request->perPage ? $request->perPage : 10;
         $page = $request->page && $request->page > 0 ? $request->page : 1;
         $limit = $perPage;
-        $offset =  $request->page && $request->page > 0 ? ($request->page * $perPage) : 0;
+        $offset =  $request->page && $request->page > 0 ? ($request->page -1 * $perPage) : 0;
         $wardMstrId = NULL;
         $ulbId = authUser($request)->ulb_id;
 
@@ -2899,7 +2867,7 @@ class Report implements IReport
         $perPage = $request->perPage ? $request->perPage : 10;
         $page = $request->page && $request->page > 0 ? $request->page : 1;
         $limit = $perPage;
-        $offset =  $request->page && $request->page > 0 ? ($request->page * $perPage) : 0;
+        $offset =  $request->page && $request->page > 0 ? ($request->page -1 * $perPage) : 0;
         $wardMstrId = NULL;
         $ulbId = authUser($request)->ulb_id;
 
@@ -2981,7 +2949,7 @@ class Report implements IReport
             $perPage = $request->perPage ? $request->perPage : 10;
             $page = $request->page && $request->page > 0 ? $request->page : 1;
             $limit = $perPage;
-            $offset =  $request->page && $request->page > 0 ? ($request->page * $perPage) : 0;
+            $offset =  $request->page && $request->page > 0 ? ($request->page -1 * $perPage) : 0;
             $wardMstrId = NULL;
             $ulbId = authUser($request)->ulb_id;
 
@@ -3081,7 +3049,7 @@ class Report implements IReport
             $perPage = $request->perPage ? $request->perPage : 10;
             $page = $request->page && $request->page > 0 ? $request->page : 1;
             $limit = $perPage;
-            $offset =  $request->page && $request->page > 0 ? ($request->page * $perPage) : 0;
+            $offset =  $request->page && $request->page > 0 ? (($request->page -1) * $perPage) : 0;
             $wardMstrId = NULL;
             $ulbId = authUser($request)->ulb_id;
             $fiYear = $request->fiYear;
@@ -3286,7 +3254,7 @@ class Report implements IReport
         $page = $request->page && $request->page > 0 ? $request->page : 1;
         $limit = $perPage;
         $currentPage = $request->page ?? 1;
-        $offset =  $request->page && $request->page > 0 ? ($request->page * $perPage) : 0;
+        $offset =  $request->page && $request->page > 0 ? ($request->page -1 * $perPage) : 0;
         $rebatePenalList = collect(Config::get('PropertyConstaint.REBATE_PENAL_MASTERS'));
 
         $onePercPenalty  =  $rebatePenalList->where('key', 'onePercPenalty')->first()['value'];

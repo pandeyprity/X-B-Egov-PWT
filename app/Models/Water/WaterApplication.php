@@ -677,7 +677,7 @@ class WaterApplication extends Model
         // $saveNewApplication->area_sqmt              = sqFtToSqMt($req->areaSqft);
         $saveNewApplication->property_no_type       = $req->propertyNoType;
         $saveNewApplication->property_no            = $req->propertyNo;
-        $saveNewApplication->tab_size               = $req->TabSize;
+        $saveNewApplication->tab_size               = $req->tabSize;
         $saveNewApplication->mobile_no              = $req->mobileNo;
         $saveNewApplication->zone_mstr_id           = $req->zoneId;
         $saveNewApplication->cycle                  = $req->cycle;

@@ -16,6 +16,8 @@ trait Report
         return DB::table($table)
             ->select(
                 't.id',
+                "$table.prop_address",
+                "zone_masters.zone_name",
                 DB::raw("'gbsaf' as type"),
                 'pp.id as property_id',
                 'pp.holding_no',
@@ -42,6 +44,7 @@ trait Report
             ->leftjoin('prop_properties as pp', 'pp.id', 't.property_id')
             ->join('users', 'users.id', 't.user_id')
             ->join('ulb_ward_masters', 'ulb_ward_masters.id', $table . '.ward_mstr_id')
+            ->LEFTJOIN("zone_masters", "zone_masters.id",  $table . ".zone_mstr_id")
             ->leftJoin('prop_cheque_dtls', 'prop_cheque_dtls.transaction_id', 't.id')
             ->where($table . '.is_gb_saf', true)
             ->whereBetween('tran_date', [$fromDate, $uptoDate])
