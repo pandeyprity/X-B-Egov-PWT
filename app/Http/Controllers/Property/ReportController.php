@@ -1189,33 +1189,93 @@ class ReportController extends Controller
 
     public function userWiseCollectionSummary(Request $request)
     {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "fromDate" => "nullable|date|date_format:Y-m-d",
+                "uptoDate" => "nullable|date|date_format:Y-m-d|after_or_equal:".$request->fromDate,
+                "ulbId" => "nullable|digits_between:1,9223372036854775807",
+                "wardId" => "nullable|digits_between:1,9223372036854775807",
+                "zoneId" => "nullable|digits_between:1,9223372036854775807",
+                "paymentMode" => "nullable",
+                "userId" => "nullable|digits_between:1,9223372036854775807",
+            ]
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
         try{         
             $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
-            $data = PropTransaction::select(
-                        DB::raw("
-                            SUM(amount) as total_amount,
-                            count(prop_transactions.id) as total_tran,
-                            count(distinct property_id) as total_property,
-                            users.id as user_id,
-                            users.name,
-                            users.mobile,
-                            users.photo,
-                            users.photo_relative_path
-                        ")
-                    )
-                    ->join("users","users.id","prop_transactions.user_id")
-                    ->whereIn('prop_transactions.status',[1,2])
-                    ->whereBetween("prop_transactions.tran_date",[$fromDate,$uptoDate])
-                    ->groupBy([
-                        "users.id" ,                         
-                        "users.name",       
-                        "users.mobile",                        
-                        "users.photo",                      
-                        "users.photo_relative_path"
-                    ])
-                    ->get();  
-                    // $data = $data->map(function($val))
-            return responseMsgs(true, "Mpl Report Today Coll", $data, "", 01, responseTime(), $request->getMethod(), $request->deviceId);
+            $user = Auth()->user();
+            $ulbId = $user->ulb_id ?? 2;
+            $perPage = $request->perPage ? $request->perPage : 10;
+            $page = $request->page && $request->page > 0 ? $request->page : 1;
+            $limit = $perPage;
+            $offset =  $request->page && $request->page > 0 ? (($request->page-1) * $perPage) : 0;
+            $wardId = $zoneId = $paymentMode = $userId = null;
+            if($request->fromDate)
+            {
+                $fromDate = $request->fromDate;
+            }
+            if($request->uptoDate)
+            {
+                $uptoDate = $request->uptoDate;
+            }
+            if($request->wardId)
+            {
+                $wardId = $request->wardId;
+            }
+            if($request->zoneId)
+            {
+                $zoneId = $request->zoneId;
+            }
+            if($request->paymentMode)
+            {
+                $paymentMode = $request->paymentMode;
+            }
+            if($request->userId)
+            {
+                $userId = $request->userId;
+            }
+            $sql = "
+                SELECT prop_transactions.*,
+                    users.id as user_id,
+                    users.name,
+                    users.mobile,
+                    users.photo,
+                    users.photo_relative_path
+                FROM(
+                    SELECT SUM(amount) as total_amount,
+                        count(prop_transactions.id) as total_tran,
+                        count(distinct prop_transactions.property_id) as total_property, 
+                        prop_transactions.user_id                   
+                    FROM prop_transactions 
+                    JOIN prop_properties on prop_properties.id = prop_transactions.property_id                   
+                    WHERE prop_transactions.status IN (1,2)
+                        AND prop_transactions.tran_date BETWEEN '$fromDate' AND '$uptoDate'
+                        ".($wardId ? " AND prop_properties.ward_mstr_id = $wardId" : "")."
+                        ".($zoneId ? " AND prop_properties.zone_mstr_id	 = $zoneId" : "")."
+                        ".($userId ? " AND prop_transactions.user_id = $userId" : "")."
+                    GROUP BY prop_transactions.user_id
+                    ORDER BY prop_transactions.user_id
+                )prop_transactions
+                JOIN users ON users.id = prop_transactions.user_id
+            ";
+            $data = DB::select($sql." limit $limit offset $offset");
+            $total = (collect(DB::SELECT("SELECT COUNT(*) AS total FROM ($sql) total"))->first())->total??0;
+            $lastPage = ceil($total / $perPage);
+            $list = [
+                "current_page" => $page,
+                "data" => $data,
+                "total" => $total,
+                "per_page" => $perPage,
+                "last_page" => $lastPage
+            ];
+            return responseMsgs(true, "", $list, "", 01, responseTime(), $request->getMethod(), $request->deviceId);
         }catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $request->getMethod(), $request->deviceId);
         }
