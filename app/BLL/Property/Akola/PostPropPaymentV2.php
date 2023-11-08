@@ -866,8 +866,8 @@ class PostPropPaymentV2
         $penalty = $currentTax->sum("monthlyPenalty");
         $demandPayableAmount = $totaTax + $penalty;
 
-        if ($demandPayableAmount == 0)
-            throw new Exception("Demand Of Current Year is 0 Please Pay Arrear Only");
+        // if ($demandPayableAmount == 0)
+        // throw new Exception("Demand Of Current Year is 0 Please Pay Arrear Only");
 
         $balence = $currentPayableAmount - $demandPayableAmount;
         $totalTaxOfDemand = ($totaTax / ($demandPayableAmount == 0 ? 1 : $demandPayableAmount)) * 100;
