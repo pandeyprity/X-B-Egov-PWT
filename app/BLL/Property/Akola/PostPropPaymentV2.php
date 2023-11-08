@@ -506,26 +506,26 @@ class PostPropPaymentV2
 
         $perPecOfTax =  $totaTax / 100;
 
-        $generalTaxPerc = ($currentTax->sum('general_tax') / $totaTax) * 100;
-        $roadTaxPerc = ($currentTax->sum('road_tax') / $totaTax) * 100;
-        $firefightingTaxPerc = ($currentTax->sum('firefighting_tax') / $totaTax) * 100;
-        $educationTaxPerc = ($currentTax->sum('education_tax') / $totaTax) * 100;
-        $waterTaxPerc = ($currentTax->sum('water_tax') / $totaTax) * 100;
-        $cleanlinessTaxPerc = ($currentTax->sum('cleanliness_tax') / $totaTax) * 100;
-        $sewarageTaxPerc = ($currentTax->sum('sewarage_tax') / $totaTax) * 100;
-        $treeTaxPerc = ($currentTax->sum('tree_tax') / $totaTax) * 100;
-        $professionalTaxPerc = ($currentTax->sum('professional_tax') / $totaTax) * 100;
-        $tax1Perc = ($currentTax->sum('tax1') / $totaTax) * 100;
-        $tax2Perc = ($currentTax->sum('tax2') / $totaTax) * 100;
-        $tax3Perc = ($currentTax->sum('tax3') / $totaTax) * 100;
-        $stateEducationTaxPerc = ($currentTax->sum('state_education_tax') / $totaTax) * 100;
-        $waterBenefitPerc = ($currentTax->sum('water_benefit') / $totaTax) * 100;
-        $waterBillPerc = ($currentTax->sum('water_bill') / $totaTax) * 100;
-        $spWaterCessPerc = ($currentTax->sum('sp_water_cess') / $totaTax) * 100;
-        $drainCessPerc = ($currentTax->sum('drain_cess') / $totaTax) * 100;
-        $lightCessPerc = ($currentTax->sum('light_cess') / $totaTax) * 100;
-        $majorBuildingPerc = ($currentTax->sum('major_building') / $totaTax) * 100;
-        $openPloatTaxPerc = ($currentTax->sum('open_ploat_tax') / $totaTax) * 100;
+        $generalTaxPerc = ($currentTax->sum('general_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $roadTaxPerc = ($currentTax->sum('road_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $firefightingTaxPerc = ($currentTax->sum('firefighting_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $educationTaxPerc = ($currentTax->sum('education_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $waterTaxPerc = ($currentTax->sum('water_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $cleanlinessTaxPerc = ($currentTax->sum('cleanliness_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $sewarageTaxPerc = ($currentTax->sum('sewarage_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $treeTaxPerc = ($currentTax->sum('tree_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $professionalTaxPerc = ($currentTax->sum('professional_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $tax1Perc = ($currentTax->sum('tax1') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $tax2Perc = ($currentTax->sum('tax2') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $tax3Perc = ($currentTax->sum('tax3') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $stateEducationTaxPerc = ($currentTax->sum('state_education_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $waterBenefitPerc = ($currentTax->sum('water_benefit') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $waterBillPerc = ($currentTax->sum('water_bill') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $spWaterCessPerc = ($currentTax->sum('sp_water_cess') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $drainCessPerc = ($currentTax->sum('drain_cess') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $lightCessPerc = ($currentTax->sum('light_cess') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $majorBuildingPerc = ($currentTax->sum('major_building') / ($totaTax == 0 ? 1: $totaTax)) * 100;
+        $openPloatTaxPerc = ($currentTax->sum('open_ploat_tax') / ($totaTax == 0 ? 1: $totaTax)) * 100;
 
         $totalPerc = $generalTaxPerc + $roadTaxPerc + $firefightingTaxPerc + $educationTaxPerc +
             $waterTaxPerc + $cleanlinessTaxPerc + $sewarageTaxPerc + $treeTaxPerc
@@ -870,8 +870,8 @@ class PostPropPaymentV2
         $penalty = $currentTax->sum("monthlyPenalty");
         $demandPayableAmount = $totaTax + $penalty;
         $balence = $currentPayableAmount - $demandPayableAmount;
-        $totalTaxOfDemand = $totaTax / $demandPayableAmount * 100;
-        $penaltyOfDemand = $penalty / $demandPayableAmount * 100;
+        $totalTaxOfDemand = ($totaTax / ($demandPayableAmount==0 ? 1 : $demandPayableAmount)) * 100;
+        $penaltyOfDemand = ($penalty / ($demandPayableAmount==0 ? 1 : $demandPayableAmount)) * 100;
         $onePerOfCurrentPaybleAmount = $currentPayableAmount/100;
         if($currentPayableAmount>$demandPayableAmount)
         {
@@ -898,26 +898,26 @@ class PostPropPaymentV2
         ];
         $perPecOfTax =  $totaTax / 100;
 
-        $generalTaxPerc = ($currentTax->sum('general_tax') / $totaTax) * 100;
-        $roadTaxPerc = ($currentTax->sum('road_tax') / $totaTax) * 100;
-        $firefightingTaxPerc = ($currentTax->sum('firefighting_tax') / $totaTax) * 100;
-        $educationTaxPerc = ($currentTax->sum('education_tax') / $totaTax) * 100;
-        $waterTaxPerc = ($currentTax->sum('water_tax') / $totaTax) * 100;
-        $cleanlinessTaxPerc = ($currentTax->sum('cleanliness_tax') / $totaTax) * 100;
-        $sewarageTaxPerc = ($currentTax->sum('sewarage_tax') / $totaTax) * 100;
-        $treeTaxPerc = ($currentTax->sum('tree_tax') / $totaTax) * 100;
-        $professionalTaxPerc = ($currentTax->sum('professional_tax') / $totaTax) * 100;
-        $tax1Perc = ($currentTax->sum('tax1') / $totaTax) * 100;
-        $tax2Perc = ($currentTax->sum('tax2') / $totaTax) * 100;
-        $tax3Perc = ($currentTax->sum('tax3') / $totaTax) * 100;
-        $stateEducationTaxPerc = ($currentTax->sum('state_education_tax') / $totaTax) * 100;
-        $waterBenefitPerc = ($currentTax->sum('water_benefit') / $totaTax) * 100;
-        $waterBillPerc = ($currentTax->sum('water_bill') / $totaTax) * 100;
-        $spWaterCessPerc = ($currentTax->sum('sp_water_cess') / $totaTax) * 100;
-        $drainCessPerc = ($currentTax->sum('drain_cess') / $totaTax) * 100;
-        $lightCessPerc = ($currentTax->sum('light_cess') / $totaTax) * 100;
-        $majorBuildingPerc = ($currentTax->sum('major_building') / $totaTax) * 100;
-        $openPloatTaxPerc = ($currentTax->sum('open_ploat_tax') / $totaTax) * 100;
+        $generalTaxPerc = ($currentTax->sum('general_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $roadTaxPerc = ($currentTax->sum('road_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $firefightingTaxPerc = ($currentTax->sum('firefighting_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $educationTaxPerc = ($currentTax->sum('education_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $waterTaxPerc = ($currentTax->sum('water_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $cleanlinessTaxPerc = ($currentTax->sum('cleanliness_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $sewarageTaxPerc = ($currentTax->sum('sewarage_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $treeTaxPerc = ($currentTax->sum('tree_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $professionalTaxPerc = ($currentTax->sum('professional_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $tax1Perc = ($currentTax->sum('tax1') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $tax2Perc = ($currentTax->sum('tax2') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $tax3Perc = ($currentTax->sum('tax3') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $stateEducationTaxPerc = ($currentTax->sum('state_education_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $waterBenefitPerc = ($currentTax->sum('water_benefit') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $waterBillPerc = ($currentTax->sum('water_bill') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $spWaterCessPerc = ($currentTax->sum('sp_water_cess') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $drainCessPerc = ($currentTax->sum('drain_cess') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $lightCessPerc = ($currentTax->sum('light_cess') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $majorBuildingPerc = ($currentTax->sum('major_building') / ($totaTax==0 ? 1 : $totaTax)) * 100;
+        $openPloatTaxPerc = ($currentTax->sum('open_ploat_tax') / ($totaTax==0 ? 1 : $totaTax)) * 100;
 
         $totalPerc = $generalTaxPerc + $roadTaxPerc + $firefightingTaxPerc + $educationTaxPerc +
             $waterTaxPerc + $cleanlinessTaxPerc + $sewarageTaxPerc + $treeTaxPerc
