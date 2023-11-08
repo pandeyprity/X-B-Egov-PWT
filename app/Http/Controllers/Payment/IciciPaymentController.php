@@ -50,7 +50,7 @@ class IciciPaymentController extends Controller
                 "workflowId"    => "nullable|int",
                 "amount"        => "required|min:1",
                 "id"            => "required",
-                "callBackUrls"  => "nullable"
+                "callBackUrls"  => "required",
             ]
         );
         if ($validated->fails()) {
@@ -69,7 +69,8 @@ class IciciPaymentController extends Controller
                 "application_id"    => $req->id,
                 "module_id"         => $req->departmentId,
                 "ulb_id"            => $req->ulbId,
-                "referal_url"       => $url['encryptUrl']
+                "referal_url"       => $url['encryptUrl'],
+                "call_back_url"     => $req->callBackUrls
             ];
             $mIciciPaymentReq->create($paymentReq);
             $returnDetails = [
@@ -153,11 +154,7 @@ class IciciPaymentController extends Controller
      */
     public function getCallbackDetial(Request $req)
     {
-        $mIciciPaymentReq = new IciciPaymentReq();
-        $mIciciPaymentRes = new IciciPaymentResponse();
-
         try {
-
             // $reqBody = [
             //     "Response_Code"         => "E000",               // Payment status
             //     "Unique_Ref_Number"     => "2310131666814",      // Tran no
@@ -179,32 +176,36 @@ class IciciPaymentController extends Controller
             //     "RSV"                   => "8c988a820acc67ee8b0ebd2c525e3e4c88575cc2fef7f9c7dc1f2dbbad9002c86471ed446500deb4b6f1e25b11b091f7575469c0d603bccf1ba361c30f83f1a7",
             // ];
 
+            # Save the callback data
+            $mIciciPaymentReq = new IciciPaymentReq();
             Storage::disk('public')->put('icici/callback/' . $req->Unique_Ref_Number . '.json', json_encode($req->all()));
-            return view('icici_payment_call_back');
 
+            # redirect to 
+            $refData = [
+                "callBack" => "https://modernulb.com/property/payment-success/87878787"
+            ];
+            return view('icici_payment_call_back', $refData);
 
-            $reqRefNo           = $req->ReferenceNo;
-            $paymentReqsData    = $mIciciPaymentReq->findByReqRefNoV2($reqRefNo);
-            if (!$paymentReqsData) {
-                # ❗❗❗ call the view
-                throw new Exception("Payment request dont exist for $reqRefNo");
+            # Check if the payament is success 
+            if ($req->Response_Code == "E000") {
+
+                # Check the transaction initials
+                $paymentReqsData = $mIciciPaymentReq->findByReqRefNoV2($req->ReferenceNo);
+                if (!$paymentReqsData) {
+                    # Redirect to the error page
+                    $erroData = [];
+                    return view('icici_payment_call_back', $erroData);
+                }
+
+                # redirect to 
+                $refData = [
+                    "callBack" => $paymentReqsData->call_back_url
+                ];
+                return view('icici_payment_call_back', $refData);
             }
-
-            if ($req->Response_Code == 'E000')                                                  // Status of success
-            {
-                // https://eazypayuat.icicibank.com/EazyPGVerify?
-                // ezpaytranid=
-                // &amount=
-                // &paymentmode=
-                // &merchantid=136082
-                // &trandate=
-                // &pgreferenceno=16971757691992148047
-            }
-
-            # Redirect the data to the original page
-            return view('icici_payment_call_back');
         } catch (Exception $e) {
-            return responseMsgs(false, $e->getMessage(), []);
+            $erroData = [];
+            return view('icici_payment_call_back', $erroData);
         }
     }
 }
