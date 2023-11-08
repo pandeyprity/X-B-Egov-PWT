@@ -319,17 +319,21 @@ class HoldingTaxController extends Controller
             $billRefNo = $req->billRefNo;
             $mPropPinelabPayment = new PropPinelabPayment();
             $paymentReqs = $mPropPinelabPayment->getPaymentByBillRefNo($billRefNo);
+            if (collect($paymentReqs)->isEmpty())
+                throw new Exception("Payment Request Not available");
             $req->merge(['paymentMode' => $paymentReqs->payment_mode]);                 // Add Payment Mode by the table
-            $postPropPayment = new PostPropPayment($req);
+            $postPropPayment = new PostPropPaymentV2($req);
             $demandList = json_decode($paymentReqs->demand_list, true);
             $demandList = responseMsgs(true, "Demand Details", $demandList);
             $demandList->original['data'] = (array)$demandList->original['data'];
             $demandList->original['data']['grandTaxes'] = (array)$demandList->original['data']['grandTaxes'];
 
             $postPropPayment->_propCalculation = $demandList;
-            $tranDtl =  $postPropPayment->postPayment();
+            $postPropPayment->postPayment();
             DB::commit();
-            return $tranDtl;
+            return [
+                'tran_id' => $postPropPayment->_tranId
+            ];
         } catch (Exception $e) {
             DB::rollBack();
         }
