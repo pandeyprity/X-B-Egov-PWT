@@ -23,7 +23,7 @@ class GetRefUrl
     private static $subMerchantId = 45;
     private static $paymentMode = 9;
     private static $baseUrl = "https://eazypay.icicibank.com";                       // https://eazypayuat.icicibank.com
-    private static $returnUrl = "http://203.129.217.62:82/api/payment/v1/collect-callback-data"; //"http://203.129.217.62:82/api/payment/v1/collect-callback-data";                   // http://203.129.217.62:82/api/payment/v1/collect-callback-data   https://modernulb.com/property/payment-success/87878787  https://modernulb.com/property/paymentReceipt/550980/holding
+    private static $returnUrl = "https://egov.modernulb.com/api/payment/v1/collect-callback-data"; //"http://203.129.217.62:82/api/payment/v1/collect-callback-data";                   // http://203.129.217.62:82/api/payment/v1/collect-callback-data   https://modernulb.com/property/payment-success/87878787  https://modernulb.com/property/paymentReceipt/550980/holding
     private static $ciphering = "aes-128-ecb";                                                                  // Store the cipher method for encryption
     private static $cipheringV2 = 'AES-128-ECB';
     public $_tranAmt;
