@@ -50,7 +50,7 @@ class IciciPaymentController extends Controller
                 "workflowId"    => "nullable|int",
                 "amount"        => "required|min:1",
                 "id"            => "required",
-                "callBackUrls"  => "required",
+                // "callBackUrls"  => "required",
             ]
         );
         if ($validated->fails()) {
