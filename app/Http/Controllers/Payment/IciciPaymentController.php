@@ -70,7 +70,7 @@ class IciciPaymentController extends Controller
                 "module_id"         => $req->departmentId,
                 "ulb_id"            => $req->ulbId,
                 "referal_url"       => $url['encryptUrl'],
-                "call_back_url"     => $req->callBackUrls
+                // "call_back_url"     => $req->callBackUrls
             ];
             $mIciciPaymentReq->create($paymentReq);
             $returnDetails = [
