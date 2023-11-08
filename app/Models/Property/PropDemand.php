@@ -114,6 +114,8 @@ class PropDemand extends Model
             "major_building",
             "is_full_paid",
             "has_partwise_paid",
+            "open_ploat_tax",
+            "due_open_ploat_tax",
 
             "due_general_tax",
             "due_road_tax",

@@ -42,7 +42,7 @@ class Calculate2PercPenalty
                 list($fromYear,$uptoYear) = explode("-",$demand->fyear);
                 $uptoDate = new Carbon($uptoYear."-04-01");
                 $now = Carbon::now()->firstOfMonth()->format("Y-m-d");
-                $noOfPenalMonths = $uptoDate->diffInMonths($now);  
+                $noOfPenalMonths = $uptoDate->diffInMonths($now)+1;  
             }            
             $monthlyBalance = $demand->balance;
         }

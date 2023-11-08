@@ -4561,7 +4561,10 @@ class Report implements IReport
             $uptoFyear = getFy($toDate);
             $query = "
             select 
-
+                users.name,
+                prop_transactions.from_fyear,
+                prop_transactions.to_fyear,
+                prop_properties.property_no,
                 prop_transactions.id as tran_id,
                 prop_transactions.property_id,
                 prop_transactions.payment_mode,
@@ -4882,6 +4885,7 @@ class Report implements IReport
                 group by prop_transactions.id
             
             )owners on owners.id = prop_transactions.id
+            left join users on users.id = prop_transactions.user_id
             left join ulb_ward_masters on ulb_ward_masters.id = prop_properties.ward_mstr_id	
             left join zone_masters on zone_masters.id = prop_properties.zone_mstr_id
             where prop_transactions.tran_date between '$fromDate' and '$toDate' 
@@ -4892,7 +4896,17 @@ class Report implements IReport
             $report = DB::select($query);
             $report = collect($report);
             
-            $data["data"] = $report;            
+            $data["data"] = $report->map(function($val){
+                $val->generalTaxException =0;
+                $val->payableAfterDeduction = $val->c1urrent_total_tax;
+                $val->advanceAmt =0;
+                $val->noticeFee =0;
+                $val->noticeFee =0;
+                $val->FinalTax = $val->c1urrent_total_tax;
+                $val->receiptNo = isset($val->book_no) ? explode('-', $val->book_no)[1] : "";
+                $val->receiptNo = isset($val->book_no) ? explode('-', $val->book_no)[1] : "";
+                return $val;
+            });            
             $data["headers"] = [
                 "fromDate" => Carbon::parse($fromDate)->format('d-m-Y'),
                 "uptoDate" => Carbon::parse($toDate)->format('d-m-Y'),
