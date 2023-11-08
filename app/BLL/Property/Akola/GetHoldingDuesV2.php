@@ -67,6 +67,7 @@ class GetHoldingDuesV2
                 $list->drain_cess = $list->due_drain_cess;
                 $list->light_cess = $list->due_light_cess;
                 $list->major_building = $list->due_major_building;
+                $list->open_ploat_tax = $list->due_open_ploat_tax;
             }
         }
 
