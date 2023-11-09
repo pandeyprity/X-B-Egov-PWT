@@ -708,7 +708,7 @@ class WaterConsumer extends Controller
             $refRequest                     = array();
             $ulbWorkflowObj                 = new WfWorkflow();
             $mWorkflowTrack                 = new WorkflowTrack();
-            $mWaterWaterConsumer            = new WaterWaterConsumer();
+            $mWaterSecondConsumer           = new waterSecondConsumer();
             $mWaterConsumerCharge           = new WaterConsumerCharge();
             $mWaterConsumerChargeCategory   = new WaterConsumerChargeCategory();
             $mWaterConsumerActiveRequest    = new WaterConsumerActiveRequest();
@@ -781,7 +781,7 @@ class WaterConsumer extends Controller
                 'status'            => 2                                                    // Static
             ];
             $mWaterConsumerCharge->saveConsumerCharges($metaRequest, $request->consumerId, $refChargeList['2']);
-            $mWaterWaterConsumer->dissconnetConsumer($request->consumerId, $metaRequest['status']);
+            $mWaterSecondConsumer->dissconnetConsumer($request->consumerId, $metaRequest['status']);
 
             # Save data in track
             $metaReqs = new Request(
@@ -798,8 +798,13 @@ class WaterConsumer extends Controller
                 ]
             );
             $mWorkflowTrack->saveTrack($metaReqs);
+            $returnData = [
+                'applicationNo'         => $applicationNo,
+                "Id"                    => $metaRequest['relatedId'], 
+                'applicationDetails'    => $metaRequest,
+            ];
             $this->commit();
-            return responseMsgs(true, "Respective Consumer Deactivated!", "", "", "02", ".ms", "POST", $request->deviceId);
+            return responseMsgs(true, "Respective Consumer Deactivated!",$returnData , "", "02", ".ms", "POST", $request->deviceId);
         } catch (Exception $e) {
             $this->rollback();
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", ".ms", "POST", "");
@@ -819,12 +824,12 @@ class WaterConsumer extends Controller
     public function PreConsumerDeactivationCheck($request, $user)
     {
         $consumerId                     = $request->consumerId;
-        $mWaterWaterConsumer            = new WaterWaterConsumer();
+        $mWaterSecondConsumer           = new waterSecondConsumer();
         $mWaterConsumerDemand           = new WaterConsumerDemand();
         $mWaterConsumerActiveRequest    = new WaterConsumerActiveRequest();
         $refUserType                    = Config::get('waterConstaint.REF_USER_TYPE');
 
-        $refConsumerDetails = $mWaterWaterConsumer->getConsumerDetailById($consumerId);
+        $refConsumerDetails = $mWaterSecondConsumer->getConsumerDetails($consumerId)->first();
         $pendingDemand      = $mWaterConsumerDemand->getConsumerDemand($consumerId);
         $firstPendingDemand = collect($pendingDemand)->first();
 
