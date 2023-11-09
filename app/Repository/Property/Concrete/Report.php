@@ -1099,8 +1099,7 @@ class Report implements IReport
             $refUserId      = $refUser->id;
             $ulbId          = $refUser->ulb_id;
             $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
-            $wardId = null;
-            $userId = null;
+            $wardId =   $zoneId = $userId = null;
             $paymentMode = null;
             if ($request->ulbId) {
                 $ulbId = $request->ulbId;
@@ -1113,6 +1112,12 @@ class Report implements IReport
             }
             if ($request->userId) {
                 $userId = $request->userId;
+            }
+            if ($request->wardId) {
+                $wardId = $request->wardId;
+            }
+            if ($request->zoneId) {
+                $zoneId = $request->zoneId;
             }
             if ($request->paymentMode) {
                 $paymentMode = $request->paymentMode;
@@ -1129,7 +1134,13 @@ class Report implements IReport
                         SUM(COALESCE(prop_transactions.amount,0)) AS amount
                         ")
                 )
-                ->LEFTJOIN("prop_transactions", function ($join) use ($fromDate, $uptoDate, $userId, $ulbId) {
+                ->LEFTJOIN(DB::raw("(
+                    select prop_transactions.*,prop_properties.ward_mstr_id,prop_properties.zone_mstr_id
+                    from prop_transactions
+                    join prop_properties on prop_properties.id = prop_transactions.property_id
+                    where prop_transactions.tran_date between '$fromDate' and '$uptoDate'
+                    )prop_transactions
+                    "), function ($join) use ($fromDate, $uptoDate, $userId, $ulbId,$wardId,$zoneId) {
                     $sub = $join->on(DB::RAW("UPPER(prop_transactions.payment_mode)"), "=", DB::RAW("UPPER(payment_modes.mode) "))
                         ->WHERENOTNULL("prop_transactions.property_id")
                         ->WHEREIN("prop_transactions.status", [1, 2])
@@ -1139,6 +1150,12 @@ class Report implements IReport
                     }
                     if ($ulbId) {
                         $sub = $sub->WHERE("prop_transactions.ulb_id", $ulbId);
+                    }
+                    if ($wardId) {
+                        $sub = $sub->WHERE("prop_transactions.ward_mstr_id", $wardId);
+                    }
+                    if ($zoneId) {
+                        $sub = $sub->WHERE("prop_transactions.zone_mstr_id", $zoneId);
                     }
                 })
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
@@ -1158,7 +1175,13 @@ class Report implements IReport
                         SUM(COALESCE(prop_transactions.amount,0)) AS amount
                         ")
                 )
-                ->LEFTJOIN("prop_transactions", function ($join) use ($fromDate, $uptoDate, $userId, $ulbId) {
+                ->LEFTJOIN(DB::raw("(
+                    select prop_transactions.*,prop_properties.ward_mstr_id,prop_properties.zone_mstr_id
+                    from prop_transactions
+                    join prop_properties on prop_properties.id = prop_transactions.property_id
+                    where prop_transactions.tran_date between '$fromDate' and '$uptoDate'
+                    )prop_transactions
+                    "), function ($join) use ($fromDate, $uptoDate, $userId, $ulbId,$wardId,$zoneId) {
                     $sub = $join->on(DB::RAW("UPPER(prop_transactions.payment_mode)"), "=", DB::RAW("UPPER(payment_modes.mode) "))
                         ->WHERENOTNULL("prop_transactions.property_id")
                         ->WHERENOTIN("prop_transactions.status", [1, 2])
@@ -1168,6 +1191,12 @@ class Report implements IReport
                     }
                     if ($ulbId) {
                         $sub = $sub->WHERE("prop_transactions.ulb_id", $ulbId);
+                    }
+                    if ($wardId) {
+                        $sub = $sub->WHERE("prop_transactions.ward_mstr_id", $wardId);
+                    }
+                    if ($zoneId) {
+                        $sub = $sub->WHERE("prop_transactions.zone_mstr_id", $zoneId);
                     }
                 })
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
@@ -1189,7 +1218,8 @@ class Report implements IReport
                         ")
                 )
                 ->LEFTJOIN(DB::RAW("(
-                                     SELECT * 
+                                     SELECT prop_transactions.* ,collecter.*,
+                                        prop_properties.ward_mstr_id,prop_properties.zone_mstr_id
                                      FROM prop_transactions
                                      JOIN (
                                         
@@ -1208,7 +1238,8 @@ class Report implements IReport
                                             GROUP BY wf_roleusermaps.user_id
                                             ORDER BY wf_roleusermaps.user_id
                                      ) collecter on prop_transactions.user_id  = collecter.role_user_id
-                                ) prop_transactions"), function ($join) use ($fromDate, $uptoDate, $userId, $ulbId) {
+                                     join prop_properties on prop_properties.id = prop_transactions.property_id
+                                ) prop_transactions"), function ($join) use ($fromDate, $uptoDate, $userId, $ulbId,$wardId,$zoneId) {
                     $sub = $join->on(DB::RAW("UPPER(prop_transactions.payment_mode)"), "=", DB::RAW("UPPER(payment_modes.mode)"))
                         ->WHERENOTNULL("prop_transactions.property_id")
                         ->WHEREIN("prop_transactions.status", [1, 2])
@@ -1218,6 +1249,12 @@ class Report implements IReport
                     }
                     if ($ulbId) {
                         $sub = $sub->WHERE("prop_transactions.ulb_id", $ulbId);
+                    }
+                    if ($wardId) {
+                        $sub = $sub->WHERE("prop_transactions.ward_mstr_id", $wardId);
+                    }
+                    if ($zoneId) {
+                        $sub = $sub->WHERE("prop_transactions.zone_mstr_id", $zoneId);
                     }
                 })
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
@@ -1239,7 +1276,8 @@ class Report implements IReport
                         ")
                 )
                 ->LEFTJOIN(DB::RAW("(
-                                        SELECT * 
+                                        SELECT prop_transactions.* ,collecter.*,
+                                        prop_properties.ward_mstr_id,prop_properties.zone_mstr_id
                                         FROM prop_transactions
                                         JOIN (
                                             
@@ -1258,7 +1296,8 @@ class Report implements IReport
                                                 GROUP BY wf_roleusermaps.user_id
                                                 ORDER BY wf_roleusermaps.user_id
                                         ) collecter on prop_transactions.user_id  = collecter.role_user_id
-                                    ) prop_transactions"), function ($join) use ($fromDate, $uptoDate, $userId, $ulbId) {
+                                        join prop_properties on prop_properties.id = prop_transactions.property_id
+                                    ) prop_transactions"), function ($join) use ($fromDate, $uptoDate, $userId, $ulbId,$wardId,$zoneId) {
                     $sub = $join->on(DB::RAW("UPPER(prop_transactions.payment_mode)"), "=", DB::RAW("UPPER(payment_modes.mode)"))
                         ->WHERENOTNULL("prop_transactions.property_id")
                         ->WHEREIN("prop_transactions.status", [1, 2])
@@ -1268,6 +1307,11 @@ class Report implements IReport
                     }
                     if ($ulbId) {
                         $sub = $sub->WHERE("prop_transactions.ulb_id", $ulbId);
+                    }if ($wardId) {
+                        $sub = $sub->WHERE("prop_transactions.ward_mstr_id", $wardId);
+                    }
+                    if ($zoneId) {
+                        $sub = $sub->WHERE("prop_transactions.zone_mstr_id", $zoneId);
                     }
                 })
                 ->LEFTJOIN("users", "users.id", "prop_transactions.user_id")
