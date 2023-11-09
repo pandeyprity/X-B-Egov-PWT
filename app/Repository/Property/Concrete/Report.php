@@ -51,9 +51,7 @@ class Report implements IReport
         try {
             $refUser        = authUser($request);
             $ulbId          = $refUser->ulb_id;
-            $wardId = null;
-            $userId = null;
-            $paymentMode = null;
+            $wardId = $zoneId = $userId =  $paymentMode = null;
             $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
 
             if ($request->fromDate) {
@@ -61,6 +59,9 @@ class Report implements IReport
             }
             if ($request->uptoDate) {
                 $uptoDate = $request->uptoDate;
+            }
+            if ($request->zoneId) {
+                $zoneId = $request->zoneId;
             }
             if ($request->wardId) {
                 $wardId = $request->wardId;
@@ -135,6 +136,9 @@ class Report implements IReport
                 ->WHEREBETWEEN("prop_transactions.tran_date", [$fromDate, $uptoDate]);
             if ($wardId) {
                 $data = $data->where("ulb_ward_masters.id", $wardId);
+            }
+            if ($zoneId) {
+                $data = $data->where("zone_masters.id", $zoneId);
             }
             if ($userId) {
                 $data = $data->where("prop_transactions.user_id", $userId);
@@ -211,9 +215,7 @@ class Report implements IReport
             $refUser        = authUser($request);
             $refUserId      = $refUser->id;
             $ulbId          = $refUser->ulb_id;
-            $wardId = null;
-            $userId = null;
-            $paymentMode = null;
+            $wardId = $zoneId = $userId = $paymentMode = null;
             $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
 
             if ($request->fromDate) {
@@ -224,6 +226,9 @@ class Report implements IReport
             }
             if ($request->wardId) {
                 $wardId = $request->wardId;
+            }
+            if ($request->zoneId) {
+                $zoneId = $request->zoneId;
             }
             if ($request->userId) {
                 $userId = $request->userId;
@@ -414,6 +419,11 @@ class Report implements IReport
                 $activSaf = $activSaf->where("ulb_ward_masters.id", $wardId);
                 $rejectedSaf = $rejectedSaf->where("ulb_ward_masters.id", $wardId);
                 $saf = $saf->where("ulb_ward_masters.id", $wardId);
+            }
+            if ($zoneId) {
+                $activSaf = $activSaf->where("zone_masters.id", $zoneId);
+                $rejectedSaf = $rejectedSaf->where("zone_masters.id", $zoneId);
+                $saf = $saf->where("zone_masters.id", $zoneId);
             }
             if ($userId) {
                 $activSaf = $activSaf->where("prop_transactions.user_id", $userId);
