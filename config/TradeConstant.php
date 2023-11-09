@@ -9,7 +9,7 @@
 return [
     "CITIZEN"       => "Citizen",
     "TRADE_REF_TABLE" => "active_trade_licences",
-    "TRADE_RELATIVE_PATH" => "Uploads/Trade",
+    "TRADE_RELATIVE_PATH" => "Uploads/Trade_test",
 
     "TRADE_NOTICE_REF_TABLE" => "active_trade_notice_consumer_dtls",
     "TRADE_NOTICE_RELATIVE_PATH" => "Uploads/Trade/Notice",
