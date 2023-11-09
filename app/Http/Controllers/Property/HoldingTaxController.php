@@ -235,10 +235,12 @@ class HoldingTaxController extends Controller
             $req->all(),
             [
                 'propId' => 'required|integer',
-                'paymentMode' => 'required|string',
-                'isArrear' => 'required|bool'
+                'paymentType' => 'required|In:isFullPayment,isArrearPayment,isPartPayment',
+                'paidAmount' => 'nullable|required_if:paymentType,==,isPartPayment|integer',
+                'paymentMode' => 'required|string'
             ]
         );
+
         if ($validated->fails()) {
             return response()->json([
                 'status' => false,
@@ -247,12 +249,25 @@ class HoldingTaxController extends Controller
             ]);
         }
 
+
         $pineLabPayment = new PineLabPayment;
         $mPropPinelabPayment = new PropPinelabPayment();
 
         try {
-            $holdingDues = $this->getHoldingDues($req);
-            // return $holdingDues;
+
+            if ($req->paymentType == 'isFullPayment')
+                $req->merge(['isArrear' => false]);
+            elseif ($req->paymentType == 'isArrearPayment')
+                $req->merge(['isArrear' => true]);
+            else
+                $req->merge(['isArrear' => false]);
+
+            $propCalReq = new Request([                                                 // Request from payment
+                'propId' => $req['propId'],
+                'isArrear' => $req['isArrear'] ?? null
+            ]);
+
+            $holdingDues = $this->getHoldingDues($propCalReq);
             if ($holdingDues->original['status'] == false)
                 throw new Exception($holdingDues->original['message']);
 
@@ -260,7 +275,7 @@ class HoldingTaxController extends Controller
                 throw new Exception("Payment Already Done");
 
             $holdingDues = $holdingDues->original['data'];
-            $payableAmount = $holdingDues['payableAmt'];
+            $payableAmount = ($req->paymentType == "isPartPayment") ? $req->paidAmount : $holdingDues['payableAmt'];
 
             $demands = $holdingDues['demandList'];
             $arrear = $holdingDues['arrear'];
@@ -296,7 +311,9 @@ class HoldingTaxController extends Controller
                 "ip_address" => $req->ipAddress ?? getClientIpAddress(),
                 "demand_list" => json_encode($holdingDues, true),
                 "payable_amount" => $holdingDues['payableAmt'],
-                "arrear_settled" => $holdingDues['arrear']
+                "arrear_settled" => $holdingDues['arrear'],
+                "payment_type" => $req->paymentType,
+                "paid_amount" => $req->paidAmount
             ];
 
             $mPropPinelabPayment->create($pineReqs);
@@ -321,7 +338,13 @@ class HoldingTaxController extends Controller
             $paymentReqs = $mPropPinelabPayment->getPaymentByBillRefNo($billRefNo);
             if (collect($paymentReqs)->isEmpty())
                 throw new Exception("Payment Request Not available");
-            $req->merge(['paymentMode' => $paymentReqs->payment_mode]);                 // Add Payment Mode by the table
+            $req->merge(
+                [
+                    'paymentMode' => $paymentReqs->payment_mode,
+                    'paymentType' => $paymentReqs->payment_type,
+                    'paidAmount' => $paymentReqs->paid_amount
+                ]
+            );                                                              // Add Payment Mode by the table
             $postPropPayment = new PostPropPaymentV2($req);
             $demandList = json_decode($paymentReqs->demand_list, true);
             $demandList = responseMsgs(true, "Demand Details", $demandList);
@@ -336,6 +359,7 @@ class HoldingTaxController extends Controller
             ];
         } catch (Exception $e) {
             DB::rollBack();
+            throw new Exception($e->getMessage());
         }
     }
 
