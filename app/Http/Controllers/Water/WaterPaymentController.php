@@ -54,6 +54,7 @@ use App\Traits\Payment\Razorpay;
 use App\Traits\Ward;
 use App\Traits\Water\WaterTrait;
 use App\Traits\Workflow\Workflow;
+use App\Models\Water\WaterConsumerOwner;
 use Carbon\Carbon;
 use DateTime;
 use Exception;
@@ -1658,6 +1659,7 @@ class WaterPaymentController extends Controller
             $mWaterConsumerMeter    = new WaterConsumerMeter();
             $mWaterConsumerTax      = new WaterConsumerTax();
             $mWaterConsumerInitial  = new WaterConsumerInitialMeter();
+            $mWaterConsumerOwners   = new WaterConsumerOwner();
 
             $mTowardsDemand     = Config::get("waterConstaint.TOWARDS_DEMAND");
             $mTranType          = Config::get("waterConstaint.PAYMENT_FOR");
@@ -1717,9 +1719,9 @@ class WaterPaymentController extends Controller
             $transactionTime = Carbon::parse($transactionDetails['tran_time'])->format('H:i');
             $transactionDate = Carbon::parse($transactionDetails['tran_date'])->format('d-m-Y');
             # ulb logo 
-             $fullLogoUrl =$this->_ulb_logo_url . $consumerDetails['logo'];
+            $fullLogoUrl = $this->_ulb_logo_url . $consumerDetails['logo'];
 
-             # water consumer consumed
+            # water consumer consumed
             // $consumerTaxes = $mWaterConsumerDemand->getConsumerTax($demandIds);
             // $initialReading = $consumerTaxes->wherein("connection_type", ["Meter", "Metered"])  // Static
             //     ->min("initial_reading");
@@ -1790,10 +1792,30 @@ class WaterPaymentController extends Controller
                 "lastMeterReading"      => $lastDemand ?? null,
                 "currentMeterReading"   => $currentDemand ?? null,
                 "paidAmtInWords"        => getIndianCurrency($transactionDetails->amount),
+                "arshad"                => 'arshad'
 
             ];
             # sending pdf of demand rerceipt via whatsapp
             //   $this->whatsAppSend($returnValues);
+            # send notification 
+           $sms = AkolaProperty(["owner_name" => $returnValues['arshad'], "saf_no"=>$returnValues['transactionNo']], "New Assessment");
+            if (($sms["status"] !== false)) {
+                    $respons=SMSAKGOVT(6299068110,$sms["sms"],$sms["temp_id"]);
+                
+            }
+            # watsapp message   
+            // Register_message
+            // $whatsapp2 = (Whatsapp_Send(
+            //     6206998554,
+            //     "trn_2_var",
+            //     [
+            //         "conten_type" => "text",
+            //         [
+            //             // $owner[0]["ownerName"],
+            //             $returnValues['transactionNo'],
+            //         ]
+            //     ]
+            // ));
             return responseMsgs(true, "Payment Receipt", remove_null($returnValues), "", "1.0", "", "POST", $req->deviceId ?? "");
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $e->getFile(), "", "01", "ms", "POST", "");
@@ -2323,12 +2345,12 @@ class WaterPaymentController extends Controller
                 'ulbId'             => $user->ulb_id,
                 'chargeCategory'    => $chargeCatagory['chargeCatagory'],                                 // Static
                 'isJsk'             => true,
-                'amount'            => $activeConsumercharges->amount,
+                'amount'            => $activeConsumercharges['amount'],
                 'paymentMode'       => $refPaymentMode[$request->paymentMode]
             ]);
 
             # Save the Details of the transaction
-            $wardId['ward_mstr_id'] = $activeConRequest->ward_id;
+            $wardId['ward_mstr_id'] = $activeConRequest['ward_id'];
             $waterTrans = $mWaterTran->waterTransaction($request, $wardId);
 
             # Save the Details for the Cheque,DD,neft
@@ -2544,6 +2566,7 @@ class WaterPaymentController extends Controller
             return responseMsgs(false, $e->getMessage(), [], "", "03", responseTime(), $request->getMethod(), $request->deviceId);
         }
     }
+    # function for whatsapp 
     public function whatsAppSend($returnValues)
     {
         $data["data"] = ["afsdf", "sdlfjksld", "dfksdfjk"];
@@ -2555,7 +2578,7 @@ class WaterPaymentController extends Controller
         $file = $pdf->download($filename . '.' . 'pdf');
         $pdf = Storage::put('public' . '/' . $url, $file);
         $whatsapp2 = (Whatsapp_Send(
-            6206998554,
+            7991154536,
             "file_test",
             [
                 "content_type" => "pdf",
@@ -2797,5 +2820,203 @@ class WaterPaymentController extends Controller
         $mWaterConsumerDemand = new WaterConsumerDemand();
 
         // if()
+    }
+
+    /**
+     * | Offline Paymet for Water Consumer other request
+        | Serial No :
+        | Under Con
+     */
+    public function offlineConReqPayment(reqConsumerReqPayment $request)
+    {
+        try {
+            $user           = authUser($request);
+            $todayDate      = Carbon::now();
+            $applicatinId   = $request->applicationId;
+            $refPaymentMode = Config::get('payment-constants.REF_PAY_MODE');
+
+            $idGeneration                   = new IdGeneration;
+            $mWaterTran                     = new WaterTran();
+            $mWaterConsumerActiveRequest    = new WaterConsumerActiveRequest();
+            $mWaterConsumerCharge           = new WaterConsumerCharge();
+
+            $offlinePaymentModes = Config::get('payment-constants.VERIFICATION_PAYMENT_MODES');
+            $activeConRequest = $mWaterConsumerActiveRequest->getActiveReqById($applicatinId)
+                ->where('payment_status', 0)
+                ->first();
+            if (!$activeConRequest) {
+                throw new Exception("Application details not found!");
+            }
+            if ($request->paymentMode == 'ONLINE') {                                // Static
+                throw new Exception("Online mode is not accepted!");
+            }
+
+            $activeConsumercharges = $mWaterConsumerCharge->getConsumerChargesById($applicatinId)
+                ->where('charge_category_id', $activeConRequest->charge_catagory_id)
+                ->where('paid_status', 0)
+                ->first();
+            if (!$activeConsumercharges) {
+                throw new Exception("Consumer Charges not found!");
+            }
+            $chargeCatagory = $this->checkConRequestPayment($activeConRequest);
+
+            $this->begin();
+            $tranNo = $idGeneration->generateTransactionNo($user->ulb_id);
+            $request->merge([
+                'userId'            => $user->id,
+                'userType'          => $user->user_type,
+                'todayDate'         => $todayDate->format('Y-m-d'),
+                'tranNo'            => $tranNo,
+                'id'                => $applicatinId,
+                'ulbId'             => $user->ulb_id,
+                'chargeCategory'    => $chargeCatagory['chargeCatagory'],                                 // Static
+                'isJsk'             => true,
+                'amount'            => $activeConsumercharges->amount,
+                'paymentMode'       => $refPaymentMode[$request->paymentMode]
+            ]);
+
+            # Save the Details of the transaction
+            $wardId['ward_mstr_id'] = $activeConRequest->ward_mstr_id;
+            $waterTrans = $mWaterTran->waterTransaction($request, $wardId);
+
+            # Save the Details for the Cheque,DD,neft
+            if (in_array($request['paymentMode'], $offlinePaymentModes)) {
+                $request->merge([
+                    'chequeDate'    => $request['chequeDate'],
+                    'tranId'        => $waterTrans['id'],
+                    'applicationNo' => $activeConRequest->application_no,
+                    'workflowId'    => $activeConRequest->workflow_id,                                                   // Static
+                    'ward_no'       => $activeConRequest->ward_mstr_id
+                ]);
+                $this->postOtherReqPay($request);
+            }
+            # Save the transaction details for offline mode  
+            $this->saveConsumerReqStatus($request, $offlinePaymentModes, $activeConsumercharges, $waterTrans, $activeConRequest);
+            $this->commit();
+            return responseMsgs(true, "Payment Done!", remove_null($request->all()), "", "01", responseTime(), $request->getMethod(), $request->deviceId);
+        } catch (Exception $e) {
+            $this->rollback();
+            return responseMsgs(false, $e->getMessage(), [], "", "03", ".ms", "POST", $request->deviceId);
+        }
+    }
+    /**
+     * | Check if the transaction exist
+        | Serial No :
+        | Under con    
+     */
+    public function checkConRequestPayment($applicationDetails)
+    {
+        $ref = Config::get('waterConstaint.PAYMENT_FOR');
+        $mWaterTran = new WaterTran();
+        $transDetails = $mWaterTran->getTransNoForConsumer($applicationDetails->id, $ref["$applicationDetails->charge_catagory_id"])->first();
+        if ($transDetails) {
+            throw new Exception("Transaction details is present in Database!");
+        }
+        return [
+            "chargeCatagory" => $ref["$applicationDetails->charge_catagory_id"]
+        ];
+    }
+    /**
+     * | Post other payment request
+        | Serial No :
+        | Under Con
+     */
+    public function postOtherReqPay($req)
+    {
+        $cash               = Config::get('payment-constants.PAYMENT_MODE.3');
+        $moduleId           = Config::get('module-constants.WATER_MODULE_ID');
+        $mTempTransaction   = new TempTransaction();
+        $mPropChequeDtl     = new WaterChequeDtl();
+
+        if ($req['paymentMode'] != $cash) {
+            if ($req->chargeCategory == "Demand Collection") {
+                $chequeReqs = [
+                    'user_id'           => $req['userId'],
+                    'consumer_req_id'   => $req['id'],
+                    'transaction_id'    => $req['tranId'],
+                    'cheque_date'       => $req['chequeDate'],
+                    'bank_name'         => $req['bankName'],
+                    'branch_name'       => $req['branchName'],
+                    'cheque_no'         => $req['chequeNo']
+                ];
+                $mPropChequeDtl->postChequeDtl($chequeReqs);
+            }
+
+            $tranReqs = [
+                'transaction_id'    => $req['tranId'],
+                'application_id'    => $req['id'],
+                'module_id'         => $moduleId,
+                'workflow_id'       => $req['workflowId'],
+                'transaction_no'    => $req['tranNo'],
+                'application_no'    => $req['applicationNo'],
+                'amount'            => $req['amount'],
+                'payment_mode'      => strtoupper($req['paymentMode']),
+                'cheque_dd_no'      => $req['chequeNo'],
+                'bank_name'         => $req['bankName'],
+                'tran_date'         => $req['todayDate'],
+                'user_id'           => $req['userId'],
+                'ulb_id'            => $req['ulbId'],
+                'ward_no'           => $req['ward_no']
+            ];
+            $mTempTransaction->tempTransaction($tranReqs);
+        }
+    }
+    /**
+     * | Save the status in active consumer table, transaction, 
+        | Serial No :
+        | Under Con
+     */
+    public function saveConsumerReqStatus($request, $offlinePaymentModes, $charges, $waterTrans, $activeConRequest)
+    {
+        $mWaterConsumerActiveRequest    = new WaterConsumerActiveRequest();
+        $waterTranDetail                = new WaterTranDetail();
+        $mWaterTran                     = new WaterTran();
+
+        if (in_array($request['paymentMode'], $offlinePaymentModes)) {
+            $charges->paid_status = 2;                                       // Update Demand Paid Status // Static
+            $mWaterTran->saveVerifyStatus($waterTrans['id']);
+            $refReq = [
+                "payment_status" => 2,
+            ];
+            $mWaterConsumerActiveRequest->updateDataForPayment($activeConRequest->id, $refReq);
+        } else {
+            $charges->paid_status = 1;                                      // Update Demand Paid Status // Static
+            $refReq = [
+                "payment_status"    => 1,
+                "current_role"      => $activeConRequest->initiator
+            ];
+            $mWaterConsumerActiveRequest->updateDataForPayment($activeConRequest->id, $refReq);
+        }
+        $charges->save();                                                   // Save Demand
+        $waterTranDetail->saveDefaultTrans(
+            $charges->amount,
+            $request->consumerId ?? $request->applicationId,
+            $waterTrans['id'],
+            $charges['id'],
+            null
+        );
+    }
+    # function for sms 
+    public function smsSend($returnValues)
+    {
+        $data["data"] = ["afsdf", "sdlfjksld", "dfksdfjk"];
+        # Watsapp pdf sending
+        $filename = "1-2-" . time() . '.' . 'pdf';
+        $url = "Uploads/water/payment/" . $filename;
+        $customPaper = array(0, 0, 720, 1440);
+        $pdf = PDF::loadView('water_consumer_payment',  ['returnValues' => $returnValues])->setPaper($customPaper, 'portrait');
+        $file = $pdf->download($filename . '.' . 'pdf');
+        $pdf = Storage::put('public' . '/' . $url, $file);
+        $whatsapp2 = (Whatsapp_Send(
+            8906128883,
+            "file_test",
+            [
+                "content_type" => "pdf",
+                [
+                    "link" => config('app.url') . "/getImageLink?path=" . $url,
+                    "filename" => "TEST_PDF" . ".pdf"
+                ]
+            ],
+        ));
     }
 }

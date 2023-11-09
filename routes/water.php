@@ -35,7 +35,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
      */
     Route::controller(NewConnectionController::class)->group(function () {
         # Workflow
-    
+
         Route::post('inbox', 'waterInbox');                                                             // Workflow
         Route::post('outbox', 'waterOutbox');                                                           // Workflow
         Route::post('post-next-level', 'postNextLevel');                                                // Workflow
@@ -109,6 +109,9 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('consumer/offline-request-payment', 'offlineConPayment');
         Route::post('consumer/part-payment', 'partPayment');                                             //status working
 
+        # for deactivation  consumer
+        Route::post('admin/consumer/offline-request-payment', 'offlineConReqPayment');
+
         # for grievance
         Route::post('grievance/get-user-transactions', 'getUserTransactions');
         Route::post('application/citizen-application-list', 'getCitizenApplicationList');
@@ -139,7 +142,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('check-doc', 'checkDoc');                                       // testing document service
 
         # Deactivation
-        Route::post('admin/consumer/apply-deactivation', 'applyDeactivation');                           // Admin / Not Used
+        Route::post('apply-water-disconnection', 'applyDeactivation');                           // Admin / Not Used
         Route::post('admin/consumer/demand-deactivation', 'consumerDemandDeactivation');  // Here       // Admin / Not used
         Route::post('get-listed-fee', 'test');
 
@@ -148,9 +151,8 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('consumer/get-master-data', 'getMasterData');
         Route::post('consumer/get-consumer-demand', 'getConsumerDemands');
         Route::post('consumer/update-consumer-details', 'updateConsumerDetails');
-        Route::post('consumer/get-details', 'WaterConsumerDetails'); 
-        Route::post('consumer/get-connection-list', 'getConnectionList'); 
-
+        Route::post('consumer/get-details', 'WaterConsumerDetails');
+        Route::post('consumer/get-connection-list', 'getConnectionList');
     });
 
 
@@ -168,6 +170,7 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('consumer/req/upload-document', 'consumerDocUpload');               // Here
         Route::post('consumer/req/get-upload-documents', 'getConsumerDocs');            // Here
         Route::post('consumer/req/approval-rejection', 'consumerApprovalRejection');    // Here
+        Route::post('get-details-applications', 'getConApplicationDetails');
     });
 
     /**
@@ -187,7 +190,8 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('report/total-water-consumer', 'totalConsumerType');
         Route::post('report/billing-summary', 'billingSummary');
         Route::post('ward-list', 'WardList');
-        Route::post('report/tc-collection','WaterCollectionReport');
+        Route::post('report/tc-collection', 'WaterCollectionReport');                                       // tc collection report
+        Route::post('reports/user-wise/coll-summary', 'userWiseCollectionSummary');                        // tc over all report 
     });
 
 
