@@ -132,23 +132,24 @@ class SafDocController extends Controller
                         "documentCode" => $item,
                         "ownerId" => $uploadedDoc->owner_dtl_id ?? "",
                         "docPath" =>  $uploadedDoc->doc_path ?? "",
-                        "verifyStatus" => $refSafs->payment_status == 1 ? ($uploadedDoc->verify_status ?? "") : 0,
+                        // "verifyStatus" => $refSafs->payment_status == 1 ? ($uploadedDoc->verify_status ?? "") : 0,
+                        "verifyStatus" =>  ($uploadedDoc->verify_status ?? 0),
                         "remarks" => $uploadedDoc->remarks ?? "",
                     ];
                     $documents->push($response);
                 }
             });
             $reqDoc['docType'] = $key;
-            $reqDoc['docName'] = substr($label, 1, -1);
+            $docName = substr($label, 1, -1);
+            $reqDoc['docName'] = $docName;
 
             // Check back to citizen status
-            $uploadedDocument = $documents->sortByDesc('uploadedDocId')->first();                           // Get Last Uploaded Document
-
+            $uploadedDocument = $documents->sortByDesc('uploadedDocId')->first();            
             if (collect($uploadedDocument)->isNotEmpty() && $uploadedDocument['verifyStatus'] == 2) {
                 $reqDoc['btcStatus'] = true;
             } else
                 $reqDoc['btcStatus'] = false;
-            $reqDoc['uploadedDoc'] = $documents->sortByDesc('uploadedDocId')->first();                      // Get Last Uploaded Document
+            $reqDoc['uploadedDoc'] = $uploadedDocument;                      // Get Last Uploaded Document
 
             $reqDoc['masters'] = collect($document)->map(function ($doc) use ($uploadedDocs, $refSafs) {
                 $uploadedDoc = $uploadedDocs->where('doc_code', $doc)->first();
