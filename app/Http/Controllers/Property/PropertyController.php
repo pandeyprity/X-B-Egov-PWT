@@ -845,6 +845,10 @@ class PropertyController extends Controller
             {
                 throw new Exception("Data Not Found!");
             }
+            if($application->pending_status==5)
+            {
+                throw new Exception("Application Already Approved On ".$application->approval_date);
+            }
             if (!$role || ($application->finisher_role_id != $role->role_id??0)) {
                 throw new Exception("Forbidden Access");
             }
