@@ -139,16 +139,19 @@ class SafDocController extends Controller
                 }
             });
             $reqDoc['docType'] = $key;
-            $reqDoc['docName'] = substr($label, 1, -1);
+            $docName = substr($label, 1, -1);
+            $reqDoc['docName'] = $docName;
 
             // Check back to citizen status
-            $uploadedDocument = $documents->sortByDesc('uploadedDocId')->first();                           // Get Last Uploaded Document
-
+            // $uploadedDocument = $documents->sortByDesc('uploadedDocId')->first();                           // Get Last Uploaded Document
+            $uploadedDocument = $uploadedDocs->where('doc_category', $docName)
+                    ->where('owner_dtl_id', $ownerId)
+                    ->first();
             if (collect($uploadedDocument)->isNotEmpty() && $uploadedDocument['verifyStatus'] == 2) {
                 $reqDoc['btcStatus'] = true;
             } else
                 $reqDoc['btcStatus'] = false;
-            $reqDoc['uploadedDoc'] = $documents->sortByDesc('uploadedDocId')->first();                      // Get Last Uploaded Document
+            $reqDoc['uploadedDoc'] = $uploadedDocument;                      // Get Last Uploaded Document
 
             $reqDoc['masters'] = collect($document)->map(function ($doc) use ($uploadedDocs, $refSafs) {
                 $uploadedDoc = $uploadedDocs->where('doc_code', $doc)->first();
