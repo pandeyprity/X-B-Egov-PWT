@@ -357,6 +357,10 @@ class PropertyController extends Controller
         }
         try {
             $refUser            = Auth()->user();
+            if(!$refUser)
+            {
+                throw new Exception("Access denied");
+            }
             $refUserId          = $refUser->id;
             $refUlbId           = $refUser->ulb_id;
             $relativePath = Config::get('PropertyConstaint.PROP_UPDATE_RELATIVE_PATH');
