@@ -27,7 +27,6 @@ class IciciPaymentReq extends Model
     {
         return self::where('req_ref_no', $reqRefNo)
             ->where('status', 1)
-            ->where('payment_status', 0)
             ->first();
     }
 

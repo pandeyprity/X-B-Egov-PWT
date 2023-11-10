@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Predis\Response\Status;
 
 /**
  * | Created On-14-02-2023 
@@ -46,7 +47,7 @@ use Illuminate\Support\Str;
 class BankReconcillationController extends Controller
 {
     /**
-     * |
+     * | 1
      */
     public function searchTransaction(Request $request)
     {
@@ -156,7 +157,7 @@ class BankReconcillationController extends Controller
 
 
     /**
-     * |
+     * | 2
      */
     public function chequeDtlById(Request $request)
     {
@@ -206,7 +207,7 @@ class BankReconcillationController extends Controller
     }
 
     /**
-     * |
+     * | 3
      */
     public function chequeClearance(Request $request)
     {
@@ -350,25 +351,25 @@ class BankReconcillationController extends Controller
                 $mPaymentReconciliation->addReconcilation($request);
             }
 
+            # For Water module 
             if ($moduleId == $waterModuleId) {
-                $mChequeDtl =  WaterChequeDtl::find($request->chequeId);
 
-                $mChequeDtl->status = $paymentStatus;
-                $mChequeDtl->clear_bounce_date = $request->clearanceDate;
-                $mChequeDtl->bounce_amount = $request->cancellationCharge;
-                $mChequeDtl->remarks = $request->remarks;
+                # Find Cheque details 
+                $mChequeDtl =  WaterChequeDtl::find($request->chequeId);
+                $mChequeDtl->status             = $paymentStatus;
+                $mChequeDtl->clear_bounce_date  = $request->clearanceDate;
+                $mChequeDtl->bounce_amount      = $request->cancellationCharge;
+                $mChequeDtl->remarks            = $request->remarks;
                 $mChequeDtl->save();
 
                 $transaction = WaterTran::where('id', $mChequeDtl->transaction_id)
                     ->first();
-                $wardId = WaterApplication::find($transaction->related_id)->ward_id;
-
                 WaterTran::where('id', $mChequeDtl->transaction_id)
                     ->update(
                         [
                             'verify_status' => $paymentStatus,
                             'verified_date' => Carbon::now(),
-                            'verified_by' => $userId
+                            'verified_by'   => $userId
                         ]
                     );
 
@@ -380,25 +381,34 @@ class BankReconcillationController extends Controller
                     );
 
 
+                # If the transaction bounce
                 if ($paymentStatus == 3) {
-
-                    $waterTranDtls = WaterTranDetail::where('tran_id', $transaction->id)->first();
-                    $demandId = $waterTranDtls->demand_id;
+                    $waterTranDtls = WaterTranDetail::where('tran_id', $transaction->id)
+                        ->where('status', '<>', 0)
+                        ->get();
+                    $demandIds = $waterTranDtls->pluck('demand_id');
 
                     if ($transaction->tran_type == 'Demand Collection') {
-                        WaterConsumerDemand::where('id', $demandId)
-                            ->update(
+
+                        # Map every demand data 
+                        $waterTranDtls->map(function ($values, $key)
+                        use ($applicationPaymentStatus) {
+                            $conumserDemand = WaterConsumerDemand::where('id', $values->demand_id)->first();
+                            $conumserDemand->update(
                                 [
-                                    'paid_status' => $applicationPaymentStatus
+                                    'paid_status'   => $applicationPaymentStatus,
+                                    'is_full_paid'  => false,
+                                    'due_balance_amount' => ($conumserDemand->due_balance_amount + $values->paid_amount)
                                 ]
                             );
-
+                        });
                         $wardId = WaterConsumer::find($transaction->related_id)->ward_mstr_id;
                     }
 
+                    # For application payment 
                     if ($transaction->tran_type != 'Demand Collection') {
-                        $connectionChargeDtl =  WaterConnectionCharge::find($demandId);
-                        WaterConnectionCharge::where('id', $demandId)
+                        $connectionChargeDtl =  WaterConnectionCharge::find($demandIds);
+                        WaterConnectionCharge::whereIn('id', $demandIds)
                             ->update(
                                 [
                                     'paid_status' => $applicationPaymentStatus
@@ -414,13 +424,14 @@ class BankReconcillationController extends Controller
                             );
 
                         //after penalty resolved
-                        WaterPenaltyInstallment::where('related_demand_id', $demandId)
+                        WaterPenaltyInstallment::where('related_demand_id', $demandIds)
                             ->update(
                                 [
                                     'paid_status' => $applicationPaymentStatus
                                 ]
                             );
                     }
+                    $wardId = WaterApplication::find($transaction->related_id)->ward_id;
                 }
 
                 $request->merge([
@@ -521,7 +532,7 @@ class BankReconcillationController extends Controller
     }
 
     /**
-     * | 
+     * | tran deactive search
      */
     public function searchTransactionNo(Request $req)
     {
@@ -564,21 +575,21 @@ class BankReconcillationController extends Controller
             $tradeModuleId = Config::get('module-constants.TRADE_MODULE_ID');
             $docUpload = new DocUpload;
             $document = $req->document;
-            $refImageName = $req->id."_".$req->moduleId."_".(Carbon::now()->format("Y-m-d"));
-            $relativePath = $req->moduleId==$propertyModuleId ? "Property/TranDeactivate" :($req->moduleId==$waterModuleId ? "Water/TranDeactivate" : ($req->moduleId==$tradeModuleId ? "Trade/TranDeactivate" : "Others/TranDeactivate")); 
+            $refImageName = $req->id . "_" . $req->moduleId . "_" . (Carbon::now()->format("Y-m-d"));
+            $relativePath = $req->moduleId == $propertyModuleId ? "Property/TranDeactivate" : ($req->moduleId == $waterModuleId ? "Water/TranDeactivate" : ($req->moduleId == $tradeModuleId ? "Trade/TranDeactivate" : "Others/TranDeactivate"));
             $user = Auth()->user();
             DB::beginTransaction();
             DB::connection('pgsql_master')->beginTransaction();
             DB::connection('pgsql_water')->beginTransaction();
             DB::connection('pgsql_trade')->beginTransaction();
 
-            $imageName = "";#$req->document ? $relativePath."/".$docUpload->upload($refImageName, $document, $relativePath) : "";
+            $imageName = ""; #$req->document ? $relativePath."/".$docUpload->upload($refImageName, $document, $relativePath) : "";
             $deactivationArr = [
-                "tran_id" =>$req->id,
-                "deactivated_by" =>$user->id,
-                "reason" =>$req->remarks,
-                "file_path" =>$imageName,
-                "deactive_date" =>$req->deactiveDate??Carbon::now()->format("Y-m-d"),
+                "tran_id" => $req->id,
+                "deactivated_by" => $user->id,
+                "reason" => $req->remarks,
+                "file_path" => $imageName,
+                "deactive_date" => $req->deactiveDate ?? Carbon::now()->format("Y-m-d"),
             ];
             #_For Property Transaction Deactivation
             if ($req->moduleId == $propertyModuleId) {
@@ -590,15 +601,15 @@ class BankReconcillationController extends Controller
 
             #_For Water Transaction Deactivation
             if ($req->moduleId == $waterModuleId) {
-                $waterTranDeativetion = new WaterTransactionDeactivateDtl(); 
-                $waterTranDeativetion->create($deactivationArr); 
+                $waterTranDeativetion = new WaterTransactionDeactivateDtl();
+                $waterTranDeativetion->create($deactivationArr);
             }
 
             #_For Trade Transaction Deactivation
             if ($req->moduleId == $tradeModuleId) {
                 $tradeTrans = TradeTransaction::find($req->id);
                 $tradeTranDeativetion = new TradeTransactionDeactivateDtl();
-                $tradeTranDeativetion->create($deactivationArr); 
+                $tradeTranDeativetion->create($deactivationArr);
                 if (!$tradeTrans) {
                     throw new Exception("Trade Transaction Not Available");
                 }

@@ -20,7 +20,7 @@ class WaterConsumerCollection extends Model
         $mWaterConsumerCollection->consumer_id          = $charges->consumer_id;
         $mWaterConsumerCollection->ward_mstr_id         = $charges->ward_id;
         $mWaterConsumerCollection->transaction_id       = $waterTrans['id'];
-        $mWaterConsumerCollection->amount               = $charges->amount;
+        $mWaterConsumerCollection->amount               = $charges->amount ?? $charges->balance_amount;
         $mWaterConsumerCollection->emp_details_id       = $refUserId;
         $mWaterConsumerCollection->demand_id            = $charges->id;
         $mWaterConsumerCollection->demand_from          = $charges->demand_from;
