@@ -132,7 +132,8 @@ class SafDocController extends Controller
                         "documentCode" => $item,
                         "ownerId" => $uploadedDoc->owner_dtl_id ?? "",
                         "docPath" =>  $uploadedDoc->doc_path ?? "",
-                        "verifyStatus" => $refSafs->payment_status == 1 ? ($uploadedDoc->verify_status ?? "") : 0,
+                        // "verifyStatus" => $refSafs->payment_status == 1 ? ($uploadedDoc->verify_status ?? "") : 0,
+                        "verifyStatus" =>  ($uploadedDoc->verify_status ?? 0),
                         "remarks" => $uploadedDoc->remarks ?? "",
                     ];
                     $documents->push($response);
@@ -143,10 +144,7 @@ class SafDocController extends Controller
             $reqDoc['docName'] = $docName;
 
             // Check back to citizen status
-            // $uploadedDocument = $documents->sortByDesc('uploadedDocId')->first();                           // Get Last Uploaded Document
-            $uploadedDocument = $uploadedDocs->where('doc_category', $docName)
-                    ->where('owner_dtl_id', $ownerId)
-                    ->first();
+            $uploadedDocument = $documents->sortByDesc('uploadedDocId')->first();            
             if (collect($uploadedDocument)->isNotEmpty() && $uploadedDocument['verifyStatus'] == 2) {
                 $reqDoc['btcStatus'] = true;
             } else
