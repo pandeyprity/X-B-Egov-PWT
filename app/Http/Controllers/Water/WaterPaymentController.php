@@ -890,11 +890,13 @@ class WaterPaymentController extends Controller
         $mWaterTran         = new WaterTran();
 
         if (in_array($request['paymentMode'], $offlinePaymentModes)) {
-            $charges->paid_status = 2;                                       // Update Demand Paid Status // Static
+            $charges->paid_status           = 2;                                       // Update Demand Paid Status // Static
+            $charges->due_balance_amount    = 0;
             $mWaterTran->saveVerifyStatus($waterTrans['id']);
         } else {
-            $charges->paid_status = 1;                                      // Update Demand Paid Status // Static
-            $charges->is_full_paid = true;
+            $charges->due_balance_amount    = 0;
+            $charges->paid_status           = 1;                                      // Update Demand Paid Status // Static
+            $charges->is_full_paid          = true;
         }
         $charges->save();                                                   // Save Demand
 
@@ -1798,10 +1800,9 @@ class WaterPaymentController extends Controller
             # sending pdf of demand rerceipt via whatsapp
             //   $this->whatsAppSend($returnValues);
             # send notification 
-           $sms = AkolaProperty(["owner_name" => $returnValues['arshad'], "saf_no"=>$returnValues['transactionNo']], "New Assessment");
+            $sms = AkolaProperty(["owner_name" => $returnValues['arshad'], "saf_no" => $returnValues['transactionNo']], "New Assessment");
             if (($sms["status"] !== false)) {
-                    $respons=SMSAKGOVT(6299068110,$sms["sms"],$sms["temp_id"]);
-                
+                $respons = SMSAKGOVT(6299068110, $sms["sms"], $sms["temp_id"]);
             }
             # watsapp message   
             // Register_message
@@ -2753,13 +2754,13 @@ class WaterPaymentController extends Controller
 
         # Save transaction details 
         $waterTranDetail->saveDefaultTrans(
-            $popedDemand->amount,
+            $popedDemand->amount ?? $popedDemand->balance_amount,
             $request->consumerId ?? $request->applicationId,
             $waterTrans['id'],
             $popedDemand->id,
-            $refPaidAmount
+            $refAmount
         );
-        $mWaterConsumerCollection->saveConsumerCollection($popedDemand, $waterTrans, $request->auth['id'], $refPaidAmount);
+        $mWaterConsumerCollection->saveConsumerCollection($popedDemand, $waterTrans, $request->auth['id'], $refAmount);
     }
 
 
