@@ -165,9 +165,9 @@ trait WaterTrait
             ) AS formatted_column
             ")
         )
-            ->join('water_consumers AS wc', 'wc.id', 'water_consumer_active_requests.consumer_id')
-            ->join('ulb_ward_masters AS uwm', 'uwm.id', 'water_consumer_active_requests.ward_mstr_id')
-            ->join('ulb_masters AS um', 'um.id', 'water_consumer_active_requests.ulb_id')
+            ->join('water_second_consumers AS wc', 'wc.id', 'water_consumer_active_requests.consumer_id')
+            ->leftjoin('ulb_ward_masters AS uwm', 'uwm.id', 'water_consumer_active_requests.ward_mstr_id')
+            ->leftjoin('ulb_masters AS um', 'um.id', 'water_consumer_active_requests.ulb_id')
             ->join('water_consumer_charges AS wcc', 'wcc.related_id', 'water_consumer_active_requests.id')
             ->where('water_consumer_active_requests.id', $applicationId)
             ->where('water_consumer_active_requests.status', 1);

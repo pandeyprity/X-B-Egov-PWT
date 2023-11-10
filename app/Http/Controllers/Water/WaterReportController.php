@@ -1604,11 +1604,12 @@ class WaterReportController extends Controller
         list($apiId, $version, $queryRunTime, $action, $deviceId) = $metaData;
         // return $request->all();
         try {
-         
-             $refUser        = authUser($request);
+
+            $refUser        = authUser($request);
             $ulbId          = $refUser->ulb_id;
             $wardId = null;
             $userId = null;
+            $zoneId = null;
             $paymentMode = null;
             $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
             if ($request->fromDate) {
@@ -1623,14 +1624,17 @@ class WaterReportController extends Controller
 
             if ($request->userId)
                 $userId = $request->userId;
-            // else
-            //     $userId = auth()->user()->id;                   // In Case of any logged in TC User
+            else
+                $userId = auth()->user()->id;                   // In Case of any logged in TC User
 
             if ($request->paymentMode) {
                 $paymentMode = $request->paymentMode;
             }
             if ($request->ulbId) {
                 $ulbId = $request->ulbId;
+            }
+            if ($request->zoneId) {
+                $zoneId = $request->zoneId;
             }
 
             // DB::enableQueryLog();
@@ -1643,22 +1647,28 @@ class WaterReportController extends Controller
                             water_second_consumers.user_type,
                             water_trans.id AS tran_id,
                             water_second_consumers.property_no,
-                            water_trans.tran_date,
+                            water_second_consumers.address,
                             water_consumer_owners.applicant_name,
                             water_consumer_owners.mobile_no,
                             water_trans.payment_mode AS transaction_mode,
                             water_trans.amount,
-                            users.name as emp_name,
+                            water_trans.tran_date,
+                            users.name as name,
+                            users.user_name as emp_name,
                             users.id as user_id,
                             users.mobile as tc_mobile,
                             water_trans.tran_no,
                             water_cheque_dtls.cheque_no,
                             water_cheque_dtls.bank_name,
-                            water_cheque_dtls.branch_name
+                            water_cheque_dtls.branch_name,
+                            zone_masters.zone_name
+                            
                 "),
             )
                 ->leftJOIN("water_second_consumers", "water_second_consumers.id", "water_trans.related_id")
                 ->leftJoin("water_consumer_owners", "water_consumer_owners.consumer_id", "=", "water_second_consumers.id")
+                ->leftJoin('zone_masters', 'zone_masters.id', '=', 'water_second_consumers.zone_mstr_id')
+
                 ->JOIN(
                     DB::RAW("(
                         SELECT STRING_AGG(applicant_name, ', ') AS owner_name, STRING_AGG(water_consumer_owners.mobile_no::TEXT, ', ') AS mobile_no, water_consumer_owners.consumer_id 
@@ -1666,9 +1676,10 @@ class WaterReportController extends Controller
                         JOIN water_trans  on water_trans.related_id = water_second_consumers.id
                         JOIN water_consumer_owners on water_consumer_owners.consumer_id = water_second_consumers.id
                         WHERE water_trans.related_id IS NOT NULL AND water_trans.status in (1, 2) 
+                     
                         AND water_trans.tran_date BETWEEN '$fromDate' AND '$uptoDate'
                         " .
-                        ($userId ? " AND water_second_consumers.user_ id = $userId " : "")
+                        ($userId ? " AND water_trans.emp_dtl_id = $userId " : "")
                         . ($paymentMode ? " AND upper(water_trans.payment_mode) = upper('$paymentMode') " : "")
                         . ($ulbId ? " AND water_trans.ulb_id = $ulbId" : "")
                         . "
@@ -1685,6 +1696,8 @@ class WaterReportController extends Controller
                 ->LEFTJOIN("water_cheque_dtls", "water_cheque_dtls.transaction_id", "water_trans.id")
                 ->WHERENOTNULL("water_trans.related_id")
                 ->WHEREIN("water_trans.status", [1, 2])
+                ->WHERE('tran_type', "=", "Demand Collection")
+
                 ->WHEREBETWEEN("water_trans.tran_date", [$fromDate, $uptoDate]);
             if ($wardId) {
                 $data = $data->where("ulb_ward_masters.id", $wardId);
@@ -1697,6 +1710,9 @@ class WaterReportController extends Controller
             }
             if ($ulbId) {
                 $data = $data->where("water_trans.ulb_id", $ulbId);
+            }
+            if ($zoneId) {
+                $data = $data->where("water_second_consumers.zone_mstr_id", $zoneId);
             }
             $paginator = collect();
 
@@ -1729,7 +1745,7 @@ class WaterReportController extends Controller
                     $list["totalCount"] = $totalFCount;
                     $list["totalAmount"] = $totalFAmount;
                 }
-                return responseMsgs(true, "", remove_null($list),$apiId, $version, $queryRunTime, $action, $deviceId);
+                return responseMsgs(true, "", remove_null($list), $apiId, $version, $queryRunTime, $action, $deviceId);
             }
 
             $paginator = $data->paginate($perPage);
@@ -1750,6 +1766,103 @@ class WaterReportController extends Controller
             return responseMsgs(true, "", $list, $apiId, $version, $queryRunTime, $action, $deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
+        }
+    }
+    # over all tc collection report 
+    public function userWiseCollectionSummary(Request $request)
+    {
+        $validated = Validator::make(
+            $request->all(),
+            [
+                "fromDate" => "nullable|date|date_format:Y-m-d",
+                "uptoDate" => "nullable|date|date_format:Y-m-d|after_or_equal:" . $request->fromDate,
+                "ulbId" => "nullable|digits_between:1,9223372036854775807",
+                "wardId" => "nullable|digits_between:1,9223372036854775807",
+                "zoneId" => "nullable|digits_between:1,9223372036854775807",
+                "paymentMode" => "nullable",
+                "userId" => "nullable|digits_between:1,9223372036854775807",
+            ]
+        );
+        if ($validated->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'validation error',
+                'errors' => $validated->errors()
+            ]);
+        }
+        try {
+            $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
+            $user = Auth()->user();
+            $ulbId = $user->ulb_id ?? 2;
+            $perPage = $request->perPage ? $request->perPage : 10;
+            $page = $request->page && $request->page > 0 ? $request->page : 1;
+            $limit = $perPage;
+            $offset =  $request->page && $request->page > 0 ? (($request->page - 1) * $perPage) : 0;
+            $wardId = $zoneId = $paymentMode = $userId = null;
+            if ($request->fromDate) {
+                $fromDate = $request->fromDate;
+            }
+            if ($request->uptoDate) {
+                $uptoDate = $request->uptoDate;
+            }
+            if ($request->wardId) {
+                $wardId = $request->wardId;
+            }
+            if ($request->zoneId) {
+                $zoneId = $request->zoneId;
+            }
+            if ($request->paymentMode) {
+                $paymentMode = $request->paymentMode;
+            }
+            if ($request->userId) {
+                $userId = $request->userId;
+            }
+            $sql = "
+                SELECT  water_trans_sub.*,
+                    users.id as user_id,
+                    users.name,
+                    users.mobile,
+                    users.photo,
+                    users.photo_relative_path
+                FROM(
+                    SELECT SUM(amount) as total_amount,
+                        count(wt.id) as total_tran,
+                        count(distinct wt.related_id) as total_water, 
+                        wt.emp_dtl_id                   
+                    FROM water_trans as wt  
+                    JOIN water_second_consumers wsc on wsc.id = wt.related_id                 
+                    WHERE wt.status IN (1,2)
+                    AND wt.tran_type = 'Demand Collection'
+                   
+                        AND wt.tran_date BETWEEN '$fromDate' AND '$uptoDate'
+                        " . ($wardId ? " AND water_second_consumers.ward_mstr_id = $wardId" : "") . "
+                        " . ($zoneId ? " AND water_second_consumers.zone_mstr_id	 = $zoneId" : "") . "
+                        " . ($userId ? " AND wt.emp_dtl_id = $userId" : "") . "
+                    GROUP BY wt.emp_dtl_id
+                    ORDER BY wt.emp_dtl_id
+                ) water_trans_sub
+                JOIN users ON users.id = water_trans_sub.emp_dtl_id
+            ";
+            $data = DB::connection('pgsql_water')->select($sql . " limit $limit offset $offset");
+            $count = (collect(DB::connection('pgsql_water')->SELECT("SELECT COUNT(*)AS total, SUM(total_amount) AS total_amount FROM ($sql) total"))->first());
+            $tran = (collect(DB::connection('pgsql_water')->SELECT("SELECT COUNT(*)AS total, SUM(total_tran) AS total_tran FROM ($sql) total"))->first());
+            $total = ($count)->total ?? 0;
+            $sum = ($count)->total_amount ?? 0;
+            $lastPage = ceil($total / $perPage);
+            $total = ($tran)->total ?? 0;
+            $tran_sum = ($tran)->total_tran ?? 0;
+            $list = [
+                "current_page" => $page,
+                "data" => $data,
+                "total" => $total,
+                "total_sum" => $sum,
+                "per_page" => $perPage,
+                "last_page" => $lastPage,
+                "total_tran_sum" => $tran_sum
+            ];
+            return responseMsgs(true, "", $list, "", 01, responseTime(), $request->getMethod(), $request->deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $request->getMethod(), $request->deviceId);
         }
     }
 }

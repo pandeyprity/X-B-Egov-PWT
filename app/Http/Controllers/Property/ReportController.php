@@ -1266,15 +1266,18 @@ class ReportController extends Controller
                 JOIN users ON users.id = prop_transactions.user_id
             ";
             $data = DB::select($sql." limit $limit offset $offset");
-            $count = (collect(DB::SELECT("SELECT COUNT(*)AS total, SUM(total_amount) AS total_amount FROM ($sql) total"))->first());
+            $count = (collect(DB::SELECT("SELECT COUNT(*)AS total, SUM(total_amount) AS total_amount,sum(total_tran) as total_tran
+                                          FROM ($sql) total"))->first());
             $total = ($count)->total??0;
             $sum = ($count)->total_amount??0;
+            $totalBillCut = ($count)->total_tran??0;
             $lastPage = ceil($total / $perPage);
             $list = [
                 "current_page" => $page,
                 "data" => $data,
                 "total" => $total,
                 "total_sum" => $sum,
+                "totalBillCut" => $totalBillCut,
                 "per_page" => $perPage,
                 "last_page" => $lastPage
             ];

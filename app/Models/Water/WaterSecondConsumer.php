@@ -275,6 +275,18 @@ class WaterSecondConsumer extends Model
         return WaterSecondConsumer::where('id', $applicationId)
             ->where('status', 1);
     }
+       /**
+     * | Dectivate the water Consumer 
+     * | @param req
+     */
+    public function dissconnetConsumer($consumerId, $status)
+    {
+        WaterSecondConsumer::where('id', $consumerId)
+            ->update([
+                'status' => $status
+            ]);
+    }
+
     /**
      * 
      */

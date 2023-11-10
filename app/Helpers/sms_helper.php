@@ -70,9 +70,9 @@ if(!function_exists('send_sms'))
 {
     function send_sms($mobile,$message, $templateid)
     {
-        $res=SMSAKGOVT("7050180186", $message, $templateid);
-        //print_var($message);
-        // $res=SMSJHGOVT($mobile, $message, $templateid);
+        $res=SMSAKGOVT("6206998554", $message, $templateid);
+        print_var($message);
+        $res=SMSJHGOVT($mobile, $message, $templateid);
         return $res;
     }
 }
