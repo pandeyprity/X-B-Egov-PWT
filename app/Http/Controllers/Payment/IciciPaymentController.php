@@ -98,32 +98,6 @@ class IciciPaymentController extends Controller
         $mApiMaster = new ApiMaster();
 
         try {
-
-            // $webhook = [
-            //     "IcId"          => "378278",
-            //     "TrnId"         => "231107168205627",
-            //     "PayMode"       => "UPI_ICICI",
-            //     "TrnDate"       => "2023-11-07 16:04:28.0",
-            //     "SettleDT"      => "2023-11-07 19:33:03.0",
-            //     "Status"        => "Success",
-            //     "InitiateDT"    => "08-Nov-23",
-            //     "TranAmt"       => "1",
-            //     "BaseAmt"       => "1",
-            //     "ProcFees"      => "0",
-            //     "STax"          => "0",
-            //     "M_SGST"        => "0",
-            //     "M_CGST"        => "0",
-            //     "M_UTGST"       => "0",
-            //     "M_STCESS"      => "0",
-            //     "M_CTCESS"      => "0",
-            //     "M_IGST"        => "0",
-            //     "GSTState"      => "MH",
-            //     "BillingState"  => "MH",
-            //     "Remarks"       => "1699511340737516641~Subject to realization",
-            //     "HashVal"       => "2a39772feae0571f53a113c82d8fd6d6a35ce5eff0795b529dc9dd97503ef30700ad372506e82de9a31bf62f016169a86e9b2572dce9256f3363f858d28dbf02"
-            // ];
-
-
             # Save the data in file 
             $webhoohEncripted = $req->getContent();
             $getRefUrl = new GetRefUrl();
@@ -131,9 +105,7 @@ class IciciPaymentController extends Controller
             Storage::disk('public')->put('icici/webhook/' . $webhookData->TrnId . '.json', json_encode($webhookData));
             $refNo = $webhookData->Remarks;
             $refNo = explode('~', $refNo, 2);
-
-
-            return true;
+            $refNo = $refNo['0'];
 
             # Get the payamen request
             $paymentReqsData = $mIciciPaymentReq->findByReqRefNoV2($refNo);
@@ -141,7 +113,7 @@ class IciciPaymentController extends Controller
                 throw new Exception("Payment request dont exist for $refNo");
             }
 
-            if ($req->Status == 'Success') {
+            if ($webhookData->Status == 'SUCCESS') {
                 // $updReqs = [
                 //     'res_ref_no'        => $refNo,
                 //     'payment_status'    => 1
@@ -168,10 +140,10 @@ class IciciPaymentController extends Controller
                         ])->post($endPoint->end_point . 'api/payment/v1/get-referal-url', $webhookData);
                         break;
 
-                    case '2':
+                    case '0':
 
                         break;
-                    case '2':
+                    case '0':
 
                         break;
                 }
@@ -213,19 +185,9 @@ class IciciPaymentController extends Controller
             // ];
 
 
-
             # Save the callback data
             $mIciciPaymentReq = new IciciPaymentReq();
             Storage::disk('public')->put('icici/callback/' . $req->Unique_Ref_Number . '.json', json_encode($req->all()));
-
-            # Call back data 
-            $refData = [
-                "callBack" => "https://modernulb.com/property/payment-success/1"
-            ];
-            return view('icici_payment_call_back', $refData);
-
-
-
 
             # Check if the payament is success 
             if ($req->Response_Code == "E000") {
@@ -266,3 +228,29 @@ class IciciPaymentController extends Controller
         }
     }
 }
+
+
+
+            // $webhook = [
+            //     "IcId"          => "378278",
+            //     "TrnId"         => "231107168205627",
+            //     "PayMode"       => "UPI_ICICI",
+            //     "TrnDate"       => "2023-11-07 16:04:28.0",
+            //     "SettleDT"      => "2023-11-07 19:33:03.0",
+            //     "Status"        => "Success",
+            //     "InitiateDT"    => "08-Nov-23",
+            //     "TranAmt"       => "1",
+            //     "BaseAmt"       => "1",
+            //     "ProcFees"      => "0",
+            //     "STax"          => "0",
+            //     "M_SGST"        => "0",
+            //     "M_CGST"        => "0",
+            //     "M_UTGST"       => "0",
+            //     "M_STCESS"      => "0",
+            //     "M_CTCESS"      => "0",
+            //     "M_IGST"        => "0",
+            //     "GSTState"      => "MH",
+            //     "BillingState"  => "MH",
+            //     "Remarks"       => "1699511340737516641~Subject to realization",
+            //     "HashVal"       => "2a39772feae0571f53a113c82d8fd6d6a35ce5eff0795b529dc9dd97503ef30700ad372506e82de9a31bf62f016169a86e9b2572dce9256f3363f858d28dbf02"
+            // ];

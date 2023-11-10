@@ -24,6 +24,7 @@ use App\Models\Water\WaterApplication;
 use App\Models\Water\WaterChequeDtl;
 use App\Models\Water\WaterConnectionCharge;
 use App\Models\Water\WaterConsumer;
+use App\Models\Water\WaterConsumerCollection;
 use App\Models\Water\WaterConsumerDemand;
 use App\Models\Water\WaterPenaltyInstallment;
 use App\Models\Water\WaterTran;
@@ -213,9 +214,9 @@ class BankReconcillationController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'moduleId' => 'required',
-                'chequeId' => 'required',
-                'status' => 'required|in:clear,bounce',
+                'moduleId'      => 'required',
+                'chequeId'      => 'required',
+                'status'        => 'required|in:clear,bounce',
                 'clearanceDate' => 'required'
             ]);
 
@@ -355,7 +356,7 @@ class BankReconcillationController extends Controller
             if ($moduleId == $waterModuleId) {
 
                 # Find Cheque details 
-                $mChequeDtl =  WaterChequeDtl::find($request->chequeId);
+                $mChequeDtl = WaterChequeDtl::find($request->chequeId);
                 $mChequeDtl->status             = $paymentStatus;
                 $mChequeDtl->clear_bounce_date  = $request->clearanceDate;
                 $mChequeDtl->bounce_amount      = $request->cancellationCharge;
@@ -373,14 +374,6 @@ class BankReconcillationController extends Controller
                         ]
                     );
 
-                WaterApplication::where('id', $mChequeDtl->application_id)
-                    ->update(
-                        [
-                            'payment_status' => $applicationPaymentStatus
-                        ]
-                    );
-
-
                 # If the transaction bounce
                 if ($paymentStatus == 3) {
                     $waterTranDtls = WaterTranDetail::where('tran_id', $transaction->id)
@@ -388,25 +381,43 @@ class BankReconcillationController extends Controller
                         ->get();
                     $demandIds = $waterTranDtls->pluck('demand_id');
 
+                    # For demand payment 
                     if ($transaction->tran_type == 'Demand Collection') {
-
                         # Map every demand data 
                         $waterTranDtls->map(function ($values, $key)
-                        use ($applicationPaymentStatus) {
+                        use ($applicationPaymentStatus, $transaction) {
                             $conumserDemand = WaterConsumerDemand::where('id', $values->demand_id)->first();
                             $conumserDemand->update(
                                 [
-                                    'paid_status'   => $applicationPaymentStatus,
-                                    'is_full_paid'  => false,
-                                    'due_balance_amount' => ($conumserDemand->due_balance_amount + $values->paid_amount)
+                                    'paid_status'           => $applicationPaymentStatus,
+                                    'is_full_paid'          => false,
+                                    'due_balance_amount'    => ($conumserDemand->due_balance_amount + $values->paid_amount)
                                 ]
                             );
+
+                            # Update the transaction details 
+                            $values->update([
+                                'status'     => $applicationPaymentStatus,
+                                'updated_at' => Carbon::now()
+                            ]);
                         });
+
+                        # Update water consumer collection details 
+                        WaterConsumerCollection::where('transaction_id', $transaction->id)
+                            ->update([
+                                "status" => $applicationPaymentStatus
+                            ]);
                         $wardId = WaterConsumer::find($transaction->related_id)->ward_mstr_id;
                     }
 
-                    # For application payment 
+                    # ❗❗❗ Unfinished code For application payment ❗❗❗
                     if ($transaction->tran_type != 'Demand Collection') {
+                        WaterApplication::where('id', $mChequeDtl->application_id)
+                            ->update(
+                                [
+                                    'payment_status' => $applicationPaymentStatus
+                                ]
+                            );
                         $connectionChargeDtl =  WaterConnectionCharge::find($demandIds);
                         WaterConnectionCharge::whereIn('id', $demandIds)
                             ->update(
@@ -430,8 +441,12 @@ class BankReconcillationController extends Controller
                                     'paid_status' => $applicationPaymentStatus
                                 ]
                             );
+                        $wardId = WaterApplication::find($transaction->related_id)->ward_id;
                     }
-                    $wardId = WaterApplication::find($transaction->related_id)->ward_id;
+                }
+
+                # If the payment got clear
+                if ($paymentStatus == 1) {
                 }
 
                 $request->merge([

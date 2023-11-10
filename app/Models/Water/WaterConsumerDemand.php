@@ -14,6 +14,7 @@ class WaterConsumerDemand extends Model
 {
     use HasFactory;
     protected $connection = 'pgsql_water';
+    protected $guarded = [];
 
 
     /**

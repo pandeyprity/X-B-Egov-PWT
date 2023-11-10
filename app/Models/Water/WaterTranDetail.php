@@ -11,6 +11,7 @@ class WaterTranDetail extends Model
     use HasFactory;
     public $timestamps = false;
     protected $connection = 'pgsql_water';
+    protected $guarded = [];
 
     /**
      * | get Transaction Detail By transId

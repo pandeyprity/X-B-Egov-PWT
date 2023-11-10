@@ -9,6 +9,7 @@ class WaterConsumerCollection extends Model
 {
     use HasFactory;
     protected $connection = 'pgsql_water';
+    protected $guarded = [];
 
     /**
      * | Save consumer demand details for the transactions

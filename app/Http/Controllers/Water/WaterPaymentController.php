@@ -906,7 +906,7 @@ class WaterPaymentController extends Controller
             $request->consumerId ?? $request->applicationId,
             $waterTrans['id'],
             $charges['id'],
-            null
+            $charges->amount
         );
     }
 
