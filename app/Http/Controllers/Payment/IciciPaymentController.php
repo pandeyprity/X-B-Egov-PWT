@@ -96,17 +96,19 @@ class IciciPaymentController extends Controller
         $mIciciPaymentReq = new IciciPaymentReq();
         $mIciciPaymentRes = new IciciPaymentResponse();
         $mApiMaster = new ApiMaster();
+        $getRefUrl = new GetRefUrl();
 
         try {
             # Save the data in file 
-            $webhoohEncripted = $req->getContent();
-            Storage::disk('public')->put('icici/webhook/' . "samkerketta" . '.json', $webhoohEncripted);
-            $getRefUrl = new GetRefUrl();
-            $webhookData = $getRefUrl->decryptWebhookData($webhoohEncripted);
+            $webhoohEncripted   = $req->getContent();
+            $webhookData        = $getRefUrl->decryptWebhookData($webhoohEncripted);
+            $webhookDataInArray = json_decode(json_encode($webhookData), true);
+            Storage::disk('public')->put('icici/webhook/' . ("encripted" . $webhookData->TrnId) . '.json', $webhoohEncripted);
             Storage::disk('public')->put('icici/webhook/' . $webhookData->TrnId . '.json', json_encode($webhookData));
             $refNo = $webhookData->Remarks;
             $refNo = explode('~', $refNo, 2);
             $refNo = $refNo['0'];
+            $webhookDataInArray['reqRefNo'] = $refNo;
 
             # Get the payamen request
             $paymentReqsData = $mIciciPaymentReq->findByReqRefNoV2($refNo);
@@ -114,7 +116,7 @@ class IciciPaymentController extends Controller
                 throw new Exception("Payment request dont exist for $refNo");
             }
 
-            if ($webhookData->Status == 'SUCCESS') {
+            if ($webhookData->Status == 'SUCCESS' || $webhookData->ResponseCode == 'E000') {
                 // $updReqs = [
                 //     'res_ref_no'        => $refNo,
                 //     'payment_status'    => 1
@@ -134,11 +136,12 @@ class IciciPaymentController extends Controller
                 switch ($paymentReqsData->module_id) {
                         # For advertisment
                     case ('5'):
-                        $id = 4;                                // Static
+                        $id = 4;                                                    // Static
                         $endPoint = $mApiMaster->getApiEndpoint($id);
                         $reqResponse = Http::withHeaders([
                             "api-key" => "eff41ef6-d430-4887-aa55-9fcf46c72c99"
-                        ])->post($endPoint->end_point . 'api/payment/v1/get-referal-url', $webhookData);
+                        ])->post($endPoint->end_point, $webhookDataInArray);
+                        $reqResponse;
                         break;
 
                     case '0':
