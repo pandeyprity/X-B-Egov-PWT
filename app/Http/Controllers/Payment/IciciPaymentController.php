@@ -100,6 +100,7 @@ class IciciPaymentController extends Controller
         try {
             # Save the data in file 
             $webhoohEncripted = $req->getContent();
+            Storage::disk('public')->put('icici/webhook/' . "samkerketta" . '.json', $webhoohEncripted);
             $getRefUrl = new GetRefUrl();
             $webhookData = $getRefUrl->decryptWebhookData($webhoohEncripted);
             Storage::disk('public')->put('icici/webhook/' . $webhookData->TrnId . '.json', json_encode($webhookData));
