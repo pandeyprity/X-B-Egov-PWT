@@ -111,7 +111,7 @@ class IciciPaymentController extends Controller
             $webhookDataInArray['reqRefNo'] = $refNo;
 
             # Get the payamen request
-            $paymentReqsData = $mIciciPaymentReq->findByReqRefNoV2($refNo);
+            $paymentReqsData = $mIciciPaymentReq->findByReqRefNoV3($refNo)->first();
             if (!$paymentReqsData) {
                 throw new Exception("Payment request dont exist for $refNo");
             }
@@ -134,21 +134,14 @@ class IciciPaymentController extends Controller
 
                 // ❗❗ Pending for Module Specific Table Updation / Dont user to transfer data to module ❗❗
                 switch ($paymentReqsData->module_id) {
-                        # For advertisment
                     case ('5'):
-                        $id = 4;                                                    // Static
+                        # For advertisment
+                        $id = 4;                                                                            // Static
                         $endPoint = $mApiMaster->getApiEndpoint($id);
                         $reqResponse = Http::withHeaders([
                             "api-key" => "eff41ef6-d430-4887-aa55-9fcf46c72c99"
                         ])->post($endPoint->end_point, $webhookDataInArray);
                         $reqResponse;
-                        break;
-
-                    case '0':
-
-                        break;
-                    case '0':
-
                         break;
                 }
             }
@@ -161,34 +154,12 @@ class IciciPaymentController extends Controller
 
     /**
      * | Collect callback url details for payment
-        | Under con  
+        | Working  
         | Use in case of webhook not used
      */
     public function getCallbackDetial(Request $req)
     {
         try {
-            // $reqBody = [
-            //     "Response_Code"         : "E000",               // Payment status
-            //     "Unique_Ref_Number"     : "2310131666814",      // Tran no
-            //     "Service_Tax_Amount"    : "0.0",
-            //     "Processing_Fee_Amount" : "0.00",
-            //     "Total_Amount"          : "100",
-            //     "Transaction_Amount"    : "100",
-            //     "Transaction_Date"      : "13-10-2023 12:34:35",
-            //     "Interchange_Value"     : null,
-            //     "TDR"                   : null,
-            //     "Payment_Mode"          : "NET_BANKING",
-            //     "SubMerchantId"         : "45",
-            //     "ReferenceNo"           : "1697180633788010986", // Refno
-            //     "ID"                    : "136082",
-            //     "RS"                    : "73b4de05181599bf5809e4bc37edc9c32612e0bbedff71f09f8db68d5a0f9e29bc44be8d8fc7d9d5a5446c9b07674bdf6093a90b18a75b1758dc1ee77d044a6d",
-            //     "TPS"                   : "Y",
-            //     "mandatory_fields"      : "1697180633788010986|45|100|13/Oct/2023|0123456789|xy|xy",
-            //     "optional_fields"       : "X|X|X",
-            //     "RSV"                   : "8c988a820acc67ee8b0ebd2c525e3e4c88575cc2fef7f9c7dc1f2dbbad9002c86471ed446500deb4b6f1e25b11b091f7575469c0d603bccf1ba361c30f83f1a7",
-            // ];
-
-
             # Save the callback data
             $mIciciPaymentReq = new IciciPaymentReq();
             Storage::disk('public')->put('icici/callback/' . $req->Unique_Ref_Number . '.json', json_encode($req->all()));
@@ -233,8 +204,30 @@ class IciciPaymentController extends Controller
     }
 }
 
+            # Call back data 
+            // $reqBody = [
+            //     "Response_Code"         : "E000",               // Payment status
+            //     "Unique_Ref_Number"     : "2310131666814",      // Tran no
+            //     "Service_Tax_Amount"    : "0.0",
+            //     "Processing_Fee_Amount" : "0.00",
+            //     "Total_Amount"          : "100",
+            //     "Transaction_Amount"    : "100",
+            //     "Transaction_Date"      : "13-10-2023 12:34:35",
+            //     "Interchange_Value"     : null,
+            //     "TDR"                   : null,
+            //     "Payment_Mode"          : "NET_BANKING",
+            //     "SubMerchantId"         : "45",
+            //     "ReferenceNo"           : "1697180633788010986", // Refno
+            //     "ID"                    : "136082",
+            //     "RS"                    : "73b4de05181599bf5809e4bc37edc9c32612e0bbedff71f09f8db68d5a0f9e29bc44be8d8fc7d9d5a5446c9b07674bdf6093a90b18a75b1758dc1ee77d044a6d",
+            //     "TPS"                   : "Y",
+            //     "mandatory_fields"      : "1697180633788010986|45|100|13/Oct/2023|0123456789|xy|xy",
+            //     "optional_fields"       : "X|X|X",
+            //     "RSV"                   : "8c988a820acc67ee8b0ebd2c525e3e4c88575cc2fef7f9c7dc1f2dbbad9002c86471ed446500deb4b6f1e25b11b091f7575469c0d603bccf1ba361c30f83f1a7",
+            // ];
 
 
+            # Webhook Data 
             // $webhook = [
             //     "IcId"          => "378278",
             //     "TrnId"         => "231107168205627",

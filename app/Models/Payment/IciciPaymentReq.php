@@ -30,6 +30,15 @@ class IciciPaymentReq extends Model
             ->first();
     }
 
+    /**
+     * | find reqRefNo
+     */
+    public function findByReqRefNoV3($reqRefNo)
+    {
+        return self::where('req_ref_no', $reqRefNo)
+            ->where('status', 1)
+            ->where('payment_status', 0);
+    }
 
     /**
      * | Find with help of Refe No 
