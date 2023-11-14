@@ -1231,8 +1231,17 @@ class WaterReportController extends Controller
             $now                        = Carbon::now();
             $mWaterConsumerDemand       = new WaterConsumerDemand();
             $currentDate                = $now->format('Y-m-d');
-            $wardId                     = $request->wardId;
-            $zoneId                     = $request->zoneId;
+            $wardId = null;
+            $userId = null;
+            $zoneId = null;
+            if ($request->wardId) {
+                $wardId = $request->wardId;
+            }
+
+            if ($request->zoneId) {
+                $zoneId = $request->zoneId;
+            }
+
             $currentYear                = collect(explode('-', $request->fiYear))->first() ?? $now->year;
             $currentFyear               = $request->fiYear ?? getFinancialYear($currentDate);
             $startOfCurrentYear         = Carbon::createFromDate($currentYear, 4, 1);           // Start date of current financial year
@@ -1271,12 +1280,11 @@ class WaterReportController extends Controller
                 (demand_from >= '$fromDate'::date AND demand_upto <= '$uptoDate'::date AND water_consumer_demands.status = TRUE)
                 OR (demand_from >= '$previousFromDate'::date AND demand_upto <= '$previousUptoDate'::date AND water_consumer_demands.STATUS = TRUE)
                 
+                "
+                . ($wardId ? " AND water_second_consumers.ward_mstr_id = $wardId " : "")
+                . ($zoneId ? " AND water_second_consumers.zone_mstr_id = $zoneId " : "")
+                . "
             "
-                . ($wardId ? " AND water_second_consumers.ward_mstr_id = '$wardId' 
-                                 " : "")
-                . ($zoneId ? " AND water_second_consumers.zone_mstr_id = '$zoneId' 
-                               " : "")
-
 
                 . "
                 GROUP BY ulb_ward_masters.ward_name
@@ -1863,6 +1871,320 @@ class WaterReportController extends Controller
             return responseMsgs(true, "", $list, "", 01, responseTime(), $request->getMethod(), $request->deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), "", "", 01, responseTime(), $request->getMethod(), $request->deviceId);
+        }
+    }
+    /**
+     * water ward wise dcb
+     */
+    public function WaterWardWiseDCB(Request $request)
+    {
+        $request->validate(
+            [
+                "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
+                "ulbId" => "nullable|digits_between:1,9223372036854775807",
+                "wardId" => "nullable|digits_between:1,9223372036854775807",
+                // "page" => "nullable|digits_between:1,9223372036854775807",
+                // "perPage" => "nullable|digits_between:1,9223372036854775807",
+            ]
+        );
+        $request->merge(["metaData" => ["pr8.1", 1.1, null, $request->getMethod(), null,]]);
+        $metaData = collect($request->metaData)->all();
+        list($apiId, $version, $queryRunTime, $action, $deviceId) = $metaData;
+        try {
+            $refUser        = authUser($request);
+            $refUserId      = $refUser->id;
+            $ulbId          = $refUser->ulb_id;
+            $now                        = Carbon::now();
+            $mWaterConsumerDemand       = new WaterConsumerDemand();
+            $currentDate                = $now->format('Y-m-d');
+            $zoneId = $wardId = null;
+            $currentYear                = collect(explode('-', $request->fiYear))->first() ?? $now->year;
+            $currentFyear               = $request->fiYear ?? getFinancialYear($currentDate);
+            $startOfCurrentYear         = Carbon::createFromDate($currentYear, 4, 1);           // Start date of current financial year
+            $startOfPreviousYear        = $startOfCurrentYear->copy()->subYear();               // Start date of previous financial year
+            $previousFinancialYear      = getFinancialYear($startOfPreviousYear);
+
+            #get financial  year 
+            $refDate = $this->getFyearDate($currentFyear);
+            $fromDate = $refDate['fromDate'];
+            $uptoDate = $refDate['uptoDate'];
+
+            #common function 
+            $refDate = $this->getFyearDate($previousFinancialYear);
+            $previousFromDate = $refDate['fromDate'];
+            $previousUptoDate = $refDate['uptoDate'];
+            if ($request->ulbId) {
+                $ulbId = $request->ulbId;
+            }
+            if ($request->wardId) {
+                $wardId = $request->wardId;
+            }
+            if ($request->zoneId || $request->zone) {
+                $zoneId = $request->zoneId ?? $request->zone;
+            }
+            $from = "
+            FROM ulb_ward_masters 
+            LEFT JOIN(
+                SELECT water_second_consumers.ward_mstr_id,            
+                    COUNT(DISTINCT (CASE WHEN water_consumer_demands.demand_from >= '$fromDate' AND water_consumer_demands.demand_upto <= '$uptoDate'  THEN water_consumer_demands.consumer_id               
+                                    END)                        
+                        ) as current_demand_hh,    
+                    SUM(              
+                        CASE WHEN water_consumer_demands.demand_from >= '$fromDate' AND water_consumer_demands.demand_upto <= '$uptoDate' THEN water_consumer_demands.balance_amount          
+                        ELSE 0                                   
+                        END                         
+                    ) AS current_demand,       
+                    COUNT(DISTINCT ( CASE WHEN water_consumer_demands.demand_from >= '$previousFromDate' AND water_consumer_demands.demand_upto <= '$previousUptoDate'  THEN water_consumer_demands.balance_amount    
+                                    END)                            
+                        ) as arrear_demand_hh,                       
+                    SUM(CASE WHEN  water_consumer_demands.demand_from >= '$previousFromDate' AND water_consumer_demands.demand_upto <= '$previousUptoDate' THEN (water_consumer_demands.balance_amount) ELSE 0 END ) AS arrear_demand,     
+                    SUM(amount) AS total_demand,
+                    COUNT(DISTINCT (CASE WHEN  water_consumer_demands.demand_from >= '$fromDate' AND water_consumer_demands.demand_upto <= '$uptoDate'   AND water_consumer_demands.paid_status =1 THEN water_consumer_demands.consumer_id               
+                                        END)                        
+                            ) as current_collection_hh,  
+                    SUM(              
+                            CASE WHEN water_consumer_demands.demand_from >= '$fromDate' AND water_consumer_demands.demand_upto <= '$uptoDate'  AND water_consumer_demands.paid_status =1 THEN water_consumer_demands.balance_amount          
+                            ELSE 0                                   
+                            END                        
+                        ) AS current_collection,
+                    COUNT(DISTINCT ( CASE WHEN  water_consumer_demands.demand_from >= '$previousFromDate' AND water_consumer_demands.demand_upto <= '$previousUptoDate' AND water_consumer_demands.paid_status =1 THEN water_consumer_demands.consumer_id
+                                        END)                            
+                            ) as arrear_collection_hh, 
+                    SUM(CASE WHEN water_consumer_demands.demand_from >= '$previousFromDate' AND water_consumer_demands.demand_upto <= '$previousUptoDate'  AND water_consumer_demands.paid_status =1  THEN water_consumer_demands.balance_amount ELSE 0 END ) AS arrear_collection,
+                    SUM(CASE WHEN water_consumer_demands.paid_status =1  then water_consumer_demands.balance_amount ELSE 0 END) AS total_collection,
+                    COUNT(DISTINCT(CASE WHEN water_consumer_demands.paid_status =1  then water_second_consumers.id end)) AS collection_from_no_of_hh 
+                FROM water_consumer_demands                    
+                JOIN water_second_consumers ON water_second_consumers.id = water_consumer_demands.consumer_id
+                WHERE water_consumer_demands.status =true
+                    AND water_consumer_demands.ulb_id =$ulbId   
+                    " . ($wardId ? " AND water_second_consumers.ward_mstr_id = $wardId" : "") . "
+                    AND water_consumer_demands.demand_from >= '$previousFromDate' AND water_consumer_demands.demand_upto <= '$previousUptoDate'
+                GROUP BY water_second_consumers.ward_mstr_id
+            )demands ON demands.ward_mstr_id = ulb_ward_masters.id   
+            left join(
+                SELECT water_second_consumers.ward_mstr_id, SUM(0)AS balance
+                FROM water_second_consumers
+                where water_second_consumers.status = 1 
+                    AND water_second_consumers.ulb_id =$ulbId
+                " . ($wardId ? " AND water_second_consumers.ward_mstr_id = $wardId" : "") . "
+                GROUP BY water_second_consumers.ward_mstr_id
+            ) AS arrear  on arrear.ward_mstr_id = ulb_ward_masters.id                            
+            WHERE  ulb_ward_masters.ulb_id = $ulbId  
+                " . ($wardId ? " AND ulb_ward_masters.id = $wardId" : "") . "
+            GROUP BY ulb_ward_masters.ward_name         
+        ";
+   
+            $select = "SELECT ulb_ward_masters.ward_name AS ward_no,
+                        SUM(COALESCE(demands.current_demand_hh, 0::numeric)) AS current_demand_hh,   
+                        SUM(COALESCE(demands.arrear_demand_hh, 0::numeric)) AS arrear_demand_hh,      
+                        SUM(COALESCE(demands.current_collection_hh, 0::numeric)) AS current_collection_hh,  
+                        SUM(COALESCE(demands.arrear_collection_hh, 0::numeric)) AS arrear_collection_hh,      
+                        SUM(COALESCE(demands.collection_from_no_of_hh, 0::numeric)) AS collection_from_hh,   
+                        round(
+                            SUM(
+                                (
+                                        COALESCE(demands.arrear_collection_hh, 0::numeric) 
+                                        / (case when COALESCE(demands.arrear_demand_hh, 0::numeric) > 0  then demands.arrear_demand_hh else 1 end)
+                                )
+                                *100
+                            )
+                        ) AS arrear_hh_eff,                            
+                        round(
+                            SUM(
+                                (
+                                    COALESCE(demands.current_collection_hh, 0::numeric) 
+                                    / (case when COALESCE(demands.current_demand_hh, 0::numeric) > 0 then demands.current_demand_hh else 1 end)
+                                )
+                                *100
+                            )
+                        ) AS current_hh_eff,                            
+                        round(
+                            SUM(
+                                COALESCE(                                
+                                    COALESCE(demands.current_demand_hh, 0::numeric)  
+                                    +COALESCE(demands.arrear_demand_hh, 0::numeric)
+                                    - COALESCE(demands.collection_from_no_of_hh, 0::numeric), 0::numeric     
+                                )
+                            )
+                        ) AS balance_hh,                                                   
+                        round(
+                            SUM(
+                                COALESCE(                                
+                                    COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)   
+                                )
+                            )
+                        ) AS arrear_demand,    
+                        round(SUM(COALESCE(demands.current_demand, 0::numeric))) AS current_demand,   
+                        round(SUM(COALESCE(demands.arrear_collection, 0::numeric))) AS arrear_collection,   
+                        round(SUM(COALESCE(demands.current_collection, 0::numeric))) AS current_collection, 
+                        round(
+                            SUM(
+                                (                                    
+                                    COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)                              
+                                    - COALESCE(demands.arrear_collection, 0::numeric)           
+                                )
+                            )
+                        )AS old_due,                          
+                        round(SUM((COALESCE(demands.current_demand, 0::numeric) - COALESCE(demands.current_collection, 0::numeric)))) AS current_due,    
+                        round(SUM((COALESCE(demands.current_demand_hh, 0::numeric) - COALESCE(demands.current_collection_hh, 0::numeric)))) AS current_balance_hh, 
+                        round(SUM((COALESCE(demands.arrear_demand_hh, 0::numeric) - COALESCE(demands.arrear_collection_hh, 0::numeric)))) AS arrear_balance_hh,   
+                        round(
+                            SUM(
+                                (
+                                    COALESCE(demands.arrear_collection ::numeric , 0::numeric)
+                                    / (case when (COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)) > 0 then demands.arrear_demand else 1 end)
+                                    
+                                )
+                                *100
+                            )
+                        ) AS arrear_eff,                            
+                        round(
+                            SUM(
+                                (
+                                    COALESCE(demands.current_collection, 0::numeric)
+                                        / (case when COALESCE(demands.current_demand, 0::numeric) > 0  then demands.current_demand else 1 end)
+                                    
+                                )
+                                *100
+                            )
+                        ) AS current_eff,
+                        round(
+                            SUM(
+                                (                                
+                                    COALESCE(                                   
+                                        COALESCE(demands.current_demand, 0::numeric)         
+                                        + (                                       
+                                            COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)  
+                                        ), 0::numeric                                
+                                    )                                 
+                                    - COALESCE(                              
+                                        COALESCE(demands.current_collection, 0::numeric)   
+                                        + COALESCE(demands.arrear_collection, 0::numeric), 0::numeric     
+                                    )                            
+                                )
+                            )
+                        ) AS outstanding                                  
+        ";
+            $select = "SELECT ulb_ward_masters.ward_name AS ward_no,ulb_ward_masters.ward_name,
+                            SUM(COALESCE(demands.current_demand_hh, 0::numeric)) AS current_demand_hh,   
+                            SUM(COALESCE(demands.arrear_demand_hh, 0::numeric)) AS arrear_demand_hh,      
+                            SUM(COALESCE(demands.current_collection_hh, 0::numeric)) AS current_collection_hh,  
+                            SUM(COALESCE(demands.arrear_collection_hh, 0::numeric)) AS arrear_collection_hh,      
+                            SUM(COALESCE(demands.collection_from_no_of_hh, 0::numeric)) AS collection_from_hh,   
+                            round(
+                                SUM(
+                                    (
+                                            COALESCE(demands.arrear_collection_hh, 0::numeric) 
+                                            / (case when COALESCE(demands.arrear_demand_hh, 0::numeric) > 0  then demands.arrear_demand_hh else 1 end)
+                                    )
+                                    *100
+                                )
+                            ) AS arrear_hh_eff,                            
+                            round(
+                                SUM(
+                                    (
+                                        COALESCE(demands.current_collection_hh, 0::numeric) 
+                                        / (case when COALESCE(demands.current_demand_hh, 0::numeric) > 0 then demands.current_demand_hh else 1 end)
+                                    )
+                                    *100
+                                )
+                            ) AS current_hh_eff,                            
+                            round(
+                                SUM(
+                                    COALESCE(                                
+                                        COALESCE(demands.current_demand_hh, 0::numeric)  
+                                        +COALESCE(demands.arrear_demand_hh, 0::numeric)
+                                        - COALESCE(demands.collection_from_no_of_hh, 0::numeric), 0::numeric     
+                                    )
+                                )
+                            ) AS balance_hh,                                                   
+                            round(
+                                SUM(
+                                    COALESCE(                                
+                                        COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)   
+                                    )
+                                )
+                            ) AS arrear_demand,    
+                            round(SUM(COALESCE(demands.current_demand, 0::numeric))) AS current_demand,   
+                            round(SUM(COALESCE(demands.arrear_collection, 0::numeric))) AS arrear_collection,   
+                            round(SUM(COALESCE(demands.current_collection, 0::numeric))) AS current_collection, 
+                            round(
+                                SUM(
+                                    (                                    
+                                        COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)                              
+                                        - COALESCE(demands.arrear_collection, 0::numeric)           
+                                    )
+                                )
+                            )AS old_due,                          
+                            round(SUM((COALESCE(demands.current_demand, 0::numeric) - COALESCE(demands.current_collection, 0::numeric)))) AS current_due,    
+                            round(SUM((COALESCE(demands.current_demand_hh, 0::numeric) - COALESCE(demands.current_collection_hh, 0::numeric)))) AS current_balance_hh, 
+                            round(SUM((COALESCE(demands.arrear_demand_hh, 0::numeric) - COALESCE(demands.arrear_collection_hh, 0::numeric)))) AS arrear_balance_hh,   
+                            round(
+                                SUM(
+                                    (
+                                        COALESCE(demands.arrear_collection ::numeric , 0::numeric)
+                                        / (case when (COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)) > 0 then demands.arrear_demand else 1 end)
+                                        
+                                    )
+                                    *100
+                                )
+                            ) AS arrear_eff,                            
+                            round(
+                                SUM(
+                                    (
+                                        COALESCE(demands.current_collection, 0::numeric)
+                                            / (case when COALESCE(demands.current_demand, 0::numeric) > 0  then demands.current_demand else 1 end)
+                                        
+                                    )
+                                    *100
+                                )
+                            ) AS current_eff,
+                            round(
+                                SUM(
+                                    (                                
+                                        COALESCE(                                   
+                                            COALESCE(demands.current_demand, 0::numeric)         
+                                            + (                                       
+                                                COALESCE(demands.arrear_demand, 0::numeric) + COALESCE(arrear.balance, 0::numeric)  
+                                            ), 0::numeric                                
+                                        )                                 
+                                        - COALESCE(                              
+                                            COALESCE(demands.current_collection, 0::numeric)   
+                                            + COALESCE(demands.arrear_collection, 0::numeric), 0::numeric     
+                                        )                            
+                                    )
+                                )
+                            ) AS outstanding                                  
+            ";
+            $dcb = DB::connection('pgsql_water')->select($select . $from);
+
+            $data['total_arrear_demand'] = round(collect($dcb)->sum('arrear_demand'), 0);
+            $data['total_current_demand'] = round(collect($dcb)->sum('current_demand'), 0);
+            $data['total_arrear_collection'] = round(collect($dcb)->sum('arrear_collection'), 0);
+            $data['total_current_collection'] = round(collect($dcb)->sum('current_collection'), 0);
+            $data['total_old_due'] = round(collect($dcb)->sum('old_due'), 0);
+            $data['total_current_due'] = round(collect($dcb)->sum('current_due'), 0);
+            $data['total_arrear_demand_hh'] = round(collect($dcb)->sum('arrear_demand_hh'), 0);
+            $data['total_current_demand_hh'] = round(collect($dcb)->sum('current_demand_hh'), 0);
+            $data['total_arrear_collection_hh'] = round(collect($dcb)->sum('arrear_collection_hh'), 0);
+            $data['total_current_collection_hh'] = round(collect($dcb)->sum('current_collection_hh'), 0);
+            $data['total_arrear_balance_hh'] = round(collect($dcb)->sum('arrear_balance_hh'));
+            $data['total_current_balance_hh'] = round(collect($dcb)->sum('current_balance_hh'));
+            // $data['total_current_eff'] = round(($data['total_current_collection_hh'] / $data['total_current_demand']) * 100);
+            // $data['total_arrear_hh_eff'] = round(($data['total_arrear_collection_hh'] /  $data['total_arrear_demand_hh']) * 100);
+            // $data['total_current_hh_eff'] = round(($data['total_current_collection_hh']) / ($data['total_current_demand_hh']) * 100);
+            // $data['total_arrear_eff'] = round(($data['total_arrear_collection']) / ($data['total_arrear_demand']) * 100);
+            $data['total_eff'] = round((($data['total_arrear_collection'] + $data['total_current_collection']) / ($data['total_arrear_demand'] + $data['total_current_demand'])) * 100);
+            $data['dcb'] = collect($dcb)->sortBy(function ($item) {
+                // Extract the numeric part from the "ward_name"
+                preg_match('/\d+/', $item->ward_name, $matches);
+                return (int) ($matches[0] ?? "");
+            })->values();
+
+            $queryRunTime = (collect(DB::getQueryLog())->sum("time"));
+            return responseMsgs(true, "", $data, $apiId, $version, $queryRunTime, $action, $deviceId);
+        } catch (Exception $e) {
+            return responseMsgs(false, [$e->getMessage(), $e->getFile(), $e->getLine()], $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
 }
