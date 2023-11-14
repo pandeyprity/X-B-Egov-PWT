@@ -1883,6 +1883,7 @@ class WaterReportController extends Controller
                 "fiYear" => "nullable|regex:/^\d{4}-\d{4}$/",
                 "ulbId" => "nullable|digits_between:1,9223372036854775807",
                 "wardId" => "nullable|digits_between:1,9223372036854775807",
+                "zoneId" => "nullable|digits_between:1,9223372036854775807",
                 // "page" => "nullable|digits_between:1,9223372036854775807",
                 // "perPage" => "nullable|digits_between:1,9223372036854775807",
             ]
@@ -1971,6 +1972,7 @@ class WaterReportController extends Controller
             ) AS arrear  on arrear.ward_mstr_id = ulb_ward_masters.id                            
             WHERE  ulb_ward_masters.ulb_id = $ulbId  
                 " . ($wardId ? " AND ulb_ward_masters.id = $wardId" : "") . "
+                " . ($zoneId ? " AND ulb_ward_masters.zone = $zoneId" : "") . "
             GROUP BY ulb_ward_masters.ward_name         
         ";
             $select = "SELECT ulb_ward_masters.ward_name AS ward_no,
