@@ -1958,7 +1958,7 @@ class WaterReportController extends Controller
                 WHERE water_consumer_demands.status =true
                     AND water_consumer_demands.ulb_id =$ulbId   
                     " . ($wardId ? " AND water_second_consumers.ward_mstr_id = $wardId" : "") . "
-                    AND water_consumer_demands.demand_from >= '$previousFromDate' AND water_consumer_demands.demand_upto <= '$previousUptoDate'
+                    AND water_consumer_demands.demand_upto <= '$uptoDate'
                 GROUP BY water_second_consumers.ward_mstr_id
             )demands ON demands.ward_mstr_id = ulb_ward_masters.id   
             left join(
@@ -1973,7 +1973,6 @@ class WaterReportController extends Controller
                 " . ($wardId ? " AND ulb_ward_masters.id = $wardId" : "") . "
             GROUP BY ulb_ward_masters.ward_name         
         ";
-   
             $select = "SELECT ulb_ward_masters.ward_name AS ward_no,
                         SUM(COALESCE(demands.current_demand_hh, 0::numeric)) AS current_demand_hh,   
                         SUM(COALESCE(demands.arrear_demand_hh, 0::numeric)) AS arrear_demand_hh,      
