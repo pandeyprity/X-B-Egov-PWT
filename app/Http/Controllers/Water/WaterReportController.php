@@ -2175,7 +2175,9 @@ class WaterReportController extends Controller
             // $data['total_arrear_hh_eff'] = round(($data['total_arrear_collection_hh'] /  $data['total_arrear_demand_hh']) * 100);
             // $data['total_current_hh_eff'] = round(($data['total_current_collection_hh']) / ($data['total_current_demand_hh']) * 100);
             // $data['total_arrear_eff'] = round(($data['total_arrear_collection']) / ($data['total_arrear_demand']) * 100);
-            $data['total_eff'] = round((($data['total_arrear_collection'] + $data['total_current_collection']) / ($data['total_arrear_demand'] + $data['total_current_demand'])) * 100);
+            $refCollection = $data['total_arrear_collection'] + $data['total_current_collection'];
+            $refDemand = $data['total_arrear_demand'] + $data['total_current_demand'];
+            $data['total_eff'] = round((($refCollection) / ($refDemand == 0 ? 1 : $refDemand)) * 100);
             $data['dcb'] = collect($dcb)->sortBy(function ($item) {
                 // Extract the numeric part from the "ward_name"
                 preg_match('/\d+/', $item->ward_name, $matches);
