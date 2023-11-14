@@ -197,6 +197,7 @@ class GetHoldingDuesV2
                 "major_building" => roundFigure($item->sum('major_building')),
                 "total_tax" => roundFigure($item->sum('total_tax')),
                 "balance" => roundFigure($item->sum('balance')),
+                "open_ploat_tax" => roundFigure($item->sum('open_ploat_tax')),
                 "monthlyPenalty" => roundFigure($item->sum('monthlyPenalty')),
             ];
         });
