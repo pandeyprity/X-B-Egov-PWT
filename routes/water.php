@@ -192,7 +192,8 @@ Route::group(['middleware' => ['json.response', 'auth_maker']], function () { //
         Route::post('report/billing-summary', 'billingSummary');
         Route::post('ward-list', 'WardList');
         Route::post('report/tc-collection', 'WaterCollectionReport');                                       // tc collection report
-        Route::post('reports/user-wise/coll-summary', 'userWiseCollectionSummary');                        // tc over all report 
+        Route::post('reports/user-wise/coll-summary', 'userWiseCollectionSummary');                        // tc over all report
+        Route::post('report/water-demands-reports','WaterDemandsReport');
     });
 
 
