@@ -1352,7 +1352,7 @@ class HoldingTaxController extends Controller
             $cheqeDtl = new PropChequeDtl();
             $log = new OldChequeTranEntery();
             $now = Carbon::now()->format("Y-m-d");
-            $mRegex         = '/^[a-zA-Z1-9][a-zA-Z1-9\.\s\/\-]+$/i';
+            $mRegex         = '/^[a-zA-Z1-9][a-zA-Z1-9\.\s\/\-\_\,]+$/i';
             $validator = Validator::make($request->all(),
                 [
                     "propId"        =>  "required|digits_between:1,9223372036854775807",
@@ -1457,7 +1457,7 @@ class HoldingTaxController extends Controller
             $cheqeDtl->save();
             
             // dd($olddemand,$totalTax,$interId,$demand,$tran,$tranDtl,$cheqeDtl);
-            // DB::commit();
+            DB::commit();
             $returnData = ['TransactionNo' => $tran->tran_no, 'transactionId' => $tran->id];
             return responseMsgs(true, "Transection Inserted", $returnData, "1", "1.0", "", "", $request->deviceId ?? "");
         }
