@@ -1361,8 +1361,9 @@ class HoldingTaxController extends Controller
                     "bookNo"        =>  "required|regex:$mRegex",
                     "ReceiptNo"     =>  "required|digits_between:1,922337",
                     "tranDate"      =>  "required|date|before_or_equal:$now",
-                    "chequeNo"      =>  "required",
-                    "bankName"      =>  "required|regex:$mRegex",
+                    "paymentMode"   =>  "required|in:CASH,CHEQUE,DD,NEFT",
+                    "chequeNo"      =>  ($request->paymentMode && $request->paymentMode !="CASH" ? "required":"nullable"),
+                    "bankName"      =>  ($request->paymentMode && $request->paymentMode !="CASH" ? "required|regex:$mRegex":"nullable"),
                     "branchName"    =>  "nullable|regex:$mRegex",
                     "clearStatus"   =>  "required|in:pending,clear",
                     "amount"        =>  "required|numeric|min:0|max:9999999",
@@ -1441,7 +1442,6 @@ class HoldingTaxController extends Controller
                 "totalTax" => $totalTax,
                 "demand"=>$demand,
                 "userId"=>$userId,
-                "paymentMode" =>Config::get("payment-constants.PAYMENT_MODE.4"),
             ];
             $request->merge($meta_request);
             DB::beginTransaction();
@@ -1456,8 +1456,11 @@ class HoldingTaxController extends Controller
             $interId = $log->store($request);
             $this->tranDtlInsert($request,$tranDtl,$tran,$demand,$prop);
             $tranDtl->save();
-            $this->chequDtlInsert($request,$cheqeDtl,$tran,$prop);
-            $cheqeDtl->save();
+            if($request->paymentMode!="CASH")
+            {
+                $this->chequDtlInsert($request,$cheqeDtl,$tran,$prop);
+                $cheqeDtl->save();
+            }
             $this->penaltyRebateInsert($request,$penaltyrebates,$tran);
             $penaltyrebates->save();
             
