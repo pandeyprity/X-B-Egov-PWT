@@ -1350,6 +1350,7 @@ class HoldingTaxController extends Controller
             $tran = new PropTransaction();
             $tranDtl = new PropTranDtl();
             $cheqeDtl = new PropChequeDtl();
+            $penaltyrebates = new PropPenaltyrebate();
             $log = new OldChequeTranEntery();
             $now = Carbon::now()->format("Y-m-d");
             $mRegex         = '/^[a-zA-Z1-9][a-zA-Z1-9\.\s\/\-\_\,]+$/i';
@@ -1455,6 +1456,8 @@ class HoldingTaxController extends Controller
             $tranDtl->save();
             $this->chequDtlInsert($request,$cheqeDtl,$tran,$prop);
             $cheqeDtl->save();
+            $this->penaltyRebateInsert($request,$penaltyrebates,$tran);
+            $penaltyrebates->save();
             
             // dd($olddemand,$totalTax,$interId,$demand,$tran,$tranDtl,$cheqeDtl);
             DB::commit();
@@ -1513,7 +1516,6 @@ class HoldingTaxController extends Controller
     {
         $tranDtl->tran_id        = $tran->id;
         $tranDtl->prop_demand_id = $demand->id;
-        $tranDtl->prop_demand_id = $demand->total_tax;
         $tranDtl->ulb_id         = $prop->ulb_id;
         $tranDtl->paid_maintanance_amt  = $request->maintananceAmt;
         $tranDtl->paid_aging_amt  = $request->agingAmt;
@@ -1553,5 +1555,15 @@ class HoldingTaxController extends Controller
         {
             $cheqeDtl->clear_bounce_date = $tran->tran_date;
         }
+    }
+    private function penaltyRebateInsert(Request $request,PropPenaltyrebate $penaltyrebates,PropTransaction $tran)
+    {
+        $penaltyrebates->tran_id =  $tran->id;
+        $penaltyrebates->head_name =  'Monthly Penalty';
+        $penaltyrebates->amount =  $request->penalty;
+        $penaltyrebates->is_rebate =  false;
+        $penaltyrebates->tran_date =  $tran->tran_date;
+        $penaltyrebates->prop_id =  $tran->property_id;
+        $penaltyrebates->app_type =  $tran->tran_type;
     }
 }
