@@ -1457,7 +1457,7 @@ class HoldingTaxController extends Controller
             $cheqeDtl->save();
             
             // dd($olddemand,$totalTax,$interId,$demand,$tran,$tranDtl,$cheqeDtl);
-            DB::commit();
+            // DB::commit();
             $returnData = ['TransactionNo' => $tran->tran_no, 'transactionId' => $tran->id];
             return responseMsgs(true, "Transection Inserted", $returnData, "1", "1.0", "", "", $request->deviceId ?? "");
         }
