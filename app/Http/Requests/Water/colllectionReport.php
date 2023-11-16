@@ -2,9 +2,10 @@
 
 namespace App\Http\Requests\water;
 
+use App\Http\Requests\AllRequest;
 use Illuminate\Foundation\Http\FormRequest;
 
-class colllectionReport extends FormRequest
+class colllectionReport extends AllRequest
 {
     /**
      * Determine if the user is authorized to make this request.
