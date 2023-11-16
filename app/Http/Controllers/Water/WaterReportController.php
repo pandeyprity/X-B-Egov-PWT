@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Config;
 use App\Models\Water\WaterConsumerDemand;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Water\WaterSecondConsumer;
-use  App\Http\Requests\water\colllectionReport;
+use  App\Http\Requests\Water\colllectionReport;
 
 
 /**
@@ -1776,7 +1776,7 @@ class WaterReportController extends Controller
             return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
-    
+
     # over all tc collection report 
     public function userWiseCollectionSummary(Request $request)
     {
