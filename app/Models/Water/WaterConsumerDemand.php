@@ -405,4 +405,35 @@ class WaterConsumerDemand extends Model
         return WaterConsumerDemand::where('id', $demandId)
             ->where('status', True);
     }
+    public function wardWiseConsumer($req)
+    {
+        return WaterConsumerDemand::select(
+            'water_consumer_demands.*',
+            'water_second_consumers.consumer_no',
+            'water_consumer_owners.guardian_name',
+            'water_second_consumers.mobile_no',
+            'water_second_consumers.address',
+            'water_consumer_demands.balance_amount',
+            'water_second_consumers.ward_mstr_id',
+            'ulb_ward_masters.ward_name as ward_no',
+        )
+            ->join('water_second_consumers', 'water_second_consumers.id', 'water_consumer_demands.consumer_id')
+            ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
+            ->join('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
+            ->where('paid_status', 0)
+            ->where('water_consumer_demands.demand_from', $req->fromDate)
+            ->where('water_consumer_demands.demand_upto', $req->fromDate)
+            ->where('water_second_consumers.ulb_id', $req->ulbId)
+            ->where('water_second_consumers.ward_mstr_id', $req->wardMstrId)
+            ->groupby(
+                'water_consumer_demands.consumer_id',
+                'water_consumer_demands.balance_amount',
+                'water_second_consumers.ward_mstr_id',
+                'water_consumer_demands.id',
+                'water_second_consumers.consumer_no'
+                // 'qtr'
+            )
+            ->paginate($req->perPage);
+        // ->get();
+    }
 }

@@ -1776,6 +1776,7 @@ class WaterReportController extends Controller
             return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
+    
     # over all tc collection report 
     public function userWiseCollectionSummary(Request $request)
     {
@@ -2505,4 +2506,41 @@ class WaterReportController extends Controller
             return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
+    /**
+     * |
+     */
+     /**
+     * | Ward wise holding report
+     */
+    public function wardWiseConsumerReport(Request $request)
+    {
+        $mconsumerDemand = new waterConsumerDemand();
+        $wardMstrId = $request->wardMstrId;
+        $ulbId = authUser($request)->ulb_id;
+        $currentMonth = Carbon::now()->month;
+        $currentYear = Carbon::now()->year;
+        $start = Carbon::createFromDate($request->year, 4, 1);
+
+        $fromDate = $start->format('Y-m-d');
+        if ($currentMonth > 3) {
+            $end = Carbon::createFromDate($currentYear + 1, 3, 31);
+            $toDate = $end->format('Y-m-d');
+        } else
+            $toDate = ($currentYear . '-03-31');
+
+        $mreq = new Request([
+            "fromDate" => $fromDate,
+            "toDate" => $toDate,
+            "ulbId" => $ulbId,
+            "wardMstrId" => $wardMstrId,
+            "perPage" => $request->perPage
+        ]);
+
+        $data = $mconsumerDemand->wardWiseConsumer($mreq);
+
+        $queryRunTime = (collect(DB::getQueryLog())->sum("time"));
+        return responseMsgs(true, "Ward Wise Holding Data!", $data, 'pr6.1', '1.1', $queryRunTime, 'Post', '');
+    }
+
+
 }

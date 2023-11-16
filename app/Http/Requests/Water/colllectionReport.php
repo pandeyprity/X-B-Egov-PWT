@@ -2,10 +2,11 @@
 
 namespace App\Http\Requests\water;
 
-use App\Http\Requests\AllRequest;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
-class colllectionReport extends AllRequest
+class colllectionReport extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -38,5 +39,20 @@ class colllectionReport extends AllRequest
             "meterStatus"=> "nullable|in:1,3"
         ];
         return $rules;
+    }
+
+    // Validation Error Message
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(
+            response()->json(
+                [
+                    'status'   => false,
+                    'message'  => 'The given data was invalid',
+                    'errors'   => $validator->errors()
+                ],
+                422
+            )
+        );
     }
 }
