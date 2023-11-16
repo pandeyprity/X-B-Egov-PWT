@@ -1447,11 +1447,13 @@ class HoldingTaxController extends Controller
             DB::beginTransaction();
 
             $this->demandUpdate($request,$demand);
-            $interId = $log->store($request);
+            
             $demand->update();
 
             $this->tranInsert($request,$tran,$demand,$prop);
             $tran->save();
+            $request->merge(["tranId"=>$tran->id]);
+            $interId = $log->store($request);
             $this->tranDtlInsert($request,$tranDtl,$tran,$demand,$prop);
             $tranDtl->save();
             $this->chequDtlInsert($request,$cheqeDtl,$tran,$prop);
@@ -1495,6 +1497,11 @@ class HoldingTaxController extends Controller
         $demand->light_cess      = $demand->light_cess   + $request->lightCess ;
         $demand->major_building  = $demand->major_building   + $request->majorBuilding ;
         $demand->open_ploat_tax  = $demand->open_ploat_tax   + $request->openPloatTax ;
+        if(!$demand->paid_status && $demand->due_total_tax>0)
+        {
+            $demand->is_full_paid =false;
+            $demand->paid_status =1;
+        }
     }
     private function tranInsert(Request $request,PropTransaction $tran,PropDemand $demand,PropProperty $prop)
     {
