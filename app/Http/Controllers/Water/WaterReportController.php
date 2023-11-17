@@ -1937,7 +1937,7 @@ class WaterReportController extends Controller
                         ELSE 0                                   
                         END                         
                     ) AS current_demand,       
-                    COUNT(DISTINCT ( CASE WHEN water_consumer_demands.demand_upto <= '$previousUptoDate'  THEN water_consumer_demands.balance_amount    
+                    COUNT(DISTINCT ( CASE WHEN water_consumer_demands.demand_upto <= '$previousUptoDate'  THEN water_consumer_demands.consumer_id    
                                     END)                            
                         ) as arrear_demand_hh,                       
                     SUM(CASE WHEN water_consumer_demands.demand_upto <= '$previousUptoDate' THEN (water_consumer_demands.balance_amount) ELSE 0 END ) AS arrear_demand,     
