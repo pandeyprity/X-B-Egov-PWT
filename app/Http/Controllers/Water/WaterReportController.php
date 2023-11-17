@@ -2209,6 +2209,7 @@ class WaterReportController extends Controller
             $userId = null;
             $zoneId = null;
             $paymentMode = null;
+            $perPage = $request->perPage ? $request->perPage : 5;
             $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
             if ($request->fromDate) {
                 $fromDate = $request->fromDate;
@@ -2242,83 +2243,108 @@ class WaterReportController extends Controller
             }
 
             // DB::connection('pgsql_water')->enableQueryLog();
-            $subQuery = DB::raw('(SELECT 
-                                    COUNT(water_consumer_demands.id) AS demand_count,
-                                    SUM(water_consumer_demands.balance_amount) AS total_balance,
-                                    water_consumer_demands.consumer_id,
-                                    water_consumer_demands.connection_type,
-                                    water_consumer_demands.amount as demandAmount,
-                                     water_consumer_demands.demand_upto,
-                                    water_consumer_demands.demand_from
-                                        FROM water_consumer_demands
-                                        WHERE  
-                                            water_consumer_demands.demand_from >= :fromDate
-                                            AND water_consumer_demands.demand_upto <= :uptoDate
-                                            AND water_consumer_demands.status = TRUE
-                                            AND water_consumer_demands.consumer_id IS NOT NULL
-                                        GROUP BY 
-                                            water_consumer_demands.demand_upto,
-                                            water_consumer_demands.demand_from,
-                                            water_consumer_demands.consumer_id, 
-                                            water_consumer_demands.connection_type,
-                                            water_consumer_demands.amount) AS water_consumer_demands');
+            
+            $rawData = ("SELECT 
+            water_consumer_demands.*,
+            ulb_ward_masters.ward_name AS ward_no,
+            water_second_consumers.id,
+            'water' as type,
+            water_second_consumers.consumer_no,
+            water_second_consumers.user_type,
+            water_second_consumers.property_no,
+            water_second_consumers.address,
+            water_consumer_owners.applicant_name,
+            water_consumer_owners.guardian_name,
+            water_consumer_owners.mobile_no,
+            water_second_consumers.ward_mstr_id,
+            zone_masters.zone_name
+        FROM (
+            SELECT 
+                COUNT(water_consumer_demands.id),
+                SUM(balance_amount),
+                water_consumer_demands.consumer_id,
+                water_consumer_demands.connection_type,
+                  water_consumer_demands.amount as demandAmount,
+                  water_consumer_demands.status
+            FROM water_consumer_demands
+            WHERE  
+                demand_from >= '2023-04-01'
+                AND demand_upto <= '2024-03-31'
+                AND water_consumer_demands.status = TRUE
+                AND water_consumer_demands.consumer_id IS NOT NULL
+            GROUP BY water_consumer_demands.consumer_id, 
+                             water_consumer_demands.connection_type,
+                             water_consumer_demands.amount,
+                             water_consumer_demands.status
+        ) water_consumer_demands
+        JOIN water_second_consumers ON water_second_consumers.id = water_consumer_demands.consumer_id
+        LEFT JOIN water_consumer_owners ON water_consumer_owners.consumer_id = water_second_consumers.id
+        LEFT JOIN zone_masters ON zone_masters.id = water_second_consumers.zone_mstr_id
+        LEFT JOIN ulb_ward_masters ON ulb_ward_masters.id = water_second_consumers.ward_mstr_id
+        JOIN (
+            SELECT 
+                STRING_AGG(applicant_name, ', ') AS owner_name, 
+                STRING_AGG(water_consumer_owners.mobile_no::TEXT, ', ') AS mobile_no, 
+                water_consumer_owners.consumer_id 
+            FROM water_second_consumers 
+            JOIN water_consumer_demands ON water_consumer_demands.consumer_id = water_second_consumers.id
+            JOIN water_consumer_owners ON water_consumer_owners.consumer_id = water_second_consumers.id
+            GROUP BY water_consumer_owners.consumer_id
+        ) owners ON owners.consumer_id = water_second_consumers.id
+        WHERE water_consumer_demands.status = true
+        ");
 
-            $data = WaterConsumerDemand::select(
-                'water_consumer_demands.*',
-                'ulb_ward_masters.ward_name AS ward_no',
-                'water_second_consumers.id',
-                DB::raw("'water' AS type"),
-                'water_second_consumers.consumer_no',
-                'water_second_consumers.user_type',
-                'water_second_consumers.property_no',
-                'water_second_consumers.address',
-                'water_consumer_owners.applicant_name',
-                'water_consumer_owners.guardian_name',
-                'water_consumer_owners.mobile_no',
-                'water_second_consumers.ward_mstr_id',
-                'zone_masters.zone_name'
-            )
-                ->from($subQuery)
-                ->addBinding($fromDate, )
-                ->addBinding($uptoDate, )
-                ->join('water_second_consumers', 'water_second_consumers.id', '=', 'water_consumer_demands.consumer_id')
-                ->leftJoin('water_consumer_owners', 'water_consumer_owners.consumer_id', '=', 'water_second_consumers.id')
-                ->leftJoin('zone_masters', 'zone_masters.id', '=', 'water_second_consumers.zone_mstr_id')
-                ->leftJoin('ulb_ward_masters', 'ulb_ward_masters.id', '=', 'water_second_consumers.ward_mstr_id')
-
-                ->join(DB::raw('(SELECT 
-                                    STRING_AGG(applicant_name, \', \') AS owner_name, 
-                                    STRING_AGG(water_consumer_owners.mobile_no::TEXT, \', \') AS mobile_no, 
-                                    water_consumer_owners.consumer_id 
-                                FROM water_second_consumers 
-                                JOIN water_consumer_demands ON water_consumer_demands.consumer_id = water_second_consumers.id
-                                JOIN water_consumer_owners ON water_consumer_owners.consumer_id = water_second_consumers.id
-                                GROUP BY water_consumer_owners.consumer_id) AS owners'), 'owners.consumer_id', '=', 'water_second_consumers.id');
-
-
+            // return ["details" => $data->get()];
             if ($wardId) {
-                $data = $data->where("where ulb_ward_masters.id", $wardId);
+                $rawData = $rawData . "and ulb_ward_masters.id = $wardId";
             }
             if ($zoneId) {
-                $data = $data->where(" water_second_consumers.zone_mstr_id", $zoneId);
+                $rawData = $rawData ." and water_second_consumers.zone_mstr_id = $zoneId";
             }
             if ($meterStatus) {
-                $data = $data->where("water_consumer_demands.connection_type", $meterStatus);
+                $rawData = $rawData . "and water_consumer_demands.connection_type = $meterStatus";
             }
+         $data = DB::connection('pgsql_water')->select(DB::raw($rawData . "OFFSET 0
+         LIMIT $perPage"));
 
+
+            return ["kjsfd" =>$data];
             $paginator = collect();
 
-
-            $perPage = $request->perPage ? $request->perPage : 5;
             $page = $request->page && $request->page > 0 ? $request->page : 1;
-            
 
-            $data2 = $data;
-            $data2 = $data2->get();
-            $totalConsumers = $data2->unique("id")->count("water_second_consumers.id");
-            $totalAmount = $data2->sum("demandamount");
-            // return ["details" => $data->get()];
-            $paginator = $data->paginate($perPage);
+            $data2 = DB::connection('pgsql_water')->select(DB::raw($rawData));
+            $totalConsumers = collect($data2)->unique("id")->count("water_second_consumers.id");
+            $totalAmount = collect($data2)->sum("demandamount");
+
+            // if ($request->all) {
+            //     $data = $data->get();
+            //     $mode = collect($data)->unique("consumer_id")->pluck("transaction_mode");
+            //     $totalFAmount = collect($data)->unique("consumer_id")->sum("amount");
+            //     $totalFCount = collect($data)->unique("tran_id")->count("tran_id");
+            //     $footer = $mode->map(function ($val) use ($data) {
+            //         $count = $data->where("transaction_mode", $val)->unique("tran_id")->count("tran_id");
+            //         $amount = $data->where("transaction_mode", $val)->unique("tran_id")->sum("amount");
+            //         return ['mode' => $val, "count" => $count, "amount" => $amount];
+            //     });
+            //     $list = [
+            //         "data" => $data,
+
+            //     ];
+            //     $tcName = collect($data)->first()->emp_name ?? "";
+            //     $tcMobile = collect($data)->first()->tc_mobile ?? "";
+            //     if ($request->footer) {
+            //         $list["tcName"] = $tcName;
+            //         $list["tcMobile"] = $tcMobile;
+            //         $list["footer"] = $footer;
+            //         $list["totalCount"] = $totalFCount;
+            //         $list["totalAmount"] = $totalFAmount;
+            //     }
+            //     return responseMsgs(true, "", remove_null($list), $apiId, $version, $queryRunTime, $action, $deviceId);
+            // }
+
+            return  $paginator = $data->paginate($perPage);
+
             $list = [
                 "current_page" => $paginator->currentPage(),
                 "last_page" => $paginator->lastPage(),
@@ -2509,38 +2535,52 @@ class WaterReportController extends Controller
     /**
      * |
      */
-     /**
-     * | Ward wise holding report
+    /**
+     * | Ward wise demand report
      */
     public function wardWiseConsumerReport(Request $request)
     {
         $mconsumerDemand = new waterConsumerDemand();
-        $wardMstrId = $request->wardMstrId;
-        $ulbId = authUser($request)->ulb_id;
-        $currentMonth = Carbon::now()->month;
-        $currentYear = Carbon::now()->year;
-        $start = Carbon::createFromDate($request->year, 4, 1);
+        $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
+        $ulbId = null;
+        $wardId = null;
+        $perPage = 5;
+        if ($request->fromDate) {
+            $fromDate = $request->fromDate;
+        }
+        if ($request->uptoDate) {
+            $uptoDate = $request->uptoDate;
+        }
+        if ($request->wardId) {
+            $wardId = $request->wardId;
+        }
 
-        $fromDate = $start->format('Y-m-d');
-        if ($currentMonth > 3) {
-            $end = Carbon::createFromDate($currentYear + 1, 3, 31);
-            $toDate = $end->format('Y-m-d');
-        } else
-            $toDate = ($currentYear . '-03-31');
+        if ($request->ulbId) {
+            $ulbId = $request->ulbId;
+        }
+        if ($request->zoneId) {
+            $zoneId = $request->zoneId;
+        }
+        if ($request->perPage){
+            $perPage = $request->perPage;
+        }
+        // return $request->all();
 
-        $mreq = new Request([
-            "fromDate" => $fromDate,
-            "toDate" => $toDate,
-            "ulbId" => $ulbId,
-            "wardMstrId" => $wardMstrId,
-            "perPage" => $request->perPage
-        ]);
+        //  $mreq = new Request([
+        //     "fromDate" => $fromDate,
+        //     "uptoDate" => $uptoDate,
+        //     "ulbId" => $ulbId,
+        //     "wardMstrId" => $wardId,
+        //     "perPage" => $request->perPage
+        // ]);
 
-        $data = $mconsumerDemand->wardWiseConsumer($mreq);
+
+        $data = $mconsumerDemand->previousDemand($fromDate,$uptoDate,$wardId,$ulbId,$perPage)->get();
+        if(!$data){
+            throw new Exception ('no demand found!');
+        }
 
         $queryRunTime = (collect(DB::getQueryLog())->sum("time"));
-        return responseMsgs(true, "Ward Wise Holding Data!", $data, 'pr6.1', '1.1', $queryRunTime, 'Post', '');
+        return responseMsgs(true, "Ward Wise Demand Data!", remove_null($data), 'pr6.1', '1.1', $queryRunTime, 'Post', '');
     }
-
-
 }
