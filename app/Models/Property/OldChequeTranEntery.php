@@ -15,6 +15,7 @@ class OldChequeTranEntery extends Model
     {
         $data = [
             "prop_id" =>$req->propId,
+            "tran_id" =>$req->tranId,
             "demand_id" =>$req->demandId,
             "book_no" =>$req->bookNo,
             "receipt_no" =>$req->ReceiptNo,
