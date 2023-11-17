@@ -11,6 +11,7 @@ use App\Http\Controllers\Property\ApplySafController;
 use App\Http\Controllers\Property\ConcessionController;
 use App\Http\Controllers\Property\SafCalculatorController;
 use App\Http\Controllers\Property\CalculatorController;
+use App\Http\Controllers\Property\CitizenHoldingController;
 use App\Http\Controllers\Property\DocumentOperationController;
 use App\Http\Controllers\Property\ObjectionController;
 use App\Http\Controllers\Property\PropertyDeactivateController;
@@ -343,6 +344,10 @@ Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_make
     Route::post('legacy-payment-holding', 'legacyPaymentHolding');                // (14) Legacy Property Payment
     Route::post('v1/get-billref-no', 'generateBillRefNo');                        // (15) Pine Lab Get Reference No
     Route::post('oldChequeTranEntery', 'oldChequeEntery');  
+  });
+
+  Route::controller(CitizenHoldingController::class)->group(function () {
+    Route::post('citizen/get-holding-dues', 'getHoldingDues');                    // (02.1) unthicatd/Property/ Holding Dues
   });
 
   /**
