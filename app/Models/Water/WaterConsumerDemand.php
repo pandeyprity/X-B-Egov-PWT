@@ -405,7 +405,10 @@ class WaterConsumerDemand extends Model
         return WaterConsumerDemand::where('id', $demandId)
             ->where('status', True);
     }
-    public function wardWiseConsumer($req)
+    /**
+     * ward wise demand report
+     */
+    public function wardWiseConsumer($fromDate,$uptoDate,$wardId,$ulbId,$perPage)
     {
         return WaterConsumerDemand::select(
             'water_consumer_demands.*',
@@ -415,25 +418,29 @@ class WaterConsumerDemand extends Model
             'water_second_consumers.address',
             'water_consumer_demands.balance_amount',
             'water_second_consumers.ward_mstr_id',
-            'ulb_ward_masters.ward_name as ward_no',
+            'ulb_ward_masters.ward_name as ward_no'
         )
             ->join('water_second_consumers', 'water_second_consumers.id', 'water_consumer_demands.consumer_id')
             ->join('water_consumer_owners', 'water_consumer_owners.consumer_id', 'water_second_consumers.id')
-            ->join('ulb_ward_masters', 'ulb_ward_masters.id', 'water_second_consumers.ward_mstr_id')
-            ->where('paid_status', 0)
-            ->where('water_consumer_demands.demand_from', $req->fromDate)
-            ->where('water_consumer_demands.demand_upto', $req->fromDate)
-            ->where('water_second_consumers.ulb_id', $req->ulbId)
-            ->where('water_second_consumers.ward_mstr_id', $req->wardMstrId)
+            ->leftjoin('ulb_ward_masters', 'ulb_ward_masters.id','water_second_consumers.ward_mstr_id')
+            ->where('water_consumer_demands.paid_status', 0)
+            ->where('water_consumer_demands.demand_from','>=', $fromDate)
+            ->where('water_consumer_demands.demand_upto','<=', $uptoDate)
+            ->where('water_second_consumers.ulb_id', $ulbId)
+            ->where('water_second_consumers.ward_mstr_id', $wardId)
+            ->where('water_consumer_demands.status', true)
             ->groupby(
                 'water_consumer_demands.consumer_id',
                 'water_consumer_demands.balance_amount',
-                'water_second_consumers.ward_mstr_id',
                 'water_consumer_demands.id',
-                'water_second_consumers.consumer_no'
-                // 'qtr'
+                'water_second_consumers.consumer_no',
+                'water_consumer_owners.guardian_name',
+                'water_second_consumers.mobile_no',
+                'water_second_consumers.address',
+                'water_second_consumers.ward_mstr_id',
+                'ulb_ward_masters.ward_name'
             )
-            ->paginate($req->perPage);
-        // ->get();
+            // ->paginate($perPage);
+            ->get();
     }
 }
