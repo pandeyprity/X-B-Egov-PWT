@@ -30,7 +30,7 @@ class GetHoldingDuesV2
         $demandList = collect();
         $calculate2PercPenalty = new Calculate2PercPenalty;
         $fy = getFY();
-        $userId = auth()->user()->id;
+        $userId = auth()->user()->id??0;
         $userDtls = $mUsers::find($userId);
 
         // Get Property Details
