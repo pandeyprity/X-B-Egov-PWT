@@ -1630,10 +1630,14 @@ class WaterReportController extends Controller
                 $wardId = $request->wardId;
             }
 
-            if ($request->userId)
+            if ($request->userId) {
                 $userId = $request->userId;
-            else
-                $userId = auth()->user()->id;                   // In Case of any logged in TC User
+            }
+
+            # In Case of any logged in TC User
+            if ($refUser->user_type == "TC") {
+                $userId = $refUser->id;
+            }
 
             if ($request->paymentMode) {
                 $paymentMode = $request->paymentMode;
