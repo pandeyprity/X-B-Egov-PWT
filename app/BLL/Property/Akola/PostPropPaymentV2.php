@@ -194,9 +194,9 @@ class PostPropPaymentV2
      */
     public function postPayment()
     {
-        if ($this->_REQ->paymentType == 'isPartPayment') {
+        // if ($this->_REQ->paymentType == 'isPartPayment') {
             return $this->postPaymentV2();
-        }
+        // }
         $this->readPaymentParams();
 
         // 🔴🔴🔴🔴Begining Transactions 🔴🔴🔴
