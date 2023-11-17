@@ -2127,6 +2127,7 @@ class WaterReportController extends Controller
             $zoneId = null;
             $paymentMode = null;
             $perPage = $request->perPage ? $request->perPage : 5;
+            $page = $request->page && $request->page > 0 ? $request->page : 1;
             $fromDate = $uptoDate = Carbon::now()->format("Y-m-d");
             if ($request->fromDate) {
                 $fromDate = $request->fromDate;
@@ -2177,21 +2178,20 @@ class WaterReportController extends Controller
             zone_masters.zone_name
         FROM (
             SELECT 
-                COUNT(water_consumer_demands.id),
-                SUM(balance_amount),
+                COUNT(water_consumer_demands.id)as demand_count,
+                SUM(balance_amount) as sum_balance_amount,
                 water_consumer_demands.consumer_id,
                 water_consumer_demands.connection_type,
-                  water_consumer_demands.amount as demandAmount,
                   water_consumer_demands.status
             FROM water_consumer_demands
             WHERE  
-                demand_from >= '2023-04-01'
-                AND demand_upto <= '2024-03-31'
+                demand_from >= '$fromDate'
+                AND demand_upto <= '$uptoDate'
                 AND water_consumer_demands.status = TRUE
                 AND water_consumer_demands.consumer_id IS NOT NULL
+                AND water_consumer_demands.paid_status= 0
             GROUP BY water_consumer_demands.consumer_id, 
                              water_consumer_demands.connection_type,
-                             water_consumer_demands.amount,
                              water_consumer_demands.status
         ) water_consumer_demands
         JOIN water_second_consumers ON water_second_consumers.id = water_consumer_demands.consumer_id
@@ -2221,11 +2221,42 @@ class WaterReportController extends Controller
             if ($meterStatus) {
                 $rawData = $rawData . "and water_consumer_demands.connection_type = $meterStatus";
             }
+
             $data = DB::connection('pgsql_water')->select(DB::raw($rawData . "OFFSET 0
          LIMIT $perPage"));
 
 
-            return ["kjsfd" => $data];
+            $count = (collect(DB::connection('pgsql_water')->SELECT("SELECT COUNT(*) AS total
+                                FROM ($rawData) total"))->first());
+            $total = ($count)->total ?? 0;
+            $lastPage = ceil($total / $perPage);
+            $list = [
+                "current_page" => $page,
+                "data" => $data,
+                "total" => $total,
+                "per_page" => $perPage,
+                "last_page" => $lastPage
+            ];
+            return responseMsgs(true, "", $list, $apiId, $version, $queryRunTime = NULL, $action, $deviceId);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            // return ["kjsfd" => $data];
             $paginator = collect();
 
             $page = $request->page && $request->page > 0 ? $request->page : 1;
@@ -2260,7 +2291,7 @@ class WaterReportController extends Controller
             //     return responseMsgs(true, "", remove_null($list), $apiId, $version, $queryRunTime, $action, $deviceId);
             // }
 
-            return  $paginator = $data->paginate($perPage);
+
 
             $list = [
                 "current_page" => $paginator->currentPage(),
@@ -2271,7 +2302,7 @@ class WaterReportController extends Controller
                 "total" => $paginator->total(),
             ];
             // $queryRunTime = (collect(DB::connection('pgsql_water'))->sum("time"));
-            return responseMsgs(true, "", $list, $apiId, $version, $queryRunTime = NULL, $action, $deviceId);
+            return responseMsgs(true, "", $data, $apiId, $version, $queryRunTime = NULL, $action, $deviceId);
         } catch (Exception $e) {
             return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
@@ -2479,20 +2510,9 @@ class WaterReportController extends Controller
             $zoneId = $request->zoneId;
         }
         if ($request->perPage) {
-            $perPage = $request->perPage;
+            $perPage = $request->perPage ?? 1;
         }
-        // return $request->all();
-
-        //  $mreq = new Request([
-        //     "fromDate" => $fromDate,
-        //     "uptoDate" => $uptoDate,
-        //     "ulbId" => $ulbId,
-        //     "wardMstrId" => $wardId,
-        //     "perPage" => $request->perPage
-        // ]);
-
-
-        $data = $mconsumerDemand->previousDemand($fromDate, $uptoDate, $wardId, $ulbId, $perPage)->get();
+        $data = $mconsumerDemand->wardWiseConsumer($fromDate, $uptoDate, $wardId, $ulbId, $perPage);
         if (!$data) {
             throw new Exception('no demand found!');
         }
