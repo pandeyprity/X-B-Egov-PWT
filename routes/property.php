@@ -543,6 +543,7 @@ Route::controller(CalculatorController::class)->group(function () {
  */
 Route::controller(ActiveSafControllerV2::class)->group(function () {
   Route::post('search-holding', 'searchHolding');                     //04
+  Route::post('search-holding-direct', 'searchHoldingDirect');  # created by prity pandey on  18-11-2023
 });
 /**
  * | Holding Tax Controller(Created By-Anshu Kumar)
