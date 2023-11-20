@@ -2,13 +2,16 @@
 
 namespace App\BLL\Property\Akola;
 
+use App\Models\Property\PropFloor;
+use App\Models\Property\PropOwner;
+use App\Models\Property\PropProperty;
 use App\Models\Property\RefPropConstructionType;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
-
+use Illuminate\Support\Facades\DB;
 
 /**
  * | Author - Anshu Kumar
@@ -74,6 +77,24 @@ class TaxCalculator
             $oldestFloor = collect($this->_REQUEST->floor)->sortBy('dateFrom')->first();
             $this->_propFyearFrom = Carbon::parse($oldestFloor['dateFrom'])->format('Y');                // For Vacant Land Only
         }
+        // if(isset($this->_REQUEST->assessmentType) && $this->_REQUEST->assessmentType != 1 && $this->_REQUEST->assessmentType != 5)
+        // {
+        //     $mPropFloors = new PropFloor();
+        //     $mPropOwners = new PropOwner();
+        //     $priProperty = PropProperty::find($this->_REQUEST->previousHoldingId);
+        //     $floors = $mPropFloors->getPropFloors($priProperty->id);
+        //     $unPaidDemand = $priProperty->PropDueDemands()->get();
+        //     $unPaidAmount = collect($unPaidDemand)->sum("due_total_tax")??0;
+        //     if($unPaidAmount>0)
+        //     {
+        //         // throw new Exception("Old Demand Not Cleard");
+        //     }
+        //     $lastPropDemand = $priProperty->PropLastDemands()->get();
+        //     $paydUptoDemand = $priProperty->PropLastPaidDemands()->get();
+        //     $test = $unPaidDemand->toArray();
+        //     dd($test,collect($collect));
+        //     dd($unPaidDemand,$lastPropDemand,$paydUptoDemand,$floors,$priProperty,$this->_REQUEST->all());
+        // }
 
         $currentFYear = $this->_carbonToday->format('Y');
         $this->_pendingYrs = ($currentFYear - $this->_propFyearFrom) + 1;                      // Read Total FYears
