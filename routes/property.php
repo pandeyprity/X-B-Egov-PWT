@@ -56,7 +56,8 @@ Route::post('api-test', function () {
 })->middleware('api.key');
 
 Route::controller(PropertyMutationController::class)->group(function(){
-  Route::post('abcd','addMutationApplication');
+  Route::post('mutation','addMutationApplication');
+  
 });
 
 // Inside Middleware Routes with API Authenticate 
