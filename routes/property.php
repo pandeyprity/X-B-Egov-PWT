@@ -24,6 +24,7 @@ use App\Http\Controllers\Property\ConcessionDocController;
 use App\Http\Controllers\Property\GbSafController;
 use App\Http\Controllers\Property\HoldingTaxController;
 use App\Http\Controllers\Property\PropertyController;
+use App\Http\Controllers\Property\PropertyMutationController;
 use App\Http\Controllers\Property\ReportController;
 use App\Http\Controllers\Property\SafDocController;
 use App\Http\Controllers\Property\WaiverController;
@@ -53,6 +54,10 @@ use App\Http\Controllers\ReferenceController;
 Route::post('api-test', function () {
   return "Welcome to Property Module";
 })->middleware('api.key');
+
+Route::controller(PropertyMutationController::class)->group(function(){
+  Route::post('abcd','addMutationApplication');
+});
 
 // Inside Middleware Routes with API Authenticate 
 Route::group(['middleware' => ['request_logger', 'expireBearerToken', 'auth_maker']], function () {

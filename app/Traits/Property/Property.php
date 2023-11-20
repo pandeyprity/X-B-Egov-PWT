@@ -3,6 +3,7 @@
 namespace App\Traits\Property;
 
 use App\Http\Controllers\Property\ActiveSafController;
+use App\Models\Property\PropFloor;
 use App\Models\Property\PropOwner;
 use App\Models\Property\PropOwnerUpdateRequest;
 use App\Models\Property\PropProperty;
@@ -740,4 +741,110 @@ trait Property
         }
         return $ownerCom;
     }
+
+    public function generatePropFloar(Request $request,PropFloor $floors)
+    {
+         $arr=[
+                    "propFloorDetailId"=>$floors->prop_floor_details_id,
+                    "floorNo"=>$floors->floor_mstr_id,
+                    "usageType"=>$floors->usage_type_mstr_id,
+                    "constructionType"=>$floors->const_type_mstr_id,
+                    "occupancyType"=>$floors->occupancy_type_mstr_id,
+                    "buildupArea"=>$floors->builtup_area,
+                    "dateFrom"=>$floors->date_from,
+                    "dateUpto"=>$floors->date_upto
+                ];
+        return $arr;
+    }
+
+    // public function generatePropSafMRequest(PropProperty $property)
+    // {
+    //     $floars = $property->floars()->get();
+    //     $request=[
+    //         "category"      =>$property->category_
+    //     ];
+
+    //         'hasPreviousHoldingNo' => $req->has_previous_holding_No,
+    //         'previousHoldingId' => $req->previous_holding_id,
+    //         'previousWard' => $req->previous_ward_mstr_id,
+    //         'isOwnerChanged' => $req->is_owner_changed,
+    //         'transferModeId' => $req->transfer_mode_mstr_id ?? null,
+    //         'holdingNo' => $req->holding_no,
+    //         'ward' => $req->ward_mstr_id,
+    //         'ownershipType' => $req->ownership_type_mstr_id,
+    //         'propertyType' => $req->prop_type_mstr_id,
+    //         'appartmentName' => $req->appartment_name,
+    //         'flatRegistryDate' => $req->flat_registry_date,
+    //         'zone' => $req->zone_mstr_id,
+    //         'electricityConnection' => $req->no_electric_connection,
+    //         'electricityCustNo' => $req->elect_consumer_no,
+    //         'electricityAccNo' => $req->elect_acc_no,
+    //         'electricityBindBookNo' => $req->elect_bind_book_no,
+    //         'electricityConsCategory' => $req->elect_cons_category,
+    //         'buildingPlanApprovalNo' => $req->building_plan_approval_no,
+    //         'buildingPlanApprovalDate' => $req->building_plan_approval_date,
+    //         'waterConnNo' => $req->water_conn_no,
+    //         'waterConnDate' => $req->water_conn_date,
+    //         'khataNo' => $req->khata_no,
+    //         'plotNo' => $req->plot_no,
+    //         'villageMaujaName' => $req->village_mauja_name,
+    //         'roadWidthType' => $req->road_type_mstr_id,
+    //         'areaOfPlot' => $req->area_of_plot,
+    //         'propAddress' => $req->prop_address,
+    //         'propCity' => $req->prop_city,
+    //         'propDist' => $req->prop_dist,
+    //         'propPinCode' => $req->prop_pin_code,
+    //         'isCorrAddDiffer' => $req->is_corr_add_differ,
+    //         'corrAddress' => $req->corr_address,
+    //         'corrCity' => $req->corr_city,
+    //         'corrDist' => $req->corr_dist,
+    //         'corrPinCodex' => $req->corr_pin_code,
+    //         'holdingType' => $req->holding_type,
+    //         'isMobileTower' => $req->is_mobile_tower,
+    //         'mobileTower' => $req->tower_area['area'] ?? null,
+    //         'tower_installation_date' => $req->mobileTower['dateFrom'] ?? null,
+
+    //         'is_hoarding_board' => $req->isHoardingBoard,
+    //         'hoarding_area' => $req->hoardingBoard['area'] ?? null,
+    //         'hoarding_installation_date' => $req->hoardingBoard['dateFrom'] ?? null,
+
+
+    //         'is_petrol_pump' => $req->isPetrolPump,
+    //         'under_ground_area' => $req->petrolPump['area'] ?? null,
+    //         'petrol_pump_completion_date' => $req->petrolPump['dateFrom'] ?? null,
+
+    //         'is_water_harvesting' => $req->isWaterHarvesting,
+    //         'rwh_date_from' => ($req->isWaterHarvesting == 1) ? $req->rwhDateFrom : null,
+    //         'land_occupation_date' => $req->landOccupationDate?$req->landOccupationDate:$req->dateOfPurchase,
+    //         'doc_verify_cancel_remarks' => $req->docVerifyCancelRemark,
+    //         'application_date' =>  Carbon::now()->format('Y-m-d'),
+    //         'assessment_type' => $req->assessmentType,
+    //         'saf_distributed_dtl_id' => $req->safDistributedDtl,
+    //         'prop_dtl_id' => $req->propDtl,
+    //         'prop_state' => $req->propState,
+    //         'corr_state' => $req->corrState,
+    //         'holding_type' => $req->holdingType,
+    //         'ip_address' => getClientIpAddress(),
+    //         'new_ward_mstr_id' => $req->newWard,
+    //         'percentage_of_property_transfer' => $req->percOfPropertyTransfer,
+    //         'apartment_details_id' => $req->apartmentId,
+    //         'applicant_name' => Str::upper(collect($req->owner)->first()['ownerName']),
+    //         'road_width' => $req->roadType,
+    //         'user_id' => $req->userId,
+    //         'workflow_id' => $req->workflowId,
+    //         'ulb_id' => $req->ulbId,
+    //         'current_role' => $req->initiatorRoleId,
+    //         'initiator_role_id' => $req->initiatorRoleId,
+    //         'finisher_role_id' => $req->finisherRoleId,
+    //         'citizen_id' => $req->citizenId ?? null,
+
+    //         'building_name' => $req->buildingName,
+    //         'street_name' => $req->streetName,
+    //         'location' => $req->location,
+    //         'landmark' => $req->landmark,
+    //         'is_gb_saf' => isset($req->isGBSaf) ? $req->isGBSaf : false,
+    //         'is_trust' => $req->isTrust ?? false,
+    //         'trust_type' => $req->trustType ?? null,
+    //         'category_id' => $req->category,
+    // }
 }
