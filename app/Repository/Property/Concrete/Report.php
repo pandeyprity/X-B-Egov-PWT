@@ -2834,6 +2834,7 @@ class Report implements IReport
             return responseMsgs(false, $e->getMessage(), $request->all(), $apiId, $version, $queryRunTime, $action, $deviceId);
         }
     }
+    
 
     /**
      * | GBSAF Individual Demand Collection
