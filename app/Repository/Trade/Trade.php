@@ -2025,6 +2025,9 @@ class Trade implements ITrade
                             $join->on("owner.temp_id", "active_trade_licences.id");
                         })
                         ->leftjoin("trade_param_firm_types", "trade_param_firm_types.id", "active_trade_licences.firm_type_id")
+                        ->leftjoin("ulb_ward_masters", function ($join) {
+                            $join->on("ulb_ward_masters.id", "=", "active_trade_licences.ward_id");
+                        })
                     ->select(
                         "active_trade_licences.id",
                         "active_trade_licences.application_no",
@@ -2040,10 +2043,15 @@ class Trade implements ITrade
                         "owner.mobile_no",
                         "owner.email_id",
                         "active_trade_licences.application_type_id",
+                        //"active_trade_licences.ward_id",
                         "trade_param_application_types.application_type",
                         "trade_param_firm_types.firm_type",
                         "active_trade_licences.firm_type_id",
                         DB::raw("TO_CHAR(CAST(active_trade_licences.application_date AS DATE), 'DD-MM-YYYY') as application_date"),
+                        ('ulb_ward_masters.id as ward_id'),
+                        DB::RAW("CASE WHEN old_ward_name IS NULL THEN CAST(ward_name AS TEXT) 
+                        ELSE old_ward_name 
+                        END AS ward_no")
                     )
                     ->WHERE("active_trade_licences.is_active",TRUE);
     }
